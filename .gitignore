@@ -1,0 +1,7 @@
+# Accounts and password hashes live here. Never commit this.
+data.json
+data.json.tmp
+
+node_modules/
+*.log
+.DS_Store

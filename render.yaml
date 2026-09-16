@@ -1,0 +1,15 @@
+# Render blueprint: New > Blueprint > pick this repo and it builds the whole service.
+# DATABASE_URL is left blank on purpose (sync: false) so the connection string is typed
+# into Render's dashboard and never lives in the repo. Without it accounts fall back to
+# data.json, which a free instance wipes whenever it restarts.
+services:
+  - type: web
+    name: mini-strikers
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false

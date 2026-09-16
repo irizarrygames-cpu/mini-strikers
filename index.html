@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2f7bff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Mini Strikers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="splash" class="splash">
+    <div class="splash-ball"></div>
+    <h1 id="splash-logo" class="logo splash-logo">Mini Strikers</h1>
+    <div class="splash-tap">TAP TO START</div>
+  </div>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" hidden>
+    <div id="touch-zone"></div>
+    <div id="replay-skip"></div>
+    <div id="net-ping" class="net-ping" hidden></div>
+    <div id="tip" class="tip" hidden></div>
+    <button id="btn-pause" class="icon-btn" aria-label="Pause"><i></i><i></i></button>
+    <div id="scoreboard">
+      <div class="sb-team blue"><span class="sb-ball"></span><span id="sb-blue">0</span></div>
+      <div class="sb-time" id="sb-time">03:00</div>
+      <div class="sb-team red"><span id="sb-red">0</span><span class="sb-ball"></span></div>
+    </div>
+    <div id="joy-base"><div id="joy-knob"></div></div>
+    <button id="btn-pass" class="action pass" aria-label="Pass">
+      <svg viewBox="0 0 64 40" aria-hidden="true"><path d="M6 30c0-8 4-18 10-22 3-2 7 0 9 3l6 8c3 3 8 4 14 5 8 1 13 4 13 8v2c0 2-2 3-4 3H9c-2 0-3-1-3-3z" fill="#bfefff" stroke="#161a33" stroke-width="4" stroke-linejoin="round"/><path d="M8 30h50" stroke="#161a33" stroke-width="4"/><path d="M26 16l-5 5M32 20l-5 5" stroke="#161a33" stroke-width="3" stroke-linecap="round"/></svg>
+      <span class="label">PASS</span>
+    </button>
+    <button id="btn-shoot" class="action shoot" aria-label="Shoot">
+      <span class="power-ring"></span>
+      <span class="face">
+        <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M2 20h16M6 30h14M10 40h12" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/><circle cx="40" cy="24" r="18" fill="#ffffff" stroke="#161a33" stroke-width="4"/><path d="M40 15l7 5-3 8h-8l-3-8z" fill="#c81f2b"/><path d="M24 24l7-4M49 32l5 3M40 42v-6M56 18l-9 2" stroke="#161a33" stroke-width="3"/></svg>
+      </span>
+      <span class="label">SHOOT</span>
+    </button>
+    <button id="btn-skill" class="action skill" aria-label="Skill or tackle">
+      <span class="face">
+        <svg class="ico-skill" viewBox="0 0 64 64" aria-hidden="true"><path d="M47 22A18 18 0 1 0 50 38" fill="none" stroke="#161a33" stroke-width="11" stroke-linecap="round"/><path d="M47 22A18 18 0 1 0 50 38" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/><path d="M40 12l15 6-10 12z" fill="#ffffff" stroke="#161a33" stroke-width="3.5" stroke-linejoin="round"/><circle cx="32" cy="32" r="8" fill="#ffffff" stroke="#161a33" stroke-width="3.5"/></svg>
+        <svg class="ico-slide" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 40c0-8 5-14 12-14h10c5 0 9 3 12 6l4 4c2 2 1 6-2 6H11c-2 0-3-1-3-2z" fill="#ffffff" stroke="#161a33" stroke-width="4" stroke-linejoin="round"/><circle cx="52" cy="24" r="9" fill="#ffffff" stroke="#161a33" stroke-width="4"/><path d="M52 18l4 3-1.5 4.5h-5L48 21z" fill="#161a33"/><path d="M4 20h10M2 28h8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/></svg>
+        <span class="cd"></span>
+      </span>
+      <span class="label"><b class="l-skill">SKILL</b><b class="l-slide">TACKLE</b></span>
+    </button>
+    <button id="btn-sprint" class="action sprint" aria-label="Sprint">
+      <span class="face">
+        <span class="stam"></span>
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M36 6L16 36h14l-4 22 22-32H34z" fill="#ffffff" stroke="#161a33" stroke-width="4" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="label">SPRINT</span>
+    </button>
+
+    <!-- PC: key legend with live cooldowns -->
+    <div id="kb-legend">
+      <div class="kl" data-k="move"><span class="kc wide">WASD</span><em>MOVE</em></div>
+      <div class="kl" data-k="shift"><span class="kc wide">SHIFT</span><em>SPRINT</em><i class="bar"><b id="kl-stam"></b></i></div>
+      <div class="kl" data-k="e"><span class="kc">E</span><em>PASS</em></div>
+      <div class="kl" data-k=" "><span class="kc wide">SPACE</span><em>SHOOT</em><i class="bar power"><b id="kl-power"></b></i></div>
+      <div class="kl" data-k="q"><span class="kc">Q</span><em>SKILL</em><i class="bar"><b id="kl-skill"></b></i></div>
+      <div class="kl" data-k="f"><span class="kc">F</span><em>TACKLE</em><i class="bar"><b id="kl-slide"></b></i></div>
+    </div>
+  </div>
+
+  <!-- ===== HOME ===== -->
+  <div id="home" class="screen">
+    <div class="home-top">
+      <button id="home-club" class="pill club-pill" data-open="league" title="League table"><canvas id="home-club-badge" width="72" height="48"></canvas><span id="home-club-name">CLUB</span><em id="home-club-pos"></em><span class="table-ico"></span></button>
+      <div class="pill trophies" title="Cups won"><span class="cup-ico"></span><span id="trophies">0</span></div>
+      <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
+    </div>
+    <h1 class="logo" id="logo">Mini Strikers</h1>
+    <button id="home-char" class="home-char">
+      <canvas id="home-char-canvas" width="96" height="96"></canvas>
+      <span id="home-ovr" class="hc-ovr"><b>60</b><small>OVR</small></span>
+      <div class="hc-info">
+        <small>LEVEL <b id="home-level">1</b> · <span id="home-user">GUEST</span></small>
+        <strong id="home-char-name">Street</strong>
+        <i class="xpbar"><b id="home-xp"></b></i>
+      </div>
+    </button>
+    <div id="home-record" class="home-record">0W · 0D · 0L</div>
+    <div class="home-bl">
+      <button id="btn-howto" class="howto-btn">? HOW TO PLAY</button>
+      <button id="btn-profile" class="howto-btn prof-btn"><span class="star-ico"></span>PROFILE<i id="prof-badge" class="badge" hidden>0</i></button>
+    </div>
+    <div class="home-actions">
+      <button id="btn-play" class="big-btn">PLAY</button>
+      <div class="home-row">
+        <button class="mid-btn" data-open="characters">CHARACTERS</button>
+        <button class="mid-btn" data-open="customize">CUSTOMIZE</button>
+        <button class="mid-btn" data-open="settings">SETTINGS</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- ===== SIGN UP / LOG IN ===== -->
+  <div id="auth" class="screen auth" hidden>
+    <div class="auth-card">
+      <div class="auth-left">
+        <h1 class="logo auth-logo" id="auth-logo">Mini Strikers</h1>
+        <div class="auth-tabs"><button data-auth="login" class="sel">LOG IN</button><button data-auth="signup">SIGN UP</button></div>
+        <form id="auth-form" class="auth-fields" autocomplete="on">
+          <label>USERNAME<input id="auth-user" name="username" maxlength="14" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+          <label>PASSWORD<input id="auth-pass" name="password" type="password" maxlength="200" autocomplete="current-password"></label>
+        </form>
+      </div>
+      <div id="auth-clubs-wrap" class="auth-right" hidden>
+        <div class="auth-clubs-head"><b>PICK YOUR COUNTRY</b><small>You play for them in every match and win them league points online.</small></div>
+        <div id="auth-clubs" class="auth-clubs"></div>
+      </div>
+      <div class="auth-foot">
+        <p id="auth-msg" class="auth-msg"></p>
+        <button id="auth-go" type="submit" form="auth-form" class="big-btn green">LOG IN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: FINDING A MATCH ===== -->
+  <div id="queue" class="overlay" hidden>
+    <div class="panel small queue">
+      <h2>FINDING MATCH</h2>
+      <div class="q-format" id="q-format">2v2</div>
+      <div class="q-dots" id="q-dots"></div>
+      <p class="note" id="q-note">Searching… 0:00</p>
+      <button id="q-cancel" class="mid-btn red">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: PRIVATE ROOM ===== -->
+  <div id="lobby" class="overlay" hidden>
+    <div class="panel wide lobby">
+      <h2>PRIVATE ROOM</h2>
+      <div class="lb-code">ROOM CODE <b id="lb-code">-----</b></div>
+      <p class="note" id="lb-note">Send the code to your friends, then press START.</p>
+      <div id="lb-formats" class="formats"></div>
+      <div class="lb-sides"><div class="lb-side" id="lb-blue"></div><div class="lb-side" id="lb-red"></div></div>
+      <div class="lb-buttons">
+        <button id="lb-leave" class="mid-btn red">LEAVE</button>
+        <button id="lb-switch" class="mid-btn">SWITCH SIDE</button>
+        <button id="lb-start" class="big-btn green">START</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DAILY REWARD ===== -->
+  <div id="daily" class="overlay" hidden>
+    <div class="panel daily">
+      <h2>DAILY REWARD</h2>
+      <p class="note">Come back every day in a row — day 7 pays big!</p>
+      <div id="daily-days" class="daily-days"></div>
+      <button id="daily-claim" class="big-btn green">CLAIM</button>
+    </div>
+  </div>
+
+  <!-- ===== MATCH INTRO ===== -->
+  <div id="intro" class="overlay intro" hidden>
+    <div class="intro-card">
+      <div id="intro-stage" class="intro-stage">QUICK MATCH</div>
+      <div class="intro-vs">
+        <div class="iv blue"><canvas id="intro-canvas" width="96" height="96"></canvas><div><span id="intro-home">HOME</span><small id="intro-you">STREET</small></div></div>
+        <b>VS</b>
+        <div class="iv red"><div><span id="intro-opp">ROCKETS</span><small id="intro-stars">★★</small></div></div>
+      </div>
+      <div class="intro-ch"><small>CHALLENGES</small><ul id="intro-challenges"></ul></div>
+      <button id="intro-go" class="big-btn green">KICK OFF!</button>
+    </div>
+  </div>
+
+  <!-- ===== HOW TO PLAY ===== -->
+  <div id="howto" class="overlay" hidden>
+    <div class="panel howto">
+      <h2>HOW TO PLAY</h2>
+      <div id="howto-cards" class="howto-cards"></div>
+      <button id="howto-ok" class="big-btn green">GOT IT!</button>
+    </div>
+  </div>
+
+  <!-- ===== PAUSE ===== -->
+  <div id="pause" class="overlay" hidden>
+    <div class="panel small">
+      <h2>PAUSED</h2>
+      <button id="p-resume" class="big-btn green">RESUME</button>
+      <button id="p-restart" class="mid-btn">RESTART</button>
+      <button id="p-quit" class="mid-btn red">QUIT</button>
+      <button id="p-howto" class="howto-btn p-howto">? HOW TO PLAY</button>
+      <div class="toggles">
+        <button id="p-sound" class="tog">SOUND</button>
+        <button id="p-music" class="tog">MUSIC</button>
+        <button id="p-vibe" class="tog">VIBRATE</button>
+      </div>
+      <div class="p-ch"><small>CHALLENGES</small><ul id="p-challenges"></ul></div>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div id="results" class="overlay" hidden>
+    <div class="panel results">
+      <div id="r-title" class="r-title win">VICTORY!</div>
+      <div class="r-score">
+        <div class="r-side blue"><span class="sb-ball"></span><b id="r-blue">0</b></div>
+        <span class="r-dash">-</span>
+        <div class="r-side red"><b id="r-red">0</b><span class="sb-ball"></span></div>
+      </div>
+      <div class="r-body">
+        <div class="r-left">
+          <div id="r-stats" class="r-stats"></div>
+          <ul id="r-challenges" class="r-challenges"></ul>
+        </div>
+        <div class="r-side-col">
+          <div id="r-mvp" class="r-mvp"></div>
+          <div class="r-you-wrap"><small>YOUR MATCH</small><div id="r-you" class="r-you"></div></div>
+          <div class="r-rewards">
+            <div class="r-coins"><span class="coin"></span><b id="r-coins">+0</b><em id="r-mult" class="r-mult" hidden>HARD ×1.3</em></div>
+            <div class="r-xp"><small>LV <b id="r-level">1</b></small><i class="xpbar"><b id="r-xpbar"></b></i><em id="r-xp">+0 XP</em></div>
+          </div>
+          <div id="r-streak" class="r-streak" hidden></div>
+        </div>
+      </div>
+      <div id="r-cup" class="r-cup" hidden></div>
+      <div class="r-buttons">
+        <button id="r-home" class="mid-btn">HOME</button>
+        <button id="r-again" class="big-btn green">PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PANELS ===== -->
+  <div id="modal" class="overlay" hidden>
+    <div class="panel wide">
+      <div class="panel-head"><h2 id="modal-title">SETTINGS</h2><button id="modal-close" class="close-btn" aria-label="Close">✕</button></div>
+      <div id="modal-body" class="panel-body"></div>
+    </div>
+  </div>
+
+  <div id="rotate" hidden>
+    <div class="rotate-box">
+      <div class="phone"></div>
+      <strong>Turn your phone sideways</strong>
+      <button id="rotate-dismiss" class="mid-btn">PLAY ANYWAY</button>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/clubs.js"></script>
+  <script src="js/celebs.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/meta.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/match.js"></script>
+  <script src="js/replay.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/online.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/panels.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

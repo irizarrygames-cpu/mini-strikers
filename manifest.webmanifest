@@ -1,0 +1,10 @@
+{
+  "name": "Mini Strikers",
+  "short_name": "Mini Strikers",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#2f7bff",
+  "theme_color": "#2f7bff",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

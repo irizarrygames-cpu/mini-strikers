@@ -1,0 +1,16 @@
+{
+  "name": "mini-strikers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Arcade mobile soccer: 20 real clubs, accounts, a league table and live online matches.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@neondatabase/serverless": "^1.1.0"
+  }
+}
