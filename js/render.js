@@ -24,7 +24,8 @@ const Render = {
     this.dpr = Math.max(0.6, dpr);
     this.canvas.width = Math.round(this.W * this.dpr);
     this.canvas.height = Math.round(this.H * this.dpr);
-    this.S = this.W >= this.H ? Math.min(this.W / 700, this.H / 370) : this.W / 480;
+    // portrait is the fallback shape: pull the camera back so the pitch is not a keyhole
+    this.S = this.W >= this.H ? Math.min(this.W / 700, this.H / 370) : this.W / 620;
     this.buildLayer();
     this.homeCrowd = null;
   },
@@ -592,7 +593,8 @@ const Render = {
   drawMinimap(ctx, m) {
     const W = this.W, H = this.H;
     const mw = Math.round(clamp(W * 0.16, 110, 190)), mh = Math.round(mw * (CFG.FIELD_H / CFG.FIELD_W));
-    const x0 = W - mw - Math.max(16, W * 0.02), y0 = Math.max(10, H * 0.025);
+    // in portrait the scoreboard is nearly the full width, so the map drops below it
+    const x0 = W - mw - Math.max(16, W * 0.02), y0 = Math.max(10, H * 0.025) + (H > W ? 58 : 0);
     const sx = (x) => x0 + (x / CFG.FIELD_W) * mw, sy = (y) => y0 + (y / CFG.FIELD_H) * mh;
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = '#2f9a3c'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3;
@@ -652,7 +654,9 @@ const Render = {
     }
     const ch = Save.character();
     const k = Math.min(H / 118, W / 190);
-    const px = W * 0.24, py = H * 0.86;
+    // portrait stacks the buttons down the middle, so your player stands higher and centred
+    const tall = H > W;
+    const px = tall ? W * 0.3 : W * 0.24, py = tall ? H * 0.62 : H * 0.86;
     const fake = {
       team: 'blue', isKeeper: false, number: 10, look: { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band },
       vx: 0, vy: 0, fx: 1, fy: 0.2, faceX: 1, kickT: 0, kickDur: 0.2, celebrateT: 0, diveT: 0, stunT: 0, recoverT: 0, seed: 1, runPhase: 0, sad: false,

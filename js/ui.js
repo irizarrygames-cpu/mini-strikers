@@ -737,7 +737,11 @@ const Install = {
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // an iPad calling itself a Mac
   },
   refresh() {
-    $('btn-install').hidden = this.installed() || !(this.event || this.ios());
+    // Always offered unless the game is already installed. It used to hide itself unless
+    // the browser had handed over an install event, which meant it was invisible on the
+    // phone it was built for — Chrome only fires that event once it feels like it, and
+    // Safari never does. Tapping it either installs or shows how.
+    $('btn-install').hidden = this.installed();
   },
   go() {
     if (this.event) {
