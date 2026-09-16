@@ -304,6 +304,8 @@ async function handleRequest(req, res) {
   const route = url.pathname;
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
   if (!route.startsWith('/api/')) return serveStatic(req, res, route);
+  // the host's health check is a plain GET, so this one route answers both
+  if (route === '/api/health' && req.method === 'GET') return sendJSON(res, 200, { ok: true, build: BUILD, storage: store.kind });
   if (req.method !== 'POST') return sendJSON(res, 405, { ok: false, msg: 'Use POST' });
 
   let body;
