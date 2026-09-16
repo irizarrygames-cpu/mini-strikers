@@ -46,10 +46,15 @@ const CFG = {
   SHOT_WEAK: 900,
   SHOT_STRONG: 1320,
   SHOT_POWER: 1650,
-  CHARGE_MED: 0.3,
-  CHARGE_STRONG: 0.8,
-  CHARGE_FULL: 1.4,
-  CHARGE_AUTO: 1.6,
+  // shot charge (halved from 0.3 / 0.8 / 1.4 / 1.6 so it fills twice as quickly)
+  CHARGE_MED: 0.15,
+  CHARGE_STRONG: 0.4,
+  CHARGE_FULL: 0.7,
+  CHARGE_AUTO: 0.8,
+  CHARGE_POW: 0.55,       // hold this long for the hardest non-power shot
+  // hold PASS to charge a harder through ball; a tap is the ordinary pass
+  PASS_CHARGE_FULL: 0.5,
+  PASS_CHARGE_TAP: 0.1,   // anything shorter than this is still a tap
 
   POWER_MAX: 100,
   OVERTIME_SECONDS: 90,
@@ -112,10 +117,15 @@ function ratingAttr(r) {
 const DIFFICULTY = {
   // aiSlide: chance per 0.2s check that a pressing bot slides; aiDodge: chance a bot carrier dodges a slide
   // mistakes: how often bots get it wrong (BOT_MISTAKES), 1 = an average player
-  easy:   { redSpeed: 0.9,  slideOnHuman: 0.55, aiSlide: 0.2,  aiDodge: 0.2,  aiSkill: 0.15, keeperBonus: -0.04, aiShotNoise: 55, react: 1.3, mistakes: 1.35 },
-  normal: { redSpeed: 0.97, slideOnHuman: 0.75, aiSlide: 0.26, aiDodge: 0.36, aiSkill: 0.25, keeperBonus: 0.07,  aiShotNoise: 40, react: 1.0, mistakes: 1 },
-  hard:   { redSpeed: 1.02, slideOnHuman: 0.9,  aiSlide: 0.45, aiDodge: 0.5,  aiSkill: 0.34, keeperBonus: 0.13,  aiShotNoise: 26, react: 0.8, mistakes: 0.7 },
+  // 2026-09-16 "make the bots worse": every preset is slower, tackles less, decides later,
+  // shoots wider and slips up more than it did. Your own teammates keep MATE_BASE below.
+  easy:   { redSpeed: 0.87, slideOnHuman: 0.55, aiSlide: 0.15, aiDodge: 0.15, aiSkill: 0.12, keeperBonus: -0.07, aiShotNoise: 68, react: 1.5,  mistakes: 1.8 },
+  normal: { redSpeed: 0.94, slideOnHuman: 0.7,  aiSlide: 0.2,  aiDodge: 0.28, aiSkill: 0.2,  keeperBonus: 0.04,  aiShotNoise: 52, react: 1.2,  mistakes: 1.4 },
+  hard:   { redSpeed: 0.99, slideOnHuman: 0.85, aiSlide: 0.36, aiDodge: 0.42, aiSkill: 0.28, keeperBonus: 0.1,   aiShotNoise: 36, react: 0.95, mistakes: 1.0 },
 };
+// your bot teammates offline: what "normal" was before the bots were made worse, so the
+// players on your side did not get worse too
+const MATE_BASE = { redSpeed: 0.97, slideOnHuman: 0.75, aiSlide: 0.26, aiDodge: 0.36, aiSkill: 0.25, keeperBonus: 0.07, aiShotNoise: 40, react: 1.0, mistakes: 1 };
 
 // a difficulty leaned on by a team's level (0..3): better teams are quicker and slip up less
 function levelDiff(b, lv) {

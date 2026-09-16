@@ -25,7 +25,7 @@ const Game = {
     UI.init();
     UI.show('home');
     $('home').hidden = true; // nothing but the splash until we know who you are
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });
     document.addEventListener('visibilitychange', () => {
       // online matches can't be paused, so there's nothing to stop when the tab hides
       if (document.hidden && this.state === 'match' && !(this.match && this.match.net)) UI.togglePause();

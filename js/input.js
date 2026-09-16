@@ -17,17 +17,20 @@ const Input = {
   keys: new Set(),
   shootHeld: false,
   sprintHeld: false,
+  passHeld: false,
   lastDevice: 'touch',
   _passQueued: false,
   _skillQueued: false,
   _slideQueued: false,
   _shootPressed: false,
   _shootReleased: false,
+  _passPressed: false,
   _joyId: null,
   _joyCenter: { x: 0, y: 0 },
-  _holds: { shoot: new Set(), sprint: new Set() },
-  _keyHold: { shoot: false, sprint: false },
+  _holds: { shoot: new Set(), sprint: new Set(), pass: new Set() },
+  _keyHold: { shoot: false, sprint: false, pass: false },
   _mouseShoot: false,
+  _mousePass: false,
 
   init() {
     this.zone = document.getElementById('touch-zone');
@@ -43,7 +46,7 @@ const Input = {
     window.addEventListener('pointerup', (e) => this._joyUp(e));
     window.addEventListener('pointercancel', (e) => this._joyUp(e));
 
-    this._tapButton(this.btnPass, () => { this._passQueued = true; });
+    this._holdButton(this.btnPass, 'pass');
     this._tapButton(this.btnSkill, () => { this._skillQueued = true; });
     this._holdButton(this.btnShoot, 'shoot');
     this._holdButton(this.btnSprint, 'sprint');
@@ -56,7 +59,7 @@ const Input = {
       if (e.repeat) return;
       this.keys.add(k);
       this.lastDevice = 'keyboard';
-      if (keyIs(k, 'pass')) { this._passQueued = true; this._flash(this.btnPass); }
+      if (keyIs(k, 'pass')) { this._keyHold.pass = true; this._syncHold('pass'); }
       if (keyIs(k, 'skill')) { this._skillQueued = true; this._flash(this.btnSkill); }
       if (keyIs(k, 'slide')) { this._slideQueued = true; this._flash(this.btnSkill); }
       if (keyIs(k, 'shoot')) { this._keyHold.shoot = true; this._syncHold('shoot'); }
@@ -70,21 +73,23 @@ const Input = {
       this.keys.delete(k);
       if (keyIs(k, 'shoot')) { this._keyHold.shoot = false; this._syncHold('shoot'); }
       if (keyIs(k, 'sprint')) { this._keyHold.sprint = false; this._syncHold('sprint'); }
+      if (keyIs(k, 'pass')) { this._keyHold.pass = false; this._syncHold('pass'); }
       UI.keyLegendPress(k, false);
     });
 
-    // mouse on the pitch: left = hold to shoot, right = pass
+    // mouse on the pitch: left = hold to shoot, right = hold to pass
     const canvas = document.getElementById('game');
     canvas.addEventListener('mousedown', (e) => {
       if (Game.state !== 'match') return;
       Sound.unlock();
       this.lastDevice = 'keyboard';
       if (e.button === 0) { this._mouseShoot = true; this._syncHold('shoot'); }
-      if (e.button === 2) this._passQueued = true;
+      if (e.button === 2) { this._mousePass = true; this._syncHold('pass'); }
       if (e.button === 1) { e.preventDefault(); this._skillQueued = true; }
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0 && this._mouseShoot) { this._mouseShoot = false; this._syncHold('shoot'); }
+      if (e.button === 2 && this._mousePass) { this._mousePass = false; this._syncHold('pass'); }
     });
     window.addEventListener('blur', () => this.reset());
     document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -128,7 +133,14 @@ const Input = {
   },
 
   _syncHold(name) {
-    const down = this._holds[name].size > 0 || this._keyHold[name] || (name === 'shoot' && this._mouseShoot);
+    const down = this._holds[name].size > 0 || this._keyHold[name] || (name === 'shoot' && this._mouseShoot) || (name === 'pass' && this._mousePass);
+    if (name === 'pass') {
+      if (down === this.passHeld) return;
+      this.passHeld = down;
+      if (down) this._passPressed = true; else this._passQueued = true; // the pass itself goes on release
+      this.btnPass.classList.toggle('down', down);
+      return;
+    }
     if (name === 'shoot') {
       if (down === this.shootHeld) return;
       this.shootHeld = down;
@@ -201,6 +213,7 @@ const Input = {
   },
 
   consumePass() { const v = this._passQueued; this._passQueued = false; return v; },
+  consumePassPress() { const v = this._passPressed; this._passPressed = false; return v; },
   consumeSkill() { const v = this._skillQueued; this._skillQueued = false; return v; },
   consumeSlide() { const v = this._slideQueued; this._slideQueued = false; return v; },
   consumeShootPress() { const v = this._shootPressed; this._shootPressed = false; return v; },
@@ -209,10 +222,10 @@ const Input = {
   reset() {
     this.keys.clear();
     this._passQueued = false; this._skillQueued = false; this._slideQueued = false;
-    this._shootPressed = false; this._shootReleased = false;
-    this._holds.shoot.clear(); this._holds.sprint.clear();
-    this._keyHold.shoot = false; this._keyHold.sprint = false; this._mouseShoot = false;
-    this.shootHeld = false; this.sprintHeld = false;
+    this._shootPressed = false; this._shootReleased = false; this._passPressed = false;
+    this._holds.shoot.clear(); this._holds.sprint.clear(); this._holds.pass.clear();
+    this._keyHold.shoot = false; this._keyHold.sprint = false; this._keyHold.pass = false; this._mouseShoot = false; this._mousePass = false;
+    this.shootHeld = false; this.sprintHeld = false; this.passHeld = false;
     for (const b of [this.btnShoot, this.btnPass, this.btnSkill, this.btnSprint]) if (b) b.classList.remove('down');
     if (this._joyId !== null) this._joyUp({ pointerId: this._joyId });
     this.stick.x = 0; this.stick.y = 0; this.move.x = 0; this.move.y = 0;

@@ -232,7 +232,7 @@ Object.assign(UI, {
       <div class="league-wrap">
         <div class="lg-table-wrap"><table class="lg-table">
           <thead><tr><th>#</th><th class="lg-club">COUNTRY</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th><th title="Players">👥</th></tr></thead>
-          <tbody>${r.table.map((row, i) => { const c = Clubs.get(row.club); return `<tr class="${row.club === mine ? 'mine' : ''} ${i < 4 ? 'top' : ''}"><td>${i + 1}</td><td class="lg-club"><canvas width="42" height="28" data-club="${c.id}"></canvas><b>${c.name}</b></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd > 0 ? '+' : ''}${row.gd}</td><td class="pts">${row.pts}</td><td>${row.players}</td></tr>`; }).join('')}</tbody>
+          <tbody>${r.table.map((row, i) => { const c = Clubs.get(row.club); return `<tr class="${row.club === mine ? 'mine' : ''} ${i < 4 ? 'top' : ''}"><td>${i + 1}</td><td class="lg-club"><span class="lg-name"><canvas width="42" height="28" data-club="${c.id}"></canvas><b>${c.name}</b></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd > 0 ? '+' : ''}${row.gd}</td><td class="pts">${row.pts}</td><td>${row.players}</td></tr>`; }).join('')}</tbody>
         </table></div>
         <div class="lg-side">
           <h3>TOP SCORERS</h3>

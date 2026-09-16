@@ -21,7 +21,7 @@ class Player {
     this.diveT = 0; this.diveDir = 0; this.recoverT = 0; this.holdT = 0;
     this.celebrateT = 0; this.sad = false;
     this.touchT = 0; this.dustT = 0;
-    this.charging = false; this.chargeT = 0;
+    this.charging = false; this.chargeT = 0; this.passCharging = false; this.passChargeT = 0;
     this.bufferT = 0; this.bufferCharge = 0;
     this.speedMul = 1;
     this.attr = o.attr || NEUTRAL_ATTR;
@@ -532,7 +532,9 @@ function choosePassTarget(m, p, ax, ay) {
   return best;
 }
 
-function performPass(m, p, ax, ay, forced) {
+// charge: seconds PASS was held. A tap is the ordinary pass; holding it leads the runner
+// further and hits it harder, and a full charge lofts it over anyone in the lane.
+function performPass(m, p, ax, ay, forced, charge = 0) {
   const b = m.ball;
   if (b.owner !== p) return false;
   p.skill = null;
@@ -540,21 +542,26 @@ function performPass(m, p, ax, ay, forced) {
   if (l < 0.1) { ax = p.fx; ay = p.fy; l = 1; }
   ax /= l; ay /= l;
   const target = forced || choosePassTarget(m, p, ax, ay);
+  const power = charge > CFG.PASS_CHARGE_TAP ? clamp((charge - CFG.PASS_CHARGE_TAP) / (CFG.PASS_CHARGE_FULL - CFG.PASS_CHARGE_TAP), 0, 1) : 0;
   let dx, dy, speed, vz = 25;
   if (target) {
     const d0 = dist(b.x, b.y, target.x, target.y);
-    const lead = (d0 / 650) * 0.9;
+    const lead = (d0 / 650) * 0.9 * (1 + power * 1.1);
     const tx = clamp(target.x + target.vx * lead, 20, CFG.FIELD_W - 20);
     const ty = clamp(target.y + target.vy * lead, 20, CFG.FIELD_H - 20);
     const D = dist(b.x, b.y, tx, ty) || 1;
     dx = (tx - b.x) / D; dy = (ty - b.y) / D;
     speed = clamp(240 + CFG.BALL_FRICTION * D, CFG.PASS_MIN, CFG.PASS_MAX) * p.attr.pass;
     if (!p.isHuman || m.autopilot) speed = Math.min(CFG.PASS_MAX, speed * 1.15); // bots zip it
-    if (D > 180 && laneBlocked(m, p.team, b.x, b.y, tx, ty, p.isHuman && !m.autopilot ? 12 : 26)) {
+    // harder, but never past what a teammate can still control
+    if (power) speed = Math.min(CFG.CONTROL_MAX - 10, speed * (1 + power * 0.45));
+    if (power >= 0.85 && D > 180) {
+      vz = 340; speed = clamp(D / 0.9, 420, CFG.CONTROL_MAX - 10); // full charge: lofted over the top
+    } else if (D > 180 && laneBlocked(m, p.team, b.x, b.y, tx, ty, p.isHuman && !m.autopilot ? 12 : 26)) {
       vz = 360; speed = clamp(D / 0.95, 380, 780); // chip it over
     }
   } else {
-    dx = ax; dy = ay; speed = 440;
+    dx = ax; dy = ay; speed = 440 + power * 320;
   }
   const slip = target ? botSlip(m, p) * (p.isKeeper ? 0.5 : 1) : 0;
   if (slip) {
@@ -579,7 +586,7 @@ function performPass(m, p, ax, ay, forced) {
   p.fx = dx; p.fy = dy;
   if (p.isHuman && p.charging) { p.charging = false; Sound.chargeStop(); }
   Sound.pass();
-  FX.ring(b.x, b.y, '#ffffff', 4, 18, 0.22, 2.5);
+  FX.ring(b.x, b.y, '#ffffff', 4, power ? 30 : 18, power ? 0.3 : 0.22, power ? 4 : 2.5);
   return true;
 }
 
@@ -591,7 +598,7 @@ function performShot(m, p, chargeT, sideY, noise = 0) {
   const team = TEAMS[p.team];
   const gx = attackGoalX(p.team), gy = CFG.FIELD_H / 2;
   const level = chargeT < CFG.CHARGE_MED ? 0 : chargeT < CFG.CHARGE_STRONG ? 1 : 2;
-  const c01 = clamp(chargeT / 1.1, 0, 1);
+  const c01 = clamp(chargeT / CFG.CHARGE_POW, 0, 1);
   const canPower = p.isHuman || !(m.teamHuman && m.teamHuman[p.team]) || m.autopilot;
   const isPower = level === 2 && canPower && m.meter[p.team] >= CFG.POWER_MAX;
   let speed = (isPower ? CFG.SHOT_POWER : lerp(CFG.SHOT_WEAK, CFG.SHOT_STRONG, easeOut(c01))) * p.attr.shot;

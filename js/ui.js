@@ -77,9 +77,9 @@ const UI = {
   // rotating control tips while training
   TIPS: {
     touch: ['Drag the joystick to move · hold SPRINT to run faster', 'Hold SHOOT to charge, release to shoot', 'Push the joystick sideways while shooting to curl it', 'SKILL with no direction = HOP over a tackle',
-      'SKILL toward a defender = nutmeg or flick', 'No ball? TACKLE near the carrier to steal it', 'Fill the ring around SHOOT, then fully charge = POWER SHOT', 'Tap PASS when a teammate has it to call for the ball'],
+      'SKILL toward a defender = nutmeg or flick', 'No ball? TACKLE near the carrier to steal it', 'Fill the ring around SHOOT, then fully charge = POWER SHOT', 'Tap PASS when a teammate has it to call for the ball', 'Hold PASS for a harder through ball · full charge lofts it'],
     kb: ['WASD to move · hold SHIFT to sprint', 'Hold SPACE to charge, release to shoot', 'Hold A or D while shooting to curl it', 'Q with no direction = HOP over a tackle',
-      'Q toward a defender = nutmeg or flick', 'No ball? F near the carrier to tackle', 'Fill the power meter, then fully charge = POWER SHOT', 'E passes to the teammate you face'],
+      'Q toward a defender = nutmeg or flick', 'No ball? F near the carrier to tackle', 'Fill the power meter, then fully charge = POWER SHOT', 'E passes to the teammate you face', 'Hold E for a harder through ball · full charge lofts it'],
   },
   tickTips(dt) {
     const m = Game.match, show = !!(m && m.training && Game.state === 'match' && m.phase !== 'replay');
@@ -335,7 +335,7 @@ const UI = {
     $('results').hidden = true;
     $('intro').hidden = true;
     this.applyControls();
-    if (screen === 'home') { this.refreshHome(); setTimeout(() => this.maybeDaily(), 350); }
+    if (screen === 'home') { this.refreshHome(); Render._homeSpot = null; setTimeout(() => this.maybeDaily(), 350); }
   },
 
   // ---- daily reward ----
@@ -403,7 +403,7 @@ const UI = {
     const k = (s) => `<span class="kc">${s}</span>`;
     const cards = [
       { t: 'MOVE & SPRINT', ico: 'move', d: kb ? `${k('WASD')} to move. Hold ${k('SHIFT')} to sprint — it drains stamina.` : 'Drag the joystick to move. Hold SPRINT to run faster — it drains stamina.' },
-      { t: 'PASS & SHOOT', ico: 'shoot', d: kb ? `${k('E')} passes to the teammate you face. Hold ${k('SPACE')} to charge a shot, steer to curl it.` : 'PASS to the teammate you face. Hold SHOOT to charge, steer while releasing to curl it.' },
+      { t: 'PASS & SHOOT', ico: 'shoot', d: kb ? `${k('E')} passes to the teammate you face — hold it for a harder through ball. Hold ${k('SPACE')} to charge a shot, steer to curl it.` : 'Tap PASS to pass to the teammate you face, or hold it for a harder through ball. Hold SHOOT to charge, steer while releasing to curl it.' },
       { t: 'TACKLE', ico: 'slide', d: kb ? `${k('F')} near the ball carrier lunges in and steals it. It has a short cooldown.` : 'No ball? The purple button becomes TACKLE: tap it near the carrier to lunge in and steal the ball.' },
       { t: 'SKILLS', ico: 'skill', d: kb ? `${k('Q')} with a direction: spin, flick, nutmeg, Cruyff. No direction = HOP over tackles.` : 'SKILL + joystick direction: spin, flick, nutmeg, Cruyff. No direction = HOP over tackles.' },
     ];
@@ -742,6 +742,7 @@ const Install = {
     // phone it was built for — Chrome only fires that event once it feels like it, and
     // Safari never does. Tapping it either installs or shows how.
     $('btn-install').hidden = this.installed();
+    if (typeof Render !== 'undefined') Render._homeSpot = null;
   },
   go() {
     if (this.event) {

@@ -17,7 +17,7 @@ const Match = {
       duration: minutes * 60, time: minutes * 60, overtime: false, otTime: 0, buzzer: 0,
       phase: 'kickoff', phaseT: 0, clock: 0, kickoffWait: 1.0,
       kickoffTeam: 'blue', shotId: 0, slowmo: 0, freeze: 0, timeScale: 1,
-      autopilot: !!opts.autopilot, diff, mateDiff: opts.mateDiff || levelDiff(DIFFICULTY.normal, home.level), home, humans: [], teamHuman: { blue: false, red: false }, online: !!opts.online,
+      autopilot: !!opts.autopilot, diff, mateDiff: opts.mateDiff || levelDiff(MATE_BASE, home.level), home, humans: [], teamHuman: { blue: false, red: false }, online: !!opts.online,
       goals: [], result: null, resetDone: false, exciteT: 0, lastConceded: null,
       mode: opts.mode || 'quick', club, noDraw: opts.mode === 'cup', flags: {}, challenges: null, challengeT: 0,
       format: FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4'),
@@ -103,7 +103,7 @@ const Match = {
       p.vx = 0; p.vy = 0; p.mx = 0; p.my = 0;
       p.fx = dir; p.fy = 0; p.faceX = dir;
       p.kickT = 0; p.stunT = 0; p.noPickupT = 0; p.diveT = 0; p.recoverT = 0;
-      p.celebrateT = 0; p.sad = false; p.celebKind = null; p.charging = false; p.chargeT = 0; p.bufferT = 0; p.holdT = 0;
+      p.celebrateT = 0; p.sad = false; p.celebKind = null; p.charging = false; p.chargeT = 0; p.passCharging = false; p.passChargeT = 0; p.bufferT = 0; p.holdT = 0;
       p.ai.spotT = 0; p.ai.decideT = rand(0.2, 0.5); p.ai.holdT = 0; p.ai.slideT = 0;
       p.clearActions();
     }
@@ -241,10 +241,19 @@ const Match = {
     }
     if (I.consumeSlide() && b.owner !== h) performSlide(m, h, mv.x, mv.y);
 
+    // PASS charges while held and goes on release; a tap is the ordinary pass
+    if (I.consumePassPress && I.consumePassPress()) { h.passCharging = true; h.passChargeT = 0; }
+    if (h.passCharging) {
+      h.passHeldT = (h.passHeldT || 0) + dt;
+      h.passChargeT = Math.min(CFG.PASS_CHARGE_FULL, h.passChargeT + dt);
+      if (h.passHeldT > 4) { h.passCharging = false; h.passChargeT = 0; }
+    } else h.passHeldT = 0;
     if (I.consumePass()) {
+      const charge = h.passCharging ? h.passChargeT : 0;
+      h.passCharging = false; h.passChargeT = 0;
       const nearLoose = !b.owner && dist(h.x, h.y, b.x, b.y) < 44 && b.z < 30 && h.stunT <= 0;
-      if (b.owner === h) performPass(m, h, mag > 0.1 ? mv.x : h.fx, mag > 0.1 ? mv.y : h.fy);
-      else if (nearLoose) { takePossession(m, h); performPass(m, h, mag > 0.1 ? mv.x : h.fx, mag > 0.1 ? mv.y : h.fy); }
+      if (b.owner === h) performPass(m, h, mag > 0.1 ? mv.x : h.fx, mag > 0.1 ? mv.y : h.fy, null, charge);
+      else if (nearLoose) { takePossession(m, h); performPass(m, h, mag > 0.1 ? mv.x : h.fx, mag > 0.1 ? mv.y : h.fy, null, charge); }
       else if (b.owner && b.owner.team === h.team && !b.owner.isKeeper && !b.owner.isHuman) { h.passRequestT = 0.6; FX.ring(h.x, h.y, '#ffffff', 10, 34, 0.35, 3); }
     }
 

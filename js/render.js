@@ -575,6 +575,15 @@ const Render = {
         ctx.beginPath(); ctx.ellipse(x, y, r4, r4 * CFG.TILT, 0, 0, Math.PI * 2); ctx.stroke();
       }
     }
+    if (h.passCharging && h.passChargeT > CFG.PASS_CHARGE_TAP) {
+      const p = clamp((h.passChargeT - CFG.PASS_CHARGE_TAP) / (CFG.PASS_CHARGE_FULL - CFG.PASS_CHARGE_TAP), 0, 1);
+      const r5 = R + (h.charging ? 24 : 13) * S; // outside the shot ring when both are charging
+      ctx.lineWidth = 6 * S; ctx.strokeStyle = 'rgba(22,26,51,0.45)';
+      ctx.beginPath(); ctx.ellipse(x, y, r5, r5 * CFG.TILT, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 4.5 * S; ctx.strokeStyle = p >= 0.85 ? '#ffe14d' : '#7fd0ff'; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.ellipse(x, y, r5, r5 * CFG.TILT, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, p)); ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
   },
 
   // a red "!" over you when a slide is coming for the ball you're carrying
@@ -641,6 +650,41 @@ const Render = {
   },
 
   // ---------------- home screen backdrop ----------------
+  // Where your player can stand on the home screen without covering a button: the old
+  // fixed spot (24% across, 86% down) put its feet on the bottom-left buttons and its cap
+  // on the logo on a phone held sideways. The room left between the account pill, the
+  // bottom row and the actions column is read from the page once per layout and cached.
+  _homeSpot: null,
+  homeSpot(W, H) {
+    const tall = H > W;
+    const base = { k: Math.min(H / 118, W / 190), px: tall ? W * 0.3 : W * 0.24, py: tall ? H * 0.62 : H * 0.86 };
+    const c = this._homeSpot;
+    if (c && c.W === W && c.H === H) return c.spot;
+    const home = document.getElementById('home');
+    const rect = (sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return r.width && r.height ? r : null; };
+    const bl = rect('.home-bl'), act = rect('.home-actions'), pill = rect('.home-char');
+    if (!home || home.hidden || !bl || !act || !pill) return base; // not laid out yet: try again next frame
+    // the sprite reaches about 30k left, 36k right, 74k up and 10k down from its feet
+    let floor = bl.top - 8, right = W - 8;
+    if (act.left > W * 0.35) right = act.left - 10; // actions column on the right (landscape)
+    else floor = Math.min(floor, act.top - 8);     // actions stacked across the middle (portrait)
+    // the lowest thing above the player that shares its column is the ceiling
+    let ceil = pill.bottom + 8;
+    const spanL = base.px - 30 * base.k, spanR = base.px + 36 * base.k;
+    for (const sel of ['.home-top', '#logo', '#home-record']) {
+      const r = rect(sel);
+      if (r && r.left < spanR && r.right > spanL && r.bottom < floor - 40) ceil = Math.max(ceil, r.bottom + 8);
+    }
+    const left = pill.left;
+    let { k, px, py } = base;
+    k = Math.max(1, Math.min(k, (floor - ceil) / 84, (right - left) / 66));
+    py = Math.min(py, floor - 10 * k);
+    px = Math.max(left + 30 * k, Math.min(px, right - 36 * k));
+    const spot = { k, px, py };
+    this._homeSpot = { W, H, spot };
+    return spot;
+  },
+
   drawHome(t, demo) {
     const ctx = this.ctx, W = this.W, H = this.H;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -653,10 +697,7 @@ const Render = {
       for (let i = 0; i < bands; i++) { ctx.fillStyle = i % 2 ? '#4fbd3b' : '#5acb45'; ctx.fillRect(i * bw, 0, bw + 1, H); }
     }
     const ch = Save.character();
-    const k = Math.min(H / 118, W / 190);
-    // portrait stacks the buttons down the middle, so your player stands higher and centred
-    const tall = H > W;
-    const px = tall ? W * 0.3 : W * 0.24, py = tall ? H * 0.62 : H * 0.86;
+    const { k, px, py } = this.homeSpot(W, H);
     const fake = {
       team: 'blue', isKeeper: false, number: 10, look: { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band },
       vx: 0, vy: 0, fx: 1, fy: 0.2, faceX: 1, kickT: 0, kickDur: 0.2, celebrateT: 0, diveT: 0, stunT: 0, recoverT: 0, seed: 1, runPhase: 0, sad: false,

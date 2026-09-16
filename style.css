@@ -25,11 +25,15 @@ html, body {
   margin: 0; height: 100%; overflow: hidden;
   background: #34439a; color: var(--ink);
   font-family: var(--font);
-  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  /* pan-x pan-y, not none: "none" here and on every button meant a swipe that started on
+     a shop card (they are all buttons) could never scroll the panel. Pinch and double-tap
+     zoom stay off; only the pitch and the match controls below take touches raw. */
+  touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   overscroll-behavior: none;
 }
+#game, #touch-zone, #joy-base, .action, #btn-pause { touch-action: none; }
 [hidden] { display: none !important; }
-button { font-family: var(--font); cursor: pointer; color: inherit; touch-action: none; }
+button { font-family: var(--font); cursor: pointer; color: inherit; touch-action: pan-x pan-y; }
 
 #game { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
 
@@ -211,7 +215,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .panel {
   background: var(--panel); border: 4px solid var(--ink); border-radius: 22px;
   box-shadow: 0 8px 0 var(--ink); padding: 18px 22px 22px;
-  max-height: 100%; overflow: auto;
+  max-height: 100%; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
 }
 .panel h2 { margin: 0 0 12px; font-weight: 400; color: #fff; font-size: clamp(26px, 8vmin, 40px); text-align: center; }
 .panel.small { display: flex; flex-direction: column; gap: 14px; width: min(360px, 90vw); }
@@ -506,13 +510,16 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .lg-table-wrap { overflow-x: auto; }
 .lg-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; font-size: 15px; }
 .lg-table th { font-weight: 400; font-size: 12px; color: #6b7299; padding: 0 4px; }
-.lg-table td { background: #eef2ff; text-align: center; padding: 2px 5px; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+.lg-table td { background: #eef2ff; text-align: center; vertical-align: middle; padding: 2px 5px; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
 .lg-table td:first-child { border-left: 2px solid var(--ink); border-radius: 8px 0 0 8px; }
 .lg-table td:last-child { border-right: 2px solid var(--ink); border-radius: 0 8px 8px 0; }
 .lg-table .lg-club { text-align: left; }
-.lg-table td.lg-club { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.lg-table td.lg-club canvas { width: 27px; height: 18px; }
-.lg-table td.lg-club b { font-weight: 400; }
+/* display:flex on the <td> itself took it out of the table: its borders and height stopped
+   lining up with the rest of the row, so the country column looked detached */
+.lg-table td.lg-club { white-space: nowrap; }
+.lg-name { display: flex; align-items: center; gap: 6px; }
+.lg-name canvas { width: 27px; height: 18px; flex: none; }
+.lg-name b { font-weight: 400; }
 .lg-table td.pts { font-size: 17px; }
 .lg-table tr.top td:first-child { background: var(--green); color: #fff; }
 .lg-table tr.mine td { background: #fff4cf; }
@@ -931,12 +938,16 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
    pushed off the bottom by the PLAY block, and the minimap sat on the scoreboard.
    Everything here stacks instead of sitting side by side. */
 @media (orientation: portrait) {
-  .logo { top: calc(var(--st) + 78px); font-size: clamp(30px, 12.5vmin, 60px); }
+  /* the country / cups / coins row used to share the top line with the account pill,
+     which on a phone pushed the country pill off the left edge underneath it */
+  .home-top { top: calc(var(--st) + 80px); left: var(--sl); right: var(--sr); justify-content: flex-end; gap: 6px; }
+  .home-top .pill, .home-top .coins { font-size: 15px; }
+  .logo { top: calc(var(--st) + 134px); font-size: clamp(30px, 12.5vmin, 60px); }
   .home-actions { left: var(--sl); right: var(--sr); width: auto; bottom: calc(var(--sb) + 52px); gap: 10px; }
   .home-bl { left: var(--sl); right: var(--sr); bottom: var(--sb); }
   .home-bl .howto-btn { flex: 1; font-size: clamp(11px, 3.4vmin, 15px); padding: 5px 6px; text-align: center; justify-content: center; }
   /* under the logo, where there is room — at the bottom it landed on the PLAY block */
-  .home-record { top: calc(var(--st) + 128px); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
+  .home-record { top: calc(var(--st) + 204px); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
   /* the rating badge sits on the pill corner, so the name needs to stop before it */
   .home-char { max-width: 52vw; padding-right: 34px; }
   .home-char strong { font-size: 17px; }
@@ -950,4 +961,28 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
   .set > span { width: auto; flex: 1 0 auto; font-size: 16px; }
   .set .seg, .set input[type=range] { flex: 1 1 100%; }
   .set .seg button { font-size: 14px; padding: 7px 2px; }
+}
+
+/* ---- Phones held sideways ---------------------------------------------------------
+   A landscape phone is only ~360-430px tall, and the home screen was laid out for a
+   desktop: the bottom-left row (HOW TO PLAY / PROFILE / GET THE APP) ran underneath
+   CHARACTERS, the actions column could push SETTINGS off the right edge, and the logo
+   sat on top of your player. Here the actions column gets a fixed share of the width,
+   its three buttons shrink instead of spilling, the bottom-left row only uses the space
+   left of that column (wrapping upward when it runs out), and the logo moves over PLAY.
+   Your player is then fitted into whatever room is left (Render.homeSpot). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .home-actions { width: min(46vw, 440px); gap: 10px; }
+  .home-row { gap: 8px; }
+  .home-row .mid-btn { flex: 1 1 0; min-width: 0; font-size: clamp(11px, 3.4vmin, 17px); padding-inline: 2px; white-space: nowrap; }
+  .home-bl { right: calc(var(--sr) + 2vw + min(46vw, 440px) + 12px); flex-wrap: wrap-reverse; align-content: flex-start; gap: 6px; }
+  .home-bl .howto-btn { font-size: clamp(11px, 3.2vmin, 14px); padding: 4px 9px; white-space: nowrap; }
+  .logo { left: calc(100% - var(--sr) - 2vw - min(46vw, 440px) / 2); top: calc(var(--st) + 15vmin); font-size: clamp(28px, 10.5vmin, 56px); }
+}
+
+/* ---- Desktop and tablet ------------------------------------------------------------
+   Centred, the logo's first word sat on your player's cap. Two thirds across it sits
+   over the open pitch instead. */
+@media (orientation: landscape) and (min-height: 501px) {
+  .logo { left: 64%; }
 }

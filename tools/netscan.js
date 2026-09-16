@@ -10,7 +10,7 @@ class NetInput {
   constructor() { this.move = { x: 0, y: 0 }; this.sprintHeld = false; this.q = 0; }
   take(bit) { const v = (this.q & bit) !== 0; this.q &= ~bit; return v; }
   consumePass() { return this.take(1); } consumeSkill() { return this.take(2); } consumeSlide() { return this.take(4); }
-  consumeShootPress() { return this.take(8); } consumeShootRelease() { return this.take(16); }
+  consumeShootPress() { return this.take(8); } consumeShootRelease() { return this.take(16); } consumePassPress() { return this.take(32); }
 }
 
 const N = Number(process.argv[2] || 40);
@@ -48,7 +48,7 @@ for (let i = 0; i < N; i++) {
           let x = r < 0.5 ? b.x - h.x : r < 0.75 ? (h.team === 'blue' ? W : 0) - h.x : Math.random() - 0.5, y = r < 0.5 ? b.y - h.y : Math.random() - 0.5;
           const l = Math.hypot(x, y) || 1; I.move.x = x / l; I.move.y = y / l; I.sprintHeld = Math.random() < 0.5;
         }
-        if (Math.random() < 0.01) I.q |= 1 << Math.floor(Math.random() * 5);
+        if (Math.random() < 0.01) I.q |= 1 << Math.floor(Math.random() * 6);
       }
       // someone's connection drops mid-match: they become a bot, like the server does
       if (n === Math.floor(dropAt) && m.humans.length > 1) {

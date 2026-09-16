@@ -307,7 +307,8 @@ const AI = {
       if (longShot || (dG < 880 && lineDist > 40 && (!blocked || dG < 520) && Math.random() < (dG < 520 ? 0.9 : 0.55))) {
         p.charging = true; p.chargeT = 0;
         const powerReady = m.meter[p.team] >= CFG.POWER_MAX && (p.team === 'red' || m.autopilot);
-        p.ai.chargeGoal = powerReady ? rand(0.85, 1.0) : dG < 380 ? rand(0.05, 0.55) : rand(0.35, 1.0);
+        const cs = CFG.CHARGE_FULL / 1.4; // these hold times were tuned when a full charge took 1.4s
+        p.ai.chargeGoal = (powerReady ? rand(0.85, 1.0) : dG < 380 ? rand(0.05, 0.55) : rand(0.35, 1.0)) * cs;
         p.ai.sideY = Math.random() < 0.35 ? rand(-1, 1) : 0;
         return;
       }

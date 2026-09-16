@@ -39,6 +39,7 @@ class NetInput {
   consumeSlide() { return this.take(4); }
   consumeShootPress() { return this.take(8); }
   consumeShootRelease() { return this.take(16); }
+  consumePassPress() { return this.take(32); }
 }
 
 function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
@@ -326,7 +327,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     p.input.move.x = x; p.input.move.y = y;
     p.input.sprintHeld = !!msg.sp;
     const a = Number(msg.a) | 0;
-    if (a) p.input.q |= a & 31;
+    if (a) p.input.q |= a & 63;
     const s = Number(msg.s);
     if (Number.isFinite(s)) seat.ack = s;
   }

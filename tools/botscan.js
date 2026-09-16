@@ -21,7 +21,7 @@ class ScriptInput {
   constructor() { this.move = { x: 0, y: 0 }; this.sprintHeld = false; this.q = 0; }
   take(bit) { const v = (this.q & bit) !== 0; this.q &= ~bit; return v; }
   consumePass() { return this.take(1); } consumeSkill() { return this.take(2); } consumeSlide() { return this.take(4); }
-  consumeShootPress() { return this.take(8); } consumeShootRelease() { return this.take(16); }
+  consumeShootPress() { return this.take(8); } consumeShootRelease() { return this.take(16); } consumePassPress() { return this.take(32); }
 }
 
 // the offline difficulty for an opponent, same as Game.setDifficulty

@@ -240,7 +240,9 @@ const Online = {
     if (Game.state === 'paused') { Input.move.x = 0; Input.move.y = 0; }
     const s = this.mirror ? -1 : 1;
     const mv = Input.move;
-    if (Input.consumePass()) this.bits |= 1;
+    if (Input.consumePassPress()) { this.bits |= 32; m.human.passCharging = true; m.human.passChargeT = 0; }
+    if (Input.consumePass()) { this.bits |= 1; m.human.passCharging = false; m.human.passChargeT = 0; }
+    if (m.human.passCharging) m.human.passChargeT = Math.min(CFG.PASS_CHARGE_FULL, m.human.passChargeT + dt);
     if (Input.consumeSkill()) this.bits |= 2;
     if (Input.consumeSlide()) this.bits |= 4;
     if (Input.consumeShootPress()) { this.bits |= 8; m.human.charging = true; m.human.chargeT = 0; Sound.chargeStart(); }
