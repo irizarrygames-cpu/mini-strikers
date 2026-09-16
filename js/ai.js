@@ -86,6 +86,7 @@ const AI = {
   // online every bot plays the same; offline your teammates play at your country's level
   // and the opponents at theirs plus the difficulty setting
   rates(m, p) {
+    if (p.botDiff) return p.botDiff; // a poor bot standing in for someone who left
     if (m.online || !m.mateDiff) return m.diff;
     if (m.autopilot) return p.team === 'red' ? m.diff : m.mateDiff;
     return m.teamHuman[p.team] ? m.mateDiff : m.diff;

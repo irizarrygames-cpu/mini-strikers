@@ -332,25 +332,36 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     if (Number.isFinite(s)) seat.ack = s;
   }
 
+  // A player who leaves is replaced by a deliberately poor bot: slow, late to everything,
+  // sloppy on the ball. Nobody gets a better teammate out of someone walking off.
   function becomeBot(room, seat) {
     const m = room.m, p = seat.player;
     if (!p || !p.isHuman) return;
-    p.isHuman = false; p.input = null; p.charging = false;
-    p.speedMul = m.diff.redSpeed;
+    p.isHuman = false; p.input = null; p.charging = false; p.passCharging = false;
+    p.botDiff = { ...m.diff, redSpeed: 0.8, aiSlide: 0.06, aiDodge: 0.05, aiSkill: 0.04, aiShotNoise: 95, react: 2.2, mistakes: 3 };
+    p.speedMul = p.botDiff.redSpeed;
+    p.attr = { speed: 0.96, shot: 0.9, pass: 0.9, finish: 0.05, ctl: -0.6, def: -0.6 };
     m.humans = m.humans.filter((h) => h !== p);
     m.teamHuman = { blue: m.humans.some((h) => h.team === 'blue'), red: m.humans.some((h) => h.team === 'red') };
     if (m.human === p) m.human = m.humans[0] || m.players[0];
+  }
+
+  // Someone walked out, or never came back from a dropped connection. It's a loss for them.
+  // While anyone from their team is still playing, a poor bot takes their spot; once their
+  // team has nobody left, the match ends there and the team still on the pitch wins it.
+  function playerLeft(room, seat) {
+    onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 });
+    becomeBot(room, seat);
+    seat.gone = true; seat.conn = null;
+    const stillPlaying = (team) => room.seats.some((s) => s.human && !s.gone && s.team === team);
+    if (room.state !== 'over' && !stillPlaying(seat.team) && room.seats.some((s) => s.human && !s.gone)) finish(room, seat.team);
   }
 
   function leaveMatch(id) {
     const room = roomOf(id);
     if (!room || room.state === 'lobby') return;
     const seat = room.seats.find((s) => s.userId === id);
-    if (room.state !== 'over') {
-      // walking out counts as a defeat; the match plays on without you
-      onlineRecord(id, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 });
-      becomeBot(room, seat);
-    }
+    if (room.state !== 'over') playerLeft(room, seat);
     seat.gone = true; seat.conn = null;
     send(conns.get(id), { t: 'left' });
   }
@@ -383,7 +394,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     }
   }
 
-  function finish(room) {
+  function finish(room, forfeitTeam) {
     const m = room.m;
     room.state = 'over'; room.endedAt = Date.now();
     const pt = m.poss.blue + m.poss.red;
@@ -396,11 +407,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       mvp: { index: m.players.indexOf(mvp), name: mvp.isKeeper ? null : mvp.name, team: mvp.team, keeper: mvp.isKeeper, number: mvp.number, stats: mvp.stats },
       players: m.players.map((p) => ({ name: p.isKeeper ? null : p.name, team: p.team, number: p.number, keeper: p.isKeeper, stats: p.stats })),
       goals: m.goals.map((g) => ({ team: g.team, scorer: g.scorer ? m.players.indexOf(g.scorer) : -1, own: g.own, time: Math.round(g.time) })),
+      forfeit: !!forfeitTeam,
     };
     for (const seat of room.seats) {
       if (!seat.human || seat.gone) continue;
       const mine = m.score[seat.team], theirs = m.score[seat.team === 'blue' ? 'red' : 'blue'];
-      const outcome = mine > theirs ? 'win' : mine < theirs ? 'loss' : 'draw';
+      const outcome = forfeitTeam ? (seat.team === forfeitTeam ? 'loss' : 'win') : mine > theirs ? 'win' : mine < theirs ? 'loss' : 'draw';
       const stats = seat.player ? seat.player.stats : {};
       onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0 });
       send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format });
@@ -414,7 +426,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       if (room.state === 'lobby') continue;
       if (room.state === 'over') { if (now - room.endedAt > 10000) rooms.delete(room.id); continue; }
       // dropped players get a bot after a grace period
-      for (const s of room.seats) if (s.human && !s.conn && !s.gone && s.leftAt && now - s.leftAt > RECONNECT_MS) { becomeBot(room, s); s.gone = true; onlineRecord(s.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 }); }
+      for (const s of room.seats) if (s.human && !s.conn && !s.gone && s.leftAt && now - s.leftAt > RECONNECT_MS && room.state !== 'over') playerLeft(room, s);
+      if (room.state === 'over') continue;
       if (!room.seats.some((s) => s.human && !s.gone)) { rooms.delete(room.id); continue; }
       if (room.state === 'intro') {
         if (now < room.startAt) continue;

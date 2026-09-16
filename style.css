@@ -171,7 +171,13 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
   margin: 0; display: flex; gap: 0.25em; white-space: nowrap;
   font-size: clamp(28px, min(15vmin, calc(11.5vw - 8px)), 104px); line-height: 1; font-weight: 400;
 }
-.logo span { color: #fff; -webkit-text-stroke: 0.16em var(--ink); text-shadow: 0 0.09em 0 var(--ink); }
+/* The outline is a ring of hard text-shadows, not -webkit-text-stroke. A stroke is drawn
+   centred on the letter edge and on top of the fill, so half of it eats into the letters: with
+   this heavy font on a desktop that survives, but on phones (another engine, or a thinner
+   fallback font before Lilita One loads) the outline swallowed the letters. Shadows sit outside
+   the glyph and render the same everywhere. The second ring, 0.07em lower, is the hard drop.
+   The stroke is switched off explicitly: the shared .chunky rule above also gives it one. */
+.logo span { color: #fff; -webkit-text-stroke: 0; text-shadow: 0.055em 0.000em 0 var(--ink), 0.053em 0.014em 0 var(--ink), 0.048em 0.027em 0 var(--ink), 0.039em 0.039em 0 var(--ink), 0.028em 0.048em 0 var(--ink), 0.014em 0.053em 0 var(--ink), 0.000em 0.055em 0 var(--ink), -0.014em 0.053em 0 var(--ink), -0.027em 0.048em 0 var(--ink), -0.039em 0.039em 0 var(--ink), -0.048em 0.027em 0 var(--ink), -0.053em 0.014em 0 var(--ink), -0.055em 0.000em 0 var(--ink), -0.053em -0.014em 0 var(--ink), -0.048em -0.028em 0 var(--ink), -0.039em -0.039em 0 var(--ink), -0.028em -0.048em 0 var(--ink), -0.014em -0.053em 0 var(--ink), -0.000em -0.055em 0 var(--ink), 0.014em -0.053em 0 var(--ink), 0.028em -0.048em 0 var(--ink), 0.039em -0.039em 0 var(--ink), 0.048em -0.028em 0 var(--ink), 0.053em -0.014em 0 var(--ink), 0.055em 0.070em 0 var(--ink), 0.053em 0.084em 0 var(--ink), 0.048em 0.098em 0 var(--ink), 0.039em 0.109em 0 var(--ink), 0.028em 0.118em 0 var(--ink), 0.014em 0.123em 0 var(--ink), 0.000em 0.125em 0 var(--ink), -0.014em 0.123em 0 var(--ink), -0.027em 0.118em 0 var(--ink), -0.039em 0.109em 0 var(--ink), -0.048em 0.098em 0 var(--ink), -0.053em 0.084em 0 var(--ink), -0.055em 0.070em 0 var(--ink), -0.053em 0.056em 0 var(--ink), -0.048em 0.042em 0 var(--ink), -0.039em 0.031em 0 var(--ink), -0.028em 0.022em 0 var(--ink), -0.014em 0.017em 0 var(--ink), -0.000em 0.015em 0 var(--ink), 0.014em 0.017em 0 var(--ink), 0.028em 0.022em 0 var(--ink), 0.039em 0.031em 0 var(--ink), 0.048em 0.042em 0 var(--ink), 0.053em 0.056em 0 var(--ink); }
 .logo span:first-child { color: var(--yellow); }
 .home-char {
   position: absolute; left: var(--sl); top: var(--st);

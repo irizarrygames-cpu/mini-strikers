@@ -658,11 +658,12 @@ const UI = {
     d.coins += levelCoins;
     Save.write();
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
-    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? `ACHIEVEMENT: ${fresh[0].name.toUpperCase()}  ·  CLAIM IN PROFILE` : `${fresh.length} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE`); Sound.powerReady(); } }, 900);
+    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? `ACHIEVEMENT: ${fresh[0].name.toUpperCase()}  ·  CLAIM IN PROFILE` : `${fresh.length} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE`); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
 
     $('r-title').textContent = { win: 'VICTORY!', loss: 'DEFEAT', draw: 'DRAW' }[outcome];
     $('r-title').className = 'r-title ' + outcome;
     $('r-blue').textContent = mine; $('r-red').textContent = theirs;
+    if (msg.forfeit && outcome === 'win') setTimeout(() => { if (Game.state === 'results') this.toast('THE OTHER TEAM LEFT · YOU WIN'); }, 400);
     const S = msg.stats, poss = mirror ? 100 - msg.poss : msg.poss;
     const rows = [
       ['GOALS', mine, theirs], ['POSS %', poss, 100 - poss],
