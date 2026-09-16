@@ -708,6 +708,12 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 }
 
 #howto { z-index: 20; }
+#install-steps { z-index: 22; }
+.panel.install { max-width: 520px; }
+.panel.install .big-btn { align-self: center; }
+.install-how { font-family: system-ui, sans-serif; font-weight: 600; font-size: 14.5px; color: #4b5273; line-height: 1.5; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.install-how b { font-family: 'Lilita One', system-ui, sans-serif; font-weight: 400; color: var(--ink); font-size: 16px; }
+.get-btn { background: var(--green); color: #fff; }
 #intro { z-index: 12; }
 
 

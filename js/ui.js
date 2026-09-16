@@ -20,6 +20,9 @@ const UI = {
     $('home-char').addEventListener('click', () => { this.tap(); this.openModal('characters'); });
     $('btn-howto').addEventListener('click', () => { this.tap(); this.showHowTo(); });
     $('btn-profile').addEventListener('click', () => { this.tap(); this.openModal('profile'); });
+    $('btn-install').addEventListener('click', () => { this.tap(); Install.go(); });
+    $('install-ok').addEventListener('click', () => { this.tap(); $('install-steps').hidden = true; });
+    Install.init();
     $('daily-claim').addEventListener('click', () => this.claimDaily());
     window.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
@@ -699,5 +702,55 @@ const UI = {
     if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
     else if (this._againMode === 'newcup') { Cup.start(); Game.startMatch({ mode: 'cup' }); }
     else Game.startMatch({ mode: 'quick' });
+  },
+};
+
+// ===== Getting it onto a phone or desktop =====================================
+// The game has been a proper web app all along — a manifest, icons, a service worker —
+// so a phone can install it and run it fullscreen with no browser around it. Nothing
+// told anyone that, so there is a button now.
+//
+// Two browsers, two different jobs. Chrome, Edge and Android fire beforeinstallprompt
+// when they decide the site is installable and hand over an object you can fire later
+// from a tap: a real one-tap install. Safari has no such event and no API — Add to Home
+// Screen lives in its share menu and only a person can pick it — so on iPhone the
+// button shows the steps instead. Anywhere neither applies the button stays hidden.
+const Install = {
+  event: null,
+  init() {
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); this.event = e; this.refresh(); });
+    window.addEventListener('appinstalled', () => {
+      this.event = null; this.refresh();
+      UI.toast('INSTALLED! LOOK FOR MINI STRIKERS ON YOUR HOME SCREEN');
+    });
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+    this.refresh();
+  },
+  installed() {
+    return ['standalone', 'fullscreen', 'minimal-ui'].some((m) => matchMedia('(display-mode: ' + m + ')').matches)
+      || navigator.standalone === true; // the iOS way of saying it
+  },
+  ios() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // an iPad calling itself a Mac
+  },
+  refresh() {
+    $('btn-install').hidden = this.installed() || !(this.event || this.ios());
+  },
+  go() {
+    if (this.event) {
+      const e = this.event;
+      this.event = null;
+      e.prompt();
+      e.userChoice.then(() => this.refresh()).catch(() => {});
+      return;
+    }
+    // no API here: show where the button they need actually is
+    $('install-how').innerHTML = this.ios()
+      ? '<b>1. Tap the Share button</b>the square with an arrow coming out of it, at the bottom of Safari<b>2. Scroll down and tap "Add to Home Screen"</b><b>3. Tap Add</b>Mini Strikers lands on your home screen and opens fullscreen, like any other game.'
+      : '<b>Open your browser menu</b>the three dots in the corner<b>Tap "Install app" or "Add to Home screen"</b>then confirm. The game opens fullscreen with no browser around it.';
+    $('install-steps').hidden = false;
   },
 };

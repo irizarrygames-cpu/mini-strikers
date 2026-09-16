@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png?v=f1504ed3">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -74,6 +75,14 @@
     </div>
   </div>
 
+  <div id="install-steps" class="overlay" hidden>
+    <div class="panel install">
+      <h2>PUT IT ON YOUR HOME SCREEN</h2>
+      <div id="install-how" class="install-how"></div>
+      <button id="install-ok" class="big-btn green">GOT IT!</button>
+    </div>
+  </div>
+
   <!-- ===== HOME ===== -->
   <div id="home" class="screen">
     <div class="home-top">
@@ -95,6 +104,7 @@
     <div class="home-bl">
       <button id="btn-howto" class="howto-btn">? HOW TO PLAY</button>
       <button id="btn-profile" class="howto-btn prof-btn"><span class="star-ico"></span>PROFILE<i id="prof-badge" class="badge" hidden>0</i></button>
+      <button id="btn-install" class="howto-btn get-btn" hidden>GET THE APP</button>
     </div>
     <div class="home-actions">
       <button id="btn-play" class="big-btn">PLAY</button>

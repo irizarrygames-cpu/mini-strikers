@@ -15,7 +15,7 @@ const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 2;
+const BUILD = 3;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;

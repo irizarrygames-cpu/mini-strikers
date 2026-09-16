@@ -51,6 +51,17 @@ code and which store went live.
 Two things to know about the free plan: the instance sleeps after ~15 minutes idle, so the
 first visitor waits ~50s, and going to sleep drops any online match in progress.
 
+## Installing it like an app
+
+It is a PWA: `manifest.webmanifest`, real PNG icons (`node tools/make-icons.js` draws them,
+no image library) and `sw.js`, a service worker that caches **nothing** on purpose — every
+screen needs the server, and a stale cache is how players get stuck on an old version.
+
+**GET THE APP** on the home screen does the install. Chrome, Edge and Android hand over a
+`beforeinstallprompt` event, so that is one tap; Safari has no such API, so on an iPhone the
+button shows the Share > Add to Home Screen steps instead. The button hides itself when the
+game is already running installed, or when neither route is available.
+
 ## Tools
 
 - `node tools/netscan.js 40` — fuzzed online matches on the server engine, invariant checks.
