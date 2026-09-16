@@ -599,11 +599,32 @@ const Render = {
     ctx.fillText('!', x, y + 1);
   },
 
+  _miniBox: null,
+  minimapBox(W, H) {
+    const kb = document.body.classList.contains('kb');
+    const c = this._miniBox;
+    if (c && c.W === W && c.H === H && c.kb === kb) return c.box;
+    const ratio = CFG.FIELD_H / CFG.FIELD_W;
+    let mw = Math.round(clamp(W * 0.16, 110, 190)), mh = Math.round(mw * ratio);
+    const edge = Math.max(16, W * 0.02);
+    let x0 = W - mw - edge, y0 = Math.max(10, H * 0.025);
+    const rect = (id) => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect(); return r.width && r.height ? r : null; };
+    const sb = rect('scoreboard'), sprint = rect('btn-sprint');
+    if (!sb || (!kb && !sprint)) return { mw, mh, x0, y0 }; // HUD not laid out, or controls hidden for a replay: don't cache
+    // side by side with the scoreboard if there's room, otherwise underneath it
+    if (x0 < sb.right + 8) y0 = sb.bottom + 10;
+    // and never down into the SPRINT button
+    if (sprint && sprint.left < x0 + mw && y0 + mh + 6 > sprint.top) {
+      mh = Math.max(36, Math.floor(sprint.top - 6 - y0)); mw = Math.round(mh / ratio); x0 = W - mw - edge;
+    }
+    const box = { mw, mh, x0, y0 };
+    this._miniBox = { W, H, kb, box };
+    return box;
+  },
+
   drawMinimap(ctx, m) {
     const W = this.W, H = this.H;
-    const mw = Math.round(clamp(W * 0.16, 110, 190)), mh = Math.round(mw * (CFG.FIELD_H / CFG.FIELD_W));
-    // in portrait the scoreboard is nearly the full width, so the map drops below it
-    const x0 = W - mw - Math.max(16, W * 0.02), y0 = Math.max(10, H * 0.025) + (H > W ? 58 : 0);
+    const { mw, mh, x0, y0 } = this.minimapBox(W, H);
     const sx = (x) => x0 + (x / CFG.FIELD_W) * mw, sy = (y) => y0 + (y / CFG.FIELD_H) * mh;
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = '#2f9a3c'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3;
@@ -678,7 +699,7 @@ const Render = {
     const left = pill.left;
     let { k, px, py } = base;
     k = Math.max(1, Math.min(k, (floor - ceil) / 84, (right - left) / 66));
-    py = Math.min(py, floor - 10 * k);
+    py = Math.min(floor - 10 * k, Math.max(py, ceil + 74 * k));
     px = Math.max(left + 30 * k, Math.min(px, right - 36 * k));
     const spot = { k, px, py };
     this._homeSpot = { W, H, spot };

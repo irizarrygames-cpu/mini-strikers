@@ -62,7 +62,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
   display: flex; align-items: stretch; height: clamp(38px, 11vmin, 58px);
   border: 3px solid var(--ink); border-radius: 14px; overflow: hidden;
   box-shadow: 0 4px 0 var(--ink); pointer-events: none;
-  font-size: clamp(22px, 7.5vmin, 38px); color: #fff;
+  font-size: clamp(15px, min(7.5vmin, calc((100vw - 2 * var(--sl) - 120px) / 10.6)), 38px); color: #fff;
 }
 .sb-team { display: flex; align-items: center; gap: 0.35em; padding: 0 0.55em; min-width: 3.3em; justify-content: center; }
 .sb-team span:not(.sb-ball) { -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; line-height: 1; }
@@ -156,20 +156,20 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 
 /* ================= HOME ================= */
 .screen { position: fixed; inset: 0; height: 100dvh; }
-.home-top { position: absolute; right: var(--sr); top: var(--st); display: flex; gap: 10px; }
+.home-top { position: absolute; right: var(--sr); top: var(--st); display: flex; gap: min(10px, 1vw); }
 .coins {
   display: flex; align-items: center; gap: 8px;
   background: #232a55; color: #fff; border: 3px solid var(--ink); border-radius: 999px;
-  padding: 4px 16px 4px 6px; font-size: clamp(18px, 5vmin, 26px); box-shadow: 0 4px 0 var(--ink);
+  padding: 4px 16px 4px 6px; font-size: clamp(13px, min(5vmin, 2.7vw), 26px); box-shadow: 0 4px 0 var(--ink);
 }
 .coin {
   width: 1.15em; height: 1.15em; border-radius: 50%; background: var(--yellow); border: 3px solid var(--ink);
   box-shadow: inset -3px -3px 0 #e0a800; display: inline-block; flex: none;
 }
 .logo {
-  position: absolute; left: 50%; top: calc(var(--st) + 14vmin); transform: translateX(-50%) rotate(-4deg);
+  position: absolute; left: 50%; top: calc(var(--st) + max(14vmin, clamp(34px, min(13vmin, 6.5vw), 64px) + 30px)); transform: translateX(-50%) rotate(-4deg);
   margin: 0; display: flex; gap: 0.25em; white-space: nowrap;
-  font-size: clamp(40px, 15vmin, 104px); line-height: 1; font-weight: 400;
+  font-size: clamp(28px, min(15vmin, calc(11.5vw - 8px)), 104px); line-height: 1; font-weight: 400;
 }
 .logo span { color: #fff; -webkit-text-stroke: 0.16em var(--ink); text-shadow: 0 0.09em 0 var(--ink); }
 .logo span:first-child { color: var(--yellow); }
@@ -179,16 +179,16 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
   background: #fff; border: 3px solid var(--ink); border-radius: 16px; padding: 6px 16px 6px 6px;
   box-shadow: 0 5px 0 var(--ink); text-align: left;
 }
-.home-char canvas { width: clamp(44px, 13vmin, 64px); height: clamp(44px, 13vmin, 64px); }
-.home-char small { display: block; font-size: 13px; color: #6b7299; }
-.home-char strong { font-size: clamp(18px, 5vmin, 24px); font-weight: 400; }
+.home-char canvas { width: clamp(34px, min(13vmin, 6.5vw), 64px); height: clamp(34px, min(13vmin, 6.5vw), 64px); }
+.home-char small { display: block; font-size: clamp(10px, 1.7vw, 13px); color: #6b7299; }
+.home-char strong { font-size: clamp(14px, min(5vmin, 2.6vw), 24px); font-weight: 400; }
 .home-char:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 .home-actions {
   position: absolute; right: calc(var(--sr) + 2vw); bottom: calc(var(--sb) + 4vmin);
   display: flex; flex-direction: column; align-items: stretch; gap: 14px; width: min(52vw, 520px);
 }
 .home-row { display: flex; gap: 10px; }
-.home-row .mid-btn { flex: 1; font-size: clamp(14px, 4.2vmin, 20px); padding-inline: 4px; }
+.home-row .mid-btn { flex: 1 1 0; min-width: 0; white-space: nowrap; font-size: clamp(10px, min(4.2vmin, calc(2.6vw - 2px)), 20px); padding-inline: 4px; }
 
 .big-btn, .mid-btn {
   border: 4px solid var(--ink); border-radius: 18px; color: #fff; font-weight: 400;
@@ -554,9 +554,11 @@ body:not(.kb) #kb-legend { display: none; }
 .controls-ref li .kc.wide { min-width: 48px; font-size: 11px; }
 
 /* ================= HOME EXTRAS ================= */
-.pill { display: flex; align-items: center; gap: 6px; background: #232a55; color: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 4px 14px 4px 6px; font-size: clamp(18px, 5vmin, 26px); box-shadow: 0 4px 0 var(--ink); }
+.pill { display: flex; align-items: center; gap: 6px; background: #232a55; color: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 4px 14px 4px 6px; font-size: clamp(13px, min(5vmin, 2.7vw), 26px); box-shadow: 0 4px 0 var(--ink); }
 .cup-ico { width: 1.1em; height: 1.1em; display: inline-block; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 3h12v5a6 6 0 0 1-12 0z' fill='%23ffe14d' stroke='%23161a33' stroke-width='2'/%3E%3Cpath d='M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3' fill='none' stroke='%23161a33' stroke-width='2'/%3E%3Cpath d='M10 14h4v3h3v4H7v-4h3z' fill='%23ffe14d' stroke='%23161a33' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat; }
 .hc-info { display: flex; flex-direction: column; min-width: 110px; }
+.hc-info { max-width: max(150px, 26vw); }
+.hc-info small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 20px; }
 .hc-info small b { font-weight: 400; color: var(--blue); }
 .xpbar { display: block; height: 9px; background: #dfe3f2; border: 2px solid var(--ink); border-radius: 5px; overflow: hidden; margin-top: 3px; }
 .xpbar b { display: block; height: 100%; background: var(--yellow); width: 0; }
@@ -789,7 +791,8 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .hc-ovr { position: absolute; right: -12px; top: -12px; display: flex; flex-direction: column; align-items: center; line-height: 0.9; background: var(--ink); color: #fff; border-radius: 10px; padding: 4px 7px 3px; border: 2px solid #fff; }
 .hc-ovr b { font-weight: 400; font-size: 20px; color: var(--rar, #fff); }
 .hc-ovr small { font-size: 8px; color: #fff; }
-.home-bl { position: absolute; left: var(--sl); bottom: calc(var(--sb) + 4px); display: flex; gap: 8px; }
+.home-bl { position: absolute; left: var(--sl); right: calc(var(--sr) + 2vw + min(52vw, 520px) + 12px); bottom: calc(var(--sb) + 4px); display: flex; flex-wrap: wrap-reverse; align-content: flex-start; gap: 8px; }
+.home-bl .howto-btn { white-space: nowrap; font-size: clamp(11px, min(4vmin, 1.45vw), 18px); }
 .home-bl .howto-btn { position: relative; left: auto; bottom: auto; }
 .prof-btn { display: flex; align-items: center; gap: 6px; background: var(--yellow); }
 .star-ico { width: 1.05em; height: 1.05em; display: inline-block; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3 6.5 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21l1.4-7L2 9.3l7-.8z' fill='%23ffffff' stroke='%23161a33' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
@@ -949,7 +952,8 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
   /* under the logo, where there is room — at the bottom it landed on the PLAY block */
   .home-record { top: calc(var(--st) + 204px); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
   /* the rating badge sits on the pill corner, so the name needs to stop before it */
-  .home-char { max-width: 52vw; padding-right: 34px; }
+  .home-char { max-width: calc(100vw - var(--sl) - var(--sr) - 20px); padding-right: 34px; }
+  .hc-info { max-width: none; }
   .home-char strong { font-size: 17px; }
   .home-char small { font-size: 11px; }
   /* the shop and league panels are wide tables; let them use the whole width */
@@ -977,7 +981,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
   .home-row .mid-btn { flex: 1 1 0; min-width: 0; font-size: clamp(11px, 3.4vmin, 17px); padding-inline: 2px; white-space: nowrap; }
   .home-bl { right: calc(var(--sr) + 2vw + min(46vw, 440px) + 12px); flex-wrap: wrap-reverse; align-content: flex-start; gap: 6px; }
   .home-bl .howto-btn { font-size: clamp(11px, 3.2vmin, 14px); padding: 4px 9px; white-space: nowrap; }
-  .logo { left: calc(100% - var(--sr) - 2vw - min(46vw, 440px) / 2); top: calc(var(--st) + 15vmin); font-size: clamp(28px, 10.5vmin, 56px); }
+  .logo { left: calc(100% - var(--sr) - 2vw - min(46vw, 440px) / 2); top: calc(var(--st) + 15vmin); font-size: clamp(24px, min(10.5vmin, 7.2vw), 56px); }
 }
 
 /* ---- Desktop and tablet ------------------------------------------------------------
@@ -985,4 +989,42 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
    over the open pitch instead. */
 @media (orientation: landscape) and (min-height: 501px) {
   .logo { left: 64%; }
+}
+
+/* ---- Narrow windows ------------------------------------------------------------------
+   Under ~700px wide the three buttons under PLAY had about 80px each and clipped their
+   labels, so the actions column takes more of the width there (the left side only holds
+   your player and the small buttons, which wrap). A short portrait window has no room for
+   the W-D-L line between the logo and your player. */
+@media (orientation: landscape) and (max-width: 700px) {
+  .home-actions { width: 56vw; }
+  .home-bl { right: calc(var(--sr) + 2vw + 56vw + 10px); }
+  .home-row { gap: 6px; }
+  .home-row .mid-btn { font-size: clamp(10px, calc(2.55vw - 2px), 17px); padding-inline: 1px; }
+  .logo { left: calc(100% - var(--sr) - 2vw - 28vw); font-size: clamp(22px, min(10.5vmin, 8.4vw), 56px); }
+}
+@media (orientation: portrait) and (max-height: 700px) {
+  .home-record { display: none; }
+}
+/* A landscape window under ~520px wide can't fit the account pill beside the country, cups
+   and coins pills: the country keeps its flag and league place and drops its name. A tiny
+   portrait window gives the logo's space to your player. */
+@media (orientation: landscape) and (max-width: 520px) {
+  #home-club-name { display: none; }
+}
+@media (orientation: portrait) and (max-height: 560px) {
+  .logo { display: none; }
+}
+/* A 320px-wide phone held upright had PASS and SKILL sitting on the joystick: the controls
+   are a size smaller there. */
+@media (orientation: portrait) and (max-width: 340px) {
+  #joy-base { width: 100px; height: 100px; }
+  .action.pass { right: calc(var(--sr) + 86px); }
+  .action.pass svg { width: 58px; height: 58px; }
+  .action.shoot .face { width: 74px; height: 74px; }
+  .action.shoot .power-ring { width: 92px; height: 92px; }
+  .action.skill { right: calc(var(--sr) + 92px); bottom: calc(var(--sb) + 88px); }
+  .action.skill .face { width: 52px; height: 52px; }
+  .action.sprint { bottom: calc(var(--sb) + 128px); }
+  .action .label { font-size: 12px; padding: 1px 7px; }
 }
