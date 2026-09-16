@@ -247,7 +247,7 @@ function readBody(req) {
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
-const DENY_FILES = new Set(['data.json', 'data.json.tmp', 'server.js', 'package.json', 'package-lock.json', 'serve.py', 'readme.md']);
+const DENY_FILES = new Set(['data.json', 'data.json.tmp', 'server.js', 'package.json', 'package-lock.json', 'serve.py', 'readme.md', 'render.yaml']);
 const DENY_DIRS = new Set(['server', 'node_modules']);
 // the test tools are for this computer only
 const LOCAL_ONLY_DIRS = new Set(['tools']);
