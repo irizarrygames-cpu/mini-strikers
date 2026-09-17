@@ -263,7 +263,8 @@ Object.assign(UI, {
         <canvas width="96" height="96" id="prof-canvas"></canvas>
         <div class="prof-id">
           <strong>${ch.name}</strong>
-          <small>${Save.account || 'GUEST'} · ${Clubs.mine().name} · LEVEL ${lv.level} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${overall(ch.r)}</small>
+          <small>${Save.account || 'GUEST'} · ${Clubs.mine().name} · LEVEL ${lv.level} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${overall(ch.r)}</small>
+          <small class="ramp-note">Every level makes every match harder — opponents are +${levelRampPct(lv.level)}% sharper than at level 1${lv.level >= LEVEL_RAMP_TOP ? ' (maxed)' : ''}.</small>
           <span>${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L · ${winPct}% WON</span>
         </div>
         ${this.coinsLine()}

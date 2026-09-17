@@ -207,6 +207,31 @@ function fmtCoins(n) {
   return (v >= 100 ? Math.floor(v) : Math.floor(v * 100) / 100) + unit;
 }
 
+// YOUR level makes every match harder: level 1 plays as before, level 50+ is the full ramp.
+// Ranks are just a name for where you are on it.
+const LEVEL_RAMP_TOP = 50;
+const RANKS = [[1, 'ROOKIE'], [6, 'PRO'], [12, 'STAR'], [20, 'ELITE'], [30, 'WORLD CLASS'], [40, 'LEGEND'], [50, 'GOAT']];
+const rankFor = (level) => { let n = RANKS[0][1]; for (const [lv, name] of RANKS) if (level >= lv) n = name; return n; };
+const levelRampPct = (level) => Math.round(clamp((level - 1) / (LEVEL_RAMP_TOP - 1), 0, 1) * 100);
+function playerRamp(b, level) {
+  const u = clamp(((level || 1) - 1) / (LEVEL_RAMP_TOP - 1), 0, 1);
+  if (u <= 0) return { ...b, playerLevel: level || 1, ramp: 0 };
+  return {
+    ...b,
+    redSpeed: b.redSpeed + u * 0.07,
+    slideOnHuman: Math.min(1, b.slideOnHuman * (1 + u * 0.35)),
+    aiSlide: b.aiSlide * (1 + u * 0.9),
+    aiDodge: Math.min(0.8, b.aiDodge * (1 + u * 0.8)),
+    aiSkill: Math.min(0.6, b.aiSkill * (1 + u * 0.8)),
+    keeperBonus: b.keeperBonus + u * 0.1,
+    aiShotNoise: Math.max(14, b.aiShotNoise * (1 - u * 0.45)),
+    react: Math.max(0.5, b.react * (1 - u * 0.4)),
+    mistakes: Math.max(0.28, b.mistakes * (1 - u * 0.65)),
+    playerLevel: level,
+    ramp: u,
+  };
+}
+
 // a difficulty leaned on by a team's level (0..3): better teams are quicker and slip up less
 function levelDiff(b, lv) {
   return {

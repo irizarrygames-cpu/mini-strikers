@@ -14,7 +14,8 @@ const Game = {
   // The difficulty setting is the base; the opponent club's level (0..3) leans on top of it.
   setDifficulty(club) {
     const b = DIFFICULTY[Save.data.settings.difficulty] || DIFFICULTY.normal;
-    this._diff = levelDiff(b, club ? club.level : 1);
+    // your own level leans on top of the setting and the opponent's level
+    this._diff = playerRamp(levelDiff(b, club ? club.level : 1), Levels.info(Save.data.xp || 0).level);
   },
 
   boot() {

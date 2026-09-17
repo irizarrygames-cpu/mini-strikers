@@ -47,6 +47,15 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
   const ULTS = sim.ULT_KINDS;
+
+  // the level the fill bots play to: the average level of the real players in the room
+  function roomLevel(seats) {
+    const levels = seats.filter((s) => s.human).map((s) => {
+      const u = getUser(s.userId);
+      return sim.Levels.info(u && u.save ? Number(u.save.xp) || 0 : 0).level;
+    });
+    return levels.length ? Math.round(levels.reduce((a, b) => a + b, 0) / levels.length) : 1;
+  }
   const BOT_CELEBS = ['jump', 'jump', 'flex', 'salute', 'spin', 'shush', 'heart', 'dab', 'kneeslide', 'kneeslide', 'airplane', 'chestpump', 'callme', 'chill', 'robot', 'griddy', 'siuu', 'calmdown', 'pointsky', 'floss', 'bird', 'kungfu'];
   const conns = new Map();   // userId -> connection
   const queues = { '1v1': [], '2v2': [], '3v3': [], '4v4': [] };
@@ -297,7 +306,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
 
     const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now() };
     room.m = sim.create({
-      online: true, format, minutes: MATCH_MINUTES, seats, diff: { ...sim.DIFFICULTY.normal },
+      online: true, format, minutes: MATCH_MINUTES, seats, diff: sim.playerRamp({ ...sim.DIFFICULTY.normal }, roomLevel(seats)),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
     }, room.events);
     room.m.events = room.events;
