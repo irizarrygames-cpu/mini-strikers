@@ -88,7 +88,7 @@ Object.assign(UI, {
     return `<span class="price"><span class="coin"></span>${Shop.price(kind, id)}</span><span class="buy">TAP TO BUY</span>`;
   },
 
-  coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${Save.data.coins}</b></div>`; },
+  coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${fmtCoins(Save.data.coins)}</b></div>`; },
 
   // ---- characters ----
   panel_characters(body) {

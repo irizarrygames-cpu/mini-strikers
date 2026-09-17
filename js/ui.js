@@ -124,7 +124,7 @@ const UI = {
 
   refreshHome() {
     const d = Save.data;
-    $('coins').textContent = d.coins;
+    $('coins').textContent = fmtCoins(d.coins);
     $('trophies').textContent = d.trophies || 0;
     const ch = Save.character();
     $('home-char-name').textContent = ch.name;

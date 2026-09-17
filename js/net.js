@@ -55,7 +55,9 @@ const Net = {
     if (r.token) { this.token = r.token; try { localStorage.setItem(TOKEN_KEY, r.token); } catch (e) {} }
     this.user = { name: r.name, club: r.club, online: r.online };
     Save.useAccount(r.name, r.save, r.club, fresh);
+    if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
   },
+  giftToast(n) { setTimeout(() => { UI.refreshHome(); UI.toast(`GIFT  +${fmtCoins(n)} COINS`); }, 900); },
   forget() {
     this.token = null; this.user = null;
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
@@ -76,8 +78,9 @@ const Net = {
   async pushSave() {
     if (!this.token) return;
     try {
-      const r = await this.api('/api/save', { save: Save.data });
+      const r = await this.api('/api/save', { save: Save.data, gifts: true });
       if (r.auth === false) { this.forget(); UI.showAuth('You were signed out. Log in again.'); }
+      if (r.ok && r.gift > 0) { Save.data.coins += r.gift; Save.write(); this.giftToast(r.gift); }
     } catch (e) { this.saveTimer = setTimeout(() => this.pushSave(), 8000); }
   },
 

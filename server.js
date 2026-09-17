@@ -15,7 +15,7 @@ const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 10;
+const BUILD = 11;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -91,7 +91,7 @@ async function flushDB() {
 
 const SAVE_MAX_BYTES = 40000;
 const LIMITS = {
-  coins: { min: 0, max: 5000000, gain: 12000 },
+  coins: { min: 0, max: 2000000000, gain: 12000 }, // max leaves room for gifts; gain still limits what a game can add
   xp: { min: 0, max: 100000000, gain: 8000 },
   trophies: { min: 0, max: 100000, gain: 3 },
   matches: { min: 0, max: 1000000, gain: 20 },
@@ -120,6 +120,38 @@ function sanitizeSave(incoming, previous, club) {
   }
   save.club = club; // your club is set at sign-up and lives on the account, not in the save
   return save;
+}
+
+/* ---------------- gifts ---------------- */
+
+// Coins handed to a player by the game's owner. Each gift is queued once at startup (its key is
+// remembered on the account, so restarts never repeat it) and delivered the next time that
+// player's game syncs: on sign-in / opening the game, or on a save from a game that knows gifts.
+const GIFTS = [
+  { key: '2026-09-17-billion', user: 'irizarrygamez1', club: 'germany', coins: 1000000000 },
+];
+function queueGifts() {
+  for (const g of GIFTS) {
+    const u = getUser(g.user);
+    if (!u) { console.log(`gift ${g.key}: no account ${g.user}`); continue; }
+    if (g.club && u.club !== g.club) { console.log(`gift ${g.key}: ${g.user} plays for ${u.club}, not ${g.club}`); continue; }
+    u.giftsDone = Array.isArray(u.giftsDone) ? u.giftsDone : [];
+    if (u.giftsDone.includes(g.key)) continue;
+    u.giftsDone.push(g.key);
+    u.pendingCoins = (Number(u.pendingCoins) || 0) + g.coins;
+    saveDB();
+    console.log(`gift ${g.key}: ${g.coins} coins queued for ${g.user}`);
+  }
+}
+// moves queued coins into the stored save; returns how many arrived
+function deliverGifts(u) {
+  const n = Number(u.pendingCoins) || 0;
+  if (n <= 0) return 0;
+  if (!u.save || typeof u.save !== 'object') u.save = {};
+  u.save.coins = clampNumber((Number(u.save.coins) || 0) + n, LIMITS.coins, 0);
+  u.pendingCoins = 0;
+  saveDB();
+  return n;
 }
 
 /* ---------------- accounts ---------------- */
@@ -345,20 +377,23 @@ async function handleRequest(req, res) {
     if (!u) return sendJSON(res, 200, { ok: false, msg: 'No account with that username' });
     if (str(body.password).length > 200) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
     if (await hashPassword(body.password, u.salt, u.iterations) !== u.hash) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
-    return sendJSON(res, 200, { ok: true, token: issueToken(id), ...publicUser(id) });
+    const gift = deliverGifts(u); // the game takes the account's save as it comes back here
+    return sendJSON(res, 200, { ok: true, token: issueToken(id), ...publicUser(id), gift });
   }
 
   const me = userIdFromToken(body.token);
   if (!me || !getUser(me)) return sendJSON(res, 401, { ok: false, msg: 'Not signed in' });
   const meUser = getUser(me);
 
-  if (route === '/api/me') return sendJSON(res, 200, { ok: true, ...publicUser(me) });
+  if (route === '/api/me') { const gift = deliverGifts(meUser); return sendJSON(res, 200, { ok: true, ...publicUser(me), gift }); }
 
   if (route === '/api/save') {
     if (throttled(ip, 'save', 40, 60000)) return sendJSON(res, 429, { ok: false, msg: 'Slow down' });
     meUser.save = sanitizeSave(body.save, meUser.save, meUser.club);
+    // only a game that adds the gift to its own coins may take it (older open pages would overwrite it)
+    const gift = body.gifts === true ? deliverGifts(meUser) : 0;
     saveDB();
-    return sendJSON(res, 200, { ok: true, save: meUser.save });
+    return sendJSON(res, 200, { ok: true, save: meUser.save, gift });
   }
 
   if (route === '/api/logout') { forgetSession(str(body.token)); return sendJSON(res, 200, { ok: true }); }
@@ -405,6 +440,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
     if (u.club !== country) { u.club = country; if (u.save) { u.save.club = country; u.save.cup = null; } leagueCache = null; saveDB(); }
   }
   restoreSessions();
+  queueGifts();
   server.listen(PORT, () => {
     console.log(`Mini Strikers server on http://localhost:${PORT}`);
     console.log(`accounts: ${Object.keys(DB.users).length} (storage: ${store.kind})`);

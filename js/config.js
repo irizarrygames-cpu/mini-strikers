@@ -175,6 +175,14 @@ const DIFFICULTY = {
 // players on your side did not get worse too
 const MATE_BASE = { redSpeed: 0.98, slideOnHuman: 0.76, aiSlide: 0.27, aiDodge: 0.38, aiSkill: 0.26, keeperBonus: 0.08, aiShotNoise: 38, react: 0.96, mistakes: 0.94 };
 
+// coin counts for display: 999999 stays exact, then 1.25M, 1B
+function fmtCoins(n) {
+  n = Math.floor(Number(n) || 0);
+  if (n < 1e6) return String(n);
+  const [v, unit] = n >= 1e9 ? [n / 1e9, 'B'] : [n / 1e6, 'M'];
+  return (v >= 100 ? Math.floor(v) : Math.floor(v * 100) / 100) + unit;
+}
+
 // a difficulty leaned on by a team's level (0..3): better teams are quicker and slip up less
 function levelDiff(b, lv) {
   return {
