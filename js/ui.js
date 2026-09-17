@@ -450,7 +450,7 @@ const UI = {
     $('btn-pass').classList.toggle('call', !has && !!m.ball.owner && m.ball.owner.team === 'blue');
 
     // SKILL (with ball) / TACKLE (without) + their cooldowns
-    const skillCd = Math.round(clamp(h.skillCd / (SKILL.cooldown * (1 - h.attr.ctl * 0.2)), 0, 1) * 100);
+    const skillCd = Math.round(clamp(h.skillCd / skillCooldown(h), 0, 1) * 100);
     const slideCd = Math.round(clamp(h.slideCd / (tackleCooldown(h) + SLIDE.time), 0, 1) * 100);
     const cd = has ? skillCd : slideCd;
     const btn = $('btn-skill');

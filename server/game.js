@@ -28,7 +28,6 @@ const NAME_FIRST = ['kai', 'leo', 'max', 'zane', 'eli', 'jay', 'luca', 'mateo', 
 const NAME_BALL = ['goal', 'striker', 'boot', 'kick', 'dribble', 'volley', 'nutmeg', 'panenka', 'header', 'rabona', 'skill', 'baller', 'golazo', 'topbins'];
 const NAME_END = ['king', 'god', 'pro', 'x', 'boy', 'man', 'mode', 'fc', 'yt', 'ez'];
 const BOT_ACCESSORIES = ['shades', 'shades', 'wristbands', 'wristbands', 'mustache', 'partyhat', 'bowtie', 'scarf', 'warpaint', 'headphones', 'armband', 'eyepatch', 'chain'];
-const BOT_CHARACTERS = ['street', 'street', 'street', 'striker', 'striker', 'striker', 'buzz', 'buzz', 'curly', 'curly', 'speedster', 'speedster', 'captain', 'bandit', 'beanie', 'turbo', 'ninja', 'mohawk'];
 const r100 = (v) => Math.round(v * 100);
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -285,7 +284,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
           seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0 });
         } else {
           // filled spots dress like people do: some with an accessory, mostly the cheaper ones
-          seats.push({ seat: seats.length, team, human: false, name: null, character: pickOne(BOT_CHARACTERS), celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
+          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter().id, celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
         }
       }
     }

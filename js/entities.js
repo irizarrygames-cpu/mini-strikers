@@ -819,7 +819,10 @@ function checkSlides(m) {
 // Every skill gives a short dodge window that makes slides miss.
 // No stick: HOP (best dodge). Stick forward: nutmeg / flick / burst.
 // Stick sideways: SPIN. Stick backward: CRUYFF turn.
-const SKILL = { cooldown: 1.1, aiCooldown: 1.6, hopDodge: 0.45 };
+// cooldown shrinks with the character's control rating, then `extra` is added flat (The GOAT: 0.94s).
+// Bots use exactly the cooldown of the character they play as.
+const SKILL = { cooldown: 1.1, extra: 0.1, hopDodge: 0.45 };
+const skillCooldown = (p) => SKILL.cooldown * (1 - p.attr.ctl * 0.2) + SKILL.extra;
 
 function performSkill(m, p, ix, iy) {
   const b = m.ball;
@@ -843,7 +846,7 @@ function performSkill(m, p, ix, iy) {
   else kind = 'spin';
 
   const fx = p.fx, fy = p.fy;
-  p.skillCd = (p.isHuman ? SKILL.cooldown : SKILL.aiCooldown) * (1 - p.attr.ctl * 0.2);
+  p.skillCd = skillCooldown(p);
   p.stats.skills++;
   m.stats[p.team].skills = (m.stats[p.team].skills || 0) + 1;
   const say = (s, c) => { if (p.isHuman || Math.random() < 0.5) FX.text(p.x, p.y, s, c, 15); };

@@ -152,6 +152,18 @@ const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
 
 const AI_HAIRS = ['messy', 'spikes', 'curly', 'buzz', 'headband', 'messy', 'curly', 'beanie', 'mohawk', 'afro'];
 
+// Bots play as real characters. Each rarity's share of all bots is split evenly across its
+// characters, so rarer ones turn up less: a mythic like The GOAT is about 1 bot in 800.
+const BOT_RARITY_SHARE = { starter: 35, common: 27, rare: 20, epic: 12, legendary: 5, mythic: 1 };
+function pickBotCharacter(rand = Math.random) {
+  const count = {};
+  for (const c of CHARACTERS) count[c.rarity] = (count[c.rarity] || 0) + 1;
+  const weight = (c) => (BOT_RARITY_SHARE[c.rarity] || 0) / count[c.rarity];
+  let roll = rand() * CHARACTERS.reduce((sum, c) => sum + weight(c), 0);
+  for (const c of CHARACTERS) { roll -= weight(c); if (roll <= 0) return c; }
+  return CHARACTERS[0];
+}
+
 const overall = (r) => Math.round((r.spd + r.sht + r.pas + r.ctl + r.def) / 5);
 // rating 70 = 0; 95 ≈ +1; 99 ≈ +1.16; 45 ≈ -1. Kept small on purpose: better, not unfair.
 const NEUTRAL_ATTR = { speed: 1, shot: 1, pass: 1, finish: 0, ctl: 0, def: 0 };

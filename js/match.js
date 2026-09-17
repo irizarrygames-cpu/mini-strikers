@@ -58,13 +58,15 @@ const Match = {
       const human = new Player({ team: 'blue', human: true, role: 'att', number: 10, attr: m.autopilot ? null : ratingAttr(ch.r), look: lookOf(ch, m.autopilot ? null : Save.accessory()) });
       m.human = human;
       m.players.push(human); m.humans.push(human);
+      // every bot is a real character (look and ratings), rarer ones less often
+      const botChar = () => { const bc = pickBotCharacter(rng); return { look: lookOf(bc, null), attr: ratingAttr(bc.r) }; };
       roster.blue.forEach(([role, n]) => {
-        const p = new Player({ team: 'blue', role, number: n, look: aiLook() });
+        const p = new Player({ team: 'blue', role, number: n, ...botChar() });
         p.speedMul = m.mateDiff.redSpeed;
         m.players.push(p);
       });
       roster.red.forEach(([role, n]) => {
-        const p = new Player({ team: 'red', role, number: n, look: aiLook() });
+        const p = new Player({ team: 'red', role, number: n, ...botChar() });
         p.speedMul = diff.redSpeed;
         m.players.push(p);
       });
