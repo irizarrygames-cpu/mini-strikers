@@ -166,13 +166,14 @@ const DIFFICULTY = {
   // mistakes: how often bots get it wrong (BOT_MISTAKES), 1 = an average player
   // 2026-09-16 "make the bots worse": every preset is slower, tackles less, decides later,
   // shoots wider and slips up more than it did. Your own teammates keep MATE_BASE below.
-  easy:   { redSpeed: 0.87, slideOnHuman: 0.55, aiSlide: 0.15, aiDodge: 0.15, aiSkill: 0.12, keeperBonus: -0.07, aiShotNoise: 68, react: 1.5,  mistakes: 1.8 },
-  normal: { redSpeed: 0.94, slideOnHuman: 0.7,  aiSlide: 0.2,  aiDodge: 0.28, aiSkill: 0.2,  keeperBonus: 0.04,  aiShotNoise: 52, react: 1.2,  mistakes: 1.4 },
-  hard:   { redSpeed: 0.99, slideOnHuman: 0.85, aiSlide: 0.36, aiDodge: 0.42, aiSkill: 0.28, keeperBonus: 0.1,   aiShotNoise: 36, react: 0.95, mistakes: 1.0 },
+  // 2026-09-17 "just barely better": a small step back up on every preset.
+  easy:   { redSpeed: 0.88, slideOnHuman: 0.57, aiSlide: 0.16, aiDodge: 0.17, aiSkill: 0.13, keeperBonus: -0.07, aiShotNoise: 64, react: 1.45, mistakes: 1.7 },
+  normal: { redSpeed: 0.95, slideOnHuman: 0.72, aiSlide: 0.215, aiDodge: 0.3, aiSkill: 0.21, keeperBonus: 0.04, aiShotNoise: 49, react: 1.15, mistakes: 1.3 },
+  hard:   { redSpeed: 1.0,  slideOnHuman: 0.86, aiSlide: 0.37, aiDodge: 0.44, aiSkill: 0.29, keeperBonus: 0.1,   aiShotNoise: 34, react: 0.92, mistakes: 0.94 },
 };
 // your bot teammates offline: what "normal" was before the bots were made worse, so the
 // players on your side did not get worse too
-const MATE_BASE = { redSpeed: 0.97, slideOnHuman: 0.75, aiSlide: 0.26, aiDodge: 0.36, aiSkill: 0.25, keeperBonus: 0.07, aiShotNoise: 40, react: 1.0, mistakes: 1 };
+const MATE_BASE = { redSpeed: 0.98, slideOnHuman: 0.76, aiSlide: 0.27, aiDodge: 0.38, aiSkill: 0.26, keeperBonus: 0.08, aiShotNoise: 38, react: 0.96, mistakes: 0.94 };
 
 // a difficulty leaned on by a team's level (0..3): better teams are quicker and slip up less
 function levelDiff(b, lv) {

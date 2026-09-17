@@ -4,7 +4,8 @@
 // the one thing a phone insists on having as real files, so they are drawn here in the
 // game's flat vocabulary (solid fills, thick ink outlines, hard shadows, no gradients):
 // a flaming ball rocketing out of an arcade sunburst. PNGs are written with Node's own
-// zlib (no image library); icon.svg is built from the same geometry so they match.
+// zlib (no image library). There is no SVG icon: its strokes never matched the PNGs, and every
+// device should show exactly the same pixels.
 
 const fs = require('fs');
 const path = require('path');
@@ -162,11 +163,17 @@ function shade(x, y) {
   return col;
 }
 
+// One picture everywhere: the iPhone framing (art at 90%, APPLE_PAD each side) inside a square
+// with the iPhone's corner rounding. Where the device doesn't round corners itself (desktop
+// installs, browser tabs, launchers that use plain icons) the file carries the corners.
+const APPLE_PAD = 0.05;
+const CORNER = 0.2237; // iOS icon corner radius as a share of the side
+
 // pad: share of the icon kept clear so a launcher's circle crop never cuts the art
 function draw(size, pad, rounded) {
   const rgba = Buffer.alloc(size * size * 4);
   const SS = 4; // 4x4 supersampling for clean edges
-  const R = rounded ? 0.2 : 0;
+  const R = rounded ? CORNER : 0;
   const scale = 1 - pad * 2;
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
@@ -191,55 +198,27 @@ function draw(size, pad, rounded) {
   return rgba;
 }
 
-/* ---------------- icon.svg from the same geometry ---------------- */
-
-function svg() {
-  const K = 512, f = (v) => +(v * K).toFixed(1);
-  const pts = (list) => list.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
-  let rays = '';
-  for (let i = 0; i < RAYS; i += 2) {
-    const a0 = (i / RAYS) * Math.PI * 2 - Math.PI, a1 = ((i + 1) / RAYS) * Math.PI * 2 - Math.PI, L = 2;
-    rays += `<polygon points="${f(BALL.x)},${f(BALL.y)} ${f(BALL.x + Math.cos(a0) * L)},${f(BALL.y + Math.sin(a0) * L)} ${f(BALL.x + Math.cos(a1) * L)},${f(BALL.y + Math.sin(a1) * L)}" fill="${C.ray1}"/>`;
-  }
-  const ink = f(INK) * 2;
-  const streaks = STREAKS.map((s) => `<path d="M${f(s.a[0])} ${f(s.a[1])}L${f(s.b[0])} ${f(s.b[1])}" stroke="${C.ink}" stroke-width="${f(s.r * 2 + INK * 2)}" stroke-linecap="round"/><path d="M${f(s.a[0])} ${f(s.a[1])}L${f(s.b[0])} ${f(s.b[1])}" stroke="${C.white}" stroke-width="${f(s.r * 2)}" stroke-linecap="round"/>`).join('');
-  const sparks = SPARK_POLYS.map((p) => `<polygon points="${pts(p)}" fill="${C.yellow}" stroke="${C.ink}" stroke-width="${f(INK * 1.4)}" stroke-linejoin="round"/>`).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <clipPath id="c"><rect width="512" height="512" rx="${f(0.2)}"/></clipPath>
-  <g clip-path="url(#c)">
-    <rect width="512" height="512" fill="${C.ray2}"/>${rays}
-    ${streaks}${sparks}
-    <polygon points="${pts(FLAME)}" fill="${C.orange}" stroke="${C.ink}" stroke-width="${ink}" stroke-linejoin="round"/>
-    <polygon points="${pts(INNER)}" fill="${C.yellow}"/>
-    <circle cx="${f(BALL.x + 0.03)}" cy="${f(BALL.y + 0.035)}" r="${f(BALL.r + INK)}" fill="${C.shadow}"/>
-    <circle cx="${f(BALL.x)}" cy="${f(BALL.y)}" r="${f(BALL.r + INK / 2)}" fill="${C.white}" stroke="${C.ink}" stroke-width="${f(INK)}"/>
-    ${PATCHES.map((p) => `<polygon points="${pts(p)}" fill="${C.ink}"/>`).join('')}
-  </g>
-</svg>
-`;
-}
-
 const here = path.join(__dirname, '..');
-// The phones should show the same picture: the flaming ball flying out of the sunburst.
-// iOS shows the whole square and rounds the corners itself (pad 0.05 keeps sparks off them).
-// Android (Samsung, Chrome) shows only the MIDDLE 72/108 of a maskable icon and masks that to
-// its squircle — a full-bleed maskable came out zoomed in with the ball and flames cut off.
-// So the maskable carries the iPhone framing (scale 0.9) inside that middle 2/3: 0.9 * 2/3 = 0.6,
-// i.e. pad 0.2, with the sunburst carrying on out to the edges.
+// Every device shows the same picture: the flaming ball flying out of the sunburst, framed like
+// the iPhone icon.
+// - icon-180 (iPhone, iPad, Mac "Add to Dock"): full square, the system rounds the corners.
+// - icon-maskable (Android: Samsung, Pixel, Chrome, ChromeOS; Chrome on Mac): the system shows
+//   only the MIDDLE 72/108 and masks it to its own shape, so the iPhone framing goes inside that
+//   middle 2/3 (0.9 * 2/3 = 0.6, pad 0.2) with the sunburst running out to the edges. A full-bleed
+//   maskable came out zoomed in with the ball and flames cut off.
+// - icon-192/512 ("any": Windows/Linux installs, browser tabs, plain launchers): nothing
+//   rounds these, so they carry the iPhone corners themselves.
 const jobs = [
-  ['icon-192.png', 192, 0.05, false],
-  ['icon-512.png', 512, 0.05, false],
+  ['icon-192.png', 192, APPLE_PAD, true],
+  ['icon-512.png', 512, APPLE_PAD, true],
   ['icon-maskable-512.png', 512, 0.2, false],
-  ['icon-180.png', 180, 0.05, false],
+  ['icon-180.png', 180, APPLE_PAD, false],
 ];
 const written = [];
 for (const [name, size, pad, rounded] of jobs) {
   written.push(writePNG(path.join(here, name), size, draw(size, pad, rounded)));
   console.log('wrote ' + name);
 }
-fs.writeFileSync(path.join(here, 'icon.svg'), svg());
-written.push(fs.readFileSync(path.join(here, 'icon.svg')));
-console.log('wrote icon.svg');
 
 // Every icon reference carries a hash of the icon bytes, so a redraw is a new URL and
 // no browser can serve an old copy — and redrawing nothing leaves the URLs alone.
@@ -248,7 +227,7 @@ for (const f of ['index.html', 'manifest.webmanifest']) {
   const p = path.join(here, f);
   const before = fs.readFileSync(p, 'utf8');
   let text = before;
-  for (const name of [...jobs.map((j) => j[0]), 'icon.svg']) {
+  for (const name of jobs.map((j) => j[0])) {
     text = text.split(name + '?v=').map((part, i) => (i === 0 ? part : part.replace(/^[a-f0-9]+/, ''))).join(name);
     text = text.split(name).join(name + '?v=' + stamp);
   }
