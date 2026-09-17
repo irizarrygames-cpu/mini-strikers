@@ -326,6 +326,34 @@ const CELE_POSES = {
   },
 };
 
+// The ult shot: how the strike looks, 0..1 through it. Same shape as a celebration pose.
+const ULT_POSES = {
+  // leaning back and lashing through the ball with the laces
+  volley: (u) => {
+    const swing = u < 0.3 ? -0.8 + u / 0.3 * 0.4 : Math.min(1, (u - 0.3) / 0.2);
+    return { jump: 8 + Math.max(0, Math.sin(u * Math.PI)) * 10, lean: -0.45 + swing * 0.25, upper: -0.2,
+      feet: [[-8 - swing * 4, -6 - swing * 2], [lerp(-4, 30, (swing + 0.8) / 1.8), lerp(-2, -40, (swing + 0.8) / 1.8)]],
+      hands: [[-26, -52 - swing * 6], [22 + swing * 6, -58]] };
+  },
+  // upside down, both legs cycling over the top
+  bicycle: (u) => {
+    const s = Math.sin(u * Math.PI * 2.2);
+    return { jump: Math.sin(Math.min(1, u * 1.15) * Math.PI) * 46 + 4, rot: -Math.sin(Math.min(1, u * 1.2) * Math.PI) * 2.3,
+      feet: [[-4 - s * 10, -12 - s * 8], [8 + s * 12, -18 + s * 8]],
+      hands: [[-26, -38], [24, -34]] };
+  },
+  // a full backflip, striking it on the way round
+  backflip: (u) => ({ jump: Math.sin(Math.min(1, u * 1.1) * Math.PI) * 52 + 4, rot: -u * Math.PI * 2,
+    feet: [[-2, -14], [10, -20]], hands: [[-6, -28], [12, -26]] }),
+  // both feet off the deck, legs scissoring through it
+  scissors: (u) => {
+    const s = Math.sin(u * Math.PI * 3);
+    return { jump: Math.sin(Math.min(1, u * 1.2) * Math.PI) * 34 + 3, rot: -0.55, lean: -0.2,
+      feet: [[-6 - s * 12, -10 - s * 6], [6 + s * 14, -16 + s * 6]],
+      hands: [[-28, -46], [26, -44]] };
+  },
+};
+
 // How the scorer moves during the cutscene (speed in world units a second along `dir`).
 const CELE_MOVES = {
   kneeslide: (e) => (e < 0.35 ? 330 : e < 1.2 ? 330 * (1 - (e - 0.35) / 0.85) : 0),

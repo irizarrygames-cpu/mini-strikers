@@ -29,12 +29,14 @@ class Player {
     this.fallT = 0; this.slideWindT = 0; this.slideWindX = 1; this.slideWindY = 0;
     this.skill = null; this.skillCd = 0; this.burstT = 0; this.streakT = 0;
     this.hopT = 0; this.dodgeT = 0;
+    this.ult = 0; this.ultOn = false; this.ultShot = null;
     this.stamina = 1; this.sprinting = false; this.exhausted = false; this.staminaDelay = 0;
     this.seed = Math.random() * 10;
     this.ai = { tx: 0, ty: 0, decideT: rand(0, 0.3), spotT: 0, chargeGoal: 0, holdT: 0, sideY: 0, slideT: 0 };
     this.stats = { goals: 0, shots: 0, passes: 0, steals: 0, saves: 0, assists: 0, skills: 0, tackles: 0 };
   }
   clearActions() {
+    this.ultShot = null;
     this.slideT = 0; this.slideWindT = 0; this.fallT = 0; this.skill = null; this.burstT = 0;
     this.slideCd = 0; this.skillCd = 0; this.slideHit = false;
     this.hopT = 0; this.dodgeT = 0;
@@ -105,6 +107,9 @@ function movePlayers(m, dt) {
     p.fallT = Math.max(0, p.fallT - dt);
     p.hopT = Math.max(0, p.hopT - dt);
     p.dodgeT = Math.max(0, p.dodgeT - dt);
+    if (p.ultShot) { p.ultShot.t += dt; if (p.ultShot.t >= p.ultShot.dur) p.ultShot = null; }
+    // time on the ball feeds your ult
+    if (p.isHuman && b.owner === p && !p.ultOn) addUlt(m, p, dt * CFG.ULT_BALL_RATE);
 
     // sprint + stamina: running dry locks sprint until it refills to SPRINT.unlock
     const canSprint = p.sprinting && !p.exhausted && !p.isKeeper && p.slideT <= 0 && p.fallT <= 0 && p.speed > 60;
@@ -162,6 +167,9 @@ function movePlayers(m, dt) {
       p.fx = Math.cos(a); p.fy = Math.sin(a); p.faceX = p.fx;
       p.vx = s.dx * CFG.SPEED * 0.95; p.vy = s.dy * CFG.SPEED * 0.95;
       if (s.t >= s.dur) { p.skill = null; p.fx = s.dx; p.fy = s.dy; }
+    } else if (p.ultShot) {
+      const d = Math.exp(-9 * dt);
+      p.vx *= d; p.vy *= d;
     } else if (p.diveT > 0) {
       p.diveT -= dt;
       const d = Math.exp(-3.5 * dt);
@@ -286,6 +294,7 @@ function updateBall(m, dt) {
     const n = Math.max(1, Math.ceil((sp0 * dt) / 6));
     const h = dt / n;
     for (let i = 0; i < n; i++) {
+      if (b.shot && b.shot.ult) ultSteer(b, h);
       if (b.spinT > 0) { b.vx += b.spinX * h; b.vy += b.spinY * h; b.spinT -= h; }
       if (b.z > 0 || b.vz > 0) {
         b.vz -= CFG.GRAVITY * h;
@@ -312,10 +321,10 @@ function updateBall(m, dt) {
         } else if (hit.post && hit.hit > 150) {
           Sound.post(); FX.doShake(4, 0.15); FX.sparks(b.x, b.y, b.z, '#ffffff', 6, 220);
           if (b.shot) Sound.ooh();
-          b.shot = null;
+          if (!(b.shot && b.shot.ult)) b.shot = null;
         } else {
           if (hit.hit > 160) Sound.board(hit.hit);
-          if (b.shot && hit.hit > 300) b.shot = null;
+          if (b.shot && hit.hit > 300 && !b.shot.ult) b.shot = null;
         }
       }
       ballContacts(m, b);
@@ -323,7 +332,7 @@ function updateBall(m, dt) {
     }
     const s = Math.hypot(b.vx, b.vy);
     b.roll += s * dt / CFG.BALL_R;
-    if (b.shot && s < 330) b.shot = null;
+    if (b.shot && s < 330 && !b.shot.ult) b.shot = null;
     if (!isFinite(b.x + b.y + b.z + b.vx + b.vy + b.vz)) b.reset(CFG.FIELD_W / 2, CFG.FIELD_H / 2);
   }
   // safety: a ball that ends up outside the boards goes back to the last spot it was legal
@@ -339,6 +348,7 @@ function updateBall(m, dt) {
     b.trailT = 1 / 60;
     const s = Math.hypot(b.vx, b.vy);
     const maxLen = TRAIL_LEN[b.trailType] || 0;
+    if (b.shot && b.shot.ult && !Game.headless) FX.ember(b.x, b.y, b.z + CFG.BALL_R, rainbow(Math.random() * 3));
     if (!b.owner && b.trailType && s > 260) {
       b.trail.unshift({ x: b.x, y: b.y, z: b.z });
       if (b.trail.length > maxLen) b.trail.length = maxLen;
@@ -359,6 +369,7 @@ function loseBall(m, p, noPickup) {
 
 function ballContacts(m, b) {
   if (b.pickupCd > 0 || m.phase !== 'play' || ballOverLine(b)) return;
+  if (b.shot && b.shot.ult) return; // an ult shot goes through everyone
   let best = null, bestD = 1e9;
   for (const p of m.players) {
     if (p.noPickupT > 0 || p.stunT > 0 || p.fallT > 0 || p.slideT > 0 || (p.recoverT > 0 && !p.isKeeper)) continue;
@@ -492,11 +503,92 @@ function takePossession(m, p) {
   b.lastTouchTeam = p.team;
 }
 
+// ULT: fills from everything you do in the match, hard enough that it is not every match
+function addUlt(m, p, amt) {
+  if (!p.isHuman || m.autopilot || p.ultOn || p.ultShot) return;
+  const before = p.ult;
+  p.ult = Math.min(CFG.ULT_MAX, p.ult + amt);
+  if (before < CFG.ULT_MAX && p.ult >= CFG.ULT_MAX && !Game.headless) {
+    Sound.powerReady();
+    FX.text(p.x, p.y, 'ULT READY!', '#ff4df0', 19);
+    if (p === m.human) vibrate([25, 40, 25]);
+  }
+}
+
+// switch it on: rainbow fire until you shoot
+function performUlt(m, p) {
+  if (!p.isHuman || m.autopilot || p.ultOn || p.ultShot || p.ult < CFG.ULT_MAX || m.phase !== 'play') return false;
+  p.ultOn = true;
+  if (!Game.headless) {
+    for (let i = 0; i < 7; i++) FX.ring(p.x, p.y, rainbow(i * 0.12), 8 + i * 4, 60 + i * 12, 0.5, 4);
+    FX.burst(p.x, p.y, 10, '#ff4df0', 40, 0.4);
+    FX.doFlash('#ff4df0', 0.3);
+    FX.doShake(7, 0.2);
+    FX.text(p.x, p.y, 'ULT!', '#ff4df0', 24);
+    Sound.powerShot();
+    if (p === m.human) vibrate(60);
+  }
+  return true;
+}
+
+// An ult shot flies at a fixed speed and curls towards the goal until it is in, so it goes in from
+// anywhere: a tight angle, your own half, even from behind the goal line.
+function ultSteer(b, h) {
+  const s = b.shot;
+  const dx = s.tx - b.x, dy = s.ty - b.y;
+  const want = Math.atan2(dy, dx), cur = Math.atan2(b.vy, b.vx);
+  let diff = want - cur;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  const a = cur + clamp(diff, -14 * h, 14 * h);
+  b.vx = Math.cos(a) * CFG.ULT_SHOT_SPEED;
+  b.vy = Math.sin(a) * CFG.ULT_SHOT_SPEED;
+  if (b.vz > 30) b.vz = 30;
+  b.spinT = 0;
+}
+
+// the ult shot: an acrobatic strike that cannot be stopped
+function ultShot(m, p) {
+  const b = m.ball;
+  const kind = ULT_KINDS[(Math.random() * ULT_KINDS.length) | 0];
+  const gx = attackGoalX(p.team), gy = CFG.FIELD_H / 2, dir = TEAMS[p.team].dir;
+  const GW2 = CFG.GOAL_W / 2;
+  const tx = gx + dir * 70, ty = gy + rand(-1, 1) * (GW2 - 70);
+  const D = dist(b.x, b.y, tx, ty) || 1;
+  const dx = (tx - b.x) / D, dy = (ty - b.y) / D;
+  b.owner = null;
+  b.vx = dx * CFG.ULT_SHOT_SPEED; b.vy = dy * CFG.ULT_SHOT_SPEED; b.vz = 45;
+  b.spinX = 0; b.spinY = 0; b.spinT = 0;
+  b.shot = { team: p.team, from: p, x0: b.x, y0: b.y, level: 2, power: true, speed: CFG.ULT_SHOT_SPEED, decided: true, save: false, ult: true, kind, tx, ty, id: ++m.shotId };
+  b.trailType = 'rainbow'; b.trail.length = 0;
+  b.lastKicker = p; b.lastTouchTeam = p.team; b.lastPass = null;
+  p.ultOn = false; p.ult = 0;
+  p.ultShot = { kind, t: 0, dur: 0.8 };
+  p.noPickupT = 0.8; p.kickT = 0.3; p.kickDur = 0.3;
+  p.fx = dx; p.fy = dy; p.faceX = Math.abs(dx) > 0.1 ? Math.sign(dx) : p.faceX;
+  p.charging = false; p.passCharging = false;
+  p.stats.shots++; m.stats[p.team].shots++;
+  m.slowmo = 0.45;
+  if (!Game.headless) {
+    const names = { volley: 'VOLLEY!', bicycle: 'BICYCLE KICK!', backflip: 'BACKFLIP KICK!', scissors: 'SCISSOR KICK!' };
+    for (let i = 0; i < 7; i++) FX.sparks(b.x, b.y, 8, rainbow(i * 0.1), 7, 300 + i * 40, 0.5);
+    FX.burst(b.x, b.y, 10, '#ffffff', 58, 0.35);
+    FX.ring(b.x, b.y, '#ff4df0', 10, 90, 0.4, 6);
+    FX.doFlash('#ffffff', 0.45);
+    FX.doShake(14, 0.3);
+    FX.text(p.x, p.y, names[kind], rainbow(0.3), 22);
+    Sound.powerShot();
+    if (p.isHuman) vibrate([40, 30, 60]);
+  }
+  return true;
+}
+
 function addMeter(m, p, amt) {
   const team = p.team;
   if (m.teamHuman && m.teamHuman[team] && !p.isHuman && !m.autopilot) return;
   const before = m.meter[team];
   m.meter[team] = Math.min(CFG.POWER_MAX, m.meter[team] + amt);
+  addUlt(m, p, amt * CFG.ULT_RATE); // everything you earn fills your ult too
   if (p.isHuman && before < CFG.POWER_MAX && m.meter[team] >= CFG.POWER_MAX && !Game.headless) {
     Sound.powerReady();
     FX.text(p.x, p.y, 'POWER READY!', '#46d9ff', 17);
@@ -594,6 +686,7 @@ function performPass(m, p, ax, ay, forced, charge = 0) {
 function performShot(m, p, chargeT, sideY, noise = 0) {
   const b = m.ball;
   if (b.owner !== p) return false;
+  if (p.ultOn) return ultShot(m, p);
   p.skill = null;
   const team = TEAMS[p.team];
   const gx = attackGoalX(p.team), gy = CFG.FIELD_H / 2;
@@ -692,6 +785,7 @@ const SLIDE = {
 };
 
 function canAct(p) {
+  if (p.ultShot) return false;
   return p.slideT <= 0 && (p.slideWindT || 0) <= 0 && p.fallT <= 0 && p.recoverT <= 0 && p.stunT <= 0 && p.diveT <= 0;
 }
 

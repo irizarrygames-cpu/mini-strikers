@@ -40,11 +40,13 @@ class NetInput {
   consumeShootPress() { return this.take(8); }
   consumeShootRelease() { return this.take(16); }
   consumePassPress() { return this.take(32); }
+  consumeUlt() { return this.take(64); }
 }
 
 function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
+  const ULTS = sim.ULT_KINDS;
   const BOT_CELEBS = ['jump', 'jump', 'flex', 'salute', 'spin', 'shush', 'heart', 'dab', 'kneeslide', 'kneeslide', 'airplane', 'chestpump', 'callme', 'chill', 'robot', 'griddy', 'siuu', 'calmdown', 'pointsky', 'floss', 'bird', 'kungfu'];
   const conns = new Map();   // userId -> connection
   const queues = { '1v1': [], '2v2': [], '3v3': [], '4v4': [] };
@@ -330,7 +332,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     p.input.move.x = x; p.input.move.y = y;
     p.input.sprintHeld = !!msg.sp;
     const a = Number(msg.a) | 0;
-    if (a) p.input.q |= a & 63;
+    if (a) p.input.q |= a & 127;
     const s = Number(msg.s);
     if (Number.isFinite(s)) seat.ack = s;
   }
@@ -377,7 +379,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       return [Math.round(p.x), Math.round(p.y), Math.round(p.vx), Math.round(p.vy), r100(p.fx), r100(p.fy), r100(p.faceX), flags,
         r100(p.kickT), r100(p.kickDur), r100(p.stunT), r100(p.recoverT), r100(p.diveT), Math.sign(p.diveDir || 0), r100(p.celebrateT),
         Math.max(0, CELEBS.indexOf(p.celebKind)), r100(p.slideT), r100(p.slideWindT || 0),
-        r100(winding ? p.slideWindX : p.slideDirX), r100(winding ? p.slideWindY : p.slideDirY), r100(p.fallT), r100(p.hopT)];
+        r100(winding ? p.slideWindX : p.slideDirX), r100(winding ? p.slideWindY : p.slideDirY), r100(p.fallT), r100(p.hopT),
+        (p.ultOn ? 1 : 0) | (p.ultShot ? 2 : 0), p.ultShot ? Math.max(0, ULTS.indexOf(p.ultShot.kind)) : 0, r100(p.ultShot ? p.ultShot.t : 0)];
     });
     const s = b.shot;
     const B = [Math.round(b.x), Math.round(b.y), Math.round(b.z), Math.round(b.vx), Math.round(b.vy), Math.round(b.vz),
@@ -392,7 +395,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       if (!seat.human || !seat.conn || !seat.conn.ws.open || seat.gone) continue;
       if (seat.conn.ws.backlog > 512 * 1024) continue; // a stalled client skips snapshots rather than queueing them
       const p = seat.player;
-      const me = p ? [seat.ack, r100(p.skillCd), r100(p.slideCd), r100(p.stamina), p.exhausted ? 1 : 0, p.charging ? 1 : 0, r100(p.chargeT), p.bufferT > 0 ? 1 : 0, r100(p.burstT)] : null;
+      const me = p ? [seat.ack, r100(p.skillCd), r100(p.slideCd), r100(p.stamina), p.exhausted ? 1 : 0, p.charging ? 1 : 0, r100(p.chargeT), p.bufferT > 0 ? 1 : 0, r100(p.burstT), Math.round(p.ult || 0)] : null;
       seat.conn.ws.send(`{"t":"s","me":${JSON.stringify(me)},${body}`);
     }
   }

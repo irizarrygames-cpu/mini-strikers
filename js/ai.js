@@ -405,6 +405,13 @@ const AI = {
   // Decide once per shot whether the keeper saves it, then dive accordingly.
   decideSave(m, k, b, late) {
     const s = b.shot;
+    if (s && s.ult && !s.ultDove) {
+      // no save: he throws himself the wrong way
+      s.ultDove = true;
+      k.diveT = 0.5; k.diveDir = Math.random() < 0.5 ? 1 : -1;
+      k.vy = k.diveDir * 520; k.vx = 0;
+      return;
+    }
     if (!s || s.decided) return;
     const dir = TEAMS[k.team].dir, lineX = ownGoalX(k.team);
     if (b.vx * dir > -40 && !late) return;

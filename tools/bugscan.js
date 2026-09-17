@@ -157,6 +157,7 @@ window.BS = {
     if (rng() < 0.006) Input._passQueued = true;
     if (rng() < 0.005) Input._skillQueued = true;
     if (rng() < 0.006) Input._slideQueued = true;
+    if (h.ult >= CFG.ULT_MAX && rng() < 0.05) Input._ultQueued = true;
     let c = getCharge();
     if (c > 0) { c -= CFG.STEP; if (c <= 0) { Input._shootReleased = true; Input.shootHeld = false; } }
     else if (rng() < (b.owner === h ? 0.02 : 0.003)) { Input._shootPressed = true; Input.shootHeld = true; c = rng() * 1.8; }

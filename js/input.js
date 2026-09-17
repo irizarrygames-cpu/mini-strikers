@@ -7,6 +7,7 @@ const KEYS = {
   shoot: [' ', 'k'],
   skill: ['q', 'l'],
   slide: ['f', 'i'],
+  ult: ['r'],
   pause: ['escape', 'p'],
 };
 const keyIs = (k, action) => KEYS[action].includes(k);
@@ -21,6 +22,7 @@ const Input = {
   lastDevice: 'touch',
   _passQueued: false,
   _skillQueued: false,
+  _ultQueued: false,
   _slideQueued: false,
   _shootPressed: false,
   _shootReleased: false,
@@ -40,6 +42,7 @@ const Input = {
     this.btnShoot = document.getElementById('btn-shoot');
     this.btnSkill = document.getElementById('btn-skill');
     this.btnSprint = document.getElementById('btn-sprint');
+    this.btnUlt = document.getElementById('btn-ult');
 
     this.zone.addEventListener('pointerdown', (e) => this._joyDown(e));
     window.addEventListener('pointermove', (e) => this._joyMove(e));
@@ -48,6 +51,7 @@ const Input = {
 
     this._holdButton(this.btnPass, 'pass');
     this._tapButton(this.btnSkill, () => { this._skillQueued = true; });
+    if (this.btnUlt) this._tapButton(this.btnUlt, () => { this._ultQueued = true; });
     this._holdButton(this.btnShoot, 'shoot');
     this._holdButton(this.btnSprint, 'sprint');
 
@@ -60,6 +64,7 @@ const Input = {
       this.keys.add(k);
       this.lastDevice = 'keyboard';
       if (keyIs(k, 'pass')) { this._keyHold.pass = true; this._syncHold('pass'); }
+      if (keyIs(k, 'ult')) { this._ultQueued = true; this._flash(this.btnUlt); }
       if (keyIs(k, 'skill')) { this._skillQueued = true; this._flash(this.btnSkill); }
       if (keyIs(k, 'slide')) { this._slideQueued = true; this._flash(this.btnSkill); }
       if (keyIs(k, 'shoot')) { this._keyHold.shoot = true; this._syncHold('shoot'); }
@@ -215,6 +220,7 @@ const Input = {
   consumePass() { const v = this._passQueued; this._passQueued = false; return v; },
   consumePassPress() { const v = this._passPressed; this._passPressed = false; return v; },
   consumeSkill() { const v = this._skillQueued; this._skillQueued = false; return v; },
+  consumeUlt() { const v = this._ultQueued; this._ultQueued = false; return v; },
   consumeSlide() { const v = this._slideQueued; this._slideQueued = false; return v; },
   consumeShootPress() { const v = this._shootPressed; this._shootPressed = false; return v; },
   consumeShootRelease() { const v = this._shootReleased; this._shootReleased = false; return v; },
@@ -226,7 +232,7 @@ const Input = {
     this._holds.shoot.clear(); this._holds.sprint.clear(); this._holds.pass.clear();
     this._keyHold.shoot = false; this._keyHold.sprint = false; this._keyHold.pass = false; this._mouseShoot = false; this._mousePass = false;
     this.shootHeld = false; this.sprintHeld = false; this.passHeld = false;
-    for (const b of [this.btnShoot, this.btnPass, this.btnSkill, this.btnSprint]) if (b) b.classList.remove('down');
+    for (const b of [this.btnShoot, this.btnPass, this.btnSkill, this.btnSprint, this.btnUlt]) if (b) b.classList.remove('down');
     if (this._joyId !== null) this._joyUp({ pointerId: this._joyId });
     this.stick.x = 0; this.stick.y = 0; this.move.x = 0; this.move.y = 0;
   },

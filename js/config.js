@@ -57,6 +57,12 @@ const CFG = {
   PASS_CHARGE_TAP: 0.1,   // anything shorter than this is still a tap
 
   POWER_MAX: 100,
+  // ULT: one per match if you earn it. Everything that fills the team's power meter fills your
+  // ult too (at ULT_RATE), plus time on the ball. Then one unstoppable acrobatic shot.
+  ULT_MAX: 100,
+  ULT_RATE: 0.28,
+  ULT_BALL_RATE: 1.8,     // per second on the ball
+  ULT_SHOT_SPEED: 1750,
   OVERTIME_SECONDS: 90,
 };
 const GOAL_Y1 = (CFG.FIELD_H - CFG.GOAL_W) / 2;
@@ -150,6 +156,11 @@ const ACCESSORIES = [
 ];
 const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
 
+// the four ways an ult shot can be struck, picked at random
+const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scissors'];
+const ULT_COLORS = ['#ff3a3f', '#ff8a1f', '#ffe14d', '#3fcf4a', '#46d9ff', '#b04dff', '#ff4df0'];
+const rainbow = (t, i = 0) => ULT_COLORS[(Math.floor(t * 9 + i) % ULT_COLORS.length + ULT_COLORS.length) % ULT_COLORS.length];
+
 const AI_HAIRS = ['messy', 'spikes', 'curly', 'buzz', 'headband', 'messy', 'curly', 'beanie', 'mohawk', 'afro'];
 
 // Bots play as real characters. Each rarity's share of all bots is split evenly across its
@@ -178,14 +189,15 @@ const DIFFICULTY = {
   // mistakes: how often bots get it wrong (BOT_MISTAKES), 1 = an average player
   // 2026-09-16 "make the bots worse": every preset is slower, tackles less, decides later,
   // shoots wider and slips up more than it did. Your own teammates keep MATE_BASE below.
-  // 2026-09-17 "just barely better": a small step back up on every preset.
-  easy:   { redSpeed: 0.88, slideOnHuman: 0.57, aiSlide: 0.16, aiDodge: 0.17, aiSkill: 0.13, keeperBonus: -0.07, aiShotNoise: 64, react: 1.45, mistakes: 1.7 },
-  normal: { redSpeed: 0.95, slideOnHuman: 0.72, aiSlide: 0.215, aiDodge: 0.3, aiSkill: 0.21, keeperBonus: 0.04, aiShotNoise: 49, react: 1.15, mistakes: 1.3 },
-  hard:   { redSpeed: 1.0,  slideOnHuman: 0.86, aiSlide: 0.37, aiDodge: 0.44, aiSkill: 0.29, keeperBonus: 0.1,   aiShotNoise: 34, react: 0.92, mistakes: 0.94 },
+  // 2026-09-17 "just barely better", then "make the bots 1.25x better": every knob x1.25 (or /1.25
+  // where lower is better), and the speed gap to a full-speed player closed by a quarter.
+  easy:   { redSpeed: 0.904, slideOnHuman: 0.71, aiSlide: 0.2,  aiDodge: 0.21,  aiSkill: 0.16, keeperBonus: -0.05, aiShotNoise: 51, react: 1.16, mistakes: 1.36 },
+  normal: { redSpeed: 0.96,  slideOnHuman: 0.9,  aiSlide: 0.27, aiDodge: 0.375, aiSkill: 0.26, keeperBonus: 0.05,  aiShotNoise: 39, react: 0.92, mistakes: 1.04 },
+  hard:   { redSpeed: 1.02,  slideOnHuman: 1,    aiSlide: 0.46, aiDodge: 0.55,  aiSkill: 0.36, keeperBonus: 0.13,  aiShotNoise: 27, react: 0.74, mistakes: 0.75 },
 };
 // your bot teammates offline: what "normal" was before the bots were made worse, so the
 // players on your side did not get worse too
-const MATE_BASE = { redSpeed: 0.98, slideOnHuman: 0.76, aiSlide: 0.27, aiDodge: 0.38, aiSkill: 0.26, keeperBonus: 0.08, aiShotNoise: 38, react: 0.96, mistakes: 0.94 };
+const MATE_BASE = { redSpeed: 0.984, slideOnHuman: 0.95, aiSlide: 0.34, aiDodge: 0.48, aiSkill: 0.33, keeperBonus: 0.1, aiShotNoise: 30, react: 0.77, mistakes: 0.75 };
 
 // coin counts for display: 999999 stays exact, then 1.25M, 1B
 function fmtCoins(n) {

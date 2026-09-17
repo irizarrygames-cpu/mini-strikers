@@ -31,7 +31,8 @@ const Sprites = {
     const sp = Math.hypot(p.vx, p.vy) / CFG.SPEED;
     // a celebration drives the whole pose for its duration
     const ce = CELE_TIME - p.celebrateT;
-    const cp = p.celebrateT > 0 && p.celebKind && CELE_POSES[p.celebKind] ? CELE_POSES[p.celebKind](ce, t, p) : null;
+    const up = p.ultShot && ULT_POSES[p.ultShot.kind] ? ULT_POSES[p.ultShot.kind](clamp(p.ultShot.t / p.ultShot.dur, 0, 1), p) : null;
+    const cp = up || (p.celebrateT > 0 && p.celebKind && CELE_POSES[p.celebKind] ? CELE_POSES[p.celebKind](ce, t, p) : null);
     const back = !cp && p.fy < -0.62 && p.kickT <= 0 && p.celebrateT <= 0 && p.slideT <= 0 && p.diveT <= 0;
     let faceX = p.faceX;
     if (cp && cp.faceX !== undefined) faceX = cp.faceX;
@@ -76,6 +77,7 @@ const Sprites = {
     if (p.hopT > 0) { jump += Math.sin((1 - p.hopT / 0.42) * Math.PI) * 22; tuck = 1; armsUp = 0.5; }
     if (p.sprintOn && sp > 0.5 && !slide) lean += 0.12;
 
+    if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, false);
     ctx.save();
     ctx.translate(sx, sy);
     ctx.scale(k * flip * squash, k);
@@ -194,7 +196,39 @@ const Sprites = {
     if (acc) this.accessory(ctx, acc, 'head', p, t, back, sp);
     if (cp && cp.prop) this.celebProp(ctx, cp.prop, ce, back, p);
     ctx.restore();
+    if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, true);
     if (cp && cp.screen) this.celebScreen(ctx, cp.screen, ce, sx, sy, k, flip, cp);
+  },
+
+  // Rainbow fire round the player while the ult is up: flat flame tongues, colours running through
+  // them, drawn in screen space so they always stand up (the body can be upside down mid-kick).
+  ultFire(ctx, p, t, sx, sy, k, front) {
+    const seed = p.seed || 0, big = p.ultShot ? 1.45 : 1;
+    if (!front) {
+      ctx.lineWidth = 3.4 * k; ctx.strokeStyle = OUTLINE; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.ellipse(sx, sy, 23 * k, 8.5 * k, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2.2 * k; ctx.strokeStyle = rainbow(t * 0.9 + 0.7, 2); ctx.stroke();
+    }
+    const spots = front ? [[12, 0, 0.5], [-12, 0, 0.45]]
+      : [[-21, 0, 0.85], [-9, -1, 0.65], [2, -2, 0.6], [11, -1, 0.7], [22, 0, 0.8]];
+    for (let i = 0; i < spots.length; i++) {
+      const [ox, oy, sc] = spots[i];
+      const x = sx + ox * k, y = sy + oy * k;
+      const h = (12 + Math.abs(Math.sin(t * 8 + i * 2.1 + seed)) * 10) * sc * big * k;
+      const w = 5.2 * sc * k, lean = Math.sin(t * 11 + i * 1.7 + seed) * 3.2 * k;
+      for (let L = 0; L < 3; L++) {
+        const fr = 1 - L * 0.34, hh = h * fr, ww = w * fr;
+        if (hh < 2.5 || ww < 0.8) continue;
+        ctx.beginPath();
+        ctx.moveTo(x - ww, y);
+        ctx.quadraticCurveTo(x - ww * 1.15, y - hh * 0.62, x + lean * fr, y - hh);
+        ctx.quadraticCurveTo(x + ww * 1.15, y - hh * 0.62, x + ww, y);
+        ctx.quadraticCurveTo(x, y + 2.6 * k, x - ww, y);
+        ctx.closePath();
+        if (L === 0) { ctx.fillStyle = rainbow(t * 0.9, i); ctx.fill(); ctx.lineWidth = 2.4 * k; ctx.strokeStyle = OUTLINE; ctx.stroke(); }
+        else { ctx.fillStyle = rainbow(t * 0.9 + L * 0.45, i + L * 2); ctx.fill(); }
+      }
+    }
   },
 
   // props drawn on the body (they turn and lean with the player)

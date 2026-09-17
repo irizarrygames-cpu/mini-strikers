@@ -449,6 +449,16 @@ const UI = {
     const h = m.human, has = m.ball.owner === h;
     $('btn-pass').classList.toggle('call', !has && !!m.ball.owner && m.ball.owner.team === 'blue');
 
+    const ult = $('btn-ult');
+    if (ult) {
+      const u = clamp((h.ult || 0) / CFG.ULT_MAX, 0, 1), ready = u >= 1 && !h.ultOn;
+      if (this._ultU !== u) { ult.querySelector('.ult-fill').style.width = Math.round(u * 100) + '%'; this._ultU = u; }
+      ult.classList.toggle('ready', ready);
+      ult.classList.toggle('on', !!h.ultOn);
+      const label = h.ultOn ? 'ULT ON' : ready ? 'ULT READY' : 'ULT';
+      if (this._ultLabel !== label) { ult.querySelector('b').textContent = label; this._ultLabel = label; }
+    }
+
     // SKILL (with ball) / TACKLE (without) + their cooldowns
     const skillCd = Math.round(clamp(h.skillCd / skillCooldown(h), 0, 1) * 100);
     const slideCd = Math.round(clamp(h.slideCd / (tackleCooldown(h) + SLIDE.time), 0, 1) * 100);

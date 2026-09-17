@@ -9,6 +9,7 @@
 const NET_PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
 const NET_CELEBS = [null, ...CELEBRATIONS.map((c) => c.id), 'hype'];
 const NET_TRAILS = [null, 'pass', 'weak', 'shot', 'strong', 'electric', 'fire', 'plasma', 'blast', 'frost', 'toxic', 'shadow', 'rainbow', 'golden'];
+const NET_ULTS = ULT_KINDS;
 const NET_TICK_MS = 1000 / 120;
 const NET_DELAY_TICKS = 10;           // how far behind the newest snapshot other players are drawn
 const NET_POS_FX = new Set(['text', 'burst', 'sparks', 'ring', 'stars']);
@@ -128,6 +129,7 @@ const Online = {
         kickT: r[8] / 100, kickDur: r[9] / 100 || 0.2, stunT: r[10] / 100, recoverT: r[11] / 100, diveT: r[12] / 100, diveDir: r[13],
         celebrateT: r[14] / 100, celebKind: NET_CELEBS[r[15]], slideT: r[16] / 100, slideWindT: r[17] / 100, sdx: s * r[18] / 100, sdy: r[19] / 100,
         fallT: r[20] / 100, hopT: r[21] / 100,
+        ultFlags: r[22] || 0, ultKind: NET_ULTS[r[23] || 0], ultShotT: (r[24] || 0) / 100,
       })),
       b: (() => {
         const r = msg.b;
@@ -250,6 +252,8 @@ const Online = {
     p.slideT = S.slideT; p.slideWindT = S.slideWindT; p.fallT = S.fallT; p.hopT = lerp(A.hopT, B.hopT, u);
     p.slideDirX = S.sdx; p.slideDirY = S.sdy; p.slideWindX = S.sdx; p.slideWindY = S.sdy;
     p.sad = !!(S.flags & 1); p.slideHit = !!(S.flags & 2); p.sprintOn = !!(S.flags & 4);
+    p.ultOn = !!(S.ultFlags & 1);
+    p.ultShot = S.ultFlags & 2 ? { kind: S.ultKind, t: S.ultShotT, dur: 0.8 } : null;
     if (p !== this.m.human) p.charging = !!(S.flags & 8);
     p.runPhase += Math.hypot(p.vx, p.vy) * dt * 0.075;
   },
@@ -263,6 +267,7 @@ const Online = {
     if (Input.consumePassPress()) { this.bits |= 32; m.human.passCharging = true; m.human.passChargeT = 0; }
     if (Input.consumePass()) { this.bits |= 1; m.human.passCharging = false; m.human.passChargeT = 0; }
     if (m.human.passCharging) m.human.passChargeT = Math.min(CFG.PASS_CHARGE_FULL, m.human.passChargeT + dt);
+    if (Input.consumeUlt && Input.consumeUlt()) this.bits |= 64;
     if (Input.consumeSkill()) this.bits |= 2;
     if (Input.consumeSlide()) this.bits |= 4;
     if (Input.consumeShootPress()) { this.bits |= 8; m.human.charging = true; m.human.chargeT = 0; Sound.chargeStart(); }
@@ -288,13 +293,14 @@ const Online = {
   reconcile(snap) {
     const m = this.m, me = m.human, S = snap.p[this.you];
     if (!S || !snap.me) return;
-    const [ack, skillCd, slideCd, stamina, exhausted, charging, chargeT, , burstT] = snap.me;
+    const [ack, skillCd, slideCd, stamina, exhausted, charging, chargeT, , burstT, ult] = snap.me;
+    me.ult = ult || 0;
     me.skillCd = skillCd / 100; me.slideCd = slideCd / 100; me.stamina = stamina / 100; me.exhausted = !!exhausted;
     if (!charging && me.charging && me.chargeT > 0.25) { me.charging = false; Sound.chargeStop(); }
     if (charging) { me.charging = true; me.chargeT = Math.max(me.chargeT, chargeT / 100); }
     this.inputs = this.inputs.filter((i) => i.seq > ack);
     // the server is moving you itself (lunge, spin, dive, trip, celebration, restart): follow it
-    const busy = S.slideT > 0 || S.slideWindT > 0 || (S.flags & 16) || S.fallT > 0 || S.stunT > 0.2 || S.celebrateT > 0 || snap.phase !== 'play';
+    const busy = S.slideT > 0 || S.slideWindT > 0 || (S.flags & 16) || (S.ultFlags & 2) || S.fallT > 0 || S.stunT > 0.2 || S.celebrateT > 0 || snap.phase !== 'play';
     this.predOk = !busy;
     if (busy) return;
     const p = { x: S.x, y: S.y, vx: S.vx, vy: S.vy, r: me.r, stamina: me.stamina, exhausted: me.exhausted, burstT: (burstT || 0) / 100 };

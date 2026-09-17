@@ -222,7 +222,7 @@ const Match = {
     for (const h of m.humans) {
       const I = h.input || Input;
       I.consumePass(); I.consumeShootPress(); I.consumeShootRelease();
-      I.consumeSkill(); I.consumeSlide();
+      I.consumeSkill(); I.consumeSlide(); if (I.consumeUlt) I.consumeUlt();
       if (h.charging) { h.charging = false; Sound.chargeStop(); }
       h.mx = 0; h.my = 0; h.sprinting = false;
     }
@@ -235,6 +235,8 @@ const Match = {
     h.mx = mag > 0.01 ? mv.x / mag : 0; h.my = mag > 0.01 ? mv.y / mag : 0;
     h.mSpeed = Math.min(1, mag);
     h.sprinting = I.sprintHeld;
+
+    if (I.consumeUlt && I.consumeUlt()) performUlt(m, h);
 
     // SKILL with the ball, SLIDE without it (the mobile button does both)
     if (I.consumeSkill()) {
