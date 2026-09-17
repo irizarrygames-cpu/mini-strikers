@@ -116,7 +116,7 @@ Object.assign(UI, {
   panel_customize(body) {
     $('modal-title').textContent = 'CUSTOMIZE';
     const tab = this._custTab || 'trail';
-    const tabs = [['trail', 'POWER TRAIL'], ['ball', 'BALL'], ['celebration', 'CELEBRATION'], ['stadium', 'STADIUM']];
+    const tabs = [['trail', 'POWER TRAIL'], ['ball', 'BALL'], ['celebration', 'CELEBRATION'], ['accessory', 'ACCESSORY'], ['stadium', 'STADIUM']];
     let grid = '';
     if (tab === 'trail') {
       grid = TRAILS.map((t) => `<button class="trail-opt ${t.id === Save.trail().id ? 'sel' : ''} ${Shop.owns('trail', t.id) ? '' : 'locked'}" data-id="${t.id}">
@@ -124,6 +124,10 @@ Object.assign(UI, {
     } else if (tab === 'celebration') {
       grid = CELEBRATIONS.map((c) => `<button class="trail-opt celeb-opt ${c.id === Save.celebration() ? 'sel' : ''} ${Shop.owns('celebration', c.id) ? '' : 'locked'}" data-id="${c.id}">
         <canvas width="160" height="150" data-celeb="${c.id}"></canvas><strong>${c.name}</strong>${this.priceTag('celebration', c.id)}</button>`).join('');
+    } else if (tab === 'accessory') {
+      const on = Save.accessory();
+      grid = [{ id: 'none', name: 'Nothing' }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on : a.id === on) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}">
+        <canvas width="120" height="120" data-acc="${a.id}"></canvas><strong>${a.name}</strong>${a.id === 'none' ? '' : this.priceTag('accessory', a.id)}</button>`).join('');
     } else if (tab === 'ball') {
       grid = BALLS.map((b) => `<button class="trail-opt ${b.id === Save.ball().id ? 'sel' : ''} ${Shop.owns('ball', b.id) ? '' : 'locked'}" data-id="${b.id}">
         <canvas width="200" height="90" data-ball="${b.id}"></canvas><strong>${b.name}</strong>${this.priceTag('ball', b.id)}</button>`).join('');
@@ -131,7 +135,7 @@ Object.assign(UI, {
       grid = STADIUMS.map((s) => `<button class="trail-opt ${s.id === Save.stadium().id ? 'sel' : ''} ${Shop.owns('stadium', s.id) ? '' : 'locked'}" data-id="${s.id}">
         <canvas width="200" height="90" data-stadium="${s.id}"></canvas><strong>${s.name}</strong>${this.priceTag('stadium', s.id)}</button>`).join('');
     }
-    const notes = { trail: 'Shown on power shots. Fill the meter around SHOOT, then fully charge.', ball: 'The match ball in every game you play.', celebration: 'Score and the camera zooms in on you doing this. Everyone in the match sees it.', stadium: 'Where every match is played.' };
+    const notes = { accessory: 'Worn by your player in every match — online, everyone sees it.', trail: 'Shown on power shots. Fill the meter around SHOOT, then fully charge.', ball: 'The match ball in every game you play.', celebration: 'Score and the camera zooms in on you doing this. Everyone in the match sees it.', stadium: 'Where every match is played.' };
     body.innerHTML = `${this.coinsLine()}<div class="tabs">${tabs.map(([id, l]) => `<button data-tab="${id}" class="${id === tab ? 'sel' : ''}">${l}</button>`).join('')}</div>
       <p class="note">${notes[tab]}</p><div class="trail-grid ${tab === 'celebration' ? 'celeb-grid' : ''}">${grid}</div>`;
     body.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { this.tap(); this._custTab = b.dataset.tab; this.panel_customize(body); }));
@@ -139,10 +143,12 @@ Object.assign(UI, {
     if (tab === 'celebration') this.animateCelebs(body);
     body.querySelectorAll('canvas[data-stadium]').forEach((cv) => this.stadiumSwatch(cv, cv.dataset.stadium));
     body.querySelectorAll('canvas[data-ball]').forEach((cv) => this.ballSwatch(cv, cv.dataset.ball));
+    body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.portrait(cv, { ...Save.look(), acc: cv.dataset.acc === 'none' ? null : cv.dataset.acc }));
     body.querySelectorAll('.trail-opt').forEach((el) => this.shopCard(el, tab, el.dataset.id, () => {
       if (tab === 'trail') Save.data.trail = el.dataset.id;
       if (tab === 'celebration') Save.data.celebration = el.dataset.id;
       if (tab === 'ball') Save.data.ball = el.dataset.id;
+      if (tab === 'accessory') { Save.data.accessory = el.dataset.id === 'none' ? null : el.dataset.id; this.refreshHome(); }
       if (tab === 'stadium') { Save.data.stadium = el.dataset.id; Render.buildLayer(); Render.homeCrowd = null; }
       Save.write();
       this.panel_customize(body);
@@ -273,7 +279,7 @@ Object.assign(UI, {
           <div class="ach-txt"><strong>${a.name}</strong><small>${a.text}</small><span class="ach-bar"><b style="width:${Math.round((p / a.goal) * 100)}%"></b></span></div>
           <div class="ach-right">${right}</div></div>`;
       }).join('')}</div>`;
-    this.portrait($('prof-canvas'), ch);
+    this.portrait($('prof-canvas'), Save.look());
     body.querySelectorAll('.claim').forEach((btn) => btn.addEventListener('click', () => {
       const coins = Achievements.claim(btn.dataset.id);
       if (!coins) return;
@@ -339,13 +345,14 @@ Object.assign(UI, {
     const ch = Save.character();
     this._celebFake = this._celebFake || {};
     const p = this._celebFake[id] || (this._celebFake[id] = this.fakePlayer({ hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band }));
-    p.look = { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, shade: p.look.shade, hi: p.look.hi };
+    p.look = Save.look();
     const run = CELE_MOVES[id] ? CELE_MOVES[id](e) : 0;
     p.celebrateT = CELE_TIME - e; p.celebKind = id; p.faceX = 1; p.fx = 1; p.fy = 0.25;
     p.vx = run; p.vy = 0; p.runPhase = e * 9;
-    const lying = id === 'pushups' || (id === 'sleep' && e > 0.35);
+    const pose = CELE_POSES[id] ? CELE_POSES[id](e, e, p) : null;
+    const lying = pose && pose.lie;
     g.fillStyle = 'rgba(20,60,20,0.28)'; g.beginPath(); g.ellipse(w / 2, h - 12, lying ? 44 : 28, 9, 0, 0, Math.PI * 2); g.fill();
-    Sprites.player(g, p, w / 2 + (id === 'sleep' && lying ? 30 : id === 'pushups' ? -26 : 0), h - 12, 1.4, e);
+    Sprites.player(g, p, w / 2 + (lying === 'back' ? 30 : lying === 'front' ? -26 : 0), h - 12, 1.4, e);
   },
 
   ballSwatch(cv, id) {
@@ -360,13 +367,11 @@ Object.assign(UI, {
   stadiumSwatch(cv, id) {
     const g = cv.getContext('2d'), w = cv.width, h = cv.height;
     const st = STADIUMS.find((s) => s.id === id);
-    g.fillStyle = st.stands[0]; g.fillRect(0, 0, w, h);
-    for (let x = 6; x < w; x += 12) { g.fillStyle = pick(['#ffffff', '#ffe14d', TEAMS.blue.jersey, TEAMS.red.jersey]); g.beginPath(); g.arc(x, 10 + (x % 24 ? 4 : 0), 4, 0, Math.PI * 2); g.fill(); }
-    g.fillStyle = st.apron; g.fillRect(0, 24, w, 6);
-    for (let i = 0; i < 8; i++) { g.fillStyle = st.grass[i % 2][0]; g.fillRect(i * 25, 30, 25, h - 30); }
-    g.strokeStyle = '#ffffff'; g.lineWidth = 3;
-    g.strokeRect(10, 38, w - 20, h - 46);
-    g.beginPath(); g.moveTo(w / 2, 38); g.lineTo(w / 2, h - 8); g.stroke();
-    g.beginPath(); g.ellipse(w / 2, (38 + h - 8) / 2, 18, 14, 0, 0, Math.PI * 2); g.stroke();
+    // the real stadium, drawn small, with a still of its weather on top
+    g.drawImage(Render.stadiumThumb(st), 0, 0, w, h);
+    const sc = w / 1020;
+    g.save(); g.beginPath(); g.rect(0, 0, w, h); g.clip();
+    Render.drawWeather(g, 1.3, { st, W: w, H: h, S: 0.6, px: (x) => (x + 150) * sc, py: (y) => (y * CFG.TILT + 210) * sc, k: () => sc });
+    g.restore();
   },
 });

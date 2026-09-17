@@ -21,7 +21,10 @@ const SIDES = {
 // ===== Unlocks ======================================================
 const PRICES = {
   // ~100-150 coins a match: commons in a session, legendaries take days of play
-  character: { street: 0, striker: 0, buzz: 500, curly: 700, speedster: 900, captain: 2500, bandit: 3000, beanie: 3500, turbo: 4200, ninja: 7000, mohawk: 8000, robot: 9500, viking: 11000, afroking: 16000, phantom: 20000, goldenboot: 25000 },
+  character: { street: 0, striker: 0, buzz: 500, curly: 700, speedster: 900, captain: 2500, bandit: 3000, beanie: 3500, turbo: 4200, ninja: 7000, mohawk: 8000, robot: 9500, viking: 11000, afroking: 16000, phantom: 20000, goldenboot: 25000,
+    dreads: 30000, samurai: 34000, cowboy: 38000, pirate: 45000, knight: 52000, pharaoh: 60000, shark: 70000,
+    lion: 85000, wizard: 100000, astronaut: 115000, iceking: 130000, inferno: 150000, galaxy: 175000, titan: 200000, goat: 250000 },
+  accessory: Object.fromEntries(ACCESSORIES.map((a) => [a.id, a.price])),
   trail: { electric: 0, fire: 250, blast: 300, plasma: 350, frost: 600, toxic: 900, shadow: 1400, rainbow: 2200, golden: 3500 },
   celebration: Object.fromEntries(CELEBRATIONS.map((c) => [c.id, c.price])),
   stadium: { day: 0, sunset: 200, night: 300, rain: 800, desert: 1200, snow: 2000, royal: 3500, neon: 5000 },
@@ -41,19 +44,20 @@ const BALLS = [
   { id: 'magma', name: 'Magma', base: '#2b1a1a', patch: '#ff5a1a', glow: '#ff7a1a' },
   { id: 'diamond', name: 'Diamond', base: '#eafcff', patch: '#7fd0ff', glow: '#ffffff', stars: true },
 ];
+// pattern: how the grass is mown. weather: what plays over the match (see Render.drawWeather).
 const STADIUMS = [
-  { id: 'day', name: 'Day', grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'], apron: '#8fa0c8', tuft: '#3f9f31' },
-  { id: 'sunset', name: 'Sunset', grass: [['#6cc443', '#66bd3f'], ['#5fb43a', '#5aae36']], stands: ['#7a3b78', '#86427f'], apron: '#e0a07a', tuft: '#4a9a2e' },
-  { id: 'night', name: 'Night', grass: [['#3fbf5a', '#3ab755'], ['#34ad4f', '#30a64a']], stands: ['#1d2552', '#232c5e'], apron: '#4a5680', tuft: '#2a8a3e' },
-  { id: 'rain', name: 'Rainy', grass: [['#2f9247', '#2b8b43'], ['#28833e', '#247c3a']], stands: ['#3b4252', '#434b5c'], apron: '#5b6475', tuft: '#1f6b33' },
-  { id: 'desert', name: 'Desert', grass: [['#a8b356', '#a2ad51'], ['#9aa54c', '#949f47']], stands: ['#a0522d', '#ad5d36'], apron: '#e8c98a', tuft: '#7e8a34' },
-  { id: 'snow', name: 'Snow Day', grass: [['#8fcf8a', '#89c984'], ['#80c07c', '#7bbb77']], stands: ['#c9d8e8', '#d6e3f0'], apron: '#f1f6fb', tuft: '#ffffff' },
-  { id: 'royal', name: 'Royal', grass: [['#4cc46a', '#47be65'], ['#41b55e', '#3daf59']], stands: ['#7a1f2b', '#8a2633'], apron: '#d9b24a', tuft: '#2f8f45' },
-  { id: 'neon', name: 'Neon Arena', grass: [['#1f6b5a', '#1c6454'], ['#195c4e', '#175648']], stands: ['#2a0f4a', '#34145a'], apron: '#c92ba8', tuft: '#39ff88' },
+  { id: 'day', name: 'Day', grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'], apron: '#8fa0c8', tuft: '#3f9f31', pattern: 'checks', weather: 'clouds' },
+  { id: 'sunset', name: 'Sunset', grass: [['#6cc443', '#66bd3f'], ['#5fb43a', '#5aae36']], stands: ['#7a3b78', '#86427f'], apron: '#e0a07a', tuft: '#4a9a2e', pattern: 'stripes', weather: 'sunset' },
+  { id: 'night', name: 'Night', grass: [['#3fbf5a', '#3ab755'], ['#34ad4f', '#30a64a']], stands: ['#1d2552', '#232c5e'], apron: '#4a5680', tuft: '#2a8a3e', pattern: 'checks', weather: 'night', lights: true },
+  { id: 'rain', name: 'Rainy', grass: [['#2f9247', '#2b8b43'], ['#28833e', '#247c3a']], stands: ['#3b4252', '#434b5c'], apron: '#5b6475', tuft: '#1f6b33', pattern: 'stripes', weather: 'rain' },
+  { id: 'desert', name: 'Desert', grass: [['#a8b356', '#a2ad51'], ['#9aa54c', '#949f47']], stands: ['#a0522d', '#ad5d36'], apron: '#e8c98a', tuft: '#7e8a34', pattern: 'hstripes', weather: 'dust' },
+  { id: 'snow', name: 'Snow Day', grass: [['#8fcf8a', '#89c984'], ['#80c07c', '#7bbb77']], stands: ['#c9d8e8', '#d6e3f0'], apron: '#f1f6fb', tuft: '#ffffff', pattern: 'checks', weather: 'snow' },
+  { id: 'royal', name: 'Royal', grass: [['#4cc46a', '#47be65'], ['#41b55e', '#3daf59']], stands: ['#7a1f2b', '#8a2633'], apron: '#d9b24a', tuft: '#2f8f45', pattern: 'diamond', weather: 'royal' },
+  { id: 'neon', name: 'Neon Arena', grass: [['#1f6b5a', '#1c6454'], ['#195c4e', '#175648']], stands: ['#2a0f4a', '#34145a'], apron: '#c92ba8', tuft: '#39ff88', pattern: 'grid', weather: 'neon', lights: true },
 ];
 
 const Shop = {
-  owns(kind, id) { return (PRICES[kind][id] || 0) === 0 || (Save.data.owned[kind] || []).includes(id); },
+  owns(kind, id) { return (PRICES[kind][id] || 0) === 0 || ((Save.data.owned || {})[kind] || []).includes(id); },
   price(kind, id) { return PRICES[kind][id] || 0; },
   buy(kind, id) {
     const cost = this.price(kind, id);

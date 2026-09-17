@@ -892,6 +892,8 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .char-card-sm .ovr b { font-weight: 400; font-size: 18px; color: var(--rar); }
 .char-card-sm .ovr small { font-size: 8px; }
 .char-card-sm.rar-legendary { background: #fff4cf; }
+.char-card-sm.rar-mythic { background: #ffe0ea; }
+.acc-opt canvas { width: 84px; height: 84px; margin: 4px auto 2px; display: block; }
 .char-card-sm.rar-epic { background: #f1e6ff; }
 .char-card-sm.sel { background: var(--yellow); }
 .bar em { font-style: normal; width: 20px; text-align: right; font-size: 11px; }

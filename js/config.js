@@ -84,6 +84,7 @@ const RARITIES = {
   rare:      { name: 'RARE',      color: '#2f7bff' },
   epic:      { name: 'EPIC',      color: '#a35cff' },
   legendary: { name: 'LEGENDARY', color: '#ffb400' },
+  mythic:    { name: 'MYTHIC',    color: '#ff3a6e' },
 };
 const CHARACTERS = [
   { id: 'street',     name: 'Street',      rarity: 'starter',   r: { spd: 62, sht: 58, pas: 60, ctl: 60, def: 56 }, hair: 'cap',      hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#2f7bff' },
@@ -102,14 +103,60 @@ const CHARACTERS = [
   { id: 'afroking',   name: 'Afro King',   rarity: 'legendary', r: { spd: 86, sht: 88, pas: 88, ctl: 90, def: 80 }, hair: 'afro',     hairColor: '#1b1b2a', skin: '#7a4a2a' },
   { id: 'phantom',    name: 'Phantom',     rarity: 'legendary', r: { spd: 94, sht: 86, pas: 82, ctl: 92, def: 76 }, hair: 'ponytail', hairColor: '#5b4bd6', skin: '#e9b489' },
   { id: 'goldenboot', name: 'Golden Boot', rarity: 'legendary', r: { spd: 90, sht: 95, pas: 90, ctl: 92, def: 84 }, hair: 'crown',    hairColor: '#2b1d14', skin: '#f2c49b' },
+  // the top shelf: every one of these outplays everything above, and costs days to weeks of play
+  { id: 'dreads',     name: 'Dreadlock',   rarity: 'epic',      r: { spd: 88, sht: 84, pas: 82, ctl: 88, def: 78 }, hair: 'dreads',   hairColor: '#2b1d14', skin: '#7a4a2a' },
+  { id: 'samurai',    name: 'Samurai',     rarity: 'epic',      r: { spd: 86, sht: 86, pas: 80, ctl: 90, def: 84 }, hair: 'samurai',  hairColor: '#1b1b2a', skin: '#f2c49b', band: '#ff3a3f' },
+  { id: 'cowboy',     name: 'Cowboy',      rarity: 'epic',      r: { spd: 84, sht: 90, pas: 84, ctl: 82, def: 82 }, hair: 'cowboy',   hairColor: '#8a4b22', skin: '#e9b489', cap: '#a8652c' },
+  { id: 'pirate',     name: 'Captain Hook', rarity: 'legendary', r: { spd: 88, sht: 90, pas: 86, ctl: 88, def: 86 }, hair: 'pirate',  hairColor: '#1b1b2a', skin: '#c98b5e' },
+  { id: 'knight',     name: 'Knight',      rarity: 'legendary', r: { spd: 84, sht: 88, pas: 86, ctl: 86, def: 96 }, hair: 'knight',   hairColor: '#aab4c6', skin: '#f2c49b', band: '#ff3a3f' },
+  { id: 'pharaoh',    name: 'Pharaoh',     rarity: 'legendary', r: { spd: 88, sht: 90, pas: 94, ctl: 90, def: 84 }, hair: 'pharaoh',  hairColor: '#1b1b2a', skin: '#b87a4b' },
+  { id: 'shark',      name: 'Shark',       rarity: 'legendary', r: { spd: 96, sht: 90, pas: 84, ctl: 90, def: 86 }, hair: 'shark',    hairColor: '#6f8aa6', skin: '#f6cfa6' },
+  { id: 'lion',       name: 'Lion King',   rarity: 'mythic',    r: { spd: 92, sht: 94, pas: 90, ctl: 92, def: 92 }, hair: 'lion',     hairColor: '#e0901f', skin: '#c98b5e' },
+  { id: 'wizard',     name: 'Wizard',      rarity: 'mythic',    r: { spd: 90, sht: 94, pas: 97, ctl: 95, def: 88 }, hair: 'wizard',   hairColor: '#e9eef5', skin: '#f2c49b', cap: '#5b3bd6' },
+  { id: 'astronaut',  name: 'Astronaut',   rarity: 'mythic',    r: { spd: 95, sht: 92, pas: 92, ctl: 94, def: 90 }, hair: 'astronaut', hairColor: '#e9eef5', skin: '#e9b489' },
+  { id: 'iceking',    name: 'Ice King',    rarity: 'mythic',    r: { spd: 94, sht: 95, pas: 92, ctl: 95, def: 94 }, hair: 'ice',      hairColor: '#7fdcff', skin: '#dfeaf5' },
+  { id: 'inferno',    name: 'Inferno',     rarity: 'mythic',    r: { spd: 97, sht: 97, pas: 90, ctl: 94, def: 90 }, hair: 'flame',    hairColor: '#ff7a1a', skin: '#e9b489' },
+  { id: 'galaxy',     name: 'Galaxy',      rarity: 'mythic',    r: { spd: 96, sht: 96, pas: 96, ctl: 96, def: 92 }, hair: 'galaxy',   hairColor: '#4b2aa8', skin: '#a8693f' },
+  { id: 'titan',      name: 'Titan',       rarity: 'mythic',    r: { spd: 94, sht: 98, pas: 94, ctl: 96, def: 98 }, hair: 'flattop',  hairColor: '#1b1b2a', skin: '#7a4a2a' },
+  { id: 'goat',       name: 'The GOAT',    rarity: 'mythic',    r: { spd: 99, sht: 99, pas: 98, ctl: 99, def: 95 }, hair: 'goat',     hairColor: '#f4f5f7', skin: '#f2c49b' },
 ];
+// Accessories: one slot, worn over any character. slot says where it's drawn on the body.
+const ACCESSORIES = [
+  { id: 'clownnose',   name: 'Clown Nose',      slot: 'face', price: 6000 },
+  { id: 'wristbands',  name: 'Sweatbands',      slot: 'arm',  price: 7000 },
+  { id: 'mustache',    name: 'Mustache',        slot: 'face', price: 7500 },
+  { id: 'shades',      name: 'Shades',          slot: 'face', price: 8000 },
+  { id: 'partyhat',    name: 'Party Hat',       slot: 'head', price: 8500 },
+  { id: 'eyepatch',    name: 'Eye Patch',       slot: 'face', price: 9000 },
+  { id: 'bowtie',      name: 'Bow Tie',         slot: 'neck', price: 9500 },
+  { id: 'warpaint',    name: 'War Paint',       slot: 'face', price: 10000 },
+  { id: 'scarf',       name: 'Scarf',           slot: 'neck', price: 11000 },
+  { id: 'monocle',     name: 'Monocle',         slot: 'face', price: 12000 },
+  { id: 'armband',     name: 'Captain Armband', slot: 'arm',  price: 13000 },
+  { id: 'starshades',  name: 'Star Shades',     slot: 'face', price: 14000 },
+  { id: 'flowercrown', name: 'Flower Crown',    slot: 'head', price: 15000 },
+  { id: 'heromask',    name: 'Hero Mask',       slot: 'face', price: 16000 },
+  { id: 'headphones',  name: 'Headphones',      slot: 'head', price: 18000 },
+  { id: 'propeller',   name: 'Propeller Cap',   slot: 'head', price: 20000 },
+  { id: 'visor',       name: 'Cyber Visor',     slot: 'face', price: 22000 },
+  { id: 'chain',       name: 'Gold Chain',      slot: 'neck', price: 25000 },
+  { id: 'medal',       name: 'Gold Medal',      slot: 'neck', price: 30000 },
+  { id: 'horns',       name: 'Devil Horns',     slot: 'head', price: 35000 },
+  { id: 'halo',        name: 'Halo',            slot: 'head', price: 40000 },
+  { id: 'cape',        name: 'Hero Cape',       slot: 'back', price: 45000 },
+  { id: 'goldboots',   name: 'Golden Boots',    slot: 'feet', price: 50000 },
+  { id: 'wings',       name: 'Angel Wings',     slot: 'back', price: 60000 },
+  { id: 'jetpack',     name: 'Jetpack',         slot: 'back', price: 75000 },
+];
+const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
+
 const AI_HAIRS = ['messy', 'spikes', 'curly', 'buzz', 'headband', 'messy', 'curly', 'beanie', 'mohawk', 'afro'];
 
 const overall = (r) => Math.round((r.spd + r.sht + r.pas + r.ctl + r.def) / 5);
-// rating 70 = 0; 95 ≈ +1; 45 ≈ -1. Kept small on purpose: better, not unfair.
+// rating 70 = 0; 95 ≈ +1; 99 ≈ +1.16; 45 ≈ -1. Kept small on purpose: better, not unfair.
 const NEUTRAL_ATTR = { speed: 1, shot: 1, pass: 1, finish: 0, ctl: 0, def: 0 };
 function ratingAttr(r) {
-  const f = (v) => clamp((v - 70) / 25, -1, 1);
+  const f = (v) => clamp((v - 70) / 25, -1, 1.16);
   return { speed: 1 + f(r.spd) * 0.08, shot: 1 + f(r.sht) * 0.07, finish: -f(r.sht) * 0.07, pass: 1 + f(r.pas) * 0.1, ctl: f(r.ctl), def: f(r.def) };
 }
 

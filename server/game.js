@@ -27,6 +27,7 @@ const BOT_NAME_B = ['bolt', 'claw', 'dash', 'edge', 'fang', 'gale', 'hawk', 'jin
 const NAME_FIRST = ['kai', 'leo', 'max', 'zane', 'eli', 'jay', 'luca', 'mateo', 'ryan', 'omar', 'theo', 'diego', 'sami', 'finn', 'nico', 'andre', 'jojo', 'tyler', 'ivan', 'rafa'];
 const NAME_BALL = ['goal', 'striker', 'boot', 'kick', 'dribble', 'volley', 'nutmeg', 'panenka', 'header', 'rabona', 'skill', 'baller', 'golazo', 'topbins'];
 const NAME_END = ['king', 'god', 'pro', 'x', 'boy', 'man', 'mode', 'fc', 'yt', 'ez'];
+const BOT_ACCESSORIES = ['shades', 'shades', 'wristbands', 'wristbands', 'mustache', 'partyhat', 'bowtie', 'scarf', 'warpaint', 'headphones', 'armband', 'eyepatch', 'chain'];
 const BOT_CHARACTERS = ['street', 'street', 'street', 'striker', 'striker', 'striker', 'buzz', 'buzz', 'curly', 'curly', 'speedster', 'speedster', 'captain', 'bandit', 'beanie', 'turbo', 'ninja', 'mohawk'];
 const r100 = (v) => Math.round(v * 100);
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -45,7 +46,7 @@ class NetInput {
 function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
-  const BOT_CELEBS = ['jump', 'jump', 'flex', 'salute', 'spin', 'shush', 'heart', 'dab', 'kneeslide', 'kneeslide', 'airplane', 'chestpump', 'callme', 'chill', 'robot', 'griddy', 'siuu'];
+  const BOT_CELEBS = ['jump', 'jump', 'flex', 'salute', 'spin', 'shush', 'heart', 'dab', 'kneeslide', 'kneeslide', 'airplane', 'chestpump', 'callme', 'chill', 'robot', 'griddy', 'siuu', 'calmdown', 'pointsky', 'floss', 'bird', 'kungfu'];
   const conns = new Map();   // userId -> connection
   const queues = { '1v1': [], '2v2': [], '3v3': [], '4v4': [] };
   const rooms = new Map();   // roomId -> room
@@ -66,6 +67,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       character: has(sim.CHARACTERS, save.character) && save.character ? save.character : 'street',
       trail: has(sim.TRAILS, save.trail) && save.trail ? save.trail : 'electric',
       celebration: has(sim.CELEBRATIONS, save.celebration) && save.celebration ? save.celebration : 'jump',
+      // only an accessory the save actually owns
+      accessory: save.accessory && sim.ACCESSORIES.some((a) => a.id === save.accessory) && save.owned && Array.isArray(save.owned.accessory) && save.owned.accessory.includes(save.accessory) ? save.accessory : null,
     };
   }
 
@@ -279,9 +282,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
         if (e) {
           const pr = profileOf(e.id);
           taken.add(pr.name);
-          seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0 });
+          seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0 });
         } else {
-          seats.push({ seat: seats.length, team, human: false, name: null, character: pickOne(BOT_CHARACTERS), celebration: pickOne(BOT_CELEBS) });
+          // filled spots dress like people do: some with an accessory, mostly the cheaper ones
+          seats.push({ seat: seats.length, team, human: false, name: null, character: pickOne(BOT_CHARACTERS), celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
         }
       }
     }

@@ -12,10 +12,11 @@ const Save = {
       character: 'street',
       trail: 'electric',
       celebration: 'jump',
+      accessory: null,
       stadium: 'day',
       ball: 'classic',
       format: '4v4',
-      owned: { character: [], trail: [], celebration: [], stadium: [], ball: [] },
+      owned: { character: [], trail: [], celebration: [], stadium: [], ball: [], accessory: [] },
       matches: 0,
       wins: 0,
       draws: 0,
@@ -92,5 +93,15 @@ const Save = {
   },
   celebration() {
     return Shop.owns('celebration', this.data.celebration) ? this.data.celebration : 'jump';
+  },
+  // the equipped accessory id, or null if none (or not owned)
+  accessory() {
+    const id = this.data.accessory;
+    return id && ACCESSORY_IDS.has(id) && Shop.owns('accessory', id) ? id : null;
+  },
+  // your player as drawn: the character plus whatever accessory you have on
+  look() {
+    const ch = this.character();
+    return { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, acc: this.accessory() };
   },
 };

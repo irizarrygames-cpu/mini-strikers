@@ -31,7 +31,7 @@ const Match = {
     const r = (arr) => arr[(rng() * arr.length) | 0];
     const aiLook = () => ({ hair: r(AI_HAIRS), hairColor: r(HAIR_COLORS), skin: r(SKINS), band: r(['#ffffff', '#ffe14d', '#1b1d33']), cap: r(['#2f7bff', '#ff8a1f', '#3fcf4a', '#1b1d33']) });
 
-    const lookOf = (ch) => ({ hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band });
+    const lookOf = (ch, acc) => ({ hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, acc: acc && ACCESSORY_IDS.has(acc) ? acc : null });
     if (opts.seats) {
       // online: both sides symmetric, real players take roles from the front of their side
       const sides = SIDES[m.format] || SIDES['4v4'];
@@ -41,12 +41,12 @@ const Match = {
           const s = mine[i];
           if (s && s.human) {
             const ch = CHARACTERS.find((c) => c.id === s.character) || CHARACTERS[0];
-            const p = new Player({ team, human: true, role, number: n, attr: ratingAttr(ch.r), look: lookOf(ch) });
+            const p = new Player({ team, human: true, role, number: n, attr: ratingAttr(ch.r), look: lookOf(ch, s.accessory) });
             Object.assign(p, { seat: s.seat, name: s.name, trailId: s.trail, celebId: s.celebration, rarity: ch.rarity, input: s.input });
             m.players.push(p); m.humans.push(p);
           } else {
             const ch = s && s.character && CHARACTERS.find((c) => c.id === s.character);
-            const p = new Player({ team, role, number: n, look: ch ? lookOf(ch) : aiLook(), attr: ch ? ratingAttr(ch.r) : null });
+            const p = new Player({ team, role, number: n, look: ch ? lookOf(ch, s.accessory) : aiLook(), attr: ch ? ratingAttr(ch.r) : null });
             p.speedMul = diff.redSpeed; p.seat = s ? s.seat : null; p.name = s ? s.name : null; p.celebId = s ? s.celebration : null;
             m.players.push(p);
           }
@@ -55,7 +55,7 @@ const Match = {
       m.human = m.humans[0] || m.players[0];
     } else {
       const ch = Save.character();
-      const human = new Player({ team: 'blue', human: true, role: 'att', number: 10, attr: m.autopilot ? null : ratingAttr(ch.r), look: lookOf(ch) });
+      const human = new Player({ team: 'blue', human: true, role: 'att', number: 10, attr: m.autopilot ? null : ratingAttr(ch.r), look: lookOf(ch, m.autopilot ? null : Save.accessory()) });
       m.human = human;
       m.players.push(human); m.humans.push(human);
       roster.blue.forEach(([role, n]) => {

@@ -170,11 +170,11 @@ window.BS = {
     const matches = opts.matches || 12, errors = [], seen = new Set();
     const prev = { headless: Game.headless, save: JSON.stringify(Save.data), quality: Render.quality };
     Save.data.owned.character = CHARACTERS.map((c) => c.id); Save.data.owned.ball = BALLS.map((b) => b.id);
-    Save.data.owned.trail = TRAILS.map((t) => t.id); Save.data.owned.celebration = CELEBRATIONS.map((c) => c.id); Save.data.owned.stadium = STADIUMS.map((s) => s.id);
+    Save.data.owned.trail = TRAILS.map((t) => t.id); Save.data.owned.celebration = CELEBRATIONS.map((c) => c.id); Save.data.owned.stadium = STADIUMS.map((s) => s.id); Save.data.owned.accessory = ACCESSORIES.map((a) => a.id);
     let frames = 0;
     for (let i = 0; i < matches; i++) {
       const ch = CHARACTERS[i % CHARACTERS.length];
-      Object.assign(Save.data, { character: ch.id, ball: BALLS[i % BALLS.length].id, trail: TRAILS[i % TRAILS.length].id, celebration: CELEBRATIONS[i % CELEBRATIONS.length].id, stadium: STADIUMS[i % STADIUMS.length].id });
+      Object.assign(Save.data, { character: ch.id, ball: BALLS[i % BALLS.length].id, trail: TRAILS[i % TRAILS.length].id, celebration: CELEBRATIONS[i % CELEBRATIONS.length].id, stadium: STADIUMS[i % STADIUMS.length].id, accessory: ACCESSORIES[i % ACCESSORIES.length].id });
       Render.quality = i % 3;
       Game.headless = false;
       const club = CLUBS[i % CLUBS.length];
@@ -223,7 +223,7 @@ window.BS = {
     }
     await step('customize tabs', async () => {
       UI.openModal('customize');
-      for (const t of ['trail', 'ball', 'celebration', 'stadium']) { click(document.querySelector(`[data-tab="${t}"]`)); await wait(30); }
+      for (const t of ['trail', 'ball', 'celebration', 'accessory', 'stadium']) { click(document.querySelector(`[data-tab="${t}"]`)); await wait(30); }
       UI.closeModal();
     });
     await step('buy with no coins', async () => {

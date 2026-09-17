@@ -220,11 +220,15 @@ function svg() {
 }
 
 const here = path.join(__dirname, '..');
+// Every icon is the same full-bleed square the iPhone gets. iOS rounds the corners itself, and
+// so does Android: Samsung crops the maskable icon to its squircle. With corners pre-rounded
+// (and the art shrunk to a circular "safe zone") a Samsung home screen showed a smaller,
+// different-looking icon on a plate; now both phones show the same picture at the same size.
 const jobs = [
-  ['icon-192.png', 192, 0, true],
-  ['icon-512.png', 512, 0, true],
-  ['icon-maskable-512.png', 512, 0.16, false], // full bleed, art pulled inside the 80% safe circle
-  ['icon-180.png', 180, 0.05, false],           // iOS rounds the corners itself, so keep the art off them
+  ['icon-192.png', 192, 0.05, false],
+  ['icon-512.png', 512, 0.05, false],
+  ['icon-maskable-512.png', 512, 0.05, false],
+  ['icon-180.png', 180, 0.05, false],
 ];
 const written = [];
 for (const [name, size, pad, rounded] of jobs) {

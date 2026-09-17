@@ -132,7 +132,7 @@ const UI = {
     $('home-level').textContent = lv.level;
     $('home-xp').style.width = Math.round((lv.into / lv.need) * 100) + '%';
     $('home-record').textContent = `${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L` + (d.career.streak >= 2 ? ` · ${d.career.streak} WIN STREAK` : '');
-    this.portrait($('home-char-canvas'), ch);
+    this.portrait($('home-char-canvas'), Save.look());
     const ovr = $('home-ovr');
     ovr.querySelector('b').textContent = overall(ch.r);
     ovr.style.setProperty('--rar', RARITIES[ch.rarity].color);
@@ -146,7 +146,7 @@ const UI = {
     $('home-club-name').textContent = club.name;
     this.flagBadge($('home-club-badge'), club);
     $('home-club-pos').textContent = this._leaguePos ? '#' + this._leaguePos : '';
-    this.portrait($('home-char-canvas'), ch);
+    this.portrait($('home-char-canvas'), Save.look());
   },
 
   // a simple flag for a country (no crests or emblems, just its colours and shapes)
