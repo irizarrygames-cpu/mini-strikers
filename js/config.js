@@ -60,8 +60,8 @@ const CFG = {
   // ULT: one per match if you earn it. Everything that fills the team's power meter fills your
   // ult too (at ULT_RATE), plus time on the ball. Then one unstoppable acrobatic shot.
   ULT_MAX: 100,
-  ULT_RATE: 0.28,
-  ULT_BALL_RATE: 1.8,     // per second on the ball
+  ULT_RATE: 0.07,
+  ULT_BALL_RATE: 0.45,     // per second on the ball
   ULT_SHOT_SPEED: 1750,
   OVERTIME_SECONDS: 90,
 };
