@@ -392,7 +392,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       if (!seat.human || !seat.conn || !seat.conn.ws.open || seat.gone) continue;
       if (seat.conn.ws.backlog > 512 * 1024) continue; // a stalled client skips snapshots rather than queueing them
       const p = seat.player;
-      const me = p ? [seat.ack, r100(p.skillCd), r100(p.slideCd), r100(p.stamina), p.exhausted ? 1 : 0, p.charging ? 1 : 0, r100(p.chargeT), p.bufferT > 0 ? 1 : 0] : null;
+      const me = p ? [seat.ack, r100(p.skillCd), r100(p.slideCd), r100(p.stamina), p.exhausted ? 1 : 0, p.charging ? 1 : 0, r100(p.chargeT), p.bufferT > 0 ? 1 : 0, r100(p.burstT)] : null;
       seat.conn.ws.send(`{"t":"s","me":${JSON.stringify(me)},${body}`);
     }
   }

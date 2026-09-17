@@ -16,7 +16,7 @@ const NET_POS_FX = new Set(['text', 'burst', 'sparks', 'ring', 'stars']);
 const Online = {
   m: null, mirror: false, you: -1, format: '2v2', status: 'idle', // idle | queue | room | match
   snaps: [], offset: null, seq: 0, sendT: 0, bits: 0, lastSent: null, inputs: [],
-  pred: null, predOk: false, corr: { x: 0, y: 0 }, lastEnd: null, room: null,
+  pred: null, predOk: false, corr: { x: 0, y: 0 }, lastEnd: null, room: null, ballCorr: { x: 0, y: 0 }, ballPrev: null, busyCorr: null,
 
   init() {
     Net.on('queue', (m) => this.onQueue(m));
@@ -56,6 +56,7 @@ const Online = {
     this.you = msg.you;
     this.format = msg.format;
     this.snaps = []; this.offset = null; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
+    this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
     const flipTeam = (t) => (this.mirror ? (t === 'blue' ? 'red' : 'blue') : t);
     const mine = Clubs.get(msg.clubs[msg.side]), theirs = Clubs.get(msg.clubs[msg.side === 'blue' ? 'red' : 'blue']);
     Clubs.setMatch(mine, theirs);
@@ -194,20 +195,39 @@ const Online = {
     });
     this.updateMe(a, b, u, dt);
 
-    // ball: at your feet when you have it, otherwise interpolated
+    // ball: at your feet when you have it; otherwise interpolated like everyone else. You are drawn
+    // AHEAD of the rest (prediction), so near you the ball is shifted into your time: a skill, pass or
+    // shot leaves your feet where your player is, not a stride behind. Any leftover jump (switching
+    // between those two) is folded into an offset that fades, so the ball never teleports.
     const ball = m.ball, A = a.b, B = b.b;
     const owner = cur.b.owner;
     ball.owner = owner >= 0 ? m.players[owner] : null;
+    let tx, ty, tvx = B.vx, tvy = B.vy;
     if (ball.owner === me && this.pred) {
       const off = me.r + CFG.BALL_R + 4 + Math.min(1, Math.hypot(me.vx, me.vy) / CFG.SPEED) * 7;
-      const tx = me.x + me.fx * off, ty = me.y + me.fy * off;
-      const k = 1 - Math.exp(-30 * dt);
-      ball.x += (tx - ball.x) * k; ball.y += (ty - ball.y) * k; ball.z = lerp(A.z, B.z, u);
-      ball.vx = me.vx; ball.vy = me.vy;
+      tx = me.x + me.fx * off; ty = me.y + me.fy * off; tvx = me.vx; tvy = me.vy;
     } else {
-      ball.x = lerp(A.x, B.x, u); ball.y = lerp(A.y, B.y, u); ball.z = lerp(A.z, B.z, u);
-      ball.vx = B.vx; ball.vy = B.vy; ball.vz = B.vz;
+      tx = lerp(A.x, B.x, u); ty = lerp(A.y, B.y, u);
+      const PA = a.p[this.you], PB = b.p[this.you];
+      // (a ball someone else is carrying stays at THEIR feet, which are drawn in the past too)
+      if (PA && PB && (!ball.owner || ball.owner === me)) {
+        const px = lerp(PA.x, PB.x, u), py = lerp(PA.y, PB.y, u);
+        const w = clamp(1 - (Math.hypot(tx - px, ty - py) - 90) / 260, 0, 1);
+        tx += (me.x - px) * w; ty += (me.y - py) * w;
+      }
     }
+    const bc = this.ballCorr, prev = this.ballPrev;
+    if (prev && m.phase === 'play' && prev.phase === 'play') {
+      // how far the target moved beyond its own speed this frame = a jump to hide
+      const moved = Math.hypot(tx - prev.tx, ty - prev.ty), allowed = Math.hypot(tvx, tvy) * dt * 1.5 + 8;
+      if (moved > allowed && moved < 700) { bc.x += prev.tx - tx; bc.y += prev.ty - ty; }
+      const fade = Math.exp(-12 * dt);
+      bc.x *= fade; bc.y *= fade;
+      if (Math.hypot(bc.x, bc.y) > 400) { bc.x = 0; bc.y = 0; }
+    } else { bc.x = 0; bc.y = 0; }
+    this.ballPrev = { tx, ty, phase: m.phase };
+    ball.x = tx + bc.x; ball.y = ty + bc.y; ball.z = lerp(A.z, B.z, u);
+    ball.vx = tvx; ball.vy = tvy; ball.vz = B.vz;
     if (cur.b.trailType) ball.trailType = cur.b.trailType;
     ball.shot = cur.b.level >= 0 ? { level: cur.b.level, power: !!cur.b.power, team: cur.b.team } : null;
     ball.netBulge.left = lerp(A.bl, B.bl, u); ball.netBulge.right = lerp(A.br, B.br, u);
@@ -268,7 +288,7 @@ const Online = {
   reconcile(snap) {
     const m = this.m, me = m.human, S = snap.p[this.you];
     if (!S || !snap.me) return;
-    const [ack, skillCd, slideCd, stamina, exhausted, charging, chargeT] = snap.me;
+    const [ack, skillCd, slideCd, stamina, exhausted, charging, chargeT, , burstT] = snap.me;
     me.skillCd = skillCd / 100; me.slideCd = slideCd / 100; me.stamina = stamina / 100; me.exhausted = !!exhausted;
     if (!charging && me.charging && me.chargeT > 0.25) { me.charging = false; Sound.chargeStop(); }
     if (charging) { me.charging = true; me.chargeT = Math.max(me.chargeT, chargeT / 100); }
@@ -277,13 +297,16 @@ const Online = {
     const busy = S.slideT > 0 || S.slideWindT > 0 || (S.flags & 16) || S.fallT > 0 || S.stunT > 0.2 || S.celebrateT > 0 || snap.phase !== 'play';
     this.predOk = !busy;
     if (busy) return;
-    const p = { x: S.x, y: S.y, vx: S.vx, vy: S.vy, r: me.r, stamina: me.stamina, exhausted: me.exhausted };
+    const p = { x: S.x, y: S.y, vx: S.vx, vy: S.vy, r: me.r, stamina: me.stamina, exhausted: me.exhausted, burstT: (burstT || 0) / 100 };
     const hasBall = snap.b.owner === this.you;
     for (const inp of this.inputs) this.predictStep(p, inp, inp.dt, hasBall, S);
     // small disagreements are folded into an offset that fades out, so corrections never pop
     if (this.pred && this.predOk) {
       this.corr.x += this.pred.x - p.x; this.corr.y += this.pred.y - p.y;
-      if (Math.hypot(this.corr.x, this.corr.y) > 120) { this.corr.x = 0; this.corr.y = 0; }
+      // a big miss (a skill, a tackle, a laggy connection) glides too; only an absurd one is capped.
+      // (It used to reset to zero past 120, which drew your player jumping ~120 units in one frame.)
+      const c = Math.hypot(this.corr.x, this.corr.y);
+      if (c > 300) { this.corr.x *= 300 / c; this.corr.y *= 300 / c; }
     }
     this.pred = p;
   },
@@ -296,7 +319,8 @@ const Online = {
     if (me.charging && hasBall) max *= 0.86;
     if (S.recoverT > 0) max = 0;
     const speed = Math.hypot(p.vx, p.vy);
-    if (inp.sp && !p.exhausted && speed > 60) max *= hasBall ? SPRINT.ballMul : SPRINT.mul;
+    if (p.burstT > 0) { max *= 1.35; p.burstT -= dt; } // a skill burst, as the server runs it
+    else if (inp.sp && !p.exhausted && speed > 60) max *= hasBall ? SPRINT.ballMul : SPRINT.mul;
     max *= me.attr.speed;
     const tx = mx * Math.min(1, mag) * max, ty = my * Math.min(1, mag) * max;
     const k = 1 - Math.exp(-(mx === 0 && my === 0 ? CFG.HUMAN_DECEL : CFG.HUMAN_ACCEL) * dt);
@@ -316,25 +340,36 @@ const Online = {
     const shown = { x: me.x, y: me.y, fx: me.fx, fy: me.fy, faceX: me.faceX };
     this.applyPlayer(me, A, B, u, dt);
     if (this.pred && this.predOk) {
+      this.busyCorr = null;
       me.fx = shown.fx; me.fy = shown.fy; me.faceX = shown.faceX; // facing follows your stick, not the server's lagging copy
-      const fade = Math.exp(-9 * dt);
+      const fade = Math.exp(-(Math.hypot(this.corr.x, this.corr.y) > 60 ? 16 : 9) * dt); // big corrections settle faster
       this.corr.x *= fade; this.corr.y *= fade;
-      const tx = this.pred.x + this.corr.x, ty = this.pred.y + this.corr.y;
-      // coming out of a server-driven move: glide onto the prediction instead of snapping
-      const err = Math.hypot(tx - shown.x, ty - shown.y);
-      const k = this._wasPred || err > 160 ? 1 : 1 - Math.exp(-14 * dt);
-      this._glideT = (this._glideT || 0) + dt;
-      if (err < 12 || this._glideT > 0.3) this._wasPred = true;
-      me.x = shown.x + (tx - shown.x) * k; me.y = shown.y + (ty - shown.y) * k;
+      // coming out of a server-driven move: start the prediction from where you are drawn and let the
+      // gap fade like any other correction (a timed glide used to snap the last bit when it ran out)
+      if (!this._wasPred) {
+        this.corr.x = shown.x - this.pred.x; this.corr.y = shown.y - this.pred.y;
+        const c = Math.hypot(this.corr.x, this.corr.y);
+        if (c > 300) { this.corr.x *= 300 / c; this.corr.y *= 300 / c; }
+        this._wasPred = true;
+      }
+      me.x = this.pred.x + this.corr.x; me.y = this.pred.y + this.corr.y;
       me.vx = this.pred.vx; me.vy = this.pred.vy;
       const sp = Math.hypot(me.vx, me.vy);
       if (sp > 25 && me.kickT <= 0) { const mv = Input.move; if (mv.x || mv.y) turnToward(me, mv.x, mv.y, 22 * dt); else turnToward(me, me.vx / sp, me.vy / sp, 22 * dt); }
       if (Math.abs(me.fx) > 0.12) me.faceX += (Math.sign(me.fx) - me.faceX) * (1 - Math.exp(-18 * dt));
     } else {
-      // hand control back smoothly after a server-driven move
-      const k = 1 - Math.exp(-18 * dt);
-      me.x = shown.x + (me.x - shown.x) * k; me.y = shown.y + (me.y - shown.y) * k;
-      this.pred = null; this.corr.x = 0; this.corr.y = 0; this._wasPred = false; this._glideT = 0;
+      // the server is moving you (spin, tackle, fall): follow its copy, but keep the gap you had
+      // when it started and let it fade, instead of sliding back to where the delayed copy is
+      if (m.phase !== 'play') this.busyCorr = null;
+      else if (!this.busyCorr) this.busyCorr = { x: shown.x - me.x, y: shown.y - me.y };
+      const c = this.busyCorr;
+      if (c) {
+        const fade = Math.exp(-5 * dt);
+        c.x *= fade; c.y *= fade;
+        if (Math.hypot(c.x, c.y) > 220) { c.x = 0; c.y = 0; }
+        me.x += c.x; me.y += c.y;
+      }
+      this.pred = null; this.corr.x = 0; this.corr.y = 0; this._wasPred = false;
     }
   },
 
