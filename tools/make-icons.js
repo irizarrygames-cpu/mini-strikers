@@ -220,14 +220,16 @@ function svg() {
 }
 
 const here = path.join(__dirname, '..');
-// Every icon is the same full-bleed square the iPhone gets. iOS rounds the corners itself, and
-// so does Android: Samsung crops the maskable icon to its squircle. With corners pre-rounded
-// (and the art shrunk to a circular "safe zone") a Samsung home screen showed a smaller,
-// different-looking icon on a plate; now both phones show the same picture at the same size.
+// The phones should show the same picture: the flaming ball flying out of the sunburst.
+// iOS shows the whole square and rounds the corners itself (pad 0.05 keeps sparks off them).
+// Android (Samsung, Chrome) shows only the MIDDLE 72/108 of a maskable icon and masks that to
+// its squircle — a full-bleed maskable came out zoomed in with the ball and flames cut off.
+// So the maskable carries the iPhone framing (scale 0.9) inside that middle 2/3: 0.9 * 2/3 = 0.6,
+// i.e. pad 0.2, with the sunburst carrying on out to the edges.
 const jobs = [
   ['icon-192.png', 192, 0.05, false],
   ['icon-512.png', 512, 0.05, false],
-  ['icon-maskable-512.png', 512, 0.05, false],
+  ['icon-maskable-512.png', 512, 0.2, false],
   ['icon-180.png', 180, 0.05, false],
 ];
 const written = [];
