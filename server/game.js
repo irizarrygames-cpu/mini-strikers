@@ -32,7 +32,9 @@ const r100 = (v) => Math.round(v * 100);
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 class NetInput {
-  constructor() { this.move = { x: 0, y: 0 }; this.sprintHeld = false; this.q = 0; }
+  // aim: the stick as it was in the message that carried a button press. A quick flick off the stick
+  // right after tapping PASS can land in the same tick; the pass still goes where you were aiming.
+  constructor() { this.move = { x: 0, y: 0 }; this.sprintHeld = false; this.q = 0; this.aim = null; }
   take(bit) { const v = (this.q & bit) !== 0; this.q &= ~bit; return v; }
   consumePass() { return this.take(1); }
   consumeSkill() { return this.take(2); }
@@ -341,7 +343,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     p.input.move.x = x; p.input.move.y = y;
     p.input.sprintHeld = !!msg.sp;
     const a = Number(msg.a) | 0;
-    if (a) p.input.q |= a & 127;
+    if (a) { p.input.q |= a & 127; p.input.aim = { x, y }; }
     const s = Number(msg.s);
     if (Number.isFinite(s)) seat.ack = s;
   }
@@ -472,6 +474,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     stats: () => ({ online: conns.size, rooms: [...rooms.values()].filter((r) => r.state !== 'lobby').length, lobbies: codes.size, queued: Object.values(queues).reduce((a, q) => a + q.length, 0) }),
     inMatch: (id) => !!roomOf(id),
     removeUser(id) { leaveQueue(id); const r = roomOf(id); if (r) { if (r.state === 'lobby') leaveLobby(r, id); else leaveMatch(id); } const c = conns.get(id); if (c) c.ws.close(); },
+    _roomOf: roomOf, // tools only (tools/ballscan.js sets up drills in a live room)
   };
 }
 

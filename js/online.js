@@ -18,6 +18,7 @@ const Online = {
   m: null, mirror: false, you: -1, format: '2v2', status: 'idle', // idle | queue | room | match
   snaps: [], offset: null, seq: 0, sendT: 0, bits: 0, lastSent: null, inputs: [],
   pred: null, predOk: false, corr: { x: 0, y: 0 }, lastEnd: null, room: null, ballCorr: { x: 0, y: 0 }, ballPrev: null, busyCorr: null,
+  lead: 0, localOwn: null, kick: null, kickSeq: 0, kickBlock: 0, kickT: 0, wBall: 0, pendingBurst: 0,
 
   init() {
     Net.on('queue', (m) => this.onQueue(m));
@@ -58,6 +59,7 @@ const Online = {
     this.format = msg.format;
     this.snaps = []; this.offset = null; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
     this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
+    this.lead = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
     const flipTeam = (t) => (this.mirror ? (t === 'blue' ? 'red' : 'blue') : t);
     const mine = Clubs.get(msg.clubs[msg.side]), theirs = Clubs.get(msg.clubs[msg.side === 'blue' ? 'red' : 'blue']);
     Clubs.setMatch(mine, theirs);
@@ -197,26 +199,83 @@ const Online = {
     });
     this.updateMe(a, b, u, dt);
 
-    // ball: at your feet when you have it; otherwise interpolated like everyone else. You are drawn
-    // AHEAD of the rest (prediction), so near you the ball is shifted into your time: a skill, pass or
-    // shot leaves your feet where your player is, not a stride behind. Any leftover jump (switching
-    // between those two) is folded into an offset that fades, so the ball never teleports.
-    const ball = m.ball, A = a.b, B = b.b;
-    const owner = cur.b.owner;
-    ball.owner = owner >= 0 ? m.players[owner] : null;
-    let tx, ty, tvx = B.vx, tvy = B.vy;
-    if (ball.owner === me && this.pred) {
+    // ball. Everyone else is drawn a little in the past, but YOU are drawn ahead (prediction), so the
+    // ball has two clocks to live on:
+    //  - yours, whenever it's yours or loose near you: "you have it" comes from the newest snapshot,
+    //    touching a loose ball picks it up at once (the server confirms a moment later), a pass or shot
+    //    leaves your feet the moment you let go, and a loose ball near you is run forward with the
+    //    game's own ball physics to where it will be when your stick gets there. So you never chase a
+    //    ball that's really further back, run through it, or wait for your own kick.
+    //  - theirs, when someone else has it or it's near them, so their touches line up with the ball.
+    // Loose balls blend between the two by who is closer. Any jump left over (a correction, a switch)
+    // is folded into an offset that fades, so the ball never teleports.
+    const ball = m.ball, A = a.b, B = b.b, latest = this.snaps[this.snaps.length - 1];
+    const ownR = cur.b.owner >= 0 ? m.players[cur.b.owner] : null, ownL = latest.b.owner >= 0 ? m.players[latest.b.owner] : null;
+    const play = m.phase === 'play', wait = Math.max(0.22, (Net.rtt || 0) / 1000 + 0.15);
+    const count = (k) => { if (this.dbg) this.dbg[k] = (this.dbg[k] || 0) + 1; };
+    if (this.kickBlock > 0) this.kickBlock -= dt;
+    // until the server has your last kick or skill, its "you have the ball" is from before it
+    const fresh = !(latest.me && latest.me[0] < this.kickSeq);
+    // a pick-up you made on your screen: the server agrees, someone beat you to it, or it never came
+    const lo = this.localOwn;
+    if (lo) {
+      lo.t += dt;
+      const why = ownL === me && fresh ? 'ok' : ownL && ownL !== me ? 'other' : lo.t > wait ? 'late' : !play || !this.predOk ? 'off' : null;
+      if (why) { this.localOwn = null; count('pickup_' + why); }
+    }
+    // your pass/shot in flight on your screen: fly it until the server has your kick (its ack covers the
+    // input that carried it) and its ball is loose, then hand over. Still at your feet well after that
+    // means the server didn't kick it (you'd lost it first): let it go.
+    let kp = this.kick;
+    if (kp) {
+      kp.t += dt;
+      this.stepBall(kp, dt);
+      const seen = latest.me && latest.me[0] >= kp.seq;
+      const why = !play || !this.predOk || (ownL && ownL !== me) || kp.t > 2 ? 'off' : seen && ownL === me && kp.t > wait ? 'late' : null;
+      if (why) { this.kick = kp = null; count('kick_' + why); }
+      else if (seen && !ownL) kp.hand += dt;
+    }
+    if (kp && kp.kind === 'skill' && this.kickBlock <= 0 && this.predOk && this.pred && kp.z < 24 &&
+      Math.hypot(kp.x - this.pred.x, kp.y - this.pred.y) < me.r + CFG.BALL_R + 5 && !m.players.some((p) => p !== me && Math.hypot(kp.x - p.x, kp.y - p.y) < 60)) {
+      this.kick = kp = null; this.localOwn = { t: 0 }; count('pickup_start');
+    }
+    const mine = !kp && ((ownL === me && fresh) || !!this.localOwn);
+    let tx, ty, tz, tvx, tvy, f = null;
+    const rx = lerp(A.x, B.x, u), ry = lerp(A.y, B.y, u), rz = lerp(A.z, B.z, u);
+    if (kp) {
+      ball.owner = null; this.wBall = 1;
+      tx = kp.x; ty = kp.y; tz = kp.z; tvx = kp.vx; tvy = kp.vy;
+      if (kp.hand > 0 && this.predOk) {
+        f = this.advanceBall(latest.b, Math.min(0.5, this.lead));
+        const h = clamp(kp.hand / 0.2, 0, 1);
+        tx = lerp(kp.x, f.x, h); ty = lerp(kp.y, f.y, h); tz = lerp(kp.z, f.z, h); tvx = lerp(kp.vx, f.vx, h); tvy = lerp(kp.vy, f.vy, h);
+        if (h >= 1) { this.kick = null; count('kick_ok'); }
+      }
+    } else if (mine) {
       const off = me.r + CFG.BALL_R + 4 + Math.min(1, Math.hypot(me.vx, me.vy) / CFG.SPEED) * 7;
       tx = me.x + me.fx * off; ty = me.y + me.fy * off; tvx = me.vx; tvy = me.vy;
+      tz = me.hopT > 0 ? Math.sin((1 - me.hopT / 0.42) * Math.PI) * 20 : 0;
+      ball.owner = me; this.wBall = 1;
+    } else if ((ownR && ownR !== me) || (ownL && ownL !== me)) {
+      // someone else has it (or is about to, on their clock): with them
+      tx = rx; ty = ry; tz = rz; tvx = B.vx; tvy = B.vy;
+      ball.owner = ownR && ownR !== me ? ownR : null;
     } else {
-      tx = lerp(A.x, B.x, u); ty = lerp(A.y, B.y, u);
-      const PA = a.p[this.you], PB = b.p[this.you];
-      // (a ball someone else is carrying stays at THEIR feet, which are drawn in the past too)
-      if (PA && PB && (!ball.owner || ball.owner === me)) {
-        const px = lerp(PA.x, PB.x, u), py = lerp(PA.y, PB.y, u);
-        const w = clamp(1 - (Math.hypot(tx - px, ty - py) - 90) / 260, 0, 1);
-        tx += (me.x - px) * w; ty += (me.y - py) * w;
+      // loose: where it is on their clock, and where it'll be on yours
+      ball.owner = null;
+      f = this.predOk && play ? this.advanceBall(latest.b, Math.min(0.5, this.lead)) : null;
+      let wT = 0;
+      if (f) {
+        const dMe = Math.hypot(f.x - me.x, f.y - me.y);
+        let dO = 1e9;
+        for (const p of m.players) if (p !== me) dO = Math.min(dO, Math.hypot(rx - p.x, ry - p.y));
+        // right next to you it's always on your clock; further out, whoever is closer decides
+        // (the delayed copy still at your feet means your own kick is in flight: that's all yours)
+        wT = ownR === me ? 1 : Math.max(clamp(0.5 + (dO - dMe) / 300, 0, 1), clamp((120 - dMe) / 60, 0, 1));
       }
+      const w = this.wBall = f ? this.wBall + (wT - this.wBall) * (1 - Math.exp(-(wT > this.wBall ? 14 : 8) * dt)) : 0;
+      tx = f ? lerp(rx, f.x, w) : rx; ty = f ? lerp(ry, f.y, w) : ry; tz = f ? lerp(rz, f.z, w) : rz;
+      tvx = f ? lerp(B.vx, f.vx, w) : B.vx; tvy = f ? lerp(B.vy, f.vy, w) : B.vy;
     }
     const bc = this.ballCorr, prev = this.ballPrev;
     if (prev && m.phase === 'play' && prev.phase === 'play') {
@@ -228,16 +287,100 @@ const Online = {
       if (Math.hypot(bc.x, bc.y) > 400) { bc.x = 0; bc.y = 0; }
     } else { bc.x = 0; bc.y = 0; }
     this.ballPrev = { tx, ty, phase: m.phase };
-    ball.x = tx + bc.x; ball.y = ty + bc.y; ball.z = lerp(A.z, B.z, u);
-    ball.vx = tvx; ball.vy = tvy; ball.vz = B.vz;
-    if (cur.b.trailType) ball.trailType = cur.b.trailType;
-    ball.shot = cur.b.level >= 0 ? { level: cur.b.level, power: !!cur.b.power, team: cur.b.team } : null;
+    ball.x = tx + bc.x; ball.y = ty + bc.y; ball.z = tz;
+    ball.vx = tvx; ball.vy = tvy; ball.vz = kp ? kp.vz : B.vz;
+    // touching a loose ball is a pick-up right away on your screen, by the server's own rules (in reach,
+    // low enough, slow enough, you're free to take it), judged on the ball on your clock and where the
+    // server will have you, not the smoothed picture. Only when nobody else could get there first:
+    // anyone who could reach the ball's path between the newest snapshot and now might take it on the
+    // server, so then we wait for its word.
+    const S = latest.p[this.you];
+    if (f && !kp && !mine && !ball.owner && play && this.predOk && this.pred && this.wBall > 0.5 && this.kickBlock <= 0 && S && S.recoverT <= 0) {
+      const reach = me.r + CFG.BALL_R + 5, d = Math.hypot(f.x - this.pred.x, f.y - this.pred.y);
+      const L = latest.b, sx = f.x - L.x, sy = f.y - L.y, s2 = sx * sx + sy * sy || 1;
+      const rival = () => latest.p.some((P, i) => {
+        if (i === this.you) return false;
+        const k = clamp(((P.x - L.x) * sx + (P.y - L.y) * sy) / s2, 0, 1);
+        const gap = Math.hypot(L.x + sx * k - P.x, L.y + sy * k - P.y);
+        return gap < reach + 20 + CFG.SPEED * 1.2 * this.lead * k + (m.players[i].isKeeper ? 30 : 0);
+      });
+      if (d < reach && f.z < 24 && Math.hypot(f.vx, f.vy) <= CFG.CONTROL_MAX && !rival()) { this.localOwn = { t: 0 }; count('pickup_start'); }
+    }
+    const bs = kp || (this.wBall > 0.5 ? latest.b : cur.b); // the look (trail, shot) from whichever clock it's on
+    if (bs.trailType) ball.trailType = bs.trailType;
+    ball.shot = bs.level >= 0 ? { level: bs.level, power: !!bs.power, team: kp ? 'blue' : bs.team } : null;
     ball.netBulge.left = lerp(A.bl, B.bl, u); ball.netBulge.right = lerp(A.br, B.br, u);
     ball.roll += Math.hypot(ball.vx, ball.vy) * dt / CFG.BALL_R;
-    this.trail(ball, dt, !!cur.b.trailType);
+    this.trail(ball, dt, !!bs.trailType);
     this.cosmetics(m, dt);
     const cheer = Math.min(ball.x, CFG.FIELD_W - ball.x) < 600 && m.phase === 'play';
     if (cheer !== this._excite) { this._excite = cheer; Sound.setExcitement(cheer ? 1 : 0); }
+  },
+
+  // a loose ball `t` seconds on, moved exactly the way the server moves it (gravity, bounces, grass,
+  // air, boards). Curl and ult homing aren't sent, so those bend a little late and get smoothed.
+  advanceBall(s, t) {
+    return this.stepBall({ x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz }, t);
+  },
+  stepBall(b, t) {
+    for (let left = t; left > 1e-4;) {
+      const dt = Math.min(CFG.STEP, left); left -= dt;
+      const n = Math.max(1, Math.ceil((Math.hypot(b.vx, b.vy) * dt) / 6)), h = dt / n;
+      for (let i = 0; i < n; i++) {
+        if (b.spinT > 0) { b.vx += b.spinX * h; b.vy += b.spinY * h; b.spinT -= h; }
+        if (b.z > 0 || b.vz > 0) {
+          b.vz -= CFG.GRAVITY * h; b.z += b.vz * h;
+          if (b.z <= 0) { b.z = 0; b.vz = b.vz < -110 ? -b.vz * CFG.BALL_BOUNCE : 0; }
+        }
+        const damp = Math.exp(-(b.z > 0.5 ? CFG.BALL_AIR_DRAG : CFG.BALL_FRICTION) * h);
+        b.vx *= damp; b.vy *= damp;
+        if (b.z <= 0.5) {
+          const sp = Math.hypot(b.vx, b.vy);
+          if (sp < 45 * h + 0.5) { b.vx = 0; b.vy = 0; } else { const f = (sp - 45 * h) / sp; b.vx *= f; b.vy *= f; }
+        }
+        b.x += b.vx * h; b.y += b.vy * h;
+        const hit = collideWalls(b, CFG.BALL_R, CFG.WALL_BOUNCE);
+        if (hit.hit > 0 && hit.net) { b.vx *= 0.3; b.vy *= 0.3; }
+      }
+    }
+    return b;
+  },
+
+  // Your pass or shot leaves your feet the moment you let go: the very same pass/shot code the server
+  // runs, on a scratch copy of the pitch as you see it (sounds and sparks still come from the server's
+  // own kick). The server's ball takes over as soon as it arrives. Ult shots are left to the server.
+  predictKick(kind, charge) {
+    const m = this.m, me = m.human, mv = Input.move;
+    if (kind !== 'skill') { this.kickBlock = 0.45; this.localOwn = null; }
+    if (!this.predOk || me.ultOn || m.phase !== 'play' || m.ball.owner !== me) return;
+    const clone = (q) => { const c = Object.assign(Object.create(Object.getPrototypeOf(q)), q); c.stats = { ...q.stats }; return c; };
+    const p = clone(me);
+    p.charging = false; p.passCharging = false; p.skill = null;
+    p.skillCd = Math.max(0, me.skillCd - this.lead); // (the cooldown you last heard of has run on since)
+    const sb = new Ball();
+    sb.x = m.ball.x; sb.y = m.ball.y; sb.owner = p;
+    // everyone else as copies too: a nutmeg stuns the one you go through
+    const sm = { ...m, players: m.players.map((q) => (q === me ? p : clone(q))), ball: sb, meter: { ...m.meter }, stats: { blue: {}, red: {} }, shotId: 0, flags: {} };
+    const mag = Math.hypot(mv.x, mv.y);
+    const ok = this.quietly(() => (kind === 'shot' ? performShot(sm, p, charge, mv.y)
+      : kind === 'pass' ? performPass(sm, p, mag > 0.1 ? mv.x : p.fx, mag > 0.1 ? mv.y : p.fy, null, charge)
+      : performSkill(sm, p, mv.x, mv.y)));
+    if (!ok) return;
+    // a burst (skill) starts now on your screen: the next inputs carry it until the server has it
+    if (kind === 'skill' && p.burstT > 0) { this.pendingBurst = p.burstT; if (this.pred) this.pred.burstT = p.burstT; }
+    if (sb.owner) return; // hop, spin, cruyff: the ball stays with you
+    this.kickSeq = this.seq + 1;
+    if (kind === 'skill') { this.kickBlock = p.noPickupT + 0.02; this.localOwn = null; }
+    me.fx = p.fx; me.fy = p.fy; this.kickT = p.kickT; // you face the ball you just hit, as on the server
+    this.kick = { kind, t: 0, hand: 0, seq: this.seq + 1, x: sb.x, y: sb.y, z: sb.z, vx: sb.vx, vy: sb.vy, vz: sb.vz, spinX: sb.spinX, spinY: sb.spinY, spinT: sb.spinT,
+      trailType: sb.trailType, level: sb.shot ? sb.shot.level : -1, power: !!(sb.shot && sb.shot.power) };
+    if (this.dbg) this.dbg.kick_start = (this.dbg.kick_start || 0) + 1; // (tools/ballscan.js counts these)
+  },
+  // run game code without its sounds and particles
+  quietly(fn) {
+    const saved = [];
+    for (const o of [Sound, FX]) for (const k of Object.keys(o)) if (typeof o[k] === 'function') { saved.push([o, k, o[k]]); o[k] = () => {}; }
+    try { return fn(); } catch (e) { return false; } finally { for (const [o, k, v] of saved) o[k] = v; }
   },
 
   applyPlayer(p, A, B, u, dt) {
@@ -265,24 +408,30 @@ const Online = {
     const s = this.mirror ? -1 : 1;
     const mv = Input.move;
     if (Input.consumePassPress()) { this.bits |= 32; m.human.passCharging = true; m.human.passChargeT = 0; }
-    if (Input.consumePass()) { this.bits |= 1; m.human.passCharging = false; m.human.passChargeT = 0; }
+    if (Input.consumePass()) {
+      const charge = m.human.passCharging ? m.human.passChargeT : 0;
+      this.bits |= 1; m.human.passCharging = false; m.human.passChargeT = 0;
+      this.predictKick('pass', charge);
+    }
     if (m.human.passCharging) m.human.passChargeT = Math.min(CFG.PASS_CHARGE_FULL, m.human.passChargeT + dt);
     if (Input.consumeUlt && Input.consumeUlt()) this.bits |= 64;
-    if (Input.consumeSkill()) this.bits |= 2;
+    if (Input.consumeSkill()) { this.bits |= 2; this.predictKick('skill'); }
     if (Input.consumeSlide()) this.bits |= 4;
     if (Input.consumeShootPress()) { this.bits |= 8; m.human.charging = true; m.human.chargeT = 0; Sound.chargeStart(); }
-    if (Input.consumeShootRelease()) { this.bits |= 16; if (m.human.charging) { m.human.charging = false; Sound.chargeStop(); } }
+    if (Input.consumeShootRelease()) { this.bits |= 16; if (m.human.charging) { m.human.charging = false; Sound.chargeStop(); this.predictKick('shot', m.human.chargeT); } }
     if (m.human.charging) {
       m.human.chargeT += dt;
-      if (m.human.chargeT >= CFG.CHARGE_AUTO) { m.human.charging = false; Sound.chargeStop(); }
+      if (m.human.chargeT >= CFG.CHARGE_AUTO) { m.human.charging = false; Sound.chargeStop(); this.predictKick('shot', m.human.chargeT); }
     }
     const x = +(mv.x * s).toFixed(2), y = +mv.y.toFixed(2), sp = Input.sprintHeld ? 1 : 0;
     this.sendT -= dt;
     const changed = !this.lastSent || Math.abs(x - this.lastSent.x) > 0.08 || Math.abs(y - this.lastSent.y) > 0.08 || sp !== this.lastSent.sp;
     const seqNow = this.seq + 1;
-    this.inputs.push({ seq: seqNow, dt, x: mv.x, y: mv.y, sp });
+    this.inputs.push({ seq: seqNow, dt, x: mv.x, y: mv.y, sp, burst: this.pendingBurst });
+    this.pendingBurst = 0;
     if (this.inputs.length > 240) this.inputs.shift();
     if (this.bits || (changed && this.sendT <= 1 / 60) || this.sendT <= 0) {
+      if (this.bits & (1 | 16)) { this.kickBlock = 0.45; this.localOwn = null; }
       this.seq = seqNow;
       Net.send({ t: 'i', s: this.seq, x, y, sp, a: this.bits });
       this.bits = 0; this.sendT = 1 / 30; this.lastSent = { x, y, sp };
@@ -304,8 +453,10 @@ const Online = {
     this.predOk = !busy;
     if (busy) return;
     const p = { x: S.x, y: S.y, vx: S.vx, vy: S.vy, r: me.r, stamina: me.stamina, exhausted: me.exhausted, burstT: (burstT || 0) / 100 };
-    const hasBall = snap.b.owner === this.you;
-    for (const inp of this.inputs) this.predictStep(p, inp, inp.dt, hasBall, S);
+    const hasBall = (snap.b.owner === this.you && !this.kick) || !!this.localOwn;
+    let lead = 0;
+    for (const inp of this.inputs) { if (inp.burst) p.burstT = inp.burst; this.predictStep(p, inp, inp.dt, hasBall, S); lead += inp.dt; }
+    this.lead = lead;
     // small disagreements are folded into an offset that fades out, so corrections never pop
     if (this.pred && this.predOk) {
       this.corr.x += this.pred.x - p.x; this.corr.y += this.pred.y - p.y;
@@ -341,7 +492,8 @@ const Online = {
     // keep the prediction rolling forward between snapshots with the stick you're holding now
     if (this.pred && this.predOk) {
       const latest = this.snaps[this.snaps.length - 1];
-      this.predictStep(this.pred, { x: Input.move.x, y: Input.move.y, sp: Input.sprintHeld ? 1 : 0 }, dt, latest.b.owner === this.you, latest.p[this.you]);
+      this.predictStep(this.pred, { x: Input.move.x, y: Input.move.y, sp: Input.sprintHeld ? 1 : 0 }, dt, (latest.b.owner === this.you && !this.kick) || !!this.localOwn, latest.p[this.you]);
+      this.lead += dt;
     }
     const shown = { x: me.x, y: me.y, fx: me.fx, fy: me.fy, faceX: me.faceX };
     this.applyPlayer(me, A, B, u, dt);
@@ -360,8 +512,13 @@ const Online = {
       }
       me.x = this.pred.x + this.corr.x; me.y = this.pred.y + this.corr.y;
       me.vx = this.pred.vx; me.vy = this.pred.vy;
-      const sp = Math.hypot(me.vx, me.vy);
-      if (sp > 25 && me.kickT <= 0) { const mv = Input.move; if (mv.x || mv.y) turnToward(me, mv.x, mv.y, 22 * dt); else turnToward(me, me.vx / sp, me.vy / sp, 22 * dt); }
+      // facing turns exactly the way the server turns you (a pass or shot you just hit, or skills
+      // decide the direction, so it has to agree): toward the stick, else where you're running, else the ball
+      const sp = Math.hypot(me.vx, me.vy), mv = Input.move;
+      if (this.kickT > 0) this.kickT -= dt;
+      else if (mv.x || mv.y) turnToward(me, mv.x, mv.y, 22 * dt);
+      else if (sp > 25) turnToward(me, me.vx / sp, me.vy / sp, 22 * dt);
+      else { const bx = m.ball.x - me.x, by = m.ball.y - me.y, l = Math.hypot(bx, by) || 1; turnToward(me, bx / l, by / l, 22 * dt); }
       if (Math.abs(me.fx) > 0.12) me.faceX += (Math.sign(me.fx) - me.faceX) * (1 - Math.exp(-18 * dt));
     } else {
       // the server is moving you (spin, tackle, fall): follow its copy, but keep the gap you had

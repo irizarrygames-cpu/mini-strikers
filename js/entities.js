@@ -916,26 +916,32 @@ function checkSlides(m) {
 const SKILL = { cooldown: 1.1, extra: 0.1, hopDodge: 0.45 };
 const skillCooldown = (p) => SKILL.cooldown * (1 - p.attr.ctl * 0.2) + SKILL.extra;
 
-function performSkill(m, p, ix, iy) {
-  const b = m.ball;
-  if (b.owner !== p || p.isKeeper || p.skillCd > 0 || !canAct(p) || p.skill || p.hopT > 0) return false;
-  if (p.charging) { p.charging = false; Sound.chargeStop(); }
+// which skill the stick makes: none = HOP, forward = BURST (FLICK / NUTMEG over someone in front),
+// back = CRUYFF, sideways = SPIN. (Online, your screen asks this too, to know how long the ball
+// can't be picked straight back up.)
+function skillKind(m, p, ix, iy) {
   const mag = Math.hypot(ix, iy);
   const fwd = mag > 0.3 ? (ix * p.fx + iy * p.fy) / mag : 0;
-
   let front = null, frontD = 1e9;
   for (const o of m.players) {
     if (o.team === p.team || o.fallT > 0) continue;
     const ox = o.x - p.x, oy = o.y - p.y, d = Math.hypot(ox, oy);
     if (d < 95 && d > 1 && (ox * p.fx + oy * p.fy) / d > 0.6 && d < frontD) { front = o; frontD = d; }
   }
-
   let kind;
   if (p.isHuman && slideIncoming(m, p)) kind = 'hop';
   else if (mag <= 0.3) kind = 'hop';
   else if (fwd > 0.45) kind = front ? (frontD < 55 && !front.isKeeper ? 'nutmeg' : 'flick') : 'burst';
   else if (fwd < -0.45) kind = 'cruyff';
   else kind = 'spin';
+  return { kind, front, mag };
+}
+
+function performSkill(m, p, ix, iy) {
+  const b = m.ball;
+  if (b.owner !== p || p.isKeeper || p.skillCd > 0 || !canAct(p) || p.skill || p.hopT > 0) return false;
+  if (p.charging) { p.charging = false; Sound.chargeStop(); }
+  const { kind, front, mag } = skillKind(m, p, ix, iy);
 
   const fx = p.fx, fy = p.fy;
   p.skillCd = skillCooldown(p);

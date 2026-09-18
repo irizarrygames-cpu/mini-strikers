@@ -223,6 +223,7 @@ const Match = {
       const I = h.input || Input;
       I.consumePass(); I.consumeShootPress(); I.consumeShootRelease();
       I.consumeSkill(); I.consumeSlide(); if (I.consumeUlt) I.consumeUlt();
+      if (I.aim) I.aim = null;
       if (h.charging) { h.charging = false; Sound.chargeStop(); }
       h.mx = 0; h.my = 0; h.sprinting = false;
     }
@@ -232,6 +233,9 @@ const Match = {
   humanControl(m, h, dt) {
     const b = m.ball, I = h.input || Input;
     const mv = I.move, mag = Math.hypot(mv.x, mv.y);
+    // buttons aim with the stick as it was when they were pressed (online: the message that carried them)
+    const aim = I.aim || mv, amag = Math.hypot(aim.x, aim.y);
+    if (I.aim) I.aim = null;
     h.mx = mag > 0.01 ? mv.x / mag : 0; h.my = mag > 0.01 ? mv.y / mag : 0;
     h.mSpeed = Math.min(1, mag);
     h.sprinting = I.sprintHeld;
@@ -240,10 +244,14 @@ const Match = {
 
     // SKILL with the ball, SLIDE without it (the mobile button does both)
     if (I.consumeSkill()) {
-      if (b.owner === h) performSkill(m, h, mv.x, mv.y);
-      else performSlide(m, h, mv.x, mv.y);
+      // online your screen picks a loose ball up the moment you touch it, a few ms before the
+      // server does: a skill pressed right then still takes the ball, it doesn't turn into a tackle
+      const nearLoose = h.input && !b.owner && dist(h.x, h.y, b.x, b.y) < 44 && b.z < 30 && h.stunT <= 0 && h.noPickupT <= 0 && !(b.shot && b.shot.ult);
+      if (b.owner === h) performSkill(m, h, aim.x, aim.y);
+      else if (nearLoose) { takePossession(m, h); performSkill(m, h, aim.x, aim.y); }
+      else performSlide(m, h, aim.x, aim.y);
     }
-    if (I.consumeSlide() && b.owner !== h) performSlide(m, h, mv.x, mv.y);
+    if (I.consumeSlide() && b.owner !== h) performSlide(m, h, aim.x, aim.y);
 
     // PASS charges while held and goes on release; a tap is the ordinary pass
     if (I.consumePassPress && I.consumePassPress()) { h.passCharging = true; h.passChargeT = 0; }
@@ -256,8 +264,8 @@ const Match = {
       const charge = h.passCharging ? h.passChargeT : 0;
       h.passCharging = false; h.passChargeT = 0;
       const nearLoose = !b.owner && dist(h.x, h.y, b.x, b.y) < 44 && b.z < 30 && h.stunT <= 0;
-      if (b.owner === h) performPass(m, h, mag > 0.1 ? mv.x : h.fx, mag > 0.1 ? mv.y : h.fy, null, charge);
-      else if (nearLoose) { takePossession(m, h); performPass(m, h, mag > 0.1 ? mv.x : h.fx, mag > 0.1 ? mv.y : h.fy, null, charge); }
+      if (b.owner === h) performPass(m, h, amag > 0.1 ? aim.x : h.fx, amag > 0.1 ? aim.y : h.fy, null, charge);
+      else if (nearLoose) { takePossession(m, h); performPass(m, h, amag > 0.1 ? aim.x : h.fx, amag > 0.1 ? aim.y : h.fy, null, charge); }
       else if (b.owner && b.owner.team === h.team && !b.owner.isKeeper && !b.owner.isHuman) { h.passRequestT = 0.6; FX.ring(h.x, h.y, '#ffffff', 10, 34, 0.35, 3); }
     }
 
@@ -274,8 +282,8 @@ const Match = {
       h.charging = false;
       Sound.chargeStop();
       const nearLoose = !b.owner && dist(h.x, h.y, b.x, b.y) < 46 && b.z < 34 && h.stunT <= 0;
-      if (b.owner === h) performShot(m, h, h.chargeT, mv.y);
-      else if (nearLoose) { takePossession(m, h); performShot(m, h, h.chargeT, mv.y); }
+      if (b.owner === h) performShot(m, h, h.chargeT, aim.y);
+      else if (nearLoose) { takePossession(m, h); performShot(m, h, h.chargeT, aim.y); }
       else { h.bufferT = 0.3; h.bufferCharge = h.chargeT; }
     }
     if (h.bufferT > 0) {

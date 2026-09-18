@@ -115,4 +115,104 @@ window.NT = {
     Input.stick.x = 0; Input.stick.y = 0;
     return { ...st, ballTravel: Math.round(st.ballTravel), snaps: (Online.snapCount || 0) - st.snapsAtStart, ballPopMax: Math.round(st.ballPopMax), mePopMax: Math.round(st.mePopMax), lagMs: lag, rtt: Math.round(Net.rtt) };
   },
+
+  // The ball as you see it, online, with lag: plays like a person (chase, pick up, weave, pass,
+  // shoot, skills) and measures what feels janky:
+  //   pickupMs   drawn ball touching your drawn player -> drawn at your feet
+  //   passThrough  the drawn ball reached you, loose, and left again without you getting it (nobody else did either)
+  //   kickMs     pass/shot released -> the drawn ball visibly leaves your feet
+  //   feetGap    while you have it, how far the drawn ball strays from your feet (avg / max)
+  //   ballPops   frames where the drawn ball jumps further than its own speed explains
+  async ball(seconds = 40, opts = {}) {
+    const lag = opts.lagMs || 0;
+    const q = [];
+    if (lag && !Net._lagWrapped) {
+      Net._lagWrapped = true;
+      const ws = Net.ws, onmsg = ws.onmessage, send = Net.send.bind(Net);
+      ws.onmessage = (e) => q.push({ at: performance.now() + lag, fn: () => onmsg(e) });
+      Net.send = (o) => q.push({ at: performance.now() + lag, fn: () => send(o) });
+    }
+    const tick = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
+    const st = { frames: 0, playFrames: 0, ownFrames: 0, pickups: [], passThrough: 0, kicks: [], kickLost: 0, feetGapSum: 0, feetGapMax: 0, ballPops: 0, ballPopMax: 0, mePops: 0, mePopMax: 0, shots: 0, passes: 0, skills: 0, goals: 0, errors: [] };
+    let last = performance.now(), prevBall = null, prevMe = null, act = 1.2, weave = 0, hold = 0, touch = null, kick = null, goals0 = null;
+    const end = performance.now() + seconds * 1000;
+    const R = CFG.PLAYER_R + CFG.BALL_R;
+    while (performance.now() < end && Online.m) {
+      const frameAt = last + 16;
+      while (performance.now() < frameAt) { await tick(); while (q.length && q[0].at <= performance.now()) q.shift().fn(); }
+      const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000); last = now;
+      const m = Online.m;
+      if (!m) break;
+      const me = m.human, b = m.ball;
+      if (goals0 === null) goals0 = m.score.blue;
+      const play = m.phase === 'play';
+      try {
+        const mine = b.owner === me;
+        if (mine) {
+          weave += dt;
+          const gx = CFG.FIELD_W - 60 - me.x, gy = CFG.FIELD_H / 2 - me.y, a = Math.atan2(gy, gx) + Math.sin(weave * 2.4) * 0.7;
+          Input.stick.x = Math.cos(a); Input.stick.y = Math.sin(a);
+          Input.sprintHeld = Math.sin(weave * 0.7) > 0;
+          act -= dt;
+          if (hold > 0) { hold -= dt; if (hold <= 0) { Input._shootReleased = true; kick = { t: now, kind: 'shot' }; st.shots++; } }
+          else if (act <= 0 && play) {
+            const r = Math.random();
+            if (me.x > CFG.FIELD_W * 0.62 && r < 0.55) { Input._shootPressed = true; hold = 0.2 + Math.random() * 0.4; }
+            else if (r < 0.45) { Input._passPressed = true; Input._passQueued = true; kick = { t: now, kind: 'pass' }; st.passes++; }
+            else { Input._skillQueued = true; st.skills++; }
+            act = 1 + Math.random() * 1.5;
+          }
+        } else {
+          weave = 0;
+          if (hold > 0) { hold = 0; Input._shootReleased = true; }
+          const dx = b.x - me.x, dy = b.y - me.y, l = Math.hypot(dx, dy) || 1;
+          Input.stick.x = dx / l; Input.stick.y = dy / l;
+          Input.sprintHeld = l > 250;
+        }
+        Input.update();
+        Online.update(dt);
+        FX.update(dt, dt);
+        Render.updateCamera(m, dt);
+        Render.drawMatch(m, now / 1000);
+        UI.updateHUD(m);
+      } catch (e) { st.errors.push(e.message + ' ' + (e.stack || '').split(String.fromCharCode(10))[1]); if (st.errors.length > 5) break; }
+      const d = Math.hypot(b.x - me.x, b.y - me.y), mineNow = b.owner === me;
+      if (play) {
+        st.playFrames++;
+        if (mineNow) { st.ownFrames++; const gap = Math.abs(d - (R + 4)); st.feetGapSum += gap; st.feetGapMax = Math.max(st.feetGapMax, gap); }
+        // pick-ups
+        if (!mineNow && !b.owner && d < R + 5 && b.z < 24 && !touch && Online.predOk && (!kick || now - kick.t > 450)) touch = { t: now };
+        if (touch) {
+          if (mineNow) { st.pickups.push(now - touch.t); touch = null; }
+          else if (b.owner) touch = null;
+          else if (d > R + 45) { st.passThrough++; touch = null; }
+          else if (now - touch.t > 1500) touch = null;
+        }
+        // kicks leaving your feet
+        if (kick && !kick.done) {
+          if (!mineNow && d > R + 22) { st.kicks.push(now - kick.t); kick.done = true; }
+          else if (now - kick.t > 1500) { st.kickLost++; kick.done = true; }
+        }
+      } else touch = null;
+      if (play && prevBall && prevMe && prevBall.phase === 'play') {
+        const expB = Math.hypot(b.vx, b.vy) * dt * 1.6 + 6, jb = Math.hypot(b.x - prevBall.x, b.y - prevBall.y) - expB;
+        if (jb > 14) { st.ballPops++; st.ballPopMax = Math.max(st.ballPopMax, jb); }
+        const expM = Math.max(Math.hypot(me.vx, me.vy), CFG.SPEED * 1.4) * dt * 1.3 + 4, jm = Math.hypot(me.x - prevMe.x, me.y - prevMe.y) - expM;
+        if (jm > 10) { st.mePops++; st.mePopMax = Math.max(st.mePopMax, jm); }
+      }
+      prevBall = { x: b.x, y: b.y, phase: m.phase }; prevMe = { x: me.x, y: me.y };
+      st.frames++;
+    }
+    Input.stick.x = 0; Input.stick.y = 0; Input.sprintHeld = false;
+    const med = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return Math.round(s[s.length >> 1]); };
+    const p90 = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return Math.round(s[Math.floor(s.length * 0.9)]); };
+    return {
+      lagMs: lag, rtt: Math.round(Net.rtt), frames: st.frames, ownPct: Math.round((st.ownFrames / Math.max(1, st.playFrames)) * 100),
+      pickups: st.pickups.length, pickupMs: med(st.pickups), pickupMs90: p90(st.pickups), passThrough: st.passThrough,
+      kicks: st.kicks.length, kickMs: med(st.kicks), kickMs90: p90(st.kicks), kickLost: st.kickLost,
+      feetGapAvg: +(st.feetGapSum / Math.max(1, st.ownFrames)).toFixed(1), feetGapMax: Math.round(st.feetGapMax),
+      ballPops: st.ballPops, ballPopMax: Math.round(st.ballPopMax), mePops: st.mePops, mePopMax: Math.round(st.mePopMax),
+      shots: st.shots, passes: st.passes, skills: st.skills, goals: Online.m ? Online.m.score.blue - goals0 : null, errors: st.errors,
+    };
+  },
 };
