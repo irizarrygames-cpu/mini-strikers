@@ -15,7 +15,7 @@ const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 19;
+const BUILD = 20;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -312,8 +312,29 @@ function throttled(ip, key, limit, windowMs) {
 }
 setInterval(() => { const cut = Date.now() - 600000; for (const [k, v] of hits) if (v.t < cut) hits.delete(k); }, 60000).unref();
 
+/* ---------------- online World Cup ----------------
+   Your run lives on your account: which round you're in (0 = round of 16 ... 3 = final) and how
+   many you've won. Win and you go through; lose (or walk off) and you start again next time. */
+const WC_LAST = 3;
+function worldCupOf(u) {
+  const w = u && u.wc && typeof u.wc === 'object' ? u.wc : {};
+  return { round: Math.max(0, Math.min(WC_LAST, Number(w.round) | 0)), titles: Math.max(0, Number(w.titles) | 0) };
+}
+const worldCup = {
+  round: (id) => worldCupOf(getUser(id)).round,
+  result(id, won) {
+    const u = getUser(id);
+    if (!u) return { round: 0, champion: false, titles: 0 };
+    const w = worldCupOf(u);
+    const champion = won && w.round === WC_LAST;
+    u.wc = { round: won && !champion ? w.round + 1 : 0, titles: w.titles + (champion ? 1 : 0) };
+    saveDB();
+    return { round: u.wc.round, champion, titles: u.wc.titles };
+  },
+};
+
 const game = createGame({
-  getUser, userName, saveDB, onlineRecord,
+  getUser, userName, saveDB, onlineRecord, worldCup,
   isNameTaken: (name) => !!getUser(String(name).toLowerCase()),
 });
 const CLUBS = game.clubs;
@@ -327,8 +348,9 @@ const server = http.createServer((req, res) => {
 
 function publicUser(id) {
   const u = getUser(id);
-  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 } };
+  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u) };
 }
+
 
 async function handleRequest(req, res) {
   let url;

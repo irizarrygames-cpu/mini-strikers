@@ -16,6 +16,7 @@ Object.assign(UI, {
     const quickClub = Clubs.random(Clubs.mine());
     const fmt = Save.data.format || '4v4';
     const club = Clubs.mine();
+    const wcRound = Online.wcRound(), wcTitles = (Net.user && Net.user.wc && Net.user.wc.titles) || 0;
     body.innerHTML = `
       <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
       <div class="online-row">
@@ -30,6 +31,11 @@ Object.assign(UI, {
           <div class="join"><input id="join-code" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="mid-btn" data-room="join">JOIN</button></div>
         </div>
       </div>
+      <button class="mode wc" data-mode="wc">
+        <strong>${wcRound ? 'CONTINUE WORLD CUP' : 'ONLINE WORLD CUP'}</strong>
+        <p>${wcRound ? `Next: ${WC_ROUNDS[wcRound]} vs real players.` : 'Knockout vs real players: round of 16 to the final. No draws. Lose once and you\'re out.'}</p>
+        <span class="tag">WIN IT: +${WC_PRIZE} COINS${wcTitles ? ` · YOU'VE WON ${wcTitles}` : ''}</span>
+      </button>
       <p class="note vs-bots">OR PLAY OFFLINE</p>
       <div class="modes">
         <button class="mode quick" data-mode="quick">
@@ -38,7 +44,7 @@ Object.assign(UI, {
           <span class="tag">3 CHALLENGES · COINS · XP</span>
         </button>
         <button class="mode cup" data-mode="cup">
-          <strong>${cup ? 'CONTINUE CUP' : 'THE CUP'}</strong>
+          <strong>${cup ? 'CONTINUE CUP' : 'BOT WORLD CUP'}</strong>
           <p>${cup ? `Next: ${Cup.ROUNDS[cup.round]} vs ${Clubs.get(cup.opponents[cup.round]).name}` : 'Win 3 knockout matches in a row. No draws — golden goal decides it.'}</p>
           <span class="tag">WIN IT: +300 COINS &amp; A TROPHY</span>
         </button>
@@ -58,6 +64,7 @@ Object.assign(UI, {
     body.querySelector('[data-mode="quick"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'quick', club: quickClub }); });
     const fmtNow = () => Save.data.format || '4v4';
     body.querySelector('[data-mode="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow()); });
+    body.querySelector('[data-mode="wc"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow(), true); });
     body.querySelector('[data-room="create"]').addEventListener('click', () => { this.tap(); Online.createRoom(fmtNow()); });
     const join = () => { const code = body.querySelector('#join-code').value.trim().toUpperCase(); if (code.length < 4) { UI.toast('ENTER THE ROOM CODE'); return; } this.tap(); Online.joinRoom(code); };
     body.querySelector('[data-room="join"]').addEventListener('click', join);

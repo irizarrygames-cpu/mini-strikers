@@ -202,10 +202,53 @@ const UI = {
       case 'switzerland': { rect('#d52b1e', x0, y0, w, h); const s = h * 0.62; rect('#ffffff', cx - s * 0.16, cy - s / 2, s * 0.32, s); rect('#ffffff', cx - s / 2, cy - s * 0.16, s, s * 0.32); break; }
       case 'senegal': vbands(['#00853f', '#fdef42', '#e31b23']); star('#00853f', cx, cy, h * 0.17); break;
       case 'denmark': rect('#c8102e', x0, y0, w, h); rect('#ffffff', x0 + w * 0.3, y0, w * 0.12, h); rect('#ffffff', x0, cy - h * 0.09, w, h * 0.18); break;
-      default: rect(club.home.jersey, x0, y0, w, h);
+      default:
+        if (club.flag) this.flagShapes(g, club.flag, x0, y0, w, h, { rect, bands, dot, star });
+        else rect(club.home.jersey, x0, y0, w, h);
     }
     g.restore();
     outline(); g.lineWidth = Math.max(1.5, W * 0.045); g.lineJoin = 'round'; g.strokeStyle = OUTLINE; g.stroke();
+  },
+
+  // the newer countries' flags are data (club.flag): simple shapes in 0..1 flag space, sizes in flag heights
+  flagShapes(g, ops, x0, y0, w, h, { rect, bands, dot, star }) {
+    const X = (u) => x0 + u * w, Y = (v) => y0 + v * h;
+    const poly = (c, pts) => { g.fillStyle = c; g.beginPath(); pts.forEach(([u, v], i) => (i ? g.lineTo(X(u), Y(v)) : g.moveTo(X(u), Y(v)))); g.closePath(); g.fill(); };
+    for (const [op, c, ...a] of ops) {
+      switch (op) {
+        case 'fill': rect(c, x0, y0, w, h); break;
+        case 'h': bands(c, a[0]); break;
+        case 'v': { const r = a[0] || c.map(() => 1), t = r.reduce((p, q) => p + q, 0); let x = x0; c.forEach((col, i) => { const ww = (w * r[i]) / t; rect(col, x, y0, ww + 0.6, h); x += ww; }); break; }
+        case 'rect': rect(c, X(a[0]), Y(a[1]), a[2] * w + 0.4, a[3] * h + 0.4); break;
+        case 'dot': dot(c, X(a[0]), Y(a[1]), a[2] * h); break;
+        case 'star': star(c, X(a[0]), Y(a[1]), a[2] * h, a[3]); break;
+        case 'poly': poly(c, a[0]); break;
+        case 'tri': poly(c, [[0, 0], [a[0], 0.5], [0, 1]]); break;
+        case 'cross': rect(c, X(0.5) - (a[0] * h) / 2, y0, a[0] * h, h); rect(c, x0, Y(0.5) - (a[0] * h) / 2, w, a[0] * h); break;
+        case 'nordic': rect(c, X(0.36) - (a[0] * h) / 2, y0, a[0] * h, h); rect(c, x0, Y(0.5) - (a[0] * h) / 2, w, a[0] * h); break;
+        case 'plus': { const s = a[2] * h, t = s * 0.3; rect(c, X(a[0]) - t / 2, Y(a[1]) - s / 2, t, s); rect(c, X(a[0]) - s / 2, Y(a[1]) - t / 2, s, t); break; }
+        case 'saltire':
+          g.strokeStyle = c; g.lineWidth = a[0] * h; g.lineCap = 'butt';
+          g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + w, y0 + h); g.moveTo(x0 + w, y0); g.lineTo(x0, y0 + h); g.stroke(); break;
+        case 'halfdot': {
+          const [c2, u, v, r] = a;
+          g.fillStyle = c; g.beginPath(); g.arc(X(u), Y(v), r * h, Math.PI, 0); g.fill();
+          g.fillStyle = c2; g.beginPath(); g.arc(X(u), Y(v), r * h, 0, Math.PI); g.fill();
+          break;
+        }
+        case 'crescent': {
+          // a disc with a smaller one cut out of it, opening to the right
+          const [u, v, r] = a, R = r * h;
+          g.save(); g.beginPath(); g.rect(x0, y0, w, h); g.arc(X(u) + R * 0.28, Y(v), R * 0.8, 0, Math.PI * 2); g.clip('evenodd');
+          dot(c, X(u), Y(v), R); g.restore(); break;
+        }
+        case 'arcstars': {
+          const [u, v, R, n, r] = a;
+          for (let i = 0; i < n; i++) { const t = Math.PI * (1.15 + (0.7 * i) / (n - 1)); star(c, X(u) + Math.cos(t) * R * h * 1.4, Y(v) + Math.sin(t) * R * h, r * h); }
+          break;
+        }
+      }
+    }
   },
 
   // ---- signing in ----
@@ -213,7 +256,7 @@ const UI = {
     this._authMode = 'login';
     document.querySelectorAll('[data-auth]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.setAuthMode(b.dataset.auth); }));
     $('auth-form').addEventListener('submit', (e) => { e.preventDefault(); this.submitAuth(); });
-    $('auth-clubs').innerHTML = CLUBS.map((c) => `<button type="button" class="auth-club" data-club="${c.id}"><canvas width="96" height="64"></canvas><b${c.name.length > 9 ? ' class="long"' : ''}>${c.name}</b></button>`).join('');
+    $('auth-clubs').innerHTML = CLUBS.slice().sort((x, y) => x.name.localeCompare(y.name)).map((c) => `<button type="button" class="auth-club" data-club="${c.id}"><canvas width="96" height="64"></canvas><b${c.name.length > 9 ? ' class="long"' : ''}>${c.name}</b></button>`).join('');
     $('auth-clubs').querySelectorAll('.auth-club').forEach((b) => {
       this.flagBadge(b.querySelector('canvas'), Clubs.get(b.dataset.club));
       b.addEventListener('click', () => {
@@ -298,7 +341,7 @@ const UI = {
   showQueue(msg) {
     this.closeAll();
     $('queue').hidden = false;
-    $('q-format').textContent = 'ONLINE · ' + msg.format;
+    $('q-format').textContent = msg.wc !== null && msg.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[msg.wc]} · ${msg.format}` : 'ONLINE · ' + msg.format;
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
     $('q-note').textContent = 'Searching… 0:00';
@@ -369,7 +412,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.net ? `ONLINE · ${m.format}` : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.net ? (m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -662,6 +705,16 @@ const UI = {
     c.bestStreak = Math.max(c.bestStreak, c.streak);
     const streakBonus = outcome === 'win' ? Math.min(50, (c.streak - 1) * 10) : 0;
     d.coins += streakBonus;
+    // the online World Cup: remember this run's results to show the road to the final
+    const cup = msg.wc || null;
+    if (cup) {
+      if (cup.round === 0 || !Array.isArray(d.wcRun)) d.wcRun = [];
+      d.wcRun[cup.round] = { club: msg.clubs[other], mine, theirs, won: cup.won };
+      d.wcRun.length = cup.round + 1;
+      if (cup.champion) { d.coins += WC_PRIZE; d.wcTitles = (d.wcTitles || 0) + 1; }
+      if (Net.user) Net.user.wc = { round: cup.next, titles: cup.titles };
+    }
+    const wcPrize = cup && cup.champion ? WC_PRIZE : 0;
     const levelAfter = Levels.info(d.xp).level;
     let levelCoins = 0;
     for (let lv = levelBefore + 1; lv <= levelAfter; lv++) levelCoins += Levels.reward(lv);
@@ -670,8 +723,8 @@ const UI = {
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
     if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? `ACHIEVEMENT: ${fresh[0].name.toUpperCase()}  ·  CLAIM IN PROFILE` : `${fresh.length} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE`); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
 
-    $('r-title').textContent = { win: 'VICTORY!', loss: 'DEFEAT', draw: 'DRAW' }[outcome];
-    $('r-title').className = 'r-title ' + outcome;
+    $('r-title').textContent = cup && cup.champion ? 'WORLD CHAMPIONS!' : cup && !cup.won ? 'KNOCKED OUT' : { win: 'VICTORY!', loss: 'DEFEAT', draw: 'DRAW' }[outcome];
+    $('r-title').className = 'r-title ' + (cup && cup.champion ? 'win champ' : outcome);
     $('r-blue').textContent = mine; $('r-red').textContent = theirs;
     if (msg.forfeit && outcome === 'win') setTimeout(() => { if (Game.state === 'results') this.toast('THE OTHER TEAM LEFT · YOU WIN'); }, 400);
     const S = msg.stats, poss = mirror ? 100 - msg.poss : msg.poss;
@@ -690,8 +743,8 @@ const UI = {
     const club = Clubs.mine();
     const pts = outcome === 'win' ? 3 : outcome === 'draw' ? 1 : 0;
     $('r-challenges').innerHTML = `<li class="${pts ? 'done' : ''}"><i></i><span>LEAGUE: ${pts ? `+${pts} POINT${pts > 1 ? 'S' : ''}` : 'NO POINTS'} FOR ${club.name}</span></li>`;
-    $('r-coins').textContent = `+${coins + streakBonus + levelCoins}`;
-    $('r-mult').hidden = false; $('r-mult').textContent = 'ONLINE'; $('r-mult').classList.add('hard');
+    $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize}`;
+    $('r-mult').hidden = false; $('r-mult').textContent = cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
     $('r-streak').hidden = c.streak < 2;
     $('r-streak').innerHTML = `<b>${c.streak}</b> WIN STREAK${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
     const lv = Levels.info(d.xp);
@@ -699,9 +752,19 @@ const UI = {
     $('r-xpbar').style.width = Math.round((lv.into / lv.need) * 100) + '%';
     $('r-xp').textContent = lv.level > levelBefore ? `LEVEL UP! +${xp} XP · +${levelCoins} COINS` : `+${xp} XP`;
     $('r-xp').classList.toggle('lvup', lv.level > levelBefore);
-    $('r-cup').hidden = true;
+    $('r-cup').hidden = !cup;
+    if (cup) {
+      const run = d.wcRun || [];
+      $('r-cup').innerHTML = WC_ROUNDS.map((name, i) => {
+        const r = run[i];
+        const cls = r ? (r.won ? 'won' : 'lost') : i === cup.round + 1 && cup.won && !cup.champion ? 'next' : '';
+        const club = r ? Clubs.get(r.club) : null;
+        return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${club ? clubUi(club) : '#8a90b8'}">${club ? club.short : '?'}</b><em>${r ? `${r.mine}-${r.theirs}` : '—'}</em></div>`;
+      }).join('');
+      if (cup.champion) { Sound.goalJingle(true); Sound.cheer(true); FX.showBanner('WORLD CHAMPIONS!', '#ffe14d', 3, `+${WC_PRIZE} COINS`); }
+    }
     this._againMode = 'online';
-    $('r-again').textContent = 'PLAY AGAIN';
+    $('r-again').textContent = !cup ? 'PLAY AGAIN' : cup.champion ? 'NEW WORLD CUP' : cup.won ? `PLAY ${WC_ROUNDS[cup.next]}` : 'TRY AGAIN';
     $('results').hidden = false;
     $('hud').hidden = true;
     Input.reset();

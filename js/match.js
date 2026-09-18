@@ -19,7 +19,7 @@ const Match = {
       kickoffTeam: 'blue', shotId: 0, slowmo: 0, freeze: 0, timeScale: 1,
       autopilot: !!opts.autopilot, diff, mateDiff: opts.mateDiff || levelDiff(MATE_BASE, home.level), home, humans: [], teamHuman: { blue: false, red: false }, online: !!opts.online,
       goals: [], result: null, resetDone: false, exciteT: 0, lastConceded: null,
-      mode: opts.mode || 'quick', club, noDraw: opts.mode === 'cup', flags: {}, challenges: null, challengeT: 0,
+      mode: opts.mode || 'quick', club, noDraw: opts.mode === 'cup' || !!opts.noDraw, flags: {}, challenges: null, challengeT: 0,
       format: FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4'),
     };
     if (m.online) m.mode = 'online';

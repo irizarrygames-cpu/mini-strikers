@@ -469,17 +469,27 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .auth-club { display: flex; flex-direction: column; align-items: center; gap: 1px; border: 3px solid var(--ink); border-radius: 12px; background: #eef2ff; padding: 5px 2px 4px; box-shadow: 0 3px 0 var(--ink); }
 .auth-club canvas { width: 45px; height: 30px; margin: 3px 0 2px; }
 .auth-club b { font-weight: 400; font-size: 11px; line-height: 1.05; text-align: center; max-width: 100%; white-space: nowrap; }
-.auth-club b.long { font-size: 9px; letter-spacing: -0.2px; }
+.auth-club b.long { font-size: 9px; letter-spacing: -0.2px; white-space: normal; }
 .auth-club.sel { background: var(--yellow); outline: 3px solid var(--green); outline-offset: 1px; }
+/* the card (and the country list) scroll when the list is long: a slim rounded scrollbar that stays clear of the
+   round corners (the browser's square one sat on the right edge and cut both right-hand corners off) */
+.auth-card::-webkit-scrollbar, .auth-clubs::-webkit-scrollbar { width: 12px; }
+.auth-card::-webkit-scrollbar-track { background: transparent; margin: 22px 0; }
+.auth-clubs::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+.auth-card::-webkit-scrollbar-thumb, .auth-clubs::-webkit-scrollbar-thumb { background: #c3c9ec; border-radius: 12px; border: 3px solid #fff; }
+.auth-card::-webkit-scrollbar-button, .auth-clubs::-webkit-scrollbar-button { display: none; }
+@supports not selector(::-webkit-scrollbar) { .auth-card, .auth-clubs { scrollbar-width: thin; scrollbar-color: #c3c9ec transparent; } }
 .auth-club:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
 @media (max-width: 760px) { .auth.signup .auth-card { grid-template-columns: auto; grid-template-areas: "left" "right" "foot"; } .auth-right { width: auto; } }
+/* small phones: three countries a row so every name fits */
+@media (max-width: 420px) { .auth-clubs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-height: 430px) {
   .auth-card { padding: 8px 14px 10px; gap: 12px; }
   .auth .logo.auth-logo { font-size: 30px; margin: 0; }
   .auth-left { gap: 6px; }
   .auth-fields input { padding: 5px 10px; font-size: 16px; }
   .auth-tabs button { padding: 5px 4px; font-size: 15px; }
-  .auth-clubs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .auth-clubs { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
   .auth-club canvas { width: 36px; height: 24px; margin: 1px 0; }
   .auth.signup .logo.auth-logo { display: none; }
   .auth.signup .auth-left { width: min(290px, 38vw); }
@@ -682,13 +692,15 @@ body:not(.kb) #kb-legend { display: none; }
 .r-challenges li { padding: 0 8px; font-size: 12px; }
 .r-title.champ { color: var(--yellow); animation: pop 0.5s ease-out; }
 .r-cup { display: flex; gap: 8px; justify-content: center; }
-.cup-step { display: flex; flex-direction: column; align-items: center; background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 10px; min-width: 110px; }
-.cup-step small { font-size: 10px; color: #6b7299; }
+/* (the online World Cup has four rounds: the steps shrink to fit a phone instead of running off the sides) */
+.cup-step { display: flex; flex-direction: column; align-items: center; background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 10px; flex: 0 1 110px; min-width: 0; }
+.cup-step small { font-size: 10px; color: #6b7299; white-space: nowrap; }
 .cup-step b { font-weight: 400; font-size: 15px; color: #fff; background: var(--c); border-radius: 6px; padding: 0 6px; -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
 .cup-step em { font-style: normal; font-size: 13px; }
 .cup-step.won { background: #c9f7cf; }
 .cup-step.lost { background: #ffd0d3; }
 .cup-step.next { background: var(--yellow); }
+@media (max-width: 440px) { .cup-step { padding: 0 3px; } .cup-step small { font-size: 8px; letter-spacing: -0.2px; } }
 
 /* mode select */
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -701,6 +713,7 @@ body:not(.kb) #kb-legend { display: none; }
 .mode .tag { align-self: flex-start; background: var(--ink); border-radius: 8px; padding: 2px 8px; font-size: 12px; color: var(--yellow); }
 .mode.quick { background: var(--blue); }
 .mode.cup { background: #e0a100; }
+.mode.wc { background: #8a3ffc; min-height: 0; margin: 12px 0 4px; width: 100%; }
 .mode:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
 .clubs-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 5px; margin-top: 12px; }
 .club-chip { display: flex; flex-direction: column; align-items: center; background: var(--c); border: 3px solid var(--ink); border-radius: 10px; padding: 2px 8px; color: #fff; }
@@ -739,7 +752,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
   .intro-card { padding: 8px 16px 10px; gap: 5px; }
   .home-record { display: none; }
   .r-cup { gap: 4px; }
-  .cup-step { min-width: 90px; padding: 0 6px; }
+  .cup-step { flex-basis: 90px; padding: 0 6px; }
   .r-challenges li { font-size: 11px; }
 }
 

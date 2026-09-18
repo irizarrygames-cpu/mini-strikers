@@ -160,6 +160,9 @@ const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
 
 // the four ways an ult shot can be struck, picked at random
 const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scissors'];
+// the online World Cup's rounds (the server keeps which one you're in)
+const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
+const WC_PRIZE = 1000;
 const ULT_COLORS = ['#ff3a3f', '#ff8a1f', '#ffe14d', '#3fcf4a', '#46d9ff', '#b04dff', '#ff4df0'];
 const rainbow = (t, i = 0) => ULT_COLORS[(Math.floor(t * 9 + i) % ULT_COLORS.length + ULT_COLORS.length) % ULT_COLORS.length];
 

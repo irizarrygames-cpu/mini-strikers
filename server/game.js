@@ -45,7 +45,13 @@ class NetInput {
   consumeUlt() { return this.take(64); }
 }
 
-function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
+// Online World Cup: a knockout run kept on your account. Each round is an online match against
+// real players at the same round (filled like any match), no draws (golden goal). Lose and you're out.
+const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
+
+// worldCup: { round(id) -> 0..3, result(id, won) -> { round, champion, titles } } (the run lives on the account)
+function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup }) {
+  const wc = worldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
   const ULTS = sim.ULT_KINDS;
@@ -66,7 +72,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   let nextRoom = 1;
 
   const send = (conn, obj) => { if (conn && conn.ws.open) conn.ws.send(JSON.stringify(obj)); };
-  const roomOf = (id) => { for (const r of rooms.values()) if (r.seats.some((s) => s.userId === id && !s.gone)) return r; return null; };
+  // (a finished match waits ~10s before it's cleared away; you're not in it any more, so PLAY AGAIN right away works)
+  const roomOf = (id) => { for (const r of rooms.values()) if (r.state !== 'over' && r.seats.some((s) => s.userId === id && !s.gone)) return r; return null; };
   const inQueue = (id) => Object.values(queues).some((q) => q.some((e) => e.userId === id));
 
   function profileOf(id) {
@@ -139,7 +146,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     switch (msg.t) {
       case 'i': return input(id, msg);
       case 'ping': return send(conn, { t: 'pong', c: msg.c, s: Date.now() });
-      case 'queue': return joinQueue(conn, msg.format);
+      case 'queue': return joinQueue(conn, msg.format, msg.wc === true);
       case 'unqueue': leaveQueue(id); return send(conn, { t: 'unqueued' });
       case 'room.create': return createLobby(conn, msg.format);
       case 'room.join': return joinLobby(conn, msg.code);
@@ -153,13 +160,15 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
 
   /* ---------------- queue ---------------- */
 
-  function joinQueue(conn, format) {
+  function joinQueue(conn, format, worldCup) {
     const id = conn.userId;
     if (!FORMAT_SIZE[format]) return send(conn, { t: 'error', msg: 'Pick a format' });
     if (roomOf(id)) return send(conn, { t: 'error', msg: 'You are already in a match' });
     leaveQueue(id);
-    queues[format].push({ userId: id, at: Date.now(), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
-    send(conn, { t: 'queue', format });
+    const round = worldCup ? Math.max(0, Math.min(WC_ROUNDS.length - 1, wc.round(id) | 0)) : null;
+    const key = round === null ? format : `wc/${format}/${round}`;
+    (queues[key] = queues[key] || []).push({ userId: id, at: Date.now(), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
+    send(conn, { t: 'queue', format, wc: round });
   }
 
   function leaveQueue(id) {
@@ -170,14 +179,15 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   }
 
   function matchmake() {
-    for (const [format, q] of Object.entries(queues)) {
+    for (const [key, q] of Object.entries(queues)) {
+      const [format, round] = key.startsWith('wc/') ? [key.split('/')[1], Number(key.split('/')[2])] : [key, null];
       // anyone whose connection went away is out
       for (let i = q.length - 1; i >= 0; i--) if (!conns.has(q[i].userId)) q.splice(i, 1);
       if (!q.length) continue;
       const need = FORMAT_SIZE[format] * 2;
       if (q.length >= need || Date.now() - q[0].at >= q[0].wait) {
         const group = q.splice(0, need).map((e) => e.userId);
-        startRoom(format, sideUp(group, FORMAT_SIZE[format]), null);
+        startRoom(format, sideUp(group, FORMAT_SIZE[format]), null, round);
       }
     }
   }
@@ -276,7 +286,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
 
   /* ---------------- matches ---------------- */
 
-  function startRoom(format, entries, code) {
+  // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
+  function startRoom(format, entries, code, wcRound = null) {
     const size = FORMAT_SIZE[format];
     const taken = new Set();
     const seats = [];
@@ -306,9 +317,11 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     if (!clubFor.blue) clubFor.blue = pickOne(clubIds.filter((c) => c !== clubFor.red));
     if (!clubFor.red) clubFor.red = pickOne(clubIds.filter((c) => c !== clubFor.blue));
 
-    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now() };
+    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound };
     room.m = sim.create({
-      online: true, format, minutes: MATCH_MINUTES, seats, diff: sim.playerRamp({ ...sim.DIFFICULTY.normal }, roomLevel(seats)),
+      // World Cup rounds: no draws, and each round a notch tougher than the last
+      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
+      diff: sim.playerRamp({ ...sim.DIFFICULTY.normal }, roomLevel(seats) + (wcRound || 0) * 6),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
     }, room.events);
     room.m.events = room.events;
@@ -324,7 +337,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
     send(seat.conn, {
       t: 'start', room: room.id, code: room.code, format: room.format, minutes: MATCH_MINUTES,
       side: seat.team, you: m.players.indexOf(seat.player), clubs: room.clubs,
-      startsIn: Math.max(0, room.startAt - Date.now()), tick: room.tick, character: seat.character,
+      startsIn: Math.max(0, room.startAt - Date.now()), tick: room.tick, character: seat.character, wc: room.wc,
       players: m.players.map((p) => ({ team: p.team, number: p.number, keeper: p.isKeeper, name: p.isKeeper ? null : p.name, look: p.look })),
       score: m.score,
     });
@@ -367,6 +380,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   // team has nobody left, the match ends there and the team still on the pitch wins it.
   function playerLeft(room, seat) {
     onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 });
+    if (room.wc !== null && room.wc !== undefined && room.state !== 'over') wc.result(seat.userId, false);
     becomeBot(room, seat);
     seat.gone = true; seat.conn = null;
     const stillPlaying = (team) => room.seats.some((s) => s.human && !s.gone && s.team === team);
@@ -432,7 +446,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
       const outcome = forfeitTeam ? (seat.team === forfeitTeam ? 'loss' : 'win') : mine > theirs ? 'win' : mine < theirs ? 'loss' : 'draw';
       const stats = seat.player ? seat.player.stats : {};
       onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0 });
-      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format });
+      let cup = null;
+      if (room.wc !== null && room.wc !== undefined) {
+        const r = wc.result(seat.userId, outcome === 'win');
+        cup = { round: room.wc, won: outcome === 'win', champion: r.champion, next: r.round, titles: r.titles };
+      }
+      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup });
     }
     saveDB();
   }
@@ -478,4 +497,4 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken }) {
   };
 }
 
-module.exports = { createGame, FORMAT_SIZE };
+module.exports = { createGame, FORMAT_SIZE, WC_ROUNDS };

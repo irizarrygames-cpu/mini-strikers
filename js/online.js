@@ -36,12 +36,15 @@ const Online = {
   },
 
   // ---------- finding a match ----------
-  findMatch(format) {
+  // worldCup: queue for your next World Cup round instead of an ordinary match
+  findMatch(format, worldCup = false) {
     this.format = format;
+    this.worldCup = !!worldCup;
     this.status = 'queue';
-    UI.showQueue({ format });
-    Net.whenReady({ t: 'queue', format });
+    UI.showQueue({ format, wc: this.worldCup ? this.wcRound() : null });
+    Net.whenReady({ t: 'queue', format, wc: this.worldCup });
   },
+  wcRound() { return (Net.user && Net.user.wc && Net.user.wc.round) || 0; },
   cancelQueue() { Net.send({ t: 'unqueue' }); this.status = 'idle'; UI.hideQueue(); },
   onQueue() {},
 
@@ -81,7 +84,9 @@ const Online = {
       stats: { blue: {}, red: {} }, duration: msg.minutes * 60, time: msg.minutes * 60, overtime: false, otTime: 0,
       phase: 'kickoff', phaseT: 0, clock: 0, format: msg.format, mode: 'online', club: theirs, home: mine, goals: [], flags: {},
       challenges: null, timeScale: 1, demo: false, replay: null, rec: null, humanRarity: players[msg.you].rarity, events: null,
+      wc: Number.isInteger(msg.wc) ? msg.wc : null,
     };
+    m.noDraw = m.wc !== null;
     this.m = m;
     Game.match = m;
     Game.acc = 0;
@@ -609,7 +614,7 @@ const Online = {
     const f = this.format;
     Game.goHome();
     this.m = null;
-    this.findMatch(f);
+    this.findMatch(f, this.worldCup);
   },
 };
 
