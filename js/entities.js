@@ -501,7 +501,7 @@ function takePossession(m, p) {
   b.lastTouchTeam = p.team;
 }
 
-// ULT: fills from your goals, skills and assists (CFG.ULT_GOAL / ULT_SKILL / ULT_ASSIST)
+// ULT: fills from your goals, skills, assists and won tackles (CFG.ULT_GOAL / ULT_SKILL / ULT_ASSIST / ULT_TACKLE)
 function addUlt(m, p, amt) {
   if (!p.isHuman || m.autopilot || p.ultOn) return;
   const before = p.ult;
@@ -861,6 +861,7 @@ function trip(m, tackler, c) {
   if (tackler.isHuman || c.isHuman) FX.text(tackler.x, tackler.y, 'STEAL!', '#ffb03a', 17);
   if (tackler.isHuman || c.isHuman) vibrate(c.isHuman ? 30 : 15);
   addMeter(m, tackler, tackler.isHuman ? 12 : 8);
+  addUlt(m, tackler, CFG.ULT_TACKLE);
 }
 
 function dodged(m, tackler, c) {

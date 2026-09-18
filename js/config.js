@@ -57,12 +57,13 @@ const CFG = {
   PASS_CHARGE_TAP: 0.1,   // anything shorter than this is still a tap
 
   POWER_MAX: 100,
-  // ULT: only your goals, skills and assists fill it (4 goals, 20 skills or 10 assists = full).
-  // Then one unstoppable acrobatic shot.
+  // ULT: only your goals, skills, assists and won tackles fill it
+  // (10 goals, 100 skills, 20 assists or ~34 tackles = full). Then one unstoppable acrobatic shot.
   ULT_MAX: 100,
-  ULT_GOAL: 25,
-  ULT_SKILL: 5,
-  ULT_ASSIST: 10,
+  ULT_GOAL: 10,
+  ULT_SKILL: 1,
+  ULT_ASSIST: 5,
+  ULT_TACKLE: 3,
   ULT_SHOT_SPEED: 1750,
   OVERTIME_SECONDS: 90,
 };
