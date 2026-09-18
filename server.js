@@ -15,7 +15,7 @@ const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 20;
+const BUILD = 21;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -24,6 +24,8 @@ const DATABASE_URL = process.env.DATABASE_URL || '';
 /* ---------------- storage ---------------- */
 
 let DB = { users: {} };
+// the league ladder is one shared record kept alongside the accounts, under an id no username can be
+const LEAGUE_ID = '#league';
 
 function makeFileStore() {
   return {
@@ -218,6 +220,7 @@ function forgetSession(token) {
 function restoreSessions() {
   const now = Date.now();
   for (const [id, u] of Object.entries(DB.users)) {
+    if (id === LEAGUE_ID) continue;
     u.sessions = (u.sessions || []).filter((s) => s && s.token && now - (s.at || 0) < SESSION_MAX_AGE);
     for (const s of u.sessions) tokens.set(s.token, id);
   }
@@ -225,8 +228,65 @@ function restoreSessions() {
 const userIdFromToken = (token) => tokens.get(str(token));
 
 /* ---------------- league ----------------
-   Every online match adds to your own record, and your record counts for your club.
-   The table is those records added up club by club. */
+   Every online match adds to your own record, and your record counts for your country. The table's
+   ORDER is a ladder: every online win moves your country up one place, every loss down one (a draw
+   leaves it). It started from the old points order, and new countries join at the bottom. */
+
+// the old points order (how the ladder was seeded)
+function pointsOrder() {
+  const t = new Map(CLUBS.map((c) => [c.id, { club: c.id, players: 0, pts: 0, gd: 0, gf: 0 }]));
+  for (const [id, u] of Object.entries(DB.users)) {
+    if (id === LEAGUE_ID) continue;
+    const r = t.get(u.club), o = u.online;
+    if (!r) continue;
+    r.players++;
+    if (o) { r.pts += (o.w | 0) * 3 + (o.d | 0); r.gd += (o.gf | 0) - (o.ga | 0); r.gf += o.gf | 0; }
+  }
+  return [...t.values()].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.players - a.players).map((r) => r.club);
+}
+function ladder() {
+  let rec = DB.users[LEAGUE_ID];
+  if (!rec || !Array.isArray(rec.order)) rec = DB.users[LEAGUE_ID] = { order: pointsOrder(), last: {} };
+  // every country exactly once
+  const known = new Set(CLUBS.map((c) => c.id));
+  const order = rec.order.filter((id, i, a) => known.has(id) && a.indexOf(id) === i);
+  for (const c of CLUBS) if (!order.includes(c.id)) order.push(c.id);
+  if (order.length !== rec.order.length || order.some((id, i) => id !== rec.order[i])) { rec.order = order; saveDB(); }
+  if (!rec.last || typeof rec.last !== 'object') rec.last = {};
+  return rec;
+}
+// d > 0: a win, up one place (swapping with the country above); d < 0: a loss, down one
+function leagueMove(club, d) {
+  const rec = ladder(), i = rec.order.indexOf(club);
+  if (i < 0 || !d) return;
+  const j = i - Math.sign(d);
+  if (j >= 0 && j < rec.order.length) [rec.order[i], rec.order[j]] = [rec.order[j], rec.order[i]];
+  rec.last[club] = { d: Math.sign(d), t: Date.now() };
+  leagueCache = null;
+  saveDB();
+}
+// one match's result for every country in it ([club, +1 | -1] ...): winners go up first, and a loser the
+// winner's swap already pushed down a place has had its drop (two neighbours playing just swap)
+function leagueResult(list) {
+  const rec = ladder(), losers = new Set(list.filter(([, d]) => d < 0).map(([c]) => c)), dropped = new Set();
+  for (const [club, d] of list) {
+    if (d <= 0) continue;
+    const i = rec.order.indexOf(club);
+    if (i < 0) continue;
+    if (i > 0) { const other = rec.order[i - 1]; [rec.order[i - 1], rec.order[i]] = [club, other]; if (losers.has(other)) dropped.add(other); }
+    rec.last[club] = { d: 1, t: Date.now() };
+  }
+  for (const [club, d] of list) {
+    if (d >= 0 || dropped.has(club)) { if (d < 0) rec.last[club] = { d: -1, t: Date.now() }; continue; }
+    const i = rec.order.indexOf(club);
+    if (i < 0) continue;
+    if (i < rec.order.length - 1) { const other = rec.order[i + 1]; [rec.order[i], rec.order[i + 1]] = [other, club]; }
+    rec.last[club] = { d: -1, t: Date.now() };
+  }
+  leagueCache = null;
+  saveDB();
+}
+const leaguePos = (club) => ladder().order.indexOf(club) + 1;
 
 function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals }) {
   const u = getUser(id);
@@ -246,6 +306,7 @@ function leagueTable() {
   const byId = new Map(rows.map((r) => [r.club, r]));
   const scorers = [];
   for (const [id, u] of Object.entries(DB.users)) {
+    if (id === LEAGUE_ID) continue;
     const r = byId.get(u.club);
     if (!r) continue;
     r.players++;
@@ -254,8 +315,9 @@ function leagueTable() {
     for (const k of ['p', 'w', 'd', 'l', 'gf', 'ga']) r[k] += o[k] | 0;
     if (o.goals) scorers.push({ name: u.name, club: u.club, goals: o.goals, p: o.p });
   }
-  for (const r of rows) { r.pts = r.w * 3 + r.d; r.gd = r.gf - r.ga; }
-  rows.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.players - a.players || a.club.localeCompare(b.club));
+  const lad = ladder(), rank = new Map(lad.order.map((id, i) => [id, i]));
+  for (const r of rows) { r.pts = r.w * 3 + r.d; r.gd = r.gf - r.ga; r.move = lad.last[r.club] ? lad.last[r.club].d : 0; }
+  rows.sort((a, b) => rank.get(a.club) - rank.get(b.club));
   scorers.sort((a, b) => b.goals - a.goals || a.p - b.p);
   leagueCache = { at: Date.now(), rows: { table: rows, scorers: scorers.slice(0, 10) } };
   return leagueCache.rows;
@@ -334,7 +396,7 @@ const worldCup = {
 };
 
 const game = createGame({
-  getUser, userName, saveDB, onlineRecord, worldCup,
+  getUser, userName, saveDB, onlineRecord, worldCup, league: { move: (club, d) => leagueMove(club, d), result: (list) => leagueResult(list), pos: (club) => leaguePos(club) },
   isNameTaken: (name) => !!getUser(String(name).toLowerCase()),
 });
 const CLUBS = game.clubs;
@@ -457,7 +519,8 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
   catch (e) { console.error(`Could not load accounts from ${store.kind}: ${e.message}`); process.exit(1); }
   for (const id of Object.keys(DB.users)) persisted.set(id, JSON.stringify(DB.users[id]));
   // the league used to be clubs: anyone still on a club plays for that club's country
-  for (const u of Object.values(DB.users)) {
+  for (const [id, u] of Object.entries(DB.users)) {
+    if (id === LEAGUE_ID) continue;
     const country = game.countryFor(u.club);
     if (u.club !== country) { u.club = country; if (u.save) { u.save.club = country; u.save.cup = null; } leagueCache = null; saveDB(); }
   }
@@ -465,6 +528,6 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
   queueGifts();
   server.listen(PORT, () => {
     console.log(`Mini Strikers server on http://localhost:${PORT}`);
-    console.log(`accounts: ${Object.keys(DB.users).length} (storage: ${store.kind})`);
+    console.log(`accounts: ${Object.keys(DB.users).filter((id) => id !== LEAGUE_ID).length} (storage: ${store.kind})`);
   });
 })();

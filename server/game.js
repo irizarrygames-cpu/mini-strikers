@@ -50,8 +50,10 @@ class NetInput {
 const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 
 // worldCup: { round(id) -> 0..3, result(id, won) -> { round, champion, titles } } (the run lives on the account)
-function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup }) {
+// league: { move(club, +1 up | -1 down), result([[club, ±1]...]) for a whole match, pos(club) -> 1.. } (server.js)
+function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, league }) {
   const wc = worldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
+  const ladder = league || { move: () => {}, result: () => {}, pos: () => 0 };
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
   const ULTS = sim.ULT_KINDS;
@@ -380,6 +382,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   // team has nobody left, the match ends there and the team still on the pitch wins it.
   function playerLeft(room, seat) {
     onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 });
+    if (room.state !== 'over' && seat.club) ladder.move(seat.club, -1);
     if (room.wc !== null && room.wc !== undefined && room.state !== 'over') wc.result(seat.userId, false);
     becomeBot(room, seat);
     seat.gone = true; seat.conn = null;
@@ -440,6 +443,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       goals: m.goals.map((g) => ({ team: g.team, scorer: g.scorer ? m.players.indexOf(g.scorer) : -1, own: g.own, time: Math.round(g.time) })),
       forfeit: !!forfeitTeam,
     };
+    const results = [], moves = new Map();
     for (const seat of room.seats) {
       if (!seat.human || seat.gone) continue;
       const mine = m.score[seat.team], theirs = m.score[seat.team === 'blue' ? 'red' : 'blue'];
@@ -451,7 +455,14 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         const r = wc.result(seat.userId, outcome === 'win');
         cup = { round: room.wc, won: outcome === 'win', champion: r.champion, next: r.round, titles: r.titles };
       }
-      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup });
+      if (seat.club) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : outcome === 'loss' ? -1 : 0));
+      results.push({ seat, outcome, cup });
+    }
+    // a country moves one place per match, however many of its players were in it
+    ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
+    for (const { seat, outcome, cup } of results) {
+      const d = seat.club ? Math.sign(moves.get(seat.club) || 0) : 0;
+      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, league: seat.club ? { pos: ladder.pos(seat.club), d } : null });
     }
     saveDB();
   }

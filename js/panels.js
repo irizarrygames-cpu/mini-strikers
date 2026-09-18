@@ -16,14 +16,14 @@ Object.assign(UI, {
     const quickClub = Clubs.random(Clubs.mine());
     const fmt = Save.data.format || '4v4';
     const club = Clubs.mine();
-    const wcRound = Online.wcRound(), wcTitles = (Net.user && Net.user.wc && Net.user.wc.titles) || 0;
+    const wcRound = Online.wcRound();
     body.innerHTML = `
       <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
       <div class="online-row">
         <button class="mode online" data-mode="online">
           <strong>PLAY ONLINE</strong>
           <p>Play real people from every country.</p>
-          <span class="tag">WIN = 3 LEAGUE POINTS FOR ${club.name}</span>
+          <span class="tag">WIN = ${club.name} MOVES UP THE LEAGUE</span>
         </button>
         <div class="room-box">
           <small>PLAY WITH FRIENDS</small>
@@ -31,22 +31,17 @@ Object.assign(UI, {
           <div class="join"><input id="join-code" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="mid-btn" data-room="join">JOIN</button></div>
         </div>
       </div>
-      <button class="mode wc" data-mode="wc">
-        <strong>${wcRound ? 'CONTINUE WORLD CUP' : 'ONLINE WORLD CUP'}</strong>
-        <p>${wcRound ? `Next: ${WC_ROUNDS[wcRound]} vs real players.` : 'Knockout vs real players: round of 16 to the final. No draws. Lose once and you\'re out.'}</p>
-        <span class="tag">WIN IT: +${WC_PRIZE} COINS${wcTitles ? ` · YOU'VE WON ${wcTitles}` : ''}</span>
-      </button>
-      <p class="note vs-bots">OR PLAY OFFLINE</p>
+      <p class="note vs-bots">MORE WAYS TO PLAY</p>
       <div class="modes">
         <button class="mode quick" data-mode="quick">
           <strong>QUICK MATCH</strong>
           <p>One match vs a random country. Fast, loose, fun.</p>
           <span class="tag">3 CHALLENGES · COINS · XP</span>
         </button>
-        <button class="mode cup" data-mode="cup">
-          <strong>${cup ? 'CONTINUE CUP' : 'BOT WORLD CUP'}</strong>
-          <p>${cup ? `Next: ${Cup.ROUNDS[cup.round]} vs ${Clubs.get(cup.opponents[cup.round]).name}` : 'Win 3 knockout matches in a row. No draws — golden goal decides it.'}</p>
-          <span class="tag">WIN IT: +300 COINS &amp; A TROPHY</span>
+        <button class="mode cup" data-mode="worldcup">
+          <strong>WORLD CUP</strong>
+          <p>Two cups: online against real players, or against bots. No draws. Lose once and you're out.</p>
+          <span class="tag">ONLINE: ${WC_ROUNDS[wcRound]} · BOTS: ${cup ? Cup.ROUNDS[cup.round] : 'NEW CUP'}</span>
         </button>
         <button class="mode training" data-mode="training">
           <strong>TRAINING</strong>
@@ -64,13 +59,57 @@ Object.assign(UI, {
     body.querySelector('[data-mode="quick"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'quick', club: quickClub }); });
     const fmtNow = () => Save.data.format || '4v4';
     body.querySelector('[data-mode="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow()); });
-    body.querySelector('[data-mode="wc"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow(), true); });
     body.querySelector('[data-room="create"]').addEventListener('click', () => { this.tap(); Online.createRoom(fmtNow()); });
     const join = () => { const code = body.querySelector('#join-code').value.trim().toUpperCase(); if (code.length < 4) { UI.toast('ENTER THE ROOM CODE'); return; } this.tap(); Online.joinRoom(code); };
     body.querySelector('[data-room="join"]').addEventListener('click', join);
     body.querySelector('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
-    body.querySelector('[data-mode="cup"]').addEventListener('click', () => {
+    body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
+  },
+
+  // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
+  panel_worldcup(body) {
+    $('modal-title').textContent = 'WORLD CUP';
+    const fmt = Save.data.format || '4v4';
+    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="28" data-flag="${c.id}"></canvas>${c.short}</span>`; };
+    // online: the round you're in comes from the server; this run's results from your last matches
+    const round = Online.wcRound(), titles = (Net.user && Net.user.wc && Net.user.wc.titles) || 0;
+    const runAll = Array.isArray(Save.data.wcRun) ? Save.data.wcRun : [];
+    const run = runAll.length === round ? runAll : [];
+    const online = WC_ROUNDS.map((name, i) => {
+      const r = run[i];
+      const cls = i < round ? 'won' : i === round ? 'next' : '';
+      return `<li class="${cls}"><small>${name}</small>${r ? flagCell(r.club) : `<span>${i === round ? 'NEXT' : '—'}</span>`}<em>${r ? `${r.mine}-${r.theirs}` : ''}</em></li>`;
+    }).join('');
+    // bots: three set opponents per cup
+    const cup = Cup.state();
+    const bots = Cup.ROUNDS.map((name, i) => {
+      const res = cup && cup.results[i];
+      const cls = !cup ? '' : res ? (res.won ? 'won' : 'lost') : i === cup.round ? 'next' : '';
+      return `<li class="${cls}"><small>${name}</small>${cup ? flagCell(cup.opponents[i]) : '<span>?</span>'}<em>${res ? `${res.blue}-${res.red}` : ''}</em></li>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
+      <div class="wc-panels">
+        <section class="wc-panel online">
+          <header><strong>ONLINE</strong><small>Against real players from every country, round of 16 to the final.</small></header>
+          <ol class="wc-bracket">${online}</ol>
+          <div class="wc-foot"><span class="tag">WIN IT: +${WC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-cup="online">PLAY ${WC_ROUNDS[round]}</button></div>
+        </section>
+        <section class="wc-panel bots">
+          <header><strong>VS BOTS</strong><small>Three knockout matches offline, each one tougher.</small></header>
+          <ol class="wc-bracket">${bots}</ol>
+          <div class="wc-foot"><span class="tag">WIN IT: +300 COINS${Save.data.trophies ? ` · WON ${Save.data.trophies}` : ''}</span><button class="mid-btn" data-cup="bots">${cup ? `PLAY ${Cup.ROUNDS[cup.round]}` : 'START CUP'}</button></div>
+        </section>
+      </div>
+      <p class="note" style="margin-top:12px">No draws in either cup: level at full time goes to golden goal. Lose once and you're out. Win it and lift the trophy.</p>`;
+    body.querySelectorAll('canvas[data-flag]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.flag)));
+    body.querySelectorAll('[data-format]').forEach((b) => b.addEventListener('click', () => {
+      Save.data.format = b.dataset.format; Save.write(); this.tap();
+      body.querySelectorAll('[data-format]').forEach((x) => x.classList.toggle('sel', x === b));
+    }));
+    body.querySelector('[data-cup="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(Save.data.format || '4v4', true); });
+    body.querySelector('[data-cup="bots"]').addEventListener('click', () => {
       this.tap();
       if (!Cup.state()) Cup.start();
       Game.startMatch({ mode: 'cup' });
@@ -241,11 +280,11 @@ Object.assign(UI, {
     const pos = r.table.findIndex((row) => row.club === mine) + 1;
     this._leaguePos = pos;
     body.innerHTML = `
-      <p class="note">The top 20 countries, one table. Every online match a country's players win is 3 points for that country (a draw is 1). You're playing for <b>${Clubs.mine().name}</b>${pos ? ` — ${pos}${['th', 'st', 'nd', 'rd'][pos % 10 > 3 || (pos % 100 > 10 && pos % 100 < 14) ? 0 : pos % 10]} in the table` : ''}.</p>
+      <p class="note">${r.table.length} countries, one ladder. Every online win moves your country up a place, every loss moves it down one. You're playing for <b>${Clubs.mine().name}</b>${pos ? ` — ${ordinal(pos)} in the table` : ''}.</p>
       <div class="league-wrap">
         <div class="lg-table-wrap"><table class="lg-table">
-          <thead><tr><th>#</th><th class="lg-club">COUNTRY</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th><th title="Players">👥</th></tr></thead>
-          <tbody>${r.table.map((row, i) => { const c = Clubs.get(row.club); return `<tr class="${row.club === mine ? 'mine' : ''} ${i < 4 ? 'top' : ''}"><td>${i + 1}</td><td class="lg-club"><span class="lg-name"><canvas width="42" height="28" data-club="${c.id}"></canvas><b>${c.name}</b></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd > 0 ? '+' : ''}${row.gd}</td><td class="pts">${row.pts}</td><td>${row.players}</td></tr>`; }).join('')}</tbody>
+          <thead><tr><th>#</th><th class="lg-club">COUNTRY</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th title="Last move">±</th><th title="Players">👥</th></tr></thead>
+          <tbody>${r.table.map((row, i) => { const c = Clubs.get(row.club); return `<tr class="${row.club === mine ? 'mine' : ''} ${i < 4 ? 'top' : ''}"><td>${i + 1}</td><td class="lg-club"><span class="lg-name"><canvas width="42" height="28" data-club="${c.id}"></canvas><b>${c.name}</b></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd > 0 ? '+' : ''}${row.gd}</td><td class="mv ${row.move > 0 ? 'up' : row.move < 0 ? 'down' : ''}">${row.move > 0 ? '▲' : row.move < 0 ? '▼' : '–'}</td><td>${row.players}</td></tr>`; }).join('')}</tbody>
         </table></div>
         <div class="lg-side">
           <h3>TOP SCORERS</h3>

@@ -558,6 +558,9 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .lg-name canvas { width: 27px; height: 18px; flex: none; }
 .lg-name b { font-weight: 400; }
 .lg-table td.pts { font-size: 17px; }
+.lg-table td.mv { font-size: 14px; }
+.lg-table td.mv.up { color: #169b2e; }
+.lg-table td.mv.down { color: var(--ui-red); }
 .lg-table tr.top td:first-child { background: var(--green); color: #fff; }
 .lg-table tr.mine td { background: #fff4cf; }
 .lg-side h3 { margin: 0 0 6px; font-weight: 400; font-size: 17px; }
@@ -713,7 +716,7 @@ body:not(.kb) #kb-legend { display: none; }
 .mode .tag { align-self: flex-start; background: var(--ink); border-radius: 8px; padding: 2px 8px; font-size: 12px; color: var(--yellow); }
 .mode.quick { background: var(--blue); }
 .mode.cup { background: #e0a100; }
-.mode.wc { background: #8a3ffc; min-height: 0; margin: 12px 0 4px; width: 100%; }
+
 .mode:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
 .clubs-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 5px; margin-top: 12px; }
 .club-chip { display: flex; flex-direction: column; align-items: center; background: var(--c); border: 3px solid var(--ink); border-radius: 10px; padding: 2px 8px; color: #fff; }
@@ -764,6 +767,34 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .install-how b { font-family: 'Lilita One', system-ui, sans-serif; font-weight: 400; color: var(--ink); font-size: 16px; }
 .get-btn { background: var(--green); color: #fff; }
 #intro { z-index: 12; }
+/* the trophy ceremony covers the results until you tap */
+.trophy { position: fixed; inset: 0; z-index: 35; background: #131838; cursor: pointer; }
+.trophy canvas { display: block; width: 100%; height: 100%; }
+.trophy-skip { position: absolute; left: 50%; bottom: calc(var(--sb) + 14px); transform: translateX(-50%); color: #fff; font-size: clamp(16px, 4vmin, 22px);
+  -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+.trophy.ready .trophy-skip { opacity: 1; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: translateX(-50%) scale(1.08); } }
+/* the World Cup screen: two cups side by side, online and vs bots */
+.wc-panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.wc-panel { border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 6px 0 var(--ink); padding: 12px; color: #fff; display: flex; flex-direction: column; gap: 8px; }
+.wc-panel.online { background: #8a3ffc; }
+.wc-panel.bots { background: #e0a100; }
+.wc-panel header strong { display: block; font-weight: 400; font-size: clamp(22px, 5.5vmin, 30px); -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; }
+.wc-panel header small { font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; }
+.wc-bracket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.wc-bracket li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; background: rgba(255,255,255,0.18); border: 3px solid var(--ink); border-radius: 10px; padding: 3px 8px; min-height: 34px; }
+.wc-bracket li small { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
+.wc-bracket li span { display: flex; align-items: center; gap: 5px; font-size: 13px; -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
+.wc-bracket li canvas { width: 27px; height: 18px; }
+.wc-bracket li em { font-style: normal; font-size: 13px; min-width: 30px; text-align: right; }
+.wc-bracket li.won { background: #3fcf4a; }
+.wc-bracket li.lost { background: var(--ui-red); }
+.wc-bracket li.next { background: var(--yellow); color: var(--ink); }
+.wc-bracket li.next small, .wc-bracket li.next span { -webkit-text-stroke: 0; }
+.wc-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+.wc-foot .tag { background: var(--ink); border-radius: 8px; padding: 2px 8px; font-size: 12px; color: var(--yellow); }
+.wc-foot .mid-btn { font-size: 18px; padding: 0.3em 0.8em; }
+@media (max-width: 620px) { .wc-panels { grid-template-columns: minmax(0, 1fr); } }
 
 
 /* PC legend lives bottom-left, where the joystick would be, and stays out of the play */

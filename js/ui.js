@@ -669,7 +669,7 @@ const UI = {
       }).join('');
       this._againMode = cupResult === 'next' ? 'cup' : 'newcup';
       $('r-again').textContent = cupResult === 'next' ? `PLAY ${Cup.ROUNDS[c.round]}` : cupResult === 'champion' ? 'NEW CUP' : 'TRY AGAIN';
-      if (cupResult === 'champion') { Sound.goalJingle(true); Sound.cheer(true); FX.showBanner('CUP WINNERS!', '#ffe14d', 3, '+300 COINS'); }
+      if (cupResult === 'champion') Trophy.show({ title: 'CUP WINNERS!', sub: 'BOT WORLD CUP · +300 COINS', club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
       $('r-again').textContent = 'PLAY AGAIN';
@@ -741,8 +741,9 @@ const UI = {
     $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>MVP</small><strong>${mvpName}</strong><em>${mvp.keeper ? `${ms.saves || 0} saves` : `${ms.goals || 0} G · ${ms.assists || 0} A · ${ms.tackles || 0} tackles`}</em></div>`;
     if (mvpPlayer) this.portrait($('r-mvp-canvas'), mvpPlayer.look, mvpPlayer.team, mvpPlayer.isKeeper, mvpPlayer.number);
     const club = Clubs.mine();
-    const pts = outcome === 'win' ? 3 : outcome === 'draw' ? 1 : 0;
-    $('r-challenges').innerHTML = `<li class="${pts ? 'done' : ''}"><i></i><span>LEAGUE: ${pts ? `+${pts} POINT${pts > 1 ? 'S' : ''}` : 'NO POINTS'} FOR ${club.name}</span></li>`;
+    const lg = msg.league;
+    const lgText = lg && lg.pos ? (lg.d > 0 ? `${club.name} MOVES UP TO ${ordinal(lg.pos)} ▲` : lg.d < 0 ? `${club.name} DROPS TO ${ordinal(lg.pos)} ▼` : `${club.name} STAYS ${ordinal(lg.pos)}`) : `${club.name}: ${outcome === 'win' ? 'UP A PLACE' : outcome === 'loss' ? 'DOWN A PLACE' : 'NO CHANGE'}`;
+    $('r-challenges').innerHTML = `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`;
     $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize}`;
     $('r-mult').hidden = false; $('r-mult').textContent = cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
     $('r-streak').hidden = c.streak < 2;
@@ -761,7 +762,7 @@ const UI = {
         const club = r ? Clubs.get(r.club) : null;
         return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${club ? clubUi(club) : '#8a90b8'}">${club ? club.short : '?'}</b><em>${r ? `${r.mine}-${r.theirs}` : '—'}</em></div>`;
       }).join('');
-      if (cup.champion) { Sound.goalJingle(true); Sound.cheer(true); FX.showBanner('WORLD CHAMPIONS!', '#ffe14d', 3, `+${WC_PRIZE} COINS`); }
+      if (cup.champion) Trophy.show({ title: 'WORLD CHAMPIONS!', sub: `ONLINE WORLD CUP · +${WC_PRIZE} COINS`, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     }
     this._againMode = 'online';
     $('r-again').textContent = !cup ? 'PLAY AGAIN' : cup.champion ? 'NEW WORLD CUP' : cup.won ? `PLAY ${WC_ROUNDS[cup.next]}` : 'TRY AGAIN';
