@@ -57,11 +57,12 @@ const CFG = {
   PASS_CHARGE_TAP: 0.1,   // anything shorter than this is still a tap
 
   POWER_MAX: 100,
-  // ULT: one per match if you earn it. Everything that fills the team's power meter fills your
-  // ult too (at ULT_RATE), plus time on the ball. Then one unstoppable acrobatic shot.
+  // ULT: only your goals, skills and assists fill it (4 goals, 20 skills or 10 assists = full).
+  // Then one unstoppable acrobatic shot.
   ULT_MAX: 100,
-  ULT_RATE: 0.07,
-  ULT_BALL_RATE: 0.45,     // per second on the ball
+  ULT_GOAL: 25,
+  ULT_SKILL: 5,
+  ULT_ASSIST: 10,
   ULT_SHOT_SPEED: 1750,
   OVERTIME_SECONDS: 90,
 };

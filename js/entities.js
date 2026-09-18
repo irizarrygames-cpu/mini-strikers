@@ -108,8 +108,6 @@ function movePlayers(m, dt) {
     p.hopT = Math.max(0, p.hopT - dt);
     p.dodgeT = Math.max(0, p.dodgeT - dt);
     if (p.ultShot) { p.ultShot.t += dt; if (p.ultShot.t >= p.ultShot.dur) p.ultShot = null; }
-    // time on the ball feeds your ult
-    if (p.isHuman && b.owner === p && !p.ultOn) addUlt(m, p, dt * CFG.ULT_BALL_RATE);
 
     // sprint + stamina: running dry locks sprint until it refills to SPRINT.unlock
     const canSprint = p.sprinting && !p.exhausted && !p.isKeeper && p.slideT <= 0 && p.fallT <= 0 && p.speed > 60;
@@ -503,9 +501,9 @@ function takePossession(m, p) {
   b.lastTouchTeam = p.team;
 }
 
-// ULT: fills from everything you do in the match, hard enough that it is not every match
+// ULT: fills from your goals, skills and assists (CFG.ULT_GOAL / ULT_SKILL / ULT_ASSIST)
 function addUlt(m, p, amt) {
-  if (!p.isHuman || m.autopilot || p.ultOn || p.ultShot) return;
+  if (!p.isHuman || m.autopilot || p.ultOn) return;
   const before = p.ult;
   p.ult = Math.min(CFG.ULT_MAX, p.ult + amt);
   if (before < CFG.ULT_MAX && p.ult >= CFG.ULT_MAX && !Game.headless) {
@@ -588,7 +586,6 @@ function addMeter(m, p, amt) {
   if (m.teamHuman && m.teamHuman[team] && !p.isHuman && !m.autopilot) return;
   const before = m.meter[team];
   m.meter[team] = Math.min(CFG.POWER_MAX, m.meter[team] + amt);
-  addUlt(m, p, amt * CFG.ULT_RATE); // everything you earn fills your ult too
   if (p.isHuman && before < CFG.POWER_MAX && m.meter[team] >= CFG.POWER_MAX && !Game.headless) {
     Sound.powerReady();
     FX.text(p.x, p.y, 'POWER READY!', '#46d9ff', 17);
@@ -943,6 +940,7 @@ function performSkill(m, p, ix, iy) {
   p.skillCd = skillCooldown(p);
   p.stats.skills++;
   m.stats[p.team].skills = (m.stats[p.team].skills || 0) + 1;
+  addUlt(m, p, CFG.ULT_SKILL);
   const say = (s, c) => { if (p.isHuman || Math.random() < 0.5) FX.text(p.x, p.y, s, c, 15); };
   Sound.skill();
 

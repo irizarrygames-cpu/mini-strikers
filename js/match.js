@@ -414,9 +414,9 @@ const Match = {
     let assist = null;
     if (scorer && b.assist && b.assist.from !== scorer && b.assist.from.team === team && m.clock - b.assist.t < 8) {
       assist = b.assist.from; assist.stats.assists++;
-      if (assist.isHuman) addMeter(m, assist, 10);
+      if (assist.isHuman) { addMeter(m, assist, 10); addUlt(m, assist, CFG.ULT_ASSIST); }
     }
-    if (scorer && scorer.isHuman) addMeter(m, scorer, 15);
+    if (scorer && scorer.isHuman) { addMeter(m, scorer, 15); addUlt(m, scorer, CFG.ULT_GOAL); }
     const nowLeads = m.score[team] > m.score[otherTeam(team)];
     m.trailed = m.trailed || {};
     for (const t of ['blue', 'red']) if (m.score[t] < m.score[otherTeam(t)]) m.trailed[t] = true;
