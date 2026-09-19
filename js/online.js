@@ -74,6 +74,15 @@ const Online = {
 
   // ---------- match start ----------
   start(msg) {
+    // Penalty matchmaking uses the shootout game, never the full-pitch 1v1 renderer.
+    if (msg.format === 'pens') {
+      this.status = 'idle'; this.m = null; this.room = null;
+      Net.send({ t: 'leave' });
+      const otherSide = msg.side === 'blue' ? 'red' : 'blue';
+      const opponent = Clubs.get(msg.clubs[otherSide]) || Clubs.random(Clubs.mine());
+      Game.startMatch({ mode: 'pens', club: opponent });
+      return;
+    }
     const resync = this.m && this.m.roomId === msg.room;
     this.status = 'match';
     this.mirror = msg.side === 'red';
