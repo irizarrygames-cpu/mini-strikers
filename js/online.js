@@ -62,7 +62,7 @@ const Online = {
     this.format = msg.format;
     this.snaps = []; this.offset = null; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
     this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
-    this.lead = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
+    this.lead = 0; this.leadBase = 0; this.leadAt = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
     const flipTeam = (t) => (this.mirror ? (t === 'blue' ? 'red' : 'blue') : t);
     const mine = Clubs.get(msg.clubs[msg.side]), theirs = Clubs.get(msg.clubs[msg.side === 'blue' ? 'red' : 'blue']);
     Clubs.setMatch(mine, theirs);
@@ -174,48 +174,44 @@ const Online = {
     if (!m) return;
     this.sendInput(dt);
     if (!this.snaps.length) return;
-    const renderTick = (performance.now() - this.offset) / NET_TICK_MS - NET_DELAY_TICKS;
-    let a = this.snaps[0], b = a;
-    for (let i = 0; i < this.snaps.length; i++) {
-      if (this.snaps[i].k <= renderTick) { a = this.snaps[i]; b = this.snaps[Math.min(i + 1, this.snaps.length - 1)]; }
-    }
-    if (renderTick < this.snaps[0].k) { a = b = this.snaps[0]; }
-    const u = b.k > a.k ? clamp((renderTick - a.k) / (b.k - a.k), 0, 1) : 0;
-    const cur = u < 0.5 ? a : b;
-    // events fire as the picture reaches them, so sounds line up with what you see
+    // Everyone is drawn in YOUR time. Your own player is predicted ahead of the newest snapshot by the
+    // inputs the server hasn't seen yet (`lead`), so everyone else is moved on by the same amount from
+    // the newest snapshot (their speed; a lunge or a fall slowing down), and any jump between snapshots
+    // is folded into an offset that fades. They used to be drawn ~0.2s in the past while you were drawn
+    // ahead, so a tackle that took you down was drawn landing from ~80 units away. Sounds and effects
+    // play as their snapshot arrives, with the picture they belong to.
+    const latest = this.snaps[this.snaps.length - 1];
+    const now = performance.now(), since = Math.max(0, (now - latest.at) / 1000);
+    this.lead = (this.leadBase || 0) + (now - (this.leadAt || now)) / 1000;
+    const ahead = this.ahead = Math.min(0.3, this.lead) * (latest.ts || 1);
     for (const snap of this.snaps) {
-      if (snap.fired || snap.k > renderTick) continue;
+      if (snap.fired) continue;
       snap.fired = true;
       for (const e of snap.ev) this.playEvent(e);
     }
-
-    m.phase = cur.phase; m.phaseT = lerp(a.phaseT, b.phaseT, u); m.time = lerp(a.time, b.time, u);
+    m.phase = latest.phase; m.phaseT = latest.phaseT + since; m.time = latest.time;
     // the cutscene starting clears the big GOAL! banner so it never covers the celebration
     if (m.phase === 'cele' && this._lastPhase !== 'cele') FX.banner = null;
+    // (only a restart, where everyone is put back in place, drops the smoothing; a goal keeps it gliding)
+    const phaseChanged = this._lastPhase !== m.phase && (m.phase === 'kickoff' || m.phase === 'reset');
     this._lastPhase = m.phase;
-    m.overtime = cur.ot >= 0; m.otTime = Math.max(0, cur.ot);
-    m.score = cur.score; m.meter = cur.meter; m.timeScale = cur.ts;
+    m.overtime = latest.ot >= 0; m.otTime = Math.max(0, latest.ot);
+    m.score = latest.score; m.meter = latest.meter; m.timeScale = latest.ts;
     const me = m.human;
     m.players.forEach((p, i) => {
-      const A = a.p[i], B = b.p[i];
-      if (!A || !B) return;
-      if (p === me && this.pred) return;
-      this.applyPlayer(p, A, B, u, dt);
+      const S = latest.p[i];
+      if (!S || p === me) return;
+      this.applyNow(p, S, since, ahead, dt, phaseChanged);
     });
-    this.updateMe(a, b, u, dt);
+    this.updateMe(latest, since, ahead, dt, phaseChanged);
 
-    // ball. Everyone else is drawn a little in the past, but YOU are drawn ahead (prediction), so the
-    // ball has two clocks to live on:
-    //  - yours, whenever it's yours or loose near you: "you have it" comes from the newest snapshot,
-    //    touching a loose ball picks it up at once (the server confirms a moment later), a pass or shot
-    //    leaves your feet the moment you let go, and a loose ball near you is run forward with the
-    //    game's own ball physics to where it will be when your stick gets there. So you never chase a
-    //    ball that's really further back, run through it, or wait for your own kick.
-    //  - theirs, when someone else has it or it's near them, so their touches line up with the ball.
-    // Loose balls blend between the two by who is closer. Any jump left over (a correction, a switch)
-    // is folded into an offset that fades, so the ball never teleports.
-    const ball = m.ball, A = a.b, B = b.b, latest = this.snaps[this.snaps.length - 1];
-    const ownR = cur.b.owner >= 0 ? m.players[cur.b.owner] : null, ownL = latest.b.owner >= 0 ? m.players[latest.b.owner] : null;
+    // ball, on your clock like everyone: "you have it" comes from the newest snapshot, touching a loose
+    // ball picks it up at once (the server confirms a moment later), a pass or shot leaves your feet the
+    // moment you let go, a ball someone else has stays at their (moved-on) feet, and a loose ball is run
+    // forward with the game's own ball physics. Any jump left over (a correction, a switch) is folded
+    // into an offset that fades, so the ball never teleports.
+    const ball = m.ball, LB = latest.b;
+    const ownL = LB.owner >= 0 ? m.players[LB.owner] : null;
     const play = m.phase === 'play', wait = Math.max(0.22, (Net.rtt || 0) / 1000 + 0.15);
     const count = (k) => { if (this.dbg) this.dbg[k] = (this.dbg[k] || 0) + 1; };
     if (this.kickBlock > 0) this.kickBlock -= dt;
@@ -246,7 +242,6 @@ const Online = {
     }
     const mine = !kp && ((ownL === me && fresh) || !!this.localOwn);
     let tx, ty, tz, tvx, tvy, f = null;
-    const rx = lerp(A.x, B.x, u), ry = lerp(A.y, B.y, u), rz = lerp(A.z, B.z, u);
     if (kp) {
       ball.owner = null; this.wBall = 1;
       tx = kp.x; ty = kp.y; tz = kp.z; tvx = kp.vx; tvy = kp.vy;
@@ -261,39 +256,28 @@ const Online = {
       tx = me.x + me.fx * off; ty = me.y + me.fy * off; tvx = me.vx; tvy = me.vy;
       tz = me.hopT > 0 ? Math.sin((1 - me.hopT / 0.42) * Math.PI) * 20 : 0;
       ball.owner = me; this.wBall = 1;
-    } else if ((ownR && ownR !== me) || (ownL && ownL !== me)) {
-      // someone else has it (or is about to, on their clock): with them
-      tx = rx; ty = ry; tz = rz; tvx = B.vx; tvy = B.vy;
-      ball.owner = ownR && ownR !== me ? ownR : null;
+    } else if (ownL && ownL !== me) {
+      // someone else has it: at their feet, as they're drawn (the dribble offset the server had)
+      const P = latest.p[LB.owner];
+      tx = ownL.x + (LB.x - P.x); ty = ownL.y + (LB.y - P.y); tz = LB.z; tvx = ownL.vx; tvy = ownL.vy;
+      ball.owner = ownL; this.wBall = 1;
     } else {
-      // loose: where it is on their clock, and where it'll be on yours
-      ball.owner = null;
-      f = this.predOk && play ? this.advanceBall(latest.b, Math.min(0.5, this.lead)) : null;
-      let wT = 0;
-      if (f) {
-        const dMe = Math.hypot(f.x - me.x, f.y - me.y);
-        let dO = 1e9;
-        for (const p of m.players) if (p !== me) dO = Math.min(dO, Math.hypot(rx - p.x, ry - p.y));
-        // right next to you it's always on your clock; further out, whoever is closer decides
-        // (the delayed copy still at your feet means your own kick is in flight: that's all yours)
-        wT = ownR === me ? 1 : Math.max(clamp(0.5 + (dO - dMe) / 300, 0, 1), clamp((120 - dMe) / 60, 0, 1));
-      }
-      const w = this.wBall = f ? this.wBall + (wT - this.wBall) * (1 - Math.exp(-(wT > this.wBall ? 14 : 8) * dt)) : 0;
-      tx = f ? lerp(rx, f.x, w) : rx; ty = f ? lerp(ry, f.y, w) : ry; tz = f ? lerp(rz, f.z, w) : rz;
-      tvx = f ? lerp(B.vx, f.vx, w) : B.vx; tvy = f ? lerp(B.vy, f.vy, w) : B.vy;
+      // loose: run on to your time
+      ball.owner = null; this.wBall = 1;
+      f = this.advanceBall(LB, Math.min(0.5, ahead));
+      tx = f.x; ty = f.y; tz = f.z; tvx = f.vx; tvy = f.vy;
     }
     const bc = this.ballCorr, prev = this.ballPrev;
-    if (prev && m.phase === 'play' && prev.phase === 'play') {
+    if (prev && !(prev.phase !== m.phase && (m.phase === 'kickoff' || m.phase === 'reset'))) {
       // how far the target moved beyond its own speed this frame = a jump to hide
       const moved = Math.hypot(tx - prev.tx, ty - prev.ty), allowed = Math.hypot(tvx, tvy) * dt * 1.5 + 8;
       if (moved > allowed && moved < 700) { bc.x += prev.tx - tx; bc.y += prev.ty - ty; }
-      const fade = Math.exp(-12 * dt);
-      bc.x *= fade; bc.y *= fade;
+      this.settle(bc, dt, 12, 700);
       if (Math.hypot(bc.x, bc.y) > 400) { bc.x = 0; bc.y = 0; }
     } else { bc.x = 0; bc.y = 0; }
     this.ballPrev = { tx, ty, phase: m.phase };
     ball.x = tx + bc.x; ball.y = ty + bc.y; ball.z = tz;
-    ball.vx = tvx; ball.vy = tvy; ball.vz = kp ? kp.vz : B.vz;
+    ball.vx = tvx; ball.vy = tvy; ball.vz = kp ? kp.vz : LB.vz;
     // touching a loose ball is a pick-up right away on your screen, by the server's own rules (in reach,
     // low enough, slow enough, you're free to take it), judged on the ball on your clock and where the
     // server will have you, not the smoothed picture. Only when nobody else could get there first:
@@ -311,10 +295,10 @@ const Online = {
       });
       if (d < reach && f.z < 24 && Math.hypot(f.vx, f.vy) <= CFG.CONTROL_MAX && !rival()) { this.localOwn = { t: 0 }; count('pickup_start'); }
     }
-    const bs = kp || (this.wBall > 0.5 ? latest.b : cur.b); // the look (trail, shot) from whichever clock it's on
+    const bs = kp || LB; // the look (trail, shot)
     if (bs.trailType) ball.trailType = bs.trailType;
     ball.shot = bs.level >= 0 ? { level: bs.level, power: !!bs.power, team: kp ? 'blue' : bs.team } : null;
-    ball.netBulge.left = lerp(A.bl, B.bl, u); ball.netBulge.right = lerp(A.br, B.br, u);
+    ball.netBulge.left = LB.bl; ball.netBulge.right = LB.br;
     ball.roll += Math.hypot(ball.vx, ball.vy) * dt / CFG.BALL_R;
     this.trail(ball, dt, !!bs.trailType);
     this.cosmetics(m, dt);
@@ -388,6 +372,40 @@ const Online = {
     try { return fn(); } catch (e) { return false; } finally { for (const [o, k, v] of saved) o[k] = v; }
   },
 
+  // a player drawn in your time: the newest snapshot moved on by `ahead` seconds, its timers run on by the
+  // time since it arrived (so a kick, a lunge or a fall still plays out in full), and any jump between
+  // snapshots folded into an offset that fades
+  applyNow(p, S, since, ahead, dt, reset) {
+    const run = (v) => Math.max(0, v - since);
+    const T = { ...S, kickT: run(S.kickT), stunT: run(S.stunT), recoverT: run(S.recoverT), diveT: run(S.diveT), celebrateT: run(S.celebrateT),
+      slideT: run(S.slideT), slideWindT: run(S.slideWindT), fallT: run(S.fallT), hopT: run(S.hopT), ultShotT: S.ultShotT + since };
+    this.applyPlayer(p, T, T, 0, dt);
+    const pos = this.extrapolate(S, ahead), off = p.netOff || (p.netOff = { x: 0, y: 0 }), prev = p.netPrev;
+    if (prev && !reset) {
+      const moved = Math.hypot(pos.x - prev.x, pos.y - prev.y), allowed = Math.hypot(S.vx, S.vy) * dt * 1.6 + 10;
+      if (moved > allowed && moved < 300) { off.x += prev.x - pos.x; off.y += prev.y - pos.y; }
+      this.settle(off, dt, 8, 260);
+      if (Math.hypot(off.x, off.y) > 200) { off.x = 0; off.y = 0; }
+    } else { off.x = 0; off.y = 0; }
+    p.netPrev = pos;
+    p.x = pos.x + off.x; p.y = pos.y + off.y;
+  },
+  // shrink a correction offset: quickly when small, but never faster than `maxSpeed` units a second, so
+  // catching up always looks like running, never a jump
+  settle(off, dt, rate, maxSpeed) {
+    const l = Math.hypot(off.x, off.y);
+    if (l < 0.01) return;
+    const cut = Math.min(l * (1 - Math.exp(-rate * dt)), maxSpeed * dt);
+    off.x *= (l - cut) / l; off.y *= (l - cut) / l;
+  },
+  // where a player will be `t` seconds on: running straight on; a lunge or a fall slowing down
+  extrapolate(S, t) {
+    let k = t;
+    if (S.slideT > 0) k = (1 - Math.exp(-1.5 * t)) / 1.5;
+    else if (S.fallT > 0 || S.diveT > 0 || S.stunT > 0.2 || S.recoverT > 0) k = (1 - Math.exp(-4 * t)) / 4;
+    return { x: clamp(S.x + S.vx * k, -40, CFG.FIELD_W + 40), y: clamp(S.y + S.vy * k, 8, CFG.FIELD_H - 8) };
+  },
+
   applyPlayer(p, A, B, u, dt) {
     p.x = lerp(A.x, B.x, u); p.y = lerp(A.y, B.y, u);
     p.vx = lerp(A.vx, B.vx, u); p.vy = lerp(A.vy, B.vy, u);
@@ -453,15 +471,15 @@ const Online = {
     if (!charging && me.charging && me.chargeT > 0.25) { me.charging = false; Sound.chargeStop(); }
     if (charging) { me.charging = true; me.chargeT = Math.max(me.chargeT, chargeT / 100); }
     this.inputs = this.inputs.filter((i) => i.seq > ack);
+    // how far ahead of this snapshot you are drawn: the inputs it hasn't seen yet (plus time since, per frame)
+    this.leadBase = this.inputs.reduce((sum, i) => sum + i.dt, 0); this.leadAt = performance.now();
     // the server is moving you itself (lunge, spin, dive, trip, celebration, restart): follow it
     const busy = S.slideT > 0 || S.slideWindT > 0 || (S.flags & 16) || (S.ultFlags & 2) || S.fallT > 0 || S.stunT > 0.2 || S.celebrateT > 0 || snap.phase !== 'play';
     this.predOk = !busy;
     if (busy) return;
     const p = { x: S.x, y: S.y, vx: S.vx, vy: S.vy, r: me.r, stamina: me.stamina, exhausted: me.exhausted, burstT: (burstT || 0) / 100 };
     const hasBall = (snap.b.owner === this.you && !this.kick) || !!this.localOwn;
-    let lead = 0;
-    for (const inp of this.inputs) { if (inp.burst) p.burstT = inp.burst; this.predictStep(p, inp, inp.dt, hasBall, S); lead += inp.dt; }
-    this.lead = lead;
+    for (const inp of this.inputs) { if (inp.burst) p.burstT = inp.burst; this.predictStep(p, inp, inp.dt, hasBall, S); }
     // small disagreements are folded into an offset that fades out, so corrections never pop
     if (this.pred && this.predOk) {
       this.corr.x += this.pred.x - p.x; this.corr.y += this.pred.y - p.y;
@@ -491,17 +509,16 @@ const Online = {
     collideWalls(p, p.r, 0);
   },
 
-  updateMe(a, b, u, dt) {
-    const m = this.m, me = m.human, A = a.p[this.you], B = b.p[this.you];
-    if (!A || !B) return;
+  updateMe(latest, since, ahead, dt, phaseChanged) {
+    const m = this.m, me = m.human, S = latest.p[this.you];
+    if (!S) return;
     // keep the prediction rolling forward between snapshots with the stick you're holding now
     if (this.pred && this.predOk) {
-      const latest = this.snaps[this.snaps.length - 1];
-      this.predictStep(this.pred, { x: Input.move.x, y: Input.move.y, sp: Input.sprintHeld ? 1 : 0 }, dt, (latest.b.owner === this.you && !this.kick) || !!this.localOwn, latest.p[this.you]);
-      this.lead += dt;
+      this.predictStep(this.pred, { x: Input.move.x, y: Input.move.y, sp: Input.sprintHeld ? 1 : 0 }, dt, (latest.b.owner === this.you && !this.kick) || !!this.localOwn, S);
     }
     const shown = { x: me.x, y: me.y, fx: me.fx, fy: me.fy, faceX: me.faceX };
-    this.applyPlayer(me, A, B, u, dt);
+    // your animation state from the server, and (while it's moving you) its copy on your clock
+    this.applyNow(me, S, since, ahead, dt, phaseChanged);
     if (this.pred && this.predOk) {
       this.busyCorr = null;
       me.fx = shown.fx; me.fy = shown.fy; me.faceX = shown.faceX; // facing follows your stick, not the server's lagging copy
@@ -526,13 +543,13 @@ const Online = {
       else { const bx = m.ball.x - me.x, by = m.ball.y - me.y, l = Math.hypot(bx, by) || 1; turnToward(me, bx / l, by / l, 22 * dt); }
       if (Math.abs(me.fx) > 0.12) me.faceX += (Math.sign(me.fx) - me.faceX) * (1 - Math.exp(-18 * dt));
     } else {
-      // the server is moving you (spin, tackle, fall): follow its copy, but keep the gap you had
-      // when it started and let it fade, instead of sliding back to where the delayed copy is
+      // the server is moving you (spin, tackle, fall): its copy on your clock, starting from where you
+      // were drawn and closing the gap
       if (m.phase !== 'play') this.busyCorr = null;
       else if (!this.busyCorr) this.busyCorr = { x: shown.x - me.x, y: shown.y - me.y };
       const c = this.busyCorr;
       if (c) {
-        const fade = Math.exp(-5 * dt);
+        const fade = Math.exp(-8 * dt);
         c.x *= fade; c.y *= fade;
         if (Math.hypot(c.x, c.y) > 220) { c.x = 0; c.y = 0; }
         me.x += c.x; me.y += c.y;

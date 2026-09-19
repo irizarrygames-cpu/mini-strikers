@@ -160,6 +160,7 @@ const p90 = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y)
         const dx = b.x - me.x, dy = b.y - me.y, l = Math.hypot(dx, dy) || 1;
         Input.stick.x = dx / l; Input.stick.y = dy / l;
         Input.sprintHeld = l > 250;
+        if (b.owner && b.owner.team !== me.team && l < 110 && Math.random() < 0.05) Input._slideQueued = true;
       }
       Input.update();
       Online.update(dt);
@@ -215,6 +216,36 @@ const p90 = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y)
       const expM = Math.max(Math.hypot(me.vx, me.vy), CFG.SPEED * 1.4) * dt * 1.3 + 4, jm = Math.hypot(me.x - prevMe.x, me.y - prevMe.y) - expM;
       if (jm > 10) { st.mePops++; st.mePopMax = Math.max(st.mePopMax, jm); }
     }
+    if (play && MODE === 'play') {
+      const opp = (p) => p.team !== me.team && !p.isKeeper;
+      // you go down from a real tackle (the server trips you: stun 0.45, a nutmeg is 0.35): the nearest
+      // opponent who is (or just was) sliding, as drawn on your screen when you're drawn going down
+      if (meS.stunT > 0.4 && !(st.srvStun > 0.4)) st.tripAt = now;
+      st.srvStun = meS.stunT;
+      const down = me.stunT > 0.05 || me.fallT > 0;
+      if (down && !st.wasDown && st.tripAt && now - st.tripAt < 700) {
+        let g0 = 1e9; for (const p of m.players) if (opp(p) && (p.slideT > 0 || p.slideHit || p.recoverT > 0)) g0 = Math.min(g0, Math.hypot(p.x - me.x, p.y - me.y));
+        (st.hitMe = st.hitMe || []).push(Math.round(g0 > 1e8 ? -1 : g0));
+      }
+      st.wasDown = down;
+      // you win it with a tackle: how far the player you took it off is drawn
+      if (mineNow && prevBall && prevBall.owner && prevBall.owner !== me && opp(prevBall.owner) && (me.slideT > 0 || meS.slideT > 0 || (st.lastSlideAt && now - st.lastSlideAt < 600))) {
+        (st.myTackles = st.myTackles || []).push(Math.round(Math.hypot(prevBall.owner.x - me.x, prevBall.owner.y - me.y)));
+      }
+      if (meS.slideT > 0) st.lastSlideAt = now;
+      // everyone else: frames where a drawn player jumps further than their speed explains
+      st.prevOthers = st.prevOthers || new Map();
+      for (const p of m.players) {
+        if (p === me) continue;
+        const pv = st.prevOthers.get(p);
+        if (pv && pv.phase === 'play') {
+          const jumpO = Math.hypot(p.x - pv.x, p.y - pv.y) - (Math.max(Math.hypot(p.vx, p.vy), CFG.SPEED * 1.4) * dt * 1.3 + 4);
+          if (jumpO > 10) { st.otherPops = (st.otherPops || 0) + 1; st.otherPopMax = Math.max(st.otherPopMax || 0, jumpO); }
+          st.otherFrames = (st.otherFrames || 0) + 1;
+        }
+        st.prevOthers.set(p, { x: p.x, y: p.y, phase: m.phase });
+      }
+    }
     prevBall = { x: b.x, y: b.y, phase: m.phase, owner: b.owner }; prevMe = { x: me.x, y: me.y };
     st.frames++;
   }
@@ -227,6 +258,9 @@ const p90 = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y)
     feetGapAvg: +(st.feetGapSum / Math.max(1, st.ownFrames)).toFixed(1), feetGapMax: Math.round(st.feetGapMax),
     drift: Math.round(st.driftSum / Math.max(0.001, st.driftT)),
     ballPops: st.ballPops, ballPopMax: Math.round(st.ballPopMax), mePops: st.mePops, mePopMax: Math.round(st.mePopMax),
+    tackledGap: st.hitMe ? { n: st.hitMe.length, med: med(st.hitMe.filter((x) => x >= 0)), p90: p90(st.hitMe.filter((x) => x >= 0)), noTackler: st.hitMe.filter((x) => x < 0).length } : null,
+    otherPops: st.otherPops || 0, otherPopMax: Math.round(st.otherPopMax || 0), otherFrames: st.otherFrames || 0,
+    myTackleGap: st.myTackles ? { n: st.myTackles.length, med: med(st.myTackles), p90: p90(st.myTackles) } : null,
     shots: st.shots, passes: st.passes, skills: st.skills, goals: Online.m ? Online.m.score.blue - goals0 : null, dbg, lateLog: st.lateLog, ghostKinds: st.ghostKinds, ptLog: st.ptLog, kLog: st.kLog, srvSlides: st.srvSlides || 0, srvRecover: st.srvRecover || 0, slideLog: st.slideLog, errors: st.errors, popWhy: st.popWhy, ghostWhy: st.ghostWhy,
   }));
   process.exit(0);
