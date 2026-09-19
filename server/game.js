@@ -9,7 +9,9 @@ const SNAPSHOT_EVERY = 4;           // 120 / 4 = 30 snapshots a second
 const INTRO_MS = 3500;              // the VS card before kickoff
 // Look for real players for a while, then fill the open spots. The wait is different every
 // time so a quiet queue doesn't always start on the same beat.
-const QUEUE_WAIT_MIN = 5000, QUEUE_WAIT_MAX = 13000;
+// nobody else coming: after 30s (and a few seconds either way, so the timing gives nothing away) the
+// empty spots fill with players who look like everyone else
+const QUEUE_WAIT_MIN = 30000, QUEUE_WAIT_MAX = 33000;
 const RECONNECT_MS = 20000;         // a dropped player keeps their seat this long
 const MATCH_MINUTES = 3;
 const FORMAT_SIZE = { '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
@@ -310,7 +312,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
           seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0 });
         } else {
           // filled spots dress like people do: some with an accessory, mostly the cheaper ones
-          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter().id, celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
+          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, sim.BOT_RARITY_ONLINE).id, celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
         }
       }
     }
@@ -323,7 +325,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     room.m = sim.create({
       // World Cup rounds: no draws, and each round a notch tougher than the last
       online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
-      diff: sim.playerRamp({ ...sim.DIFFICULTY.normal }, roomLevel(seats) + (wcRound || 0) * 6),
+      // (the fill-ins start strong, so your level and the round only add half as much as they do offline)
+      diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
     }, room.events);
     room.m.events = room.events;

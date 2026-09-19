@@ -172,10 +172,13 @@ const AI_HAIRS = ['messy', 'spikes', 'curly', 'buzz', 'headband', 'messy', 'curl
 // Bots play as real characters. Each rarity's share of all bots is split evenly across its
 // characters, so rarer ones turn up less: a mythic like The GOAT is about 1 bot in 800.
 const BOT_RARITY_SHARE = { starter: 35, common: 27, rare: 20, epic: 12, legendary: 5, mythic: 1 };
-function pickBotCharacter(rand = Math.random) {
+// online, the players filling an empty spot (after 30s in the queue) play like people who have put the
+// hours in: mostly rare-to-legendary characters, the odd mythic
+const BOT_RARITY_ONLINE = { starter: 4, common: 12, rare: 30, epic: 30, legendary: 18, mythic: 6 };
+function pickBotCharacter(rand = Math.random, share = BOT_RARITY_SHARE) {
   const count = {};
   for (const c of CHARACTERS) count[c.rarity] = (count[c.rarity] || 0) + 1;
-  const weight = (c) => (BOT_RARITY_SHARE[c.rarity] || 0) / count[c.rarity];
+  const weight = (c) => (share[c.rarity] || 0) / count[c.rarity];
   let roll = rand() * CHARACTERS.reduce((sum, c) => sum + weight(c), 0);
   for (const c of CHARACTERS) { roll -= weight(c); if (roll <= 0) return c; }
   return CHARACTERS[0];
@@ -201,6 +204,9 @@ const DIFFICULTY = {
   normal: { redSpeed: 0.96,  slideOnHuman: 0.9,  aiSlide: 0.27, aiDodge: 0.375, aiSkill: 0.26, keeperBonus: 0.05,  aiShotNoise: 39, react: 0.92, mistakes: 1.04 },
   hard:   { redSpeed: 1.02,  slideOnHuman: 1,    aiSlide: 0.46, aiDodge: 0.55,  aiSkill: 0.36, keeperBonus: 0.13,  aiShotNoise: 27, react: 0.74, mistakes: 0.75 },
 };
+// online fill-ins (2026-09-19 "bots that are actually good"): quicker, sharper and cleaner than hard,
+// on both sides of an online match. Your level and the World Cup round still add to this.
+const ONLINE_BOTS = { redSpeed: 1.0, slideOnHuman: 0.95, aiSlide: 0.36, aiDodge: 0.6, aiSkill: 0.4, keeperBonus: 0.14, aiShotNoise: 24, react: 0.7, mistakes: 0.6 };
 // your bot teammates offline: what "normal" was before the bots were made worse, so the
 // players on your side did not get worse too
 const MATE_BASE = { redSpeed: 0.984, slideOnHuman: 0.95, aiSlide: 0.34, aiDodge: 0.48, aiSkill: 0.33, keeperBonus: 0.1, aiShotNoise: 30, react: 0.77, mistakes: 0.75 };

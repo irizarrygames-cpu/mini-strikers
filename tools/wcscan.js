@@ -32,7 +32,7 @@ let failures = 0;
 const check = (name, ok, detail) => { console.log((ok ? '  ok   ' : '  FAIL ') + name + (detail !== undefined ? '  ' + JSON.stringify(detail) : '')); if (!ok) failures++; };
 const socks = {};
 const connect = (id) => { socks[id] = new FakeWS(); game.connect(socks[id], id); return socks[id]; };
-async function waitFor(ws, t, after, ms = 20000) {
+async function waitFor(ws, t, after, ms = 45000) {
   const t0 = Date.now();
   while (Date.now() - t0 < ms) { for (let i = after; i < ws.got.length; i++) if (ws.got[i].t === t) return ws.got[i]; await sleep(50); }
   return null;
@@ -52,11 +52,16 @@ async function finishWith(id, mine, theirs) {
   {
     const ws = connect('p1');
     const n = ws.got.length;
+    const tq = Date.now();
     ws.msg({ t: 'queue', format: '1v1', wc: true });
     const q = await waitFor(ws, 'queue', n);
     check('queued for the round of 16', q && q.wc === 0, q && q.wc);
     const st = await waitFor(ws, 'start', n);
+    const waited = (Date.now() - tq) / 1000;
+    check('nobody else coming: the empty spots fill after 30s (30-34s)', waited >= 30 && waited <= 34.5, +waited.toFixed(1));
     check('the match is a World Cup round of 16', st && st.wc === 0, st && st.wc);
+    const fr = game._roomOf('p1');
+    check('the fill-ins play at the strong online level', fr && fr.m.diff.aiDodge >= 0.6 && fr.m.diff.mistakes <= 0.6 && fr.m.diff.aiShotNoise <= 24, fr && { dodge: fr.m.diff.aiDodge, mistakes: fr.m.diff.mistakes, noise: fr.m.diff.aiShotNoise });
     const room = await finishWith('p1', 2, 1);
     check('no draws in a World Cup match', room.m.noDraw === true);
     const end = await waitFor(ws, 'end', n);

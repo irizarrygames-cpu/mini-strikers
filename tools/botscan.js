@@ -3,6 +3,7 @@
 //   node tools/botscan.js [matches] [format] [opponent] [--ai] [--clean]
 //   --ai     bots on both sides (your spot is a bot too), groups are blue / red
 //   --clean  turn every BOT_MISTAKES chance off, to compare against
+//   --diff=normal|hard|online  play the bots at that preset exactly (online = online fill-ins)
 const { createSim } = require('../server/sim');
 
 const sim = createSim();
@@ -26,7 +27,9 @@ class ScriptInput {
 
 // the offline difficulty for an opponent, same as Game.setDifficulty
 const levelDiff = sim.run('levelDiff');
-const diffFor = (club) => levelDiff(DIFFICULTY.normal, club.level);
+const DIFF_ARG = (process.argv.find((a) => a.startsWith('--diff=')) || '').slice(7);
+// --diff=normal|hard|online: that preset as it is (online = the fill-ins of an online match)
+const diffFor = (club) => (DIFF_ARG === 'online' ? { ...sim.ONLINE_BOTS } : DIFFICULTY[DIFF_ARG] ? { ...DIFFICULTY[DIFF_ARG] } : levelDiff(DIFFICULTY.normal, club.level));
 
 const blank = () => ({ players: 0, goals: 0, shots: 0, onTarget: 0, passes: 0, passDone: 0, passLost: 0, lost: 0, won: 0, tackles: 0, slides: 0, touches: 0 });
 const tot = AUTO ? { blue: blank(), red: blank() } : { you: blank(), mates: blank(), opps: blank() };
