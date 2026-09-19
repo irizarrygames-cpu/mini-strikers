@@ -22,7 +22,7 @@ const Online = {
 
   init() {
     Net.on('queue', (m) => this.onQueue(m));
-    Net.on('unqueued', () => { this.status = 'idle'; UI.hideQueue(); });
+    Net.on('unqueued', (m) => { const was = this.status === 'queue'; this.status = 'idle'; UI.hideQueue(); if (m.msg && was) UI.toast(String(m.msg).toUpperCase()); });
     Net.on('room', (m) => this.onRoom(m));
     Net.on('room.left', () => { this.status = 'idle'; this.room = null; UI.hideLobby(); });
     Net.on('start', (m) => this.start(m));
@@ -38,6 +38,13 @@ const Online = {
   // ---------- finding a match ----------
   // worldCup: queue for your next World Cup round instead of an ordinary match
   findMatch(format, worldCup = false) {
+    // in a party the leader starts, and the format has to fit everyone on one side
+    const p = Social.party;
+    if (p && p.members.length > 1) {
+      if (!p.lead) { UI.toast(`${p.leader} STARTS THE MATCH FOR YOUR PARTY`); return; }
+      const n = p.members.length;
+      if (FORMAT_SIZE_NET[format] < n) { UI.toast(`PICK ${n}v${n} OR BIGGER FOR YOUR PARTY OF ${n}`); return; }
+    }
     this.format = format;
     this.worldCup = !!worldCup;
     this.status = 'queue';
@@ -46,7 +53,19 @@ const Online = {
   },
   wcRound() { return (Net.user && Net.user.wc && Net.user.wc.round) || 0; },
   cancelQueue() { Net.send({ t: 'unqueue' }); this.status = 'idle'; UI.hideQueue(); },
-  onQueue() {},
+  // the queue as the server has it; in a party this is how everyone else learns the leader pressed PLAY
+  onQueue(msg) {
+    if (this.status !== 'queue') {
+      if (this.status === 'match' || this.status === 'room') return;
+      if (Game.state !== 'home') Game.goHome();
+      this.m = null;
+      this.format = msg.format;
+      this.worldCup = msg.wc !== null && msg.wc !== undefined;
+      this.status = 'queue';
+      UI.showQueue({ format: msg.format, wc: msg.wc });
+    }
+    UI.queueParty(msg.party);
+  },
 
   createRoom(format) { this.status = 'room'; Net.whenReady({ t: 'room.create', format }); },
   joinRoom(code) { this.status = 'room'; Net.whenReady({ t: 'room.join', code }); },
@@ -628,6 +647,8 @@ const Online = {
   },
 
   again() {
+    const p = Social.party;
+    if (p && p.members.length > 1 && !p.lead) { Game.goHome(); this.m = null; UI.toast(`${p.leader} STARTS THE NEXT MATCH`); return; }
     const f = this.format;
     Game.goHome();
     this.m = null;

@@ -31,6 +31,9 @@
     <div id="net-ping" class="net-ping" hidden></div>
     <div id="tip" class="tip" hidden></div>
     <button id="btn-pause" class="icon-btn" aria-label="Pause"><i></i><i></i></button>
+    <button id="btn-chat" class="icon-btn chat-btn" aria-label="Quick chat" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 7h22v14H14l-6 5v-5H5z" fill="#ffffff" stroke="#161a33" stroke-width="3" stroke-linejoin="round"/><circle cx="11" cy="14" r="1.9" fill="#161a33"/><circle cx="16" cy="14" r="1.9" fill="#161a33"/><circle cx="21" cy="14" r="1.9" fill="#161a33"/></svg></button>
+    <div id="chat-menu" class="chat-menu" hidden></div>
+    <div id="chat-feed" class="chat-feed"></div>
     <div id="scoreboard">
       <div class="sb-team blue"><span class="sb-ball"></span><span id="sb-blue">0</span></div>
       <div class="sb-time" id="sb-time">03:00</div>
@@ -73,6 +76,7 @@
       <div class="kl" data-k=" "><span class="kc wide">SPACE</span><em>SHOOT</em><i class="bar power"><b id="kl-power"></b></i></div>
       <div class="kl" data-k="q"><span class="kc">Q</span><em>SKILL</em><i class="bar"><b id="kl-skill"></b></i></div>
       <div class="kl" data-k="f"><span class="kc">F</span><em>TACKLE</em><i class="bar"><b id="kl-slide"></b></i></div>
+      <div class="kl" data-k="t" id="kl-chat" hidden><span class="kc">T</span><em>CHAT</em></div>
     </div>
   </div>
 
@@ -104,10 +108,12 @@
     <div id="home-record" class="home-record">0W · 0D · 0L</div>
     <div class="home-bl">
       <button id="btn-howto" class="howto-btn">? HOW TO PLAY</button>
+      <button id="btn-friends" class="howto-btn friends-btn"><span class="ppl-ico"></span>FRIENDS<em id="friends-on" class="on-count" hidden>0</em><i id="friends-badge" class="badge" hidden>0</i></button>
       <button id="btn-profile" class="howto-btn prof-btn"><span class="star-ico"></span>PROFILE<i id="prof-badge" class="badge" hidden>0</i></button>
       <button id="btn-install" class="howto-btn get-btn" hidden>GET THE APP</button>
     </div>
     <div class="home-actions">
+      <button id="party-bar" class="party-bar" hidden></button>
       <button id="btn-play" class="big-btn">PLAY</button>
       <div class="home-row">
         <button class="mid-btn" data-open="characters">CHARACTERS</button>
@@ -118,6 +124,7 @@
   </div>
 
   <div id="toast" class="toast" hidden></div>
+  <div id="party-invite" class="party-invite" hidden></div>
 
   <!-- ===== SIGN UP / LOG IN ===== -->
   <div id="auth" class="screen auth" hidden>
@@ -146,6 +153,7 @@
     <div class="panel small queue">
       <h2>FINDING MATCH</h2>
       <div class="q-format" id="q-format">2v2</div>
+      <div class="q-party" id="q-party" hidden></div>
       <div class="q-dots" id="q-dots"></div>
       <p class="note" id="q-note">Searching… 0:00</p>
       <button id="q-cancel" class="mid-btn red">CANCEL</button>
@@ -285,6 +293,7 @@
   <script src="js/render.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/panels.js"></script>
+  <script src="js/social.js"></script>
   <script src="js/trophy.js"></script>
   <script src="js/main.js"></script>
 </body>

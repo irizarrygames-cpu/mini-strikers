@@ -822,7 +822,38 @@ const Render = {
       if (x < -60 || x > this.W + 60 || y < -20 || y > this.H + 20) continue;
       const me = p === m.human;
       this.chunkyText(ctx, me ? 'YOU' : p.name, x, y, size, me ? '#ffe14d' : p.team === 'blue' ? '#ffffff' : '#ffd0d3', Math.max(2.5, size * 0.28));
+      if (p.chat) this.drawChat(ctx, p.chat, x, y - size * 0.9, size);
     }
+  },
+
+  // quick chat: a speech bubble over the name for a few seconds (pops in, fades out)
+  drawChat(ctx, chat, x, y, size) {
+    const age = (performance.now() - chat.at) / 1000;
+    if (age > 3.2 || age < 0) return;
+    const pop = age < 0.16 ? easeOut(age / 0.16) : 1, fade = age > 2.8 ? (3.2 - age) / 0.4 : 1;
+    const fs = size * 1.08, pad = fs * 0.55, h = fs * 1.55, tail = fs * 0.45;
+    ctx.save();
+    ctx.font = `900 ${fs}px "Lilita One", system-ui, sans-serif`;
+    const w = ctx.measureText(chat.text).width + pad * 2;
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.translate(x, y);
+    ctx.scale(pop, pop);
+    const lw = Math.max(2.5, fs * 0.2);
+    const shape = (dy) => {
+      Sprites.rr(ctx, -w / 2, -h - tail + dy, w, h, h * 0.36);
+      ctx.moveTo(-tail * 0.8, -tail + dy - 1);
+      ctx.lineTo(0, dy);
+      ctx.lineTo(tail * 0.8, -tail + dy - 1);
+    };
+    // hard shadow, then the bubble
+    ctx.fillStyle = OUTLINE; shape(lw * 1.1); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+    Sprites.rr(ctx, -w / 2, -h - tail, w, h, h * 0.36); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-tail * 0.8, -tail - 1); ctx.lineTo(0, 0); ctx.lineTo(tail * 0.8, -tail - 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-tail * 0.8 + lw * 0.5, -tail - lw * 1.2, tail * 1.6 - lw, lw * 1.4); // the seam where the tail meets the bubble
+    ctx.fillStyle = OUTLINE; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(chat.text, 0, -tail - h / 2 + fs * 0.06);
+    ctx.restore();
   },
 
   drawHumanRing(ctx, m, t) {

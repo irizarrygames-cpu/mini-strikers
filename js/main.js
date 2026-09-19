@@ -24,6 +24,7 @@ const Game = {
     Net.init();
     Online.init();
     UI.init();
+    Social.init();
     UI.show('home');
     $('home').hidden = true; // nothing but the splash until we know who you are
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });

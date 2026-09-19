@@ -97,6 +97,7 @@ const UI = {
 
   tick(dt) {
     this.tickTips(dt);
+    Social.tick(dt);
     if (!$('queue').hidden) {
       const before = Math.floor(this._queueT || 0);
       this._queueT = (this._queueT || 0) + dt;
@@ -345,8 +346,14 @@ const UI = {
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
     $('q-note').textContent = 'Searching… 0:00';
+    this.queueParty(null);
   },
   hideQueue() { $('queue').hidden = true; },
+  queueParty(names) {
+    const el = $('q-party');
+    el.hidden = !names || names.length < 2;
+    if (!el.hidden) el.textContent = 'PARTY: ' + names.join(' · ');
+  },
 
   showLobby(msg) {
     this.closeAll();
@@ -766,6 +773,9 @@ const UI = {
     }
     this._againMode = 'online';
     $('r-again').textContent = !cup ? 'PLAY AGAIN' : cup.champion ? 'NEW WORLD CUP' : cup.won ? `PLAY ${WC_ROUNDS[cup.next]}` : 'TRY AGAIN';
+    // in a party, the leader starts the next one (and brings you with them)
+    const party = Social.party;
+    if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = 'HOME';
     $('results').hidden = false;
     $('hud').hidden = true;
     Input.reset();

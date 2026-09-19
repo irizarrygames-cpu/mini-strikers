@@ -13,9 +13,10 @@ const crypto = require('crypto');
 const { screenUsername } = require('./server/moderation');
 const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
+const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 23;
+const BUILD = 24;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -487,6 +488,7 @@ async function handleRequest(req, res) {
     game.removeUser(me);
     for (const [tok, id] of tokens) if (id === me) tokens.delete(tok);
     delete DB.users[me]; persisted.delete(me); leagueCache = null;
+    forgetEverywhere(DB.users, me, LEAGUE_ID); // off everyone's friends lists
     try { await store.remove(me); } catch (e) { console.error('delete failed:', e.message); }
     saveDB();
     return sendJSON(res, 200, { ok: true });

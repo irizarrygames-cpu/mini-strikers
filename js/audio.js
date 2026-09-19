@@ -103,6 +103,10 @@ const Sound = {
     if (!this.ctx || !this.enabled) return;
     this.tone('sine', 620, 900, 0.06, 0.3);
   },
+  chat() {
+    if (!this.ctx || !this.enabled) return;
+    this.tone('sine', 880, 1180, 0.05, 0.16);
+  },
   steal() {
     if (!this.ok()) return;
     this.tone('square', 480, 780, 0.07, 0.12);
