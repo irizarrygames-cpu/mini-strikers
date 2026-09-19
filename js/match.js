@@ -25,7 +25,7 @@ const Match = {
     if (m.online) m.mode = 'online';
     m.training = m.mode === 'training';
     if (m.training) m.format = 'training';
-    if (!m.autopilot && !Game.headless && !m.training && !m.online) m.challenges = Challenges.roll(m.format);
+    if (!m.autopilot && !Game.headless && !m.training && !m.online && m.mode !== 'pens') m.challenges = Challenges.roll(m.format);
     const roster = FORMATS[m.format];
     const rng = mulberry32((Math.random() * 1e9) | 0);
     const r = (arr) => arr[(rng() * arr.length) | 0];
@@ -80,7 +80,7 @@ const Match = {
     if (m.autopilot) m.human.speedMul = 0.95;
     m.humanRarity = m.autopilot ? null : m.human.rarity || (opts.seats ? null : Save.character().rarity);
     this.setupKickoff(m, 'blue');
-    if (!Game.headless && !m.online) FX.showBanner('KICK OFF!', '#ffffff', 1.0, `${home.name} vs ${club.name}`);
+    if (!Game.headless && !m.online && m.mode !== 'pens') FX.showBanner('KICK OFF!', '#ffffff', 1.0, `${home.name} vs ${club.name}`);
     return m;
   },
 

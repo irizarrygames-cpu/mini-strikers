@@ -660,6 +660,9 @@ body:not(.kb) #kb-legend { display: none; }
 #intro-stars { color: #fff; letter-spacing: 0.1em; }
 .mode.training { grid-column: 1 / -1; min-height: 0; background: var(--green); flex-direction: row; align-items: center; gap: 14px; padding: 8px 14px; }
 .mode.training p { flex: 1; }
+.mode.pens { grid-column: 1 / -1; min-height: 0; background: #7a3ad8; flex-direction: row; align-items: center; gap: 14px; padding: 8px 14px; }
+.mode.pens p { flex: 1; }
+.mode.pens .tag { align-self: center; white-space: nowrap; }
 
 /* how to play */
 .panel.howto { width: min(820px, 96vw); display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -981,10 +984,11 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 }
 /* play panel on short landscape phones: bot modes in one row, online stays roomy */
 @media (max-height: 430px) {
-  .modes { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .modes { grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .mode:not(.online) { min-height: 0; padding: 8px 10px; }
   .mode:not(.online) p { display: none; }
-  .mode.training { grid-column: auto; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .mode.training, .mode.pens { grid-column: auto; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .mode.pens .tag { align-self: flex-start; }
   .mode strong { font-size: 22px; }
   .online-row { gap: 8px; }
   .note.vs-bots { margin: 6px 0 4px; }
@@ -1212,3 +1216,6 @@ body.kb .chat-menu kbd { display: inline-block; }
 .chat-feed .me b { color: var(--yellow); }
 .chat-feed .them b { color: #ffd0d3; }
 @keyframes feedIn { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* penalty shootout: just the stick (aim / pick a side) and one button (shoot / dive) */
+#hud.pens #btn-pass, #hud.pens #btn-skill, #hud.pens #btn-sprint, #hud.pens #btn-ult, #hud.pens #scoreboard, #hud.pens #kb-legend, #hud.pens #net-ping, #hud.pens #tip { display: none !important; }

@@ -359,8 +359,8 @@ const UI = {
     this.closeAll();
     $('lobby').hidden = false;
     $('lb-code').textContent = msg.code;
-    const size = { '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
-    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
+    const size = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
+    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['pens', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
     $('lb-formats').querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.send({ t: 'room.format', format: b.dataset.f }); }));
     const side = (team, el) => {
       const list = msg.players.filter((p) => p.team === team);
@@ -419,7 +419,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.net ? (m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? 'PENALTY SHOOTOUT · 5 KICKS EACH' : m.net ? (m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -595,7 +595,8 @@ const UI = {
     Game.state = 'results';
     const readyBefore = new Set(Achievements.readyList().map((a) => a.id));
     const levelBefore = Levels.info(d.xp || 0).level;
-    const xp = Levels.matchXp(m);
+    const pens = m.mode === 'pens';
+    const xp = pens ? Pens.xp(m) : Levels.matchXp(m);
     d.xp = (d.xp || 0) + xp;
     d.coins += r.coins;
     d.matches++;
@@ -605,7 +606,7 @@ const UI = {
     c.assists += hs.assists; c.tackles += hs.tackles; c.skills += hs.skills; c.dodges += hs.dodges || 0;
     c.passes += hs.passes; c.shots += hs.shots; c.powerGoals += m.flags.powerGoals || 0;
     if (hs.goals >= 3) c.hattricks++;
-    if (m.score.red === 0) c.cleanSheets++;
+    if (m.score.red === 0 && !pens) c.cleanSheets++;
     c.formats[m.format] = (c.formats[m.format] || 0) + 1;
     c.streak = r.outcome === 'win' ? c.streak + 1 : 0;
     c.bestStreak = Math.max(c.bestStreak, c.streak);
@@ -629,7 +630,13 @@ const UI = {
     $('r-blue').textContent = m.score.blue;
     $('r-red').textContent = m.score.red;
     const pt = m.poss.blue + m.poss.red, pb = pt ? Math.round((m.poss.blue / pt) * 100) : 50;
-    const rows = [
+    const pk = pens ? m.pens.kicks : null;
+    const rows = pens ? [
+      ['SCORED', m.score.blue, m.score.red],
+      ['MISSED', pk.blue.length - m.score.blue - m.pens.theirSaves, pk.red.length - m.score.red - m.pens.saves],
+      ['SAVES', m.pens.saves, m.pens.theirSaves],
+      ['KICKS', pk.blue.length, pk.red.length],
+    ] : [
       ['GOALS', m.score.blue, m.score.red],
       ['POSS %', pb, 100 - pb],
       ['SHOTS', m.stats.blue.shots, m.stats.red.shots],
@@ -640,11 +647,12 @@ const UI = {
     $('r-stats').innerHTML = rows.map(([k, a, b]) =>
       `<div class="r-row"><b class="${a > b ? 'lead' : ''}">${a}</b><span>${k}</span><b class="${b > a ? 'lead' : ''}">${b}</b></div>`).join('');
     const h = m.human.stats;
-    $('r-you').innerHTML = `<span><b>${h.goals}</b> goals</span><span><b>${h.shots}</b> shots</span><span><b>${h.tackles}</b> tackles</span><span><b>${h.skills}</b> skills</span>`;
+    $('r-you').innerHTML = pens ? `<span><b>${h.goals}</b> of ${h.shots} penalties scored</span><span><b>${m.pens.saves}</b> saves</span>`
+      : `<span><b>${h.goals}</b> goals</span><span><b>${h.shots}</b> shots</span><span><b>${h.tackles}</b> tackles</span><span><b>${h.skills}</b> skills</span>`;
     const mvp = r.mvp;
     const mvpName = mvp.isHuman ? 'YOU' : `${TEAMS[mvp.team].name} #${mvp.number}${mvp.isKeeper ? ' (GK)' : ''}`;
     const s = mvp.stats;
-    const line = mvp.isKeeper ? `${s.saves} saves` : `${s.goals} G · ${s.assists} A · ${s.tackles} tackles`;
+    const line = mvp.isKeeper ? `${s.saves} saves` : pens ? `${s.goals} penalties · ${m.pens.saves} saves` : `${s.goals} G · ${s.assists} A · ${s.tackles} tackles`;
     $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>MVP</small><strong>${mvpName}</strong><em>${line}</em></div>`;
     this.portrait($('r-mvp-canvas'), mvp.look, mvp.team, mvp.isKeeper, mvp.number);
     $('r-challenges').innerHTML = this.challengeList(m);
@@ -664,7 +672,7 @@ const UI = {
 
     // cup progress + what the big button does next
     const cupBox = $('r-cup');
-    this._againMode = 'quick';
+    this._againMode = pens ? 'pens' : 'quick';
     if (m.mode === 'cup') {
       const c = Save.data.cup;
       cupBox.hidden = false;
@@ -786,6 +794,7 @@ const UI = {
   resultsAgain() {
     if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
     else if (this._againMode === 'newcup') { Cup.start(); Game.startMatch({ mode: 'cup' }); }
+    else if (this._againMode === 'pens') Game.startMatch({ mode: 'pens', club: Clubs.random(Clubs.mine()) });
     else Game.startMatch({ mode: 'quick' });
   },
 };

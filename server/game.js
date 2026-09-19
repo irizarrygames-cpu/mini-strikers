@@ -19,7 +19,7 @@ const PARTY_INVITE_MS = 60000;      // an invite you don't answer runs out
 const PARTY_OFFLINE_MS = 60000;     // someone whose game closed keeps their party spot this long
 const CHAT_GAP_MS = 1200, CHAT_BURST = 5, CHAT_BURST_MS = 10000; // quick chat: one at a time, five in any 10s
 const MATCH_MINUTES = 3;
-const FORMAT_SIZE = { '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
+const FORMAT_SIZE = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
 const PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
 const TRAIL_TYPES = [null, 'pass', 'weak', 'shot', 'strong', 'electric', 'fire', 'plasma', 'blast', 'frost', 'toxic', 'shadow', 'rainbow', 'golden'];
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -75,7 +75,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
   const BOT_CELEBS = ['jump', 'jump', 'flex', 'salute', 'spin', 'shush', 'heart', 'dab', 'kneeslide', 'kneeslide', 'airplane', 'chestpump', 'callme', 'chill', 'robot', 'griddy', 'siuu', 'calmdown', 'pointsky', 'floss', 'bird', 'kungfu'];
   const conns = new Map();   // userId -> connection
-  const queues = { '1v1': [], '2v2': [], '3v3': [], '4v4': [] };
+  const queues = { 'pens': [], '1v1': [], '2v2': [], '3v3': [], '4v4': [] };
   const rooms = new Map();   // roomId -> room
   const codes = new Map();   // code -> room (private lobbies)
   let nextRoom = 1;
@@ -564,7 +564,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound };
     room.m = sim.create({
       // World Cup rounds: no draws, and each round a notch tougher than the last
-      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
+      online: true, format: format === 'pens' ? '1v1' : format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
       // (the fill-ins start strong, so your level and the round only add half as much as they do offline)
       diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),

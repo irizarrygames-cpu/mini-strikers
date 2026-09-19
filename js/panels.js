@@ -14,6 +14,7 @@ Object.assign(UI, {
     $('modal-title').textContent = 'PLAY';
     const cup = Cup.state();
     const quickClub = Clubs.random(Clubs.mine());
+    const pensClub = Clubs.random(Clubs.mine());
     const fmt = Save.data.format || '4v4';
     const club = Clubs.mine();
     const wcRound = Online.wcRound();
@@ -43,6 +44,11 @@ Object.assign(UI, {
           <p>Two cups: online against real players, or against bots. No draws. Lose once and you're out.</p>
           <span class="tag">ONLINE: ${WC_ROUNDS[wcRound]} · BOTS: ${cup ? Cup.ROUNDS[cup.round] : 'NEW CUP'}</span>
         </button>
+        <button class="mode pens" data-mode="pens">
+          <strong>PENALTY SHOOTOUT</strong>
+          <p>Five kicks each, then sudden death. Pick your corner, then save theirs.</p>
+          <span class="tag">VS ${pensClub.name}</span>
+        </button>
         <button class="mode training" data-mode="training">
           <strong>TRAINING</strong>
           <p>No clock, no pressure: beat a defender and practice shots, skills and tackles.</p>
@@ -63,10 +69,31 @@ Object.assign(UI, {
     const join = () => { const code = body.querySelector('#join-code').value.trim().toUpperCase(); if (code.length < 4) { UI.toast('ENTER THE ROOM CODE'); return; } this.tap(); Online.joinRoom(code); };
     body.querySelector('[data-room="join"]').addEventListener('click', join);
     body.querySelector('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+    body.querySelector('[data-mode="pens"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('pensmode'); });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
     body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
   },
 
+  // ---- PENALTY SHOOTOUT: choose local or online without leaving the game UI ----
+  panel_pensmode(body) {
+    $('modal-title').textContent = 'PENALTY SHOOTOUT';
+    const club = this._pensClub || Clubs.random(Clubs.mine());
+    body.innerHTML = `
+      <div class="modes pen-choice">
+        <button class="mode pens" data-pens="offline">
+          <strong>OFFLINE</strong>
+          <p>Play five kicks each against a computer-controlled opponent.</p>
+          <span class="tag">VS ${club.name}</span>
+        </button>
+        <button class="mode online" data-pens="online">
+          <strong>ONLINE</strong>
+          <p>Search for another player. Open spots fill after about 30 seconds.</p>
+          <span class="tag">ONLINE PENALTIES</span>
+        </button>
+      </div>`;
+    body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
+    body.querySelector('[data-pens="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens'); });
+  },
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
   panel_worldcup(body) {
     $('modal-title').textContent = 'WORLD CUP';

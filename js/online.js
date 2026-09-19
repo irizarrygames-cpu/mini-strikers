@@ -113,6 +113,7 @@ const Online = {
     UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
     const fromQueue = !$('queue').hidden;
     UI.closeAll(); UI.hideQueue(); UI.hideLobby();
+    $('hud').classList.remove('pens'); Pens.label('SHOOT');
     UI.show('match');
     if (fromQueue) Sound.powerReady();
     Render.updateCamera(m, 0, true);
@@ -656,4 +657,4 @@ const Online = {
   },
 };
 
-const FORMAT_SIZE_NET = { '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
+const FORMAT_SIZE_NET = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };

@@ -25,6 +25,8 @@ const Game = {
     Online.init();
     UI.init();
     Social.init();
+    // penalty shootout on PC: point at the goal to aim
+    for (const ev of ['pointermove', 'pointerdown']) $('game').addEventListener(ev, (e) => Pens.mouseAim(e));
     UI.show('home');
     $('home').hidden = true; // nothing but the splash until we know who you are
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });
@@ -60,7 +62,10 @@ const Game = {
     FX.clear();
     Input.reset();
     UI.closeAll();
-    this.match = Match.create({ mode: opts.mode, club, format: opts.format || Save.data.format });
+    const pens = opts.mode === 'pens';
+    this.match = Match.create({ mode: opts.mode, club, format: pens ? '1v1' : opts.format || Save.data.format });
+    if (pens) Pens.init(this.match);
+    $('hud').classList.toggle('pens', pens);
     Render.updateCamera(this.match, 0, true);
     this.acc = 0;
     UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
@@ -79,7 +84,7 @@ const Game = {
     $('intro').hidden = true;
     this.state = 'match';
     this.last = performance.now();
-    FX.showBanner('KICK OFF!', '#ffffff', 1.0, `${TEAMS.blue.name} vs ${TEAMS.red.name}`);
+    if (!(this.match && this.match.pens)) FX.showBanner('KICK OFF!', '#ffffff', 1.0, `${TEAMS.blue.name} vs ${TEAMS.red.name}`);
     Sound.countdown(true);
   },
 
@@ -95,6 +100,7 @@ const Game = {
     if (this.match && this.match.net) { Online.status = 'idle'; Online.m = null; }
     this.state = 'home';
     this.match = null;
+    $('hud').classList.remove('pens'); Pens.label('SHOOT');
     Render.zoom = 1;
     FX.clear();
     Input.reset();
@@ -116,7 +122,11 @@ const Game = {
     UI.tick(realDt);
     Net.tick(realDt);
     const m = this.match;
-    if (m && m.net && this.state !== 'home') {
+    if (m && m.pens && this.state !== 'home') {
+      // penalty shootout: its own little game and its own picture
+      if (this.state === 'match') Pens.step(m, realDt);
+      Pens.draw(m, realDt, this.t);
+    } else if (m && m.net && this.state !== 'home') {
       // online: the server runs the match, we draw it
       Online.update(realDt);
       FX.update(realDt * (m.timeScale || 1), realDt);
