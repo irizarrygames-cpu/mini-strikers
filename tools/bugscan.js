@@ -200,6 +200,33 @@ window.BS = {
     return { frames, phases: [...seen], errors };
   },
 
+  // Every celebration with every accessory, sampled through the whole animation.
+  // Draws into the same size as the shop card and reports exceptions or pixels cut by an edge.
+  celebrations() {
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 150;
+    const g = cv.getContext('2d'), times = [0.04, 0.22, 0.48, 0.82, 1.2, 1.75, 2.25, 2.55];
+    const issues = [], oldScreen = Sprites.celebScreen, look = { ...Save.look() };
+    Sprites.celebScreen = () => {}; // screen-space confetti/words intentionally reach the card edge
+    let frames = 0;
+    try {
+      for (const c of CELEBRATIONS) for (const acc of [null, ...ACCESSORIES.map((a) => a.id)]) for (const e of times) {
+        const p = { team: 'blue', isKeeper: false, number: 10, look: { ...look, acc }, vx: CELE_MOVES[c.id] ? CELE_MOVES[c.id](e) : 0, vy: 0,
+          fx: 1, fy: 0.25, faceX: 1, kickT: 0, kickDur: 0.2, celebrateT: CELE_TIME - e, celebKind: c.id,
+          diveT: 0, stunT: 0, recoverT: 0, seed: 0, runPhase: e * 9, sad: false, slideT: 0, fallT: 0, hopT: 0 };
+        const pose = CELE_POSES[c.id](e, e, p), lying = pose && pose.lie, ground = 136 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
+        g.clearRect(0, 0, cv.width, cv.height);
+        try { Sprites.player(g, p, 80 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground, scale, e); }
+        catch (err) { issues.push(`${c.id}/${acc || 'none'} @${e}: ${err.message}`); continue; }
+        const d = g.getImageData(0, 0, cv.width, cv.height).data;
+        let edge = false;
+        for (let y = 0; y < cv.height && !edge; y++) for (const x of [0, 1, cv.width - 2, cv.width - 1]) if (d[(y * cv.width + x) * 4 + 3]) { edge = true; break; }
+        for (let x = 0; x < cv.width && !edge; x++) for (const y of [0, 1, cv.height - 2, cv.height - 1]) if (d[(y * cv.width + x) * 4 + 3]) { edge = true; break; }
+        if (edge && issues.length < 30) issues.push(`${c.id}/${acc || 'none'} @${e}: touches preview edge`);
+        frames++;
+      }
+    } finally { Sprites.celebScreen = oldScreen; }
+    return { celebrations: CELEBRATIONS.length, accessories: ACCESSORIES.length + 1, frames, issues };
+  },
   // ---------- screens and flows ----------
   async ui() {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));

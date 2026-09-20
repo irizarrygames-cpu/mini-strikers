@@ -80,7 +80,11 @@ const Sprites = {
     if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, false);
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.scale(k * flip * squash, k);
+    // Every celebration gets a soft anticipation/pop. It is time-based, so the motion stays
+    // identical at 30, 60 and 120 FPS, and accessories share the exact same transform.
+    const celeIn = cp && p.celebrateT > 0 ? celeEase(ce / 0.18) : 0;
+    const celePop = cp ? Math.sin(Math.min(1, ce / 0.34) * Math.PI) * 0.055 * celeIn : 0;
+    ctx.scale(k * flip * squash * (1 + celePop), k * (1 - celePop * 0.45));
     if (fall) {
       // tripped: lying on the grass, face down
       ctx.translate(0, -4);
@@ -193,7 +197,9 @@ const Sprites = {
 
     // ---- head ----
     this.head(ctx, look, back, t, p);
-    if (acc) this.accessory(ctx, acc, 'head', p, t, back, sp);
+    const faceProp = cp && (cp.prop === 'shades' || cp.prop === 'glasses');
+    const faceAcc = acc && ACCESSORY_FACE_IDS.has(acc);
+    if (acc && !(faceProp && faceAcc)) this.accessory(ctx, acc, 'head', p, t, back, sp);
     if (cp && cp.prop) this.celebProp(ctx, cp.prop, ce, back, p);
     ctx.restore();
     if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, true);

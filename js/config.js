@@ -157,6 +157,7 @@ const ACCESSORIES = [
   { id: 'jetpack',     name: 'Jetpack',         slot: 'back', price: 75000 },
 ];
 const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
+const ACCESSORY_FACE_IDS = new Set(ACCESSORIES.filter((a) => a.slot === 'face').map((a) => a.id));
 
 // the four ways an ult shot can be struck, picked at random
 const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scissors'];

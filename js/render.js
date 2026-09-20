@@ -569,7 +569,9 @@ const Render = {
     const h = m.human, b = m.ball;
     let tx, ty;
     const star = m.phase === 'cele' && m.cele && m.cele.scorer;
-    const zoomTo = star ? 1.85 : 1;
+    const wide = star && ['airplane', 'pushups', 'sleep', 'backflip', 'worm', 'swim', 'surfer', 'cartwheel', 'matrix', 'scissor'].includes(m.cele.kind);
+    // Leave room for the full pose plus hats, wings, capes and celebration props.
+    const zoomTo = star ? (wide || (star.look && star.look.acc) ? 1.58 : 1.7) : 1;
     this.zoom = snap ? zoomTo : this.zoom + (zoomTo - this.zoom) * (1 - Math.exp(-(star ? 3.2 : 6) * dt));
     if (star) {
       tx = star.x; ty = star.y - 16;
