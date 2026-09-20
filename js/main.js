@@ -58,11 +58,12 @@ const Game = {
     this.lastOpts = opts;
     let club = opts.club;
     if (opts.mode === 'cup') { if (!Cup.state()) Cup.start(); club = Cup.opponent(); }
+    if (opts.mode === 'penscup') { if (!PenCup.state()) PenCup.start(); club = PenCup.opponent(); }
     if (!club) club = Clubs.random(Clubs.mine());
     FX.clear();
     Input.reset();
     UI.closeAll();
-    const pens = opts.mode === 'pens';
+    const pens = opts.mode === 'pens' || opts.mode === 'penscup';
     this.match = Match.create({ mode: opts.mode, club, format: pens ? '1v1' : opts.format || Save.data.format });
     if (pens) Pens.init(this.match);
     $('hud').classList.toggle('pens', pens);

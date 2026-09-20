@@ -146,6 +146,35 @@ const Cup = {
   },
 };
 
+// A full four-round knockout made entirely of shootouts. It has its own saved
+// run, while wins still count toward the player's overall trophy cabinet.
+const PenCup = {
+  ROUNDS: PWC_ROUNDS,
+  start() {
+    const mine = Clubs.mine().id, used = new Set([mine]);
+    const at = (lo, hi) => {
+      const pool = CLUBS.filter((c) => c.level >= lo && c.level <= hi && !used.has(c.id));
+      const c = pick(pool.length ? pool : CLUBS.filter((x) => !used.has(x.id)));
+      used.add(c.id); return c;
+    };
+    const picks = [at(0, 1), at(1, 2), at(2, 3), at(3, 3)];
+    Save.data.pensCup = { active: true, round: 0, opponents: picks.map((c) => c.id), results: [] };
+    Save.write();
+  },
+  state() { return Save.data.pensCup && Save.data.pensCup.active ? Save.data.pensCup : null; },
+  opponent() { const s = this.state(); return s ? Clubs.get(s.opponents[s.round]) : null; },
+  record(m) {
+    const s = this.state(); if (!s) return null;
+    const won = m.score.blue > m.score.red;
+    s.results[s.round] = { blue: m.score.blue, red: m.score.red, won };
+    if (!won) { s.active = false; Save.write(); return 'out'; }
+    if (s.round >= this.ROUNDS.length - 1) {
+      s.active = false; Save.data.trophies = (Save.data.trophies || 0) + 1;
+      Save.data.pensTrophies = (Save.data.pensTrophies || 0) + 1; Save.write(); return 'champion';
+    }
+    s.round++; Save.write(); return 'next';
+  },
+};
 // ===== Career achievements ==========================================
 // stat(d) reads the save; progress is capped at goal; each one pays out once when claimed.
 const ownedCount = (pred) => CHARACTERS.filter((c) => pred(c) && Shop.owns('character', c.id)).length;

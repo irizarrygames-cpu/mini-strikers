@@ -396,8 +396,23 @@ const worldCup = {
   },
 };
 
+function penaltyWorldCupOf(u) {
+  const w = u && u.pwc && typeof u.pwc === 'object' ? u.pwc : {};
+  return { round: Math.max(0, Math.min(WC_LAST, Number(w.round) | 0)), titles: Math.max(0, Number(w.titles) | 0) };
+}
+const penaltyWorldCup = {
+  round: (id) => penaltyWorldCupOf(getUser(id)).round,
+  result(id, won) {
+    const u = getUser(id);
+    if (!u) return { round: 0, champion: false, titles: 0 };
+    const w = penaltyWorldCupOf(u), champion = won && w.round === WC_LAST;
+    u.pwc = { round: won && !champion ? w.round + 1 : 0, titles: w.titles + (champion ? 1 : 0) };
+    saveDB();
+    return { round: u.pwc.round, champion, titles: u.pwc.titles };
+  },
+};
 const game = createGame({
-  getUser, userName, saveDB, onlineRecord, worldCup, league: { move: (club, d) => leagueMove(club, d), result: (list) => leagueResult(list), pos: (club) => leaguePos(club) },
+  getUser, userName, saveDB, onlineRecord, worldCup, penaltyWorldCup, league: { move: (club, d) => leagueMove(club, d), result: (list) => leagueResult(list), pos: (club) => leaguePos(club) },
   isNameTaken: (name) => !!getUser(String(name).toLowerCase()),
 });
 const CLUBS = game.clubs;
@@ -411,7 +426,7 @@ const server = http.createServer((req, res) => {
 
 function publicUser(id) {
   const u = getUser(id);
-  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u) };
+  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u), pwc: penaltyWorldCupOf(u) };
 }
 
 

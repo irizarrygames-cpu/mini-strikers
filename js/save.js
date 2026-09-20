@@ -24,6 +24,9 @@ const Save = {
       goals: 0,
       trophies: 0,
       cup: null,
+      pensTrophies: 0,
+      pensCup: null,
+      pwcRun: [],
       tutorialSeen: false,
       career: { assists: 0, tackles: 0, skills: 0, dodges: 0, passes: 0, shots: 0, powerGoals: 0, hattricks: 0, cleanSheets: 0, streak: 0, bestStreak: 0, formats: {}, online: 0, onlineWins: 0 },
       achievements: {},
@@ -45,6 +48,7 @@ const Save = {
     }
     d.club = countryFor(d.club);
     if (d.cup && d.cup.opponents && !d.cup.opponents.every((id) => CLUBS.some((c) => c.id === id))) d.cup = null;
+    if (d.pensCup && d.pensCup.opponents && !d.pensCup.opponents.every((id) => CLUBS.some((c) => c.id === id))) d.pensCup = null;
     // older saves defaulted to HIGH; move them to AUTO once so slow screens get the safety net
     if (!d.gfxAuto) { if (d.settings.graphics === 'high') d.settings.graphics = 'auto'; d.gfxAuto = true; }
     return d;

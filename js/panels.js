@@ -90,9 +90,41 @@ Object.assign(UI, {
           <p>Play a synchronized shootout online. Open spots fill after about 30 seconds.</p>
           <span class="tag">ONLINE PENALTIES</span>
         </button>
+        <button class="mode cup" data-pens="worldcup">
+          <strong>PENALTY WORLD CUP</strong>
+          <p>Four knockout shootouts, a final, and the full trophy lift.</p>
+          <span class="tag">ONLINE OR OFFLINE</span>
+        </button>
       </div>`;
     body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
     body.querySelector('[data-pens="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens'); });
+    body.querySelector('[data-pens="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('pensworldcup'); });
+  },
+
+  panel_pensworldcup(body) {
+    $('modal-title').textContent = 'PENALTY WORLD CUP';
+    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="28" data-flag="${c.id}"></canvas>${c.short}</span>`; };
+    const round = Online.wcRound('pens'), titles = (Net.user && Net.user.pwc && Net.user.pwc.titles) || 0;
+    const runAll = Array.isArray(Save.data.pwcRun) ? Save.data.pwcRun : [];
+    const run = runAll.length === round ? runAll : [];
+    const online = PWC_ROUNDS.map((name, i) => {
+      const r = run[i], cls = i < round ? 'won' : i === round ? 'next' : '';
+      return `<li class="${cls}"><small>${name}</small>${r ? flagCell(r.club) : `<span>${i === round ? 'NEXT' : '—'}</span>`}<em>${r ? `${r.mine}-${r.theirs}` : ''}</em></li>`;
+    }).join('');
+    const cup = PenCup.state();
+    const bots = PenCup.ROUNDS.map((name, i) => {
+      const res = cup && cup.results[i], cls = !cup ? '' : res ? (res.won ? 'won' : 'lost') : i === cup.round ? 'next' : '';
+      return `<li class="${cls}"><small>${name}</small>${cup ? flagCell(cup.opponents[i]) : '<span>?</span>'}<em>${res ? `${res.blue}-${res.red}` : ''}</em></li>`;
+    }).join('');
+    body.innerHTML = `<div class="wc-panels">
+      <section class="wc-panel online"><header><strong>ONLINE</strong><small>Face real players. Empty spots fill with a competitive keeper after about 30 seconds.</small></header>
+        <ol class="wc-bracket">${online}</ol><div class="wc-foot"><span class="tag">WIN IT: +${PWC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-pwc="online">PLAY ${PWC_ROUNDS[round]}</button></div></section>
+      <section class="wc-panel bots"><header><strong>VS BOTS</strong><small>Four shootouts offline, with tougher keepers every round.</small></header>
+        <ol class="wc-bracket">${bots}</ol><div class="wc-foot"><span class="tag">WIN IT: +300 COINS${Save.data.pensTrophies ? ` · WON ${Save.data.pensTrophies}` : ''}</span><button class="mid-btn" data-pwc="bots">${cup ? `PLAY ${PenCup.ROUNDS[cup.round]}` : 'START CUP'}</button></div></section>
+      </div><p class="note" style="margin-top:12px">Five kicks each, sudden death if level. Lose once and the run ends. Win the final and lift the trophy.</p>`;
+    body.querySelectorAll('canvas[data-flag]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.flag)));
+    body.querySelector('[data-pwc="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens', true); });
+    body.querySelector('[data-pwc="bots"]').addEventListener('click', () => { this.tap(); if (!PenCup.state()) PenCup.start(); Game.startMatch({ mode: 'penscup' }); });
   },
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
   panel_worldcup(body) {

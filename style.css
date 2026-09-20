@@ -710,6 +710,7 @@ body:not(.kb) #kb-legend { display: none; }
 
 /* mode select */
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pen-choice { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .mode {
   border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 6px 0 var(--ink); padding: 14px; text-align: left; color: #fff;
   display: flex; flex-direction: column; gap: 6px; min-height: 150px;
@@ -797,7 +798,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .wc-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: auto; }
 .wc-foot .tag { background: var(--ink); border-radius: 8px; padding: 2px 8px; font-size: 12px; color: var(--yellow); }
 .wc-foot .mid-btn { font-size: 18px; padding: 0.3em 0.8em; }
-@media (max-width: 620px) { .wc-panels { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 620px) { .wc-panels { grid-template-columns: minmax(0, 1fr); } .pen-choice { grid-template-columns: minmax(0, 1fr); } }
 
 
 /* PC legend lives bottom-left, where the joystick would be, and stays out of the play */
@@ -985,6 +986,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 /* play panel on short landscape phones: bot modes in one row, online stays roomy */
 @media (max-height: 430px) {
   .modes { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .pen-choice { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mode:not(.online) { min-height: 0; padding: 8px 10px; }
   .mode:not(.online) p { display: none; }
   .mode.training, .mode.pens { grid-column: auto; flex-direction: column; align-items: flex-start; gap: 6px; }

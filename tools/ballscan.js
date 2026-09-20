@@ -39,7 +39,7 @@ const Net = { rtt: LAG * 2, on: (t, fn) => { handlers[t] = fn; }, send: (o) => t
 const sandbox = {
   console, Math, Date, JSON, Object, Array, Number, String, Boolean, Map, Set, Proxy, Symbol, Error, isFinite, parseInt, parseFloat, performance,
   setTimeout, clearTimeout,
-  Sound: noopProxy(), FX: noopProxy({ banner: null }), UI: noopProxy(), Render: noopProxy(),
+  Sound: noopProxy(), FX: noopProxy({ banner: null }), UI: noopProxy(), Render: noopProxy(), Pens: noopProxy(),
   Game: { match: null, state: 'home', acc: 0, headless: false, goHome() {}, difficulty() { return null; } },
   Net, $: el, vibrate: () => {}, document: { getElementById: el, documentElement: { style: { setProperty() {} } } }, localStorage: { getItem: () => null, setItem() {} },
 };

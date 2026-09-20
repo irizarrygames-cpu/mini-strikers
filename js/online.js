@@ -52,10 +52,10 @@ const Online = {
     this.format = format;
     this.worldCup = !!worldCup;
     this.status = 'queue';
-    UI.showQueue({ format, wc: this.worldCup ? this.wcRound() : null });
+    UI.showQueue({ format, wc: this.worldCup ? this.wcRound(format) : null });
     Net.whenReady({ t: 'queue', format, wc: this.worldCup });
   },
-  wcRound() { return (Net.user && Net.user.wc && Net.user.wc.round) || 0; },
+  wcRound(format = this.format) { const key = format === 'pens' ? 'pwc' : 'wc'; return (Net.user && Net.user[key] && Net.user[key].round) || 0; },
   cancelQueue() { Net.send({ t: 'unqueue' }); this.status = 'idle'; UI.hideQueue(); },
   // the queue as the server has it; in a party this is how everyone else learns the leader pressed PLAY
   onQueue(msg) {
@@ -79,12 +79,12 @@ const Online = {
   // ---------- online penalty shootout ----------
   startPens(msg) {
     const other = msg.side === 'blue' ? 'red' : 'blue', opponent = Clubs.get(msg.clubs[other]) || Clubs.random(Clubs.mine());
-    this.status = 'match'; this.format = 'pens'; this.worldCup = false; this.room = null; this.penSide = msg.side;
+    this.status = 'match'; this.format = 'pens'; this.worldCup = msg.wc !== null && msg.wc !== undefined; this.room = null; this.penSide = msg.side;
     Sound.unlock(); Game.goFullscreen(); FX.clear(); Input.reset(); UI.closeAll();
     const m = Match.create({ mode: 'pens', club: opponent, format: '1v1' }); Pens.init(m); Game.match = m; Game.acc = 0;
     $('hud').classList.add('pens'); UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
     $('hud').classList.remove('replaying'); UI.show('match'); Game.state = 'intro'; UI.showIntro(m); Sound.startMusic(); Sound.startAmbience(); Sound.cheer(false);
-    m.net = true; m.online = true; m.roomId = msg.room; m.code = msg.code; m.mode = 'pens'; m.format = 'pens';
+    m.net = true; m.online = true; m.wc = msg.wc; m.roomId = msg.room; m.code = msg.code; m.mode = 'pens'; m.format = 'pens';
     m.pens.net = true; m.pens.serverSide = msg.side; m.pens.phase = 'wait'; m.pens.t = 0;
     this.m = m; $('hud').classList.add('pens'); UI.hideQueue(); UI.hideLobby();
     if (msg.state && msg.state.phase === 'input') Pens.netTurn(m, { ...msg.state, deadline: msg.state.deadline });
@@ -97,8 +97,8 @@ const Online = {
     m.score = this.penSide === 'blue' ? { ...msg.score } : { blue: msg.score.red, red: msg.score.blue };
     const coins = 30 + m.score.blue * 10 + m.pens.saves * 8 + (won ? 70 : 0);
     m.result = { outcome: msg.outcome, mvp: won ? m.human : m.keepers.red, coins, base: coins, challengeCoins: 0, cupBonus: 0, mult: 1 };
-    m.phase = 'over';
-    setTimeout(() => { if (Game.match === m) { UI.showResults(m); UI._againMode = 'onlinepens'; } }, 900);
+    m.phase = 'over'; m.onlinePenEnd = msg;
+    setTimeout(() => { if (Game.match === m) UI.showResults(m); }, 900);
   },
   // ---------- match start ----------
   start(msg) {
@@ -433,9 +433,12 @@ const Online = {
     const pos = this.extrapolate(S, ahead), off = p.netOff || (p.netOff = { x: 0, y: 0 }), prev = p.netPrev;
     if (prev && !reset) {
       const moved = Math.hypot(pos.x - prev.x, pos.y - prev.y), allowed = Math.hypot(S.vx, S.vy) * dt * 1.6 + 10;
-      if (moved > allowed && moved < 300) { off.x += prev.x - pos.x; off.y += prev.y - pos.y; }
-      this.settle(off, dt, 8, 260);
-      if (Math.hypot(off.x, off.y) > 200) { off.x = 0; off.y = 0; }
+      if (moved > allowed) { off.x += prev.x - pos.x; off.y += prev.y - pos.y; }
+      // Packet gaps used to discard corrections above 200 units, visibly teleporting bots
+      // and remote players. Keep the correction and let them catch up at a run-like speed.
+      const gap = Math.hypot(off.x, off.y);
+      if (gap > 650) { off.x *= 650 / gap; off.y *= 650 / gap; }
+      this.settle(off, dt, 7, 380);
     } else { off.x = 0; off.y = 0; }
     p.netPrev = pos;
     p.x = pos.x + off.x; p.y = pos.y + off.y;

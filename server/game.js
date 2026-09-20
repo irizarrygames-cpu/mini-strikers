@@ -59,8 +59,9 @@ const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 
 // worldCup: { round(id) -> 0..3, result(id, won) -> { round, champion, titles } } (the run lives on the account)
 // league: { move(club, +1 up | -1 down), result([[club, ±1]...]) for a whole match, pos(club) -> 1.. } (server.js)
-function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, league }) {
+function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, penaltyWorldCup, league }) {
   const wc = worldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
+  const pwc = penaltyWorldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
   const ladder = league || { move: () => {}, result: () => {}, pos: () => 0 };
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
@@ -336,7 +337,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   /* ---------------- queue ---------------- */
 
-  const wcRoundOf = (id) => Math.max(0, Math.min(WC_ROUNDS.length - 1, wc.round(id) | 0));
+  const wcRoundOf = (id, format) => Math.max(0, Math.min(WC_ROUNDS.length - 1, (format === 'pens' ? pwc : wc).round(id) | 0));
 
   // In a party, the leader's PLAY brings everyone: they all go into one match on the same side.
   function joinQueue(conn, format, worldCup) {
@@ -360,10 +361,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (roomOf(id)) return fail('You are already in a match');
     for (const m of ids) { const e = entryOf(m); if (e) removeEntry(e); }
     // a party plays the World Cup round the furthest of them has reached (each one's own run moves on)
-    const round = worldCup ? Math.max(...ids.map(wcRoundOf)) : null;
+    const round = worldCup ? Math.max(...ids.map((x) => wcRoundOf(x, format))) : null;
     const key = round === null ? format : `wc/${format}/${round}`;
     (queues[key] = queues[key] || []).push({ userId: id, ids, at: Date.now(), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
-    for (const m of ids) push(m, { t: 'queue', format, wc: round === null ? null : wcRoundOf(m), party: ids.length > 1 ? ids.map(userName) : null, leader: userName(id) });
+    for (const m of ids) push(m, { t: 'queue', format, wc: round === null ? null : wcRoundOf(m, format), party: ids.length > 1 ? ids.map(userName) : null, leader: userName(id) });
   }
 
   function removeEntry(e) {
@@ -537,20 +538,20 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const p = room.pen, other = seat.team === 'blue' ? 'red' : 'blue';
     return {
       t: 'pen.start', room: room.id, code: room.code, format: 'pens', side: seat.team,
-      clubs: room.clubs, startsIn: Math.max(0, room.startAt - Date.now()),
+      clubs: room.clubs, wc: seat.wc, startsIn: Math.max(0, room.startAt - Date.now()),
       players: room.seats.map((s) => ({ team: s.team, name: s.name, character: s.character, bot: !s.human })),
       state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline },
       opponent: room.seats.find((s) => s.team === other).name,
     };
   }
   function penBroadcast(room, payload) { for (const s of room.seats) if (s.human && s.conn && !s.gone) send(s.conn, payload); }
-  function startPensRoom(entries, code) {
+  function startPensRoom(entries, code, wcRound = null) {
     const taken = new Set(), seats = [], clubs = {};
     for (const team of ['blue', 'red']) {
       const e = entries.find((x) => x.team === team);
       if (e) {
         const pr = profileOf(e.id); taken.add(pr.name); clubs[team] = pr.club;
-        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false });
+        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false, wc: wcRound === null ? null : wcRoundOf(e.id, 'pens') });
       } else {
         const character = sim.pickBotCharacter(Math.random, sim.BOT_RARITY_ONLINE).id;
         seats.push({ seat: seats.length, team, human: false, name: null, character, club: null, conn: null, gone: false });
@@ -561,7 +562,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!clubs.blue) clubs.blue = pickOne(clubIds.filter((c) => c !== clubs.red));
     if (!clubs.red) clubs.red = pickOne(clubIds.filter((c) => c !== clubs.blue));
     const model = PenModel.create((Date.now() ^ nextRoom * 2654435761) >>> 0);
-    const room = { id: nextRoom++, code, format: 'pens', seats, state: 'intro', clubs, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: null,
+    const room = { id: nextRoom++, code, format: 'pens', seats, state: 'intro', clubs, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound,
       pen: { model, phase: 'intro', pending: { shot: null, dive: null }, deadline: Date.now() + INTRO_MS + 10000, nextAt: 0 } };
     rooms.set(room.id, room);
     for (const seat of seats) if (seat.human) send(seat.conn, penView(room, seat));
@@ -625,10 +626,11 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const outcome = seat.team === winner ? 'win' : 'loss', mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
       onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: other, goals: mine });
       if (seat.club) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : -1));
-      results.push({ seat, outcome });
+      const cup = room.wc === null || room.wc === undefined ? null : pwc.result(seat.userId, outcome === 'win');
+      results.push({ seat, outcome, cup });
     }
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
-    for (const { seat, outcome } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
+    for (const { seat, outcome, cup } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
     saveDB();
   }
   function tickPens(room, now) {
@@ -647,7 +649,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
   function startRoom(format, entries, code, wcRound = null) {
-    if (format === 'pens') return startPensRoom(entries, code);
+    if (format === 'pens') return startPensRoom(entries, code, wcRound);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
     const seats = [];
@@ -809,6 +811,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
       onlineRecord(seat.userId, { outcome: 'loss', goalsFor: mine, goalsAgainst: other, goals: mine });
       if (seat.club) ladder.move(seat.club, -1);
+      if (room.wc !== null && room.wc !== undefined && room.state !== 'over') pwc.result(seat.userId, false);
       seat.gone = true; seat.conn = null; finishPens(room, seat.team); saveDB(); return;
     }
     onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 });
