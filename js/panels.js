@@ -269,6 +269,7 @@ Object.assign(UI, {
       <label class="set"><span>MUSIC</span><input type="range" min="0" max="1" step="0.05" value="${s.music}" data-key="music"></label>
       <label class="set"><span>SOUND</span><input type="range" min="0" max="1" step="0.05" value="${s.sfx}" data-key="sfx"></label>
       <div class="set"><span>VIBRATION</span>${seg('vibration', [[true, 'ON'], [false, 'OFF']])}</div>
+      <div class="set"><span>COMMENTARY</span>${seg('commentary', [[true, 'ON'], [false, 'OFF']])}</div>
       <div class="set"><span>DIFFICULTY</span>${seg('difficulty', [['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']])}</div>
       <div class="set"><span>MATCH</span>${seg('minutes', [[2, '2 MIN'], [3, '3 MIN'], [4, '4 MIN']])}</div>
       <div class="set"><span>MINIMAP</span>${seg('minimap', [[true, 'ON'], [false, 'OFF']])}</div>
@@ -285,7 +286,7 @@ Object.assign(UI, {
     body.querySelectorAll('.seg').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       const key = g.dataset.key;
       let v = b.dataset.v;
-      if (key === 'vibration' || key === 'minimap' || key === 'replays') v = v === 'true';
+      if (key === 'vibration' || key === 'minimap' || key === 'replays' || key === 'commentary') v = v === 'true';
       if (key === 'minutes') v = parseInt(v, 10);
       s[key] = v; Save.write(); this.tap();
       g.querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b));

@@ -1221,3 +1221,12 @@ body.kb .chat-menu kbd { display: inline-block; }
 
 /* penalty shootout: just the stick (aim / pick a side) and one button (shoot / dive) */
 #hud.pens #btn-pass, #hud.pens #btn-skill, #hud.pens #btn-sprint, #hud.pens #btn-ult, #hud.pens #scoreboard, #hud.pens #kb-legend, #hud.pens #net-ping, #hud.pens #tip { display: none !important; }
+
+/* live commentator: readable over every stadium, clear of the scoreboard and controls */
+.commentary { position: fixed; z-index: 9; top: calc(var(--st) + 62px); left: 50%; width: min(760px, 84vw); transform: translate(-50%, -8px) scale(.98); text-align: center; pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
+.commentary.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.commentary small { display: inline-block; background: var(--yellow); color: var(--ink); border: 2px solid var(--ink); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 1px 8px; font-size: 10px; letter-spacing: 1px; }
+.commentary strong { display: block; width: fit-content; max-width: 100%; margin: 0 auto; background: rgba(22,26,51,.94); color: #fff; border: 3px solid #fff; outline: 3px solid var(--ink); border-radius: 10px; padding: 5px 14px; font-size: clamp(15px, 3.2vmin, 24px); line-height: 1.05; text-shadow: 2px 2px 0 var(--ink); }
+.commentary.big strong { color: var(--yellow); font-size: clamp(22px, 5vmin, 38px); animation: commentary-pop .35s cubic-bezier(.2,1.8,.4,1); }
+@keyframes commentary-pop { 0% { transform: scale(.55) rotate(-2deg); } 70% { transform: scale(1.08) rotate(1deg); } 100% { transform: scale(1); } }
+@media (max-height: 430px) { .commentary { top: calc(var(--st) + 46px); width: min(680px, 72vw); } .commentary strong { font-size: 15px; padding: 3px 10px; } .commentary.big strong { font-size: 23px; } }

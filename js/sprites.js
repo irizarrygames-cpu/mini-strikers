@@ -117,7 +117,8 @@ const Sprites = {
       if (dive) { fx = hx * 1.3; fy = -1; }
       if (cp && cp.feet) { fx = cp.feet[i][0]; fy = cp.feet[i][1]; }
       this.leg(ctx, hx, hipY, fx, fy, look.skin, kit.socks);
-      this.boot(ctx, fx, fy, acc === 'goldboots' && !p.isKeeper ? '#ffc21a' : kit.shoes, i === 1 && kick > 0.3);
+      const premiumBoot = acc === 'galaxyboots' ? '#7b4dff' : acc === 'flameboots' ? '#ff5a1f' : acc === 'goldboots' ? '#ffc21a' : null;
+      this.boot(ctx, fx, fy, premiumBoot && !p.isKeeper ? premiumBoot : kit.shoes, i === 1 && kick > 0.3);
     }
 
     // ---- shorts ----
@@ -143,6 +144,11 @@ const Sprites = {
       if (cp && cp.hands) { const hand = cp.hands[side < 0 ? 0 : 1]; hx = hand[0]; hy = hand[1]; }
       this.limb(ctx, side * 10, shY, hx, hy, 5.6, look.skin);
       const armLen = Math.hypot(hx - side * 10, hy - shY) || 1;
+      if (acc === 'robotarm' && side > 0 && !p.isKeeper) {
+        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(side * 10, shY); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.strokeStyle = '#9aa7bd'; ctx.lineWidth = 4.2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(lerp(side * 10, hx, 0.55), lerp(shY, hy, 0.55), 3.4, 0, Math.PI * 2); this.blob(ctx, '#46d9ff');
+      }
       if (acc === 'wristbands' && !p.isKeeper) {
         const f = Math.max(0.5, (armLen - 3.6) / armLen), wx = lerp(side * 10, hx, f), wy = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(wx, wy, 4.1, 0, Math.PI * 2); this.blob(ctx, '#ff3a3f');
@@ -1005,6 +1011,13 @@ const Sprites = {
           for (const [a, b] of [[[-10, -8], [-27, -12]], [[-9, -3], [-25, -3]], [[-8, 3], [-20, 3]]]) { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
           ctx.restore();
         }
+      } else if (id === 'dragonwings') {
+        const flap = Math.sin(t * 8 + seed) * 0.22;
+        for (const s of [-1, 1]) { ctx.save(); ctx.translate(s * 4, -40); ctx.rotate(s * flap); ctx.scale(s, 1); poly([[0,0],[-12,-18],[-30,-28],[-25,-9],[-38,2],[-20,4],[-13,16],[-5,7]], '#8b4dff'); poly([[-8,-5],[-21,-19],[-18,-4]], '#ff5a3c'); ctx.restore(); }
+      } else if (id === 'royalcape' || id === 'kingmantle') {
+        const wave = Math.sin(t * 9 + seed) * (2 + speed * 3), col = id === 'royalcape' ? '#7b28d8' : '#8c1538';
+        poly([[-11,-47],[-18,-34],[-24-speed*9,-4+wave],[-3,-9],[10,-45]], col);
+        ctx.fillStyle = '#ffc21a'; ctx.fillRect(-11,-48,21,3); if (id === 'kingmantle') { ctx.fillStyle='#ffffff'; for(let y=-37;y<-8;y+=8) ctx.fillRect(-15,y,3,3); }
       } else if (id === 'jetpack') {
         this.rr(ctx, -19, -47, 11, 22, 3); this.blob(ctx, '#8e99ad');
         this.rr(ctx, -17, -44, 7, 5, 2); this.blob(ctx, '#ff3a3f');
@@ -1028,7 +1041,14 @@ const Sprites = {
         return;
       }
       if (back) return;
-      if (id === 'chain') {
+      if (id === 'diamondchain') {
+        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-8,-44); ctx.quadraticCurveTo(1.5,-25,11,-44); ctx.stroke(); ctx.strokeStyle='#75eaff'; ctx.lineWidth=3.5; ctx.stroke();
+        this.star(ctx, 1.5, -31, 6, '#d9ffff');
+      } else if (id === 'worldmedal') {
+        poly([[-6,-46],[1,-35],[4,-35],[-2,-46]], '#2f7bff'); poly([[8,-46],[4,-35],[1,-35],[5,-46]], '#ffffff'); ctx.beginPath(); ctx.arc(2.5,-31,6.5,0,Math.PI*2); this.blob(ctx,'#ffc21a'); ctx.fillStyle='#2f7bff'; ctx.beginPath(); ctx.arc(2.5,-31,3,0,Math.PI*2); ctx.fill();
+      } else if (id === 'championbelt') {
+        this.rr(ctx,-12,-36,27,8,3); this.blob(ctx,'#161a33'); this.rr(ctx,-4,-39,13,13,4); this.blob(ctx,'#ffc21a'); this.star(ctx,2.5,-32.5,4,'#fff3a0');
+      } else if (id === 'chain') {
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-7, -44); ctx.quadraticCurveTo(1.5, -26, 10, -44); ctx.stroke();
         ctx.strokeStyle = '#ffc21a'; ctx.lineWidth = 3; ctx.stroke();
         ctx.beginPath(); ctx.arc(1.5, -33, 4.6, 0, Math.PI * 2); this.blob(ctx, '#ffc21a');
@@ -1047,7 +1067,14 @@ const Sprites = {
     }
     if (layer !== 'head') return;
     if (def.slot === 'head') {
-      if (id === 'halo') {
+      if (id === 'royalcrown') {
+        poly([[hx-11,hy-R+2],[hx-9,hy-R-14],[hx-3,hy-R-7],[hx+2,hy-R-18],[hx+7,hy-R-7],[hx+13,hy-R-14],[hx+12,hy-R+2]], '#ffc21a');
+        for(const x of [hx-7,hx+2,hx+10]) { ctx.beginPath(); ctx.arc(x,hy-R-2,2,0,Math.PI*2); this.blob(ctx,x===hx+2?'#46d9ff':'#ff3a3f'); }
+      } else if (id === 'neonhalo') {
+        const bob=Math.sin(t*5+seed)*2; ctx.shadowColor='#46d9ff'; ctx.shadowBlur=8; ctx.strokeStyle='#46d9ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(hx,hy-R-13+bob,14,4,0,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0;
+      } else if (id === 'spacehelmet') {
+        ctx.fillStyle='rgba(120,220,255,.28)'; ctx.beginPath(); ctx.arc(hx,hy-1,R+6,Math.PI,Math.PI*2); ctx.lineTo(hx+R+6,hy+8); ctx.lineTo(hx-R-6,hy+8); ctx.closePath(); ctx.fill(); ctx.strokeStyle=OUTLINE; ctx.lineWidth=3; ctx.stroke(); ctx.fillStyle='#dbe5ef'; ctx.fillRect(hx-R-7,hy+6,(R+7)*2,5);
+      } else if (id === 'halo') {
         const bob = Math.sin(t * 4 + seed) * 1.5;
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(hx, hy - R - 12 + bob, 11, 3.6, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = '#ffe14d'; ctx.lineWidth = 2.8; ctx.stroke();
@@ -1080,7 +1107,14 @@ const Sprites = {
       return;
     }
     if (def.slot !== 'face' || back) return;
-    if (id === 'shades') this.celebProp(ctx, 'shades', 0, back, p);
+    if (id === 'diamondshades') {
+      for(const ex of [5.2,11.6]) { poly([[hx+ex-5,hy+1],[hx+ex,hy-4],[hx+ex+5,hy+1],[hx+ex,hy+6]], '#75eaff'); ctx.fillStyle='#ffffff'; ctx.fillRect(hx+ex-1.5,hy-1.5,3,3); } ctx.fillStyle=OUTLINE; ctx.fillRect(hx+6,hy,5,2);
+    } else if (id === 'lightningvisor') {
+      poly([[hx-12,hy-3],[hx+3,hy-3],[hx-1,hy+2],[hx+18,hy+2],[hx+6,hy+9],[hx+9,hy+4],[hx-12,hy+4]], '#ffe14d');
+    } else if (id === 'dragonmask') {
+      poly([[hx-12,hy-4],[hx-5,hy-10],[hx+2,hy-5],[hx+10,hy-10],[hx+19,hy-2],[hx+15,hy+9],[hx+2,hy+12],[hx-10,hy+7]], '#e8283a');
+      for(const ex of [5.2,11.6]) { ctx.fillStyle='#ffe14d'; ctx.beginPath(); ctx.ellipse(hx+ex,hy+1,2.5,2,0,0,Math.PI*2); ctx.fill(); }
+    } else if (id === 'shades') this.celebProp(ctx, 'shades', 0, back, p);
     else if (id === 'starshades') {
       for (const ex of [5.2, 11.6]) this.star(ctx, hx + ex, hy + 1, 5.4, '#ff5fa8');
       ctx.fillStyle = OUTLINE; ctx.fillRect(hx - 10, hy - 0.8, 10, 1.8);

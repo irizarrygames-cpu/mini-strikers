@@ -154,7 +154,22 @@ const ACCESSORIES = [
   { id: 'cape',        name: 'Hero Cape',       slot: 'back', price: 45000 },
   { id: 'goldboots',   name: 'Golden Boots',    slot: 'feet', price: 50000 },
   { id: 'wings',       name: 'Angel Wings',     slot: 'back', price: 60000 },
-  { id: 'jetpack',     name: 'Jetpack',         slot: 'back', price: 75000 },
+  { id: 'jetpack',       name: 'Jetpack',          slot: 'back', price: 75000 },
+  { id: 'royalcrown',    name: 'Royal Crown',      slot: 'head', price: 80000 },
+  { id: 'diamondshades', name: 'Diamond Shades',   slot: 'face', price: 90000 },
+  { id: 'lightningvisor',name: 'Lightning Visor',  slot: 'face', price: 100000 },
+  { id: 'neonhalo',      name: 'Neon Halo',        slot: 'head', price: 110000 },
+  { id: 'dragonwings',   name: 'Dragon Wings',     slot: 'back', price: 125000 },
+  { id: 'royalcape',     name: 'Royal Cape',       slot: 'back', price: 140000 },
+  { id: 'diamondchain',  name: 'Diamond Chain',    slot: 'neck', price: 150000 },
+  { id: 'worldmedal',    name: 'World Medal',      slot: 'neck', price: 160000 },
+  { id: 'galaxyboots',   name: 'Galaxy Boots',     slot: 'feet', price: 175000 },
+  { id: 'flameboots',    name: 'Flame Boots',      slot: 'feet', price: 185000 },
+  { id: 'robotarm',      name: 'Robot Arm',        slot: 'arm',  price: 195000 },
+  { id: 'kingmantle',    name: "King's Mantle",   slot: 'back', price: 210000 },
+  { id: 'spacehelmet',   name: 'Space Helmet',     slot: 'head', price: 225000 },
+  { id: 'dragonmask',    name: 'Dragon Mask',      slot: 'face', price: 240000 },
+  { id: 'championbelt',  name: 'Champion Belt',    slot: 'neck', price: 260000 },
 ];
 const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
 const ACCESSORY_FACE_IDS = new Set(ACCESSORIES.filter((a) => a.slot === 'face').map((a) => a.id));

@@ -151,6 +151,7 @@ const Game = {
       this.stepDemo(realDt);
       Render.drawHome(this.t, this.demo);
     }
+    if (m && this.state !== 'home') Commentary.update(m, realDt); else Commentary.hide();
   },
 
   // AUTO graphics: frames averaging slower than ~40fps for 2.5s step quality down; a steady
