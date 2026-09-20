@@ -31,9 +31,14 @@ const Game = {
     $('home').hidden = true; // nothing but the splash until we know who you are
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });
     document.addEventListener('visibilitychange', () => {
-      // online matches can't be paused, so there's nothing to stop when the tab hides
+      if (document.hidden) Commentary.pause();
+      else if (this.state === 'match') Commentary.resume();
+      // online matches keep running on the server, but their local commentary still pauses
       if (document.hidden && this.state === 'match' && !(this.match && this.match.net)) UI.togglePause();
     });
+    window.addEventListener('pagehide', () => Commentary.pause());
+    window.addEventListener('blur', () => Commentary.pause());
+    window.addEventListener('focus', () => { if (!document.hidden && this.state === 'match') Commentary.resume(); });
     this.last = performance.now();
     requestAnimationFrame((ts) => this.loop(ts));
   },
@@ -151,7 +156,9 @@ const Game = {
       this.stepDemo(realDt);
       Render.drawHome(this.t, this.demo);
     }
-    if (m && this.state !== 'home') Commentary.update(m, realDt); else Commentary.hide();
+    if (m && this.state === 'match' && !document.hidden) Commentary.update(m, realDt);
+    else if (m) Commentary.pause();
+    else Commentary.stop();
   },
 
   // AUTO graphics: frames averaging slower than ~40fps for 2.5s step quality down; a steady

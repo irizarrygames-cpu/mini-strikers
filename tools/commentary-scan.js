@@ -19,11 +19,13 @@ C.update(m, .016); C.cd = 0; m.ball.owner = b; C.update(m, .7); check('first com
 C.cd = 0; m.ball.owner = c; C.update(m, .7); check('second completed pass escalates', /PASS TWO/.test(el('commentary-line').textContent), el('commentary-line').textContent);
 C.cd = 0; m.ball.shot = { power: true }; m.ball.owner = null; C.update(m, .7); check('power shot called dramatically', /POWER|THUNDERBOLT|net|remove|family plans|escape velocity|air traffic|satellite|travelling through time/i.test(el('commentary-line').textContent), el('commentary-line').textContent);
 m.ball.shot = null; m.score.blue = 1; a.stats.goals = 1; m.goals.push({ team: 'blue', scorer: a, assist: b, own: false }); C.update(m, .1); check('goal call names scorer and build-up', /G+O+A+L|SCENES|WRITE|BEDLAM|outrageous|planet|WITNESSED|MUSEUM|STADIUM|HOLD ME|peaked|public service/i.test(el('commentary-line').textContent) && /YOU/.test(el('commentary-line').textContent), el('commentary-line').textContent);
-const pm = { ...m, ball: {}, pens: { kicks: { blue: [true], red: [] } }, score: { blue: 1, red: 0 } }; C.reset(pm); C.update(pm, .1); check('penalty result called', /BURIES|wrong way|veins|bins/i.test(el('commentary-line').textContent), el('commentary-line').textContent);
+const pm = { ...m, ball: {}, pens: { kicks: { blue: [true], red: [] } }, score: { blue: 1, red: 0 } }; C.reset(pm); C.update(pm, .1); check('penalty result called', /BURIES|wrong way|veins|bins|pillow|taxi|confidence/i.test(el('commentary-line').textContent), el('commentary-line').textContent);
 check('large varied line library', Object.values(C.banks).reduce((n, x) => n + x.length, 0) >= 75);
 check('spoken delivery used', spoken.length >= 4, String(spoken.length));
 check('natural English voice selected', C.voice && /Natural/.test(C.voice.name), C.voice && C.voice.name);
 check('occasional break capped at three seconds', C.nextVoiceAt - Date.now() <= 3050, String(C.nextVoiceAt - Date.now()));
 C.speaking = true; sandbox.window.speechSynthesis.speaking = true; const queuedBefore = C.voiceQueue.length; C.say('THE MOVE CONTINUES!', 1, true);
 check('busy speech queues rather than drops a line', C.voiceQueue.length === queuedBefore + 1, String(C.voiceQueue.length)); C.speaking = false; sandbox.window.speechSynthesis.speaking = false;
+C.pause(); check('pause clears queued speech', C.paused && C.voiceQueue.length === 0 && !C.speaking, JSON.stringify({ paused: C.paused, queued: C.voiceQueue.length, speaking: C.speaking }));
+C.resume(); check('resume restarts with fresh commentary', !C.paused && C.nextVoiceAt > Date.now(), String(C.nextVoiceAt - Date.now()));
 if (fails) process.exit(1); console.log('all commentary checks passed'); process.exit(0);

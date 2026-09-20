@@ -558,6 +558,7 @@ const UI = {
   togglePause() {
     if (Game.state === 'match') {
       Game.state = 'paused';
+      Commentary.pause();
       Input.reset();
       Sound.chargeStop();
       if (Game.match && Game.match.human) Game.match.human.charging = false;
@@ -570,6 +571,7 @@ const UI = {
       $('pause').hidden = false;
     } else if (Game.state === 'paused') {
       Game.state = 'match';
+      Commentary.resume();
       $('pause').hidden = true;
       Game.last = performance.now();
     }

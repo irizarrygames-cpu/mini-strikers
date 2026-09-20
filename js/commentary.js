@@ -4,7 +4,7 @@
 const Commentary = {
   m: null, cd: 0, idle: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
-  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false,
+  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false,
   banks: {
     kickoff: ['And we are UNDERWAY!', 'The whistle goes—let the chaos begin!', 'Here we go! Ninety seconds of tiny-football madness!', 'Strap in. This could get ridiculous.'],
     shot: ['HE HITS IT!', 'SHOT ON!', 'That has been absolutely launched!', 'He has put his entire postcode through that!', 'From there?! Audacious!', 'The net is looking nervous!', 'Someone check the ball—it has been THUMPED!', 'HE HAS HIT THAT LIKE IT INSULTED HIS FAMILY!', 'The keeper has seen it coming and immediately started negotiating!', 'That shot had absolutely no chill!', 'He shoots from a different postal code!'],
@@ -60,6 +60,14 @@ const Commentary = {
     const p = m.ball && m.ball.owner, team = p ? p.team : (m.score.blue >= m.score.red ? 'red' : 'blue');
     return this.pick(this.banks.flow).replaceAll('{team}', this.team(team)).replaceAll('{player}', this.name(p));
   },
+  pause() {
+    if (this.paused) return;
+    this.paused = true; this.voiceToken++; this.speaking = false; this.voiceQueue.length = 0;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    this.hide();
+  },
+  resume() { this.paused = false; this.nextVoiceAt = Date.now() + 350; this.idle = 0; },
+  stop() { this.pause(); this.m = null; },
   reset(m) {
     this.m = m; this.cd = 0; this.idle = 0; this.passChain = 0; this.passTeam = null; this.lastOwner = m.ball && m.ball.owner;
     this.lastShot = !!(m.ball && m.ball.shot); this.score = { ...m.score }; this.kickCount = 0; this.penKicks = { blue: 0, red: 0 }; this.serial++;
@@ -133,7 +141,7 @@ const Commentary = {
     this.say(this.pick(scored ? this.banks.penaltyGoal : this.banks.penaltySave), scored ? 2 : 3, true);
   },
   update(m, dt) {
-    if (!m || !m.ball) return; if (this.m !== m) this.reset(m);
+    if (!m || !m.ball) return; if (this.paused) this.resume(); if (this.m !== m) this.reset(m);
     this.cd = Math.max(0, this.cd - dt); this.idle += dt;
     if (m.pens) { this.updatePens(m); return; }
     for (const team of ['blue','red']) if (m.score[team] > this.score[team]) { this.score = { ...m.score }; this.goal(m, team); return; }
