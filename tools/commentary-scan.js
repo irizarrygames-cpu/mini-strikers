@@ -24,4 +24,6 @@ check('large varied line library', Object.values(C.banks).reduce((n, x) => n + x
 check('spoken delivery used', spoken.length >= 4, String(spoken.length));
 check('natural English voice selected', C.voice && /Natural/.test(C.voice.name), C.voice && C.voice.name);
 check('occasional break capped at three seconds', C.nextVoiceAt - Date.now() <= 3050, String(C.nextVoiceAt - Date.now()));
+C.speaking = true; sandbox.window.speechSynthesis.speaking = true; const queuedBefore = C.voiceQueue.length; C.say('THE MOVE CONTINUES!', 1, true);
+check('busy speech queues rather than drops a line', C.voiceQueue.length === queuedBefore + 1, String(C.voiceQueue.length)); C.speaking = false; sandbox.window.speechSynthesis.speaking = false;
 if (fails) process.exit(1); console.log('all commentary checks passed'); process.exit(0);

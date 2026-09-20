@@ -4,7 +4,7 @@
 const Commentary = {
   m: null, cd: 0, idle: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
-  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, nextVoiceAt: 0, unlocked: false,
+  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false,
   banks: {
     kickoff: ['And we are UNDERWAY!', 'The whistle goes—let the chaos begin!', 'Here we go! Ninety seconds of tiny-football madness!', 'Strap in. This could get ridiculous.'],
     shot: ['HE HITS IT!', 'SHOT ON!', 'That has been absolutely launched!', 'He has put his entire postcode through that!', 'From there?! Audacious!', 'The net is looking nervous!', 'Someone check the ball—it has been THUMPED!'],
@@ -67,30 +67,39 @@ const Commentary = {
     this.say(this.pick(this.banks.kickoff), 1, false);
   },
   hide() { const el = typeof $ === 'function' ? $('commentary') : null; if (el) el.classList.remove('show','big'); },
+  speakVoice(item) {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+    if (!this.voice) this.refreshVoices();
+    const spoken = item.text.replace(/GOOOOOOOAL/g, 'Gooooal').replace(/—/g, ', ');
+    const u = new SpeechSynthesisUtterance(spoken), token = ++this.voiceToken;
+    u.voice = this.voice; u.lang = (this.voice && this.voice.lang) || 'en-GB';
+    u.rate = item.priority >= 3 ? 1.15 : item.priority === 2 ? 1.22 : 1.28;
+    u.pitch = item.priority >= 3 ? 0.92 : 0.96;
+    u.volume = Math.min(1, 0.58 + (Save.data.settings.sfx || 0) * 0.42);
+    this.speaking = true;
+    const finished = () => {
+      if (token !== this.voiceToken) return;
+      this.speaking = false;
+      if (this.voiceQueue.length) { this.speakVoice(this.voiceQueue.shift()); return; }
+      const rareBreath = Math.random() < 0.22;
+      this.nextVoiceAt = Date.now() + (rareBreath ? 1400 + Math.random() * 1600 : 100 + Math.random() * 360);
+    };
+    u.onend = finished; u.onerror = finished; synth.speak(u);
+  },
   say(text, priority = 1, voice = true) {
     if (!text || Save.data.settings.commentary === false) return;
     const el = $('commentary'), line = $('commentary-line'); if (!el || !line) return;
     line.textContent = text; el.classList.toggle('big', priority >= 3); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
     clearTimeout(this.hideTimer); this.hideTimer = setTimeout(() => el.classList.remove('show','big'), priority >= 3 ? 4200 : 2600);
     this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62; this.idle = 0;
-    if (!voice || Save.data.settings.commentary === false || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
-    const synth = window.speechSynthesis;
-    if ((synth.speaking || synth.pending || this.speaking) && priority < 2) return;
-    if (priority >= 2) synth.cancel();
-    if (!this.voice) this.refreshVoices();
-    const spoken = text.replace(/GOOOOOOOAL/g, 'Gooooal').replace(/—/g, ', ');
-    const u = new SpeechSynthesisUtterance(spoken);
-    u.voice = this.voice; u.lang = (this.voice && this.voice.lang) || 'en-GB';
-    u.rate = priority >= 3 ? 1.02 : priority === 2 ? 1.08 : 1.12;
-    u.pitch = priority >= 3 ? 0.92 : 0.96;
-    u.volume = Math.min(1, 0.58 + (Save.data.settings.sfx || 0) * 0.42);
-    this.speaking = true;
-    const finished = () => {
-      this.speaking = false;
-      const rareBreath = Math.random() < 0.22;
-      this.nextVoiceAt = Date.now() + (rareBreath ? 1400 + Math.random() * 1600 : 120 + Math.random() * 520);
-    };
-    u.onend = finished; u.onerror = finished; synth.speak(u);
+    if (!voice || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    const item = { text, priority }, synth = window.speechSynthesis;
+    if (priority >= 2) {
+      this.voiceToken++; this.speaking = false; synth.cancel(); this.speakVoice(item); return;
+    }
+    if (synth.speaking || synth.pending || this.speaking) { this.voiceQueue.push(item); return; }
+    this.speakVoice(item);
   },
   passLine(team, p) {
     const n = this.passChain, who = this.name(p);
