@@ -4,6 +4,7 @@
 
 const { createSim } = require('./sim');
 const { createFriends } = require('./friends');
+const PenModel = require('./pens');
 
 const STEP = 1 / 120;
 const SNAPSHOT_EVERY = 4;           // 120 / 4 = 30 snapshots a second
@@ -305,6 +306,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const answer = (r) => send(conn, { t: 'social', ok: r.ok, msg: r.msg || null });
     switch (msg.t) {
       case 'i': return input(id, msg);
+      case 'pen.shot': return penShot(id, msg);
+      case 'pen.dive': return penDive(id, msg);
       case 'ping': return send(conn, { t: 'pong', c: msg.c, s: Date.now() });
       case 'chat': return quickChat(conn, msg.m);
       // playing a match against bots on this device (so friends see you're busy and parties don't pull you out)
@@ -528,10 +531,120 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     startRoom(room.format, room.seats.map((s) => ({ id: s.userId, team: s.team })), room.code);
   }
 
+  /* ---------------- online penalty shootouts ---------------- */
+
+  function penView(room, seat) {
+    const p = room.pen, other = seat.team === 'blue' ? 'red' : 'blue';
+    return {
+      t: 'pen.start', room: room.id, code: room.code, format: 'pens', side: seat.team,
+      clubs: room.clubs, startsIn: Math.max(0, room.startAt - Date.now()),
+      players: room.seats.map((s) => ({ team: s.team, name: s.name, character: s.character, bot: !s.human })),
+      state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline },
+      opponent: room.seats.find((s) => s.team === other).name,
+    };
+  }
+  function penBroadcast(room, payload) { for (const s of room.seats) if (s.human && s.conn && !s.gone) send(s.conn, payload); }
+  function startPensRoom(entries, code) {
+    const taken = new Set(), seats = [], clubs = {};
+    for (const team of ['blue', 'red']) {
+      const e = entries.find((x) => x.team === team);
+      if (e) {
+        const pr = profileOf(e.id); taken.add(pr.name); clubs[team] = pr.club;
+        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false });
+      } else {
+        const character = sim.pickBotCharacter(Math.random, sim.BOT_RARITY_ONLINE).id;
+        seats.push({ seat: seats.length, team, human: false, name: null, character, club: null, conn: null, gone: false });
+      }
+    }
+    for (const s of seats) if (!s.human) s.name = botName(taken);
+    const clubIds = sim.CLUBS.map((c) => c.id);
+    if (!clubs.blue) clubs.blue = pickOne(clubIds.filter((c) => c !== clubs.red));
+    if (!clubs.red) clubs.red = pickOne(clubIds.filter((c) => c !== clubs.blue));
+    const model = PenModel.create((Date.now() ^ nextRoom * 2654435761) >>> 0);
+    const room = { id: nextRoom++, code, format: 'pens', seats, state: 'intro', clubs, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: null,
+      pen: { model, phase: 'intro', pending: { shot: null, dive: null }, deadline: Date.now() + INTRO_MS + 10000, nextAt: 0 } };
+    rooms.set(room.id, room);
+    for (const seat of seats) if (seat.human) send(seat.conn, penView(room, seat));
+    return room;
+  }
+  function penSeat(room, id) { return room.seats.find((s) => s.userId === id && s.human && !s.gone); }
+  function penRoles(room) {
+    const shooter = room.seats.find((s) => s.team === room.pen.model.team);
+    const keeper = room.seats.find((s) => s.team !== room.pen.model.team);
+    return { shooter, keeper };
+  }
+  function penShot(id, msg) {
+    const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing' || room.pen.phase !== 'input') return;
+    const { shooter } = penRoles(room); if (!shooter || shooter.userId !== id || room.pen.pending.shot) return;
+    room.pen.pending.shot = { ax: Number(msg.ax), az: Number(msg.az), power: Number(msg.power) };
+    penTryResolve(room);
+  }
+  function penDive(id, msg) {
+    const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing' || room.pen.phase !== 'input') return;
+    const { keeper } = penRoles(room); if (!keeper || keeper.userId !== id || room.pen.pending.dive) return;
+    room.pen.pending.dive = { dx: Number(msg.dx), dz: Number(msg.dz), td: Math.max(-0.8, Math.min(1, (Date.now() - room.pen.turnAt) / 1000)) };
+    penTryResolve(room);
+  }
+  function penBotInputs(room) {
+    const p = room.pen, { shooter, keeper } = penRoles(room);
+    if (!shooter.human && !p.pending.shot) {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      p.pending.shot = { ax: side * (0.45 + Math.random() * 0.42), az: 0.08 + Math.random() * 0.68, power: 0.55 + Math.random() * 0.3 };
+    }
+    if (!keeper.human && !p.pending.dive) {
+      const r = Math.random(), side = r < 0.44 ? -1 : r < 0.88 ? 1 : 0;
+      p.pending.dive = { dx: side, dz: side ? -0.05 + Math.random() * 0.65 : 1, td: 0.12 + Math.random() * 0.18 };
+    }
+  }
+  function penTryResolve(room) {
+    const p = room.pen; penBotInputs(room);
+    if (!p.pending.shot || !p.pending.dive || p.phase !== 'input') return;
+    const shooter = penRoles(room).shooter;
+    const quality = shooter.human ? 0.65 : 0.55;
+    const result = PenModel.resolve(p.model, p.pending.shot, p.pending.dive, quality);
+    p.phase = result.winner ? 'end' : 'result'; p.nextAt = Date.now() + (result.winner ? 2600 : 2300); p.deadline = 0;
+    penBroadcast(room, { t: 'pen.result', ...result });
+  }
+  function penBeginTurn(room, now) {
+    const p = room.pen; p.pending = { shot: null, dive: null }; p.phase = 'input'; p.turnAt = now; p.deadline = now + 10000;
+    penBotInputs(room);
+    penBroadcast(room, { t: 'pen.turn', team: p.model.team, n: p.model.n, deadline: p.deadline, score: p.model.score, kicks: p.model.kicks });
+    penTryResolve(room);
+  }
+  function finishPens(room, forfeitTeam = null) {
+    if (room.state === 'over') return;
+    const winner = forfeitTeam ? (forfeitTeam === 'blue' ? 'red' : 'blue') : room.pen.model.winner;
+    if (!winner) return;
+    room.state = 'over'; room.endedAt = Date.now(); room.pen.model.winner = winner;
+    const moves = new Map(), results = [];
+    for (const seat of room.seats) {
+      if (!seat.human || seat.gone) continue;
+      const outcome = seat.team === winner ? 'win' : 'loss', mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
+      onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: other, goals: mine });
+      if (seat.club) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : -1));
+      results.push({ seat, outcome });
+    }
+    ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
+    for (const { seat, outcome } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
+    saveDB();
+  }
+  function tickPens(room, now) {
+    const p = room.pen;
+    if (room.state === 'intro') { if (now < room.startAt) return; room.state = 'playing'; penBeginTurn(room, now); return; }
+    if (room.state !== 'playing') return;
+    if (p.phase === 'input' && now >= p.deadline) {
+      const { shooter, keeper } = penRoles(room);
+      if (!p.pending.shot) p.pending.shot = shooter.human ? { ax: 0, az: 0.42, power: 0.58 } : null;
+      if (!p.pending.dive) p.pending.dive = keeper.human ? { dx: 0, dz: 1, td: 1 } : null;
+      penTryResolve(room);
+    } else if (p.phase === 'result' && now >= p.nextAt) penBeginTurn(room, now);
+    else if (p.phase === 'end' && now >= p.nextAt) finishPens(room);
+  }
   /* ---------------- matches ---------------- */
 
   // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
   function startRoom(format, entries, code, wcRound = null) {
+    if (format === 'pens') return startPensRoom(entries, code);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
     const seats = [];
@@ -564,7 +677,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound };
     room.m = sim.create({
       // World Cup rounds: no draws, and each round a notch tougher than the last
-      online: true, format: format === 'pens' ? '1v1' : format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
+      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
       // (the fill-ins start strong, so your level and the round only add half as much as they do offline)
       diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
@@ -578,6 +691,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
 
   function sendStart(room, seat) {
+    if (room.pen) return send(seat.conn, penView(room, seat));
     const m = room.m;
     send(seat.conn, {
       t: 'start', room: room.id, code: room.code, format: room.format, minutes: MATCH_MINUTES,
@@ -688,6 +802,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   // While anyone from their team is still playing, a poor bot takes their spot; once their
   // team has nobody left, the match ends there and the team still on the pitch wins it.
   function playerLeft(room, seat) {
+    if (room.pen) {
+      const mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
+      onlineRecord(seat.userId, { outcome: 'loss', goalsFor: mine, goalsAgainst: other, goals: mine });
+      if (seat.club) ladder.move(seat.club, -1);
+      seat.gone = true; seat.conn = null; finishPens(room, seat.team); saveDB(); return;
+    }
     onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0 });
     if (room.state !== 'over' && seat.club) ladder.move(seat.club, -1);
     if (room.wc !== null && room.wc !== undefined && room.state !== 'over') wc.result(seat.userId, false);
@@ -778,6 +898,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const now = Date.now();
     for (const room of rooms.values()) {
       if (room.state === 'lobby') continue;
+      if (room.pen) {
+        for (const s of room.seats) if (s.human && !s.conn && !s.gone && s.leftAt && now - s.leftAt > RECONNECT_MS && room.state !== 'over') playerLeft(room, s);
+        if (room.state !== 'over') tickPens(room, now);
+        if (room.state === 'over' && now - room.endedAt > 10000) rooms.delete(room.id);
+        continue;
+      }
       if (room.state === 'over') { if (now - room.endedAt > 10000) rooms.delete(room.id); continue; }
       // dropped players get a bot after a grace period
       for (const s of room.seats) if (s.human && !s.conn && !s.gone && s.leftAt && now - s.leftAt > RECONNECT_MS && room.state !== 'over') playerLeft(room, s);

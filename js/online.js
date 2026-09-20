@@ -26,6 +26,10 @@ const Online = {
     Net.on('room', (m) => this.onRoom(m));
     Net.on('room.left', () => { this.status = 'idle'; this.room = null; UI.hideLobby(); });
     Net.on('start', (m) => this.start(m));
+    Net.on('pen.start', (m) => this.startPens(m));
+    Net.on('pen.turn', (m) => { if (this.m && this.m.pens) Pens.netTurn(this.m, m); });
+    Net.on('pen.result', (m) => { if (this.m && this.m.pens) Pens.netResult(this.m, m); });
+    Net.on('pen.end', (m) => this.endPens(m));
     Net.on('s', (m) => this.onSnapshot(m));
     Net.on('end', (m) => this.end(m));
     Net.on('left', () => {});
@@ -72,17 +76,32 @@ const Online = {
   onRoom(msg) { this.status = 'room'; this.room = msg; UI.showLobby(msg); },
   leaveRoom() { Net.send({ t: 'room.leave' }); this.status = 'idle'; this.room = null; UI.hideLobby(); },
 
+  // ---------- online penalty shootout ----------
+  startPens(msg) {
+    const other = msg.side === 'blue' ? 'red' : 'blue', opponent = Clubs.get(msg.clubs[other]) || Clubs.random(Clubs.mine());
+    this.status = 'match'; this.format = 'pens'; this.worldCup = false; this.room = null; this.penSide = msg.side;
+    Sound.unlock(); Game.goFullscreen(); FX.clear(); Input.reset(); UI.closeAll();
+    const m = Match.create({ mode: 'pens', club: opponent, format: '1v1' }); Pens.init(m); Game.match = m; Game.acc = 0;
+    $('hud').classList.add('pens'); UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
+    $('hud').classList.remove('replaying'); UI.show('match'); Game.state = 'intro'; UI.showIntro(m); Sound.startMusic(); Sound.startAmbience(); Sound.cheer(false);
+    m.net = true; m.online = true; m.roomId = msg.room; m.code = msg.code; m.mode = 'pens'; m.format = 'pens';
+    m.pens.net = true; m.pens.serverSide = msg.side; m.pens.phase = 'wait'; m.pens.t = 0;
+    this.m = m; $('hud').classList.add('pens'); UI.hideQueue(); UI.hideLobby();
+    if (msg.state && msg.state.phase === 'input') Pens.netTurn(m, { ...msg.state, deadline: msg.state.deadline });
+  },
+  endPens(msg) {
+    const m = this.m; if (!m || !m.pens || this.status !== 'match') return;
+    this.status = 'over'; const won = msg.outcome === 'win';
+    m.pens.winner = won ? 'blue' : 'red';
+    m.pens.kicks = this.penSide === 'blue' ? { blue: [...msg.kicks.blue], red: [...msg.kicks.red] } : { blue: [...msg.kicks.red], red: [...msg.kicks.blue] };
+    m.score = this.penSide === 'blue' ? { ...msg.score } : { blue: msg.score.red, red: msg.score.blue };
+    const coins = 30 + m.score.blue * 10 + m.pens.saves * 8 + (won ? 70 : 0);
+    m.result = { outcome: msg.outcome, mvp: won ? m.human : m.keepers.red, coins, base: coins, challengeCoins: 0, cupBonus: 0, mult: 1 };
+    m.phase = 'over';
+    setTimeout(() => { if (Game.match === m) { UI.showResults(m); UI._againMode = 'onlinepens'; } }, 900);
+  },
   // ---------- match start ----------
   start(msg) {
-    // Penalty matchmaking uses the shootout game, never the full-pitch 1v1 renderer.
-    if (msg.format === 'pens') {
-      this.status = 'idle'; this.m = null; this.room = null;
-      Net.send({ t: 'leave' });
-      const otherSide = msg.side === 'blue' ? 'red' : 'blue';
-      const opponent = Clubs.get(msg.clubs[otherSide]) || Clubs.random(Clubs.mine());
-      Game.startMatch({ mode: 'pens', club: opponent });
-      return;
-    }
     const resync = this.m && this.m.roomId === msg.room;
     this.status = 'match';
     this.mirror = msg.side === 'red';

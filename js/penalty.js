@@ -169,6 +169,7 @@ const Pens = {
   // ---------- the game ----------
   step(m, dt) {
     const P = m.pens;
+    if (P.net) return this.netStep(m, dt);
     P.t += dt;
     P.cheerT = Math.max(0, P.cheerT - dt);
     P.shake = Math.max(0, P.shake - dt);
@@ -322,6 +323,48 @@ const Pens = {
 
   xp(m) { const P = m.pens; return 30 + m.score.blue * 15 + P.saves * 15 + (P.winner === 'blue' ? 50 : 0); },
 
+  // ---------- server-authoritative online shootout ----------
+  netTeam(P, team) { return team === P.serverSide ? 'blue' : 'red'; },
+  netTurn(m, msg) {
+    const P = m.pens; P.team = this.netTeam(P, msg.team); P.n = msg.n; P.phase = 'ready'; P.t = 0; P.clock = Math.max(0, (msg.deadline - Date.now()) / 1000);
+    P.shot = null; P.dive = null; P.result = null; P.say = null; P.power = 0; P.holding = false; P.holdT = 0; P.netSent = false; P.netDeadline = msg.deadline; P.aim = { x: 0, z: 0.45 }; P.mouse = null;
+    P.kicks = P.serverSide === 'blue' ? { blue: [...msg.kicks.blue], red: [...msg.kicks.red] } : { blue: [...msg.kicks.red], red: [...msg.kicks.blue] };
+    m.score = P.serverSide === 'blue' ? { ...msg.score } : { blue: msg.score.red, red: msg.score.blue };
+    if (P.team === 'red') P.them = this.actor('red', false, P.takers[Math.floor(msg.n / 2) % 5].look, P.takers[Math.floor(msg.n / 2) % 5].number);
+    this.label(P.team === 'blue' ? 'SHOOT' : 'DIVE'); this.flushInput(); if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
+  },
+  netResult(m, msg) {
+    const P = m.pens; P.team = this.netTeam(P, msg.team); P.shot = msg.shot; P.dive = msg.dive; P.netResultData = msg; P.phase = 'flight'; P.t = 0;
+    const taker = this.taker(P); taker.kickT = taker.kickDur; taker.faceX = P.shot.x < 0 ? -1 : 1; taker.fy = 0; Sound.kick(0.4 + P.shot.power * 0.6);
+  },
+  netApply(m) {
+    const P = m.pens, r = P.netResultData, taker = this.taker(P), gk = this.goalie(P);
+    P.result = r.result; P.say = PEN_SAY[r.result]; P.kicks = P.serverSide === 'blue' ? { blue: [...r.kicks.blue], red: [...r.kicks.red] } : { blue: [...r.kicks.red], red: [...r.kicks.blue] };
+    m.score = P.serverSide === 'blue' ? { ...r.score } : { blue: r.score.red, red: r.score.blue }; P.after = { held: r.result === 'save' && P.shot.v < 24 && Math.abs(P.shot.x) < 2.2, side: Math.random() < 0.5 ? -1 : 1 };
+    if (P.team === 'blue') { m.human.stats.shots++; m.stats.blue.shots++; if (r.scored) m.human.stats.goals++; }
+    if (r.result === 'save' && P.team === 'red') { P.saves++; m.keepers.blue.stats.saves++; m.stats.blue.saves++; }
+    if (r.scored) { Sound.net(); taker.celebrateT = CELE_TIME; taker.celebKind = P.team === 'blue' ? Save.celebration() : null; } else { taker.sad = true; if (r.result === 'save') { Sound.save(); gk.celebrateT = 1.4; } }
+    P.phase = 'after'; P.t = 0; P.netResultData = null;
+  },
+  netStep(m, dt) {
+    const P = m.pens; P.t += dt; P.cheerT = Math.max(0, P.cheerT - dt); P.shake = Math.max(0, P.shake - dt); const taker = this.taker(P), gk = this.goalie(P);
+    if (P.phase === 'ready') { if (P.t > 0.65) { P.phase = P.team === 'blue' ? 'aim' : 'runup'; P.t = 0; Sound.whistle(); this.flushInput(); } return; }
+    if (P.phase === 'aim') {
+      const mv = Input.move; if (Math.hypot(mv.x, mv.y) > 0.05) P.mouse = null; if (P.mouse) { P.aim.x += (P.mouse.x - P.aim.x) * Math.min(1, dt * 14); P.aim.z += (P.mouse.z - P.aim.z) * Math.min(1, dt * 14); } else { P.aim.x += mv.x * 1.25 * dt; P.aim.z -= mv.y * 1.1 * dt; }
+      P.aim.x = clamp(P.aim.x, -1.08, 1.08); P.aim.z = clamp(P.aim.z, 0.03, 1.1); const wob = 0.035 + (1 - P.q) * 0.05; P.sway = { x: Math.sin(P.t * 2.3) * wob, z: Math.sin(P.t * 1.7 + 1) * wob * 0.8 };
+      if (Input.consumeShootPress() && !P.holding) { P.holding = true; P.holdT = 0; Sound.chargeStart(); } let release = Input.consumeShootRelease(); if (P.holding) { P.holdT += dt; P.power = Math.min(1, P.holdT / 0.85); if (P.holdT >= 1.6) release = true; }
+      P.clock = Math.max(0, (P.netDeadline - Date.now()) / 1000); if (P.clock <= 0 && !P.holding) { P.holding = true; P.power = 0.58; release = true; }
+      if (release && P.holding && !P.netSent) { P.holding = false; P.netSent = true; Sound.chargeStop(); Net.send({ t: 'pen.shot', ax: P.aim.x + P.sway.x, az: P.aim.z + P.sway.z, power: P.power }); P.phase = 'wait'; }
+      return;
+    }
+    if (P.phase === 'runup') {
+      taker.run = Math.min(1, P.t / 1.1); const press = Input.consumeShootPress() | Input.consumeSkill() | Input.consumeSlide() | (Input.consumePassPress ? Input.consumePassPress() : false); Input.consumeShootRelease(); Input.consumePass();
+      if (press && !P.dive && !P.netSent) { const mv = Input.move, l = Math.hypot(mv.x, mv.y); P.dive = l < 0.25 ? { dx: 0, dz: 1, td: P.t, v: PEN.PLAYER_DIVE } : { dx: mv.x / l, dz: -mv.y / l, td: P.t, v: PEN.PLAYER_DIVE }; P.netSent = true; Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz }); Sound.whoosh(true); }
+      return;
+    }
+    if (P.phase === 'flight') { this.pose(gk, P.dive, P.t); if (P.t >= P.shot.T) this.netApply(m); return; }
+    if (P.phase === 'after') this.pose(gk, P.dive, P.shot.T + P.t);
+  },
   // ---------- the picture ----------
   layout(W, H) {
     const L = this._lay;
