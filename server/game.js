@@ -576,13 +576,13 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function penShot(id, msg) {
     const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing' || room.pen.phase !== 'input') return;
     const { shooter } = penRoles(room); if (!shooter || shooter.userId !== id || room.pen.pending.shot) return;
-    room.pen.pending.shot = { ax: Number(msg.ax), az: Number(msg.az), power: Number(msg.power) };
+    room.pen.pending.shot = { ax: Number(msg.ax), az: Number(msg.az), power: Number(msg.power), at: Date.now() };
     penTryResolve(room);
   }
   function penDive(id, msg) {
     const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing' || room.pen.phase !== 'input') return;
     const { keeper } = penRoles(room); if (!keeper || keeper.userId !== id || room.pen.pending.dive) return;
-    room.pen.pending.dive = { dx: Number(msg.dx), dz: Number(msg.dz), td: Math.max(-0.8, Math.min(1, (Date.now() - room.pen.turnAt) / 1000)) };
+    room.pen.pending.dive = { dx: Number(msg.dx), dz: Number(msg.dz), at: Date.now() };
     penTryResolve(room);
   }
   function penBotInputs(room) {
@@ -599,9 +599,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function penTryResolve(room) {
     const p = room.pen; penBotInputs(room);
     if (!p.pending.shot || !p.pending.dive || p.phase !== 'input') return;
-    const shooter = penRoles(room).shooter;
+    const shooter = penRoles(room).shooter, shot = { ...p.pending.shot }, dive = { ...p.pending.dive };
+    if (Number.isFinite(shot.at) && Number.isFinite(dive.at)) dive.td = Math.max(-0.8, Math.min(1, (dive.at - shot.at) / 1000));
+    else if (!Number.isFinite(dive.td)) dive.td = 0;
+    delete shot.at; delete dive.at;
     const quality = shooter.human ? 0.65 : 0.55;
-    const result = PenModel.resolve(p.model, p.pending.shot, p.pending.dive, quality);
+    const result = PenModel.resolve(p.model, shot, dive, quality);
     p.phase = result.winner ? 'end' : 'result'; p.nextAt = Date.now() + (result.winner ? 2600 : 2300); p.deadline = 0;
     penBroadcast(room, { t: 'pen.result', ...result });
   }

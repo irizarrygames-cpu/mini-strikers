@@ -522,8 +522,8 @@ const Pens = {
 
   drawKeeper(ctx, L, P, t) {
     const gk = this.goalie(P), k = (1.9 * L.s) / 68;
-    const flying = P.phase === 'flight' || P.phase === 'after';
-    const tt = P.phase === 'flight' ? P.t : P.phase === 'after' ? P.shot.T + P.t : 0;
+    const flying = P.phase === 'flight' || P.phase === 'after' || (P.net && P.phase === 'runup' && P.dive);
+    const tt = P.phase === 'flight' ? P.t : P.phase === 'after' ? P.shot.T + P.t : P.phase === 'runup' ? P.t : 0;
     const K = flying && P.dive ? PEN.keeper(P.dive, 0, tt) : null;
     gk.fy = 1; gk.fx = 0; gk.faceX = 0.001;
     if (!K || (K.s <= 0 && P.dive && tt < P.dive.td)) {
