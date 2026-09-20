@@ -11,14 +11,14 @@ const NET_CELEBS = [null, ...CELEBRATIONS.map((c) => c.id), 'hype'];
 const NET_TRAILS = [null, 'pass', 'weak', 'shot', 'strong', 'electric', 'fire', 'plasma', 'blast', 'frost', 'toxic', 'shadow', 'rainbow', 'golden'];
 const NET_ULTS = ULT_KINDS;
 const NET_TICK_MS = 1000 / 120;
-const NET_DELAY_TICKS = 10;           // how far behind the newest snapshot other players are drawn
+const NET_LEAD_SMOOTH = 12;          // smooth acknowledgement/ping changes without making controls laggy
 const NET_POS_FX = new Set(['text', 'burst', 'sparks', 'ring', 'stars']);
 
 const Online = {
   m: null, mirror: false, you: -1, format: '2v2', status: 'idle', // idle | queue | room | match
   snaps: [], offset: null, seq: 0, sendT: 0, bits: 0, lastSent: null, inputs: [],
   pred: null, predOk: false, corr: { x: 0, y: 0 }, lastEnd: null, room: null, ballCorr: { x: 0, y: 0 }, ballPrev: null, busyCorr: null,
-  lead: 0, localOwn: null, kick: null, kickSeq: 0, kickBlock: 0, kickT: 0, wBall: 0, pendingBurst: 0,
+  lead: 0, visualLead: 0, localOwn: null, kick: null, kickSeq: 0, kickBlock: 0, kickT: 0, wBall: 0, pendingBurst: 0,
 
   init() {
     Net.on('queue', (m) => this.onQueue(m));
@@ -109,7 +109,7 @@ const Online = {
     this.format = msg.format;
     this.snaps = []; this.offset = null; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
     this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
-    this.lead = 0; this.leadBase = 0; this.leadAt = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
+    this.lead = 0; this.visualLead = 0; this.leadBase = 0; this.leadAt = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
     const flipTeam = (t) => (this.mirror ? (t === 'blue' ? 'red' : 'blue') : t);
     const mine = Clubs.get(msg.clubs[msg.side]), theirs = Clubs.get(msg.clubs[msg.side === 'blue' ? 'red' : 'blue']);
     Clubs.setMatch(mine, theirs);
@@ -231,7 +231,9 @@ const Online = {
     const latest = this.snaps[this.snaps.length - 1];
     const now = performance.now(), since = Math.max(0, (now - latest.at) / 1000);
     this.lead = (this.leadBase || 0) + (now - (this.leadAt || now)) / 1000;
-    const ahead = this.ahead = Math.min(0.3, this.lead) * (latest.ts || 1);
+    const leadTarget = Math.min(0.3, this.lead);
+    this.visualLead += (leadTarget - this.visualLead) * (1 - Math.exp(-NET_LEAD_SMOOTH * dt));
+    const ahead = this.ahead = this.visualLead * (latest.ts || 1);
     for (const snap of this.snaps) {
       if (snap.fired) continue;
       snap.fired = true;

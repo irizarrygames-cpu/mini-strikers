@@ -335,7 +335,7 @@ const Pens = {
   },
   netResult(m, msg) {
     const P = m.pens; P.team = this.netTeam(P, msg.team); P.shot = msg.shot; P.dive = msg.dive; P.netResultData = msg; P.phase = 'flight'; P.t = 0;
-    const taker = this.taker(P); taker.kickT = taker.kickDur; taker.faceX = P.shot.x < 0 ? -1 : 1; taker.fy = 0; Sound.kick(0.4 + P.shot.power * 0.6);
+    const taker = this.taker(P); taker.run = 1; taker.kickT = taker.kickDur; taker.faceX = P.shot.x < 0 ? -1 : 1; taker.fy = 0; Sound.kick(0.4 + P.shot.power * 0.6);
   },
   netApply(m) {
     const P = m.pens, r = P.netResultData, taker = this.taker(P), gk = this.goalie(P);
@@ -354,9 +354,10 @@ const Pens = {
       P.aim.x = clamp(P.aim.x, -1.08, 1.08); P.aim.z = clamp(P.aim.z, 0.03, 1.1); const wob = 0.035 + (1 - P.q) * 0.05; P.sway = { x: Math.sin(P.t * 2.3) * wob, z: Math.sin(P.t * 1.7 + 1) * wob * 0.8 };
       if (Input.consumeShootPress() && !P.holding) { P.holding = true; P.holdT = 0; Sound.chargeStart(); } let release = Input.consumeShootRelease(); if (P.holding) { P.holdT += dt; P.power = Math.min(1, P.holdT / 0.85); if (P.holdT >= 1.6) release = true; }
       P.clock = Math.max(0, (P.netDeadline - Date.now()) / 1000); if (P.clock <= 0 && !P.holding) { P.holding = true; P.power = 0.58; release = true; }
-      if (release && P.holding && !P.netSent) { P.holding = false; P.netSent = true; Sound.chargeStop(); Net.send({ t: 'pen.shot', ax: P.aim.x + P.sway.x, az: P.aim.z + P.sway.z, power: P.power }); P.phase = 'wait'; }
+      if (release && P.holding && !P.netSent) { P.holding = false; P.netSent = true; Sound.chargeStop(); Net.send({ t: 'pen.shot', ax: P.aim.x + P.sway.x, az: P.aim.z + P.sway.z, power: P.power }); P.phase = 'wait'; P.t = 0; }
       return;
     }
+    if (P.phase === 'wait') { taker.run = Math.min(1, P.t / 0.24); return; }
     if (P.phase === 'runup') {
       taker.run = Math.min(1, P.t / 1.1); const press = Input.consumeShootPress() | Input.consumeSkill() | Input.consumeSlide() | (Input.consumePassPress ? Input.consumePassPress() : false); Input.consumeShootRelease(); Input.consumePass();
       if (press && !P.dive && !P.netSent) { const mv = Input.move, l = Math.hypot(mv.x, mv.y); P.dive = l < 0.25 ? { dx: 0, dz: 1, td: P.t, v: PEN.PLAYER_DIVE } : { dx: mv.x / l, dz: -mv.y / l, td: P.t, v: PEN.PLAYER_DIVE }; P.netSent = true; Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz }); Sound.whoosh(true); }
@@ -592,10 +593,10 @@ const Pens = {
     if (!a) return;
     const k = ((1.9 * L.s) / 68) * L.near * 0.75, m = L.s * L.near;
     // standing back and to the left of the ball, then two steps into it
-    const run = a.run || 0;
-    const x = L.spot.x - m * lerp(0.95, 0.42, run), y = L.spot.y + m * lerp(0.55, 0.12, run);
+    const run = clamp(a.run || 0, 0, 1), smoothRun = run * run * (3 - 2 * run);
+    const x = L.spot.x - m * lerp(0.95, 0.42, smoothRun), y = L.spot.y + m * lerp(0.55, 0.12, smoothRun);
     a.vx = run > 0 && run < 1 ? CFG.SPEED : 0; a.vy = 0;
-    a.runPhase = (a.runPhase || 0) + (run > 0 && run < 1 ? 0.35 : 0);
+    if (run > 0 && run < 1) a.runPhase = t * 12;
     if (a.kickT <= 0 && a.celebrateT <= 0 && P.phase !== 'after') { a.fy = -1; a.faceX = 0.001; }
     if (P.phase === 'after' && a.celebrateT <= 0 && !a.sad) { a.fy = -1; a.faceX = 0.001; }
     Sprites.player(ctx, a, x, y, k, t);
