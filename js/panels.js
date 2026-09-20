@@ -85,14 +85,13 @@ Object.assign(UI, {
           <p>Play five kicks each against a computer-controlled opponent.</p>
           <span class="tag">VS ${club.name}</span>
         </button>
-        <button class="mode online" data-pens="online">
+        <button class="mode online" data-pens="online" disabled>
           <strong>ONLINE</strong>
-          <p>Search for another player. Open spots fill after about 30 seconds.</p>
-          <span class="tag">ONLINE PENALTIES</span>
+          <p>Real online penalty shootouts are temporarily unavailable.</p>
+          <span class="tag">COMING SOON</span>
         </button>
       </div>`;
     body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
-    body.querySelector('[data-pens="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens'); });
   },
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
   panel_worldcup(body) {

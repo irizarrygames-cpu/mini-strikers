@@ -360,7 +360,7 @@ const UI = {
     $('lobby').hidden = false;
     $('lb-code').textContent = msg.code;
     const size = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
-    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['pens', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
+    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
     $('lb-formats').querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.send({ t: 'room.format', format: b.dataset.f }); }));
     const side = (team, el) => {
       const list = msg.players.filter((p) => p.team === team);
