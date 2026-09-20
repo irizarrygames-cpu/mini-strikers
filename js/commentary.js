@@ -4,7 +4,7 @@
 const Commentary = {
   m: null, cd: 0, idle: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
-  kickCount: 0, recent: [], serial: 0,
+  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, nextVoiceAt: 0, unlocked: false,
   banks: {
     kickoff: ['And we are UNDERWAY!', 'The whistle goes—let the chaos begin!', 'Here we go! Ninety seconds of tiny-football madness!', 'Strap in. This could get ridiculous.'],
     shot: ['HE HITS IT!', 'SHOT ON!', 'That has been absolutely launched!', 'He has put his entire postcode through that!', 'From there?! Audacious!', 'The net is looking nervous!', 'Someone check the ball—it has been THUMPED!'],
@@ -15,6 +15,7 @@ const Commentary = {
     turnover: ['Possession stolen—danger!', 'They have coughed it up!', 'A gift, wrapped and delivered!', 'The ball changes hands and suddenly it is panic stations!'],
     miss: ['WIDE! The corner flag felt that one!', 'That shot needs directions!', 'Into row Z—someone keep the souvenir!', 'The goal was over there, my friend!', 'Close… if the target was the advertising board!', 'The keeper can unpack the sandwiches; no save required.'],
     quiet: ['A tense little spell here.', 'Both teams plotting. Neither team sharing the plan.', 'The crowd senses something coming.', 'This match is simmering nicely.', 'One pass could open the whole thing up.', 'Everyone is running. Some even know where.'],
+    flow: ['{team} have the ball and they are looking for an opening.', '{player} takes possession. What can they create here?', '{team} move forward with real purpose.', 'The pressure is building. {team} are asking questions now.', '{player} slows it down, looks up, and picks the next move.', '{team} keep it moving. The defenders are being pulled everywhere.', 'Plenty of space ahead of {player}. This could become dangerous.', '{team} recycle possession and start again.', '{player} carries it into midfield with options left and right.', 'Listen to the crowd. They sense a chance for {team}.', '{team} are trying to turn possession into something spectacular.', '{player} is dictating the tempo right now.', 'A patient spell from {team}, but one sharp pass could change everything.', '{team} come again. The opposition cannot switch off for a second.', '{player} wants the ball, gets the ball, and drives the play forward.', 'End-to-end football here. Nobody is interested in slowing down.', 'The shape is opening up, and {team} are ready to attack it.', '{player} checks over the shoulder. There is room to work with.', 'Good control from {player}; now the next pass has to be right.', '{team} are camped in the attacking half and looking hungry.'],
     joke: ['{loser} are defending like the ball owes them money.', '{loser} have brought traffic cones to a football match.', '{winner} are cooking; {loser} forgot the recipe.', '{loser} need a timeout, a whiteboard, and possibly a compass.', '{winner} are moving the ball like it is remote-controlled.', 'The {loser} defense is socially distancing from the ball.'],
     goal: ['GOOOOOOOAL!', 'OH MY WORD! WHAT A GOAL!', 'THE NET HAS EXPLODED!', 'ABSOLUTE SCENES!', 'YOU CANNOT WRITE THIS!', 'BEDLAM IN THE STANDS!', 'That is outrageous! Simply OUTRAGEOUS!', 'Stop it! That is football from another planet!'],
     comeback: ['THE COMEBACK IS COMPLETE!', 'FROM THE DEAD—THEY HAVE TURNED IT AROUND!', 'They were buried, and now they lead! Incredible!'],
@@ -32,6 +33,33 @@ const Commentary = {
   },
   name(p) { return p ? (p.isHuman ? 'YOU' : p.name || `${TEAMS[p.team].name} NUMBER ${p.number}`) : 'THE PLAYER'; },
   team(t) { return (TEAMS[t] && TEAMS[t].name) || String(t || '').toUpperCase(); },
+  init() {
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    this.refreshVoices();
+    if (window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', () => this.refreshVoices());
+  },
+  refreshVoices() {
+    this.voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    const score = (v) => {
+      const n = `${v.name} ${v.voiceURI}`.toLowerCase(); let x = /^en/i.test(v.lang) ? 20 : -100;
+      if (/natural|neural|premium|enhanced|online/.test(n)) x += 100;
+      if (/ryan|guy|daniel|george|aaron|arthur|oliver|liam/.test(n)) x += 35;
+      if (/google uk english male|microsoft.*english.*united kingdom/.test(n)) x += 30;
+      if (/en-(gb|ie|au)/i.test(v.lang)) x += 18;
+      if (v.localService) x += 4;
+      return x;
+    };
+    this.voice = this.voices.filter((v) => /^en/i.test(v.lang)).sort((a, b) => score(b) - score(a))[0] || null;
+  },
+  unlock() {
+    if (this.unlocked || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    this.unlocked = true; this.refreshVoices();
+    const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u);
+  },
+  flowLine(m) {
+    const p = m.ball && m.ball.owner, team = p ? p.team : (m.score.blue >= m.score.red ? 'red' : 'blue');
+    return this.pick(this.banks.flow).replaceAll('{team}', this.team(team)).replaceAll('{player}', this.name(p));
+  },
   reset(m) {
     this.m = m; this.cd = 0; this.idle = 0; this.passChain = 0; this.passTeam = null; this.lastOwner = m.ball && m.ball.owner;
     this.lastShot = !!(m.ball && m.ball.shot); this.score = { ...m.score }; this.kickCount = 0; this.penKicks = { blue: 0, red: 0 }; this.serial++;
@@ -46,12 +74,23 @@ const Commentary = {
     clearTimeout(this.hideTimer); this.hideTimer = setTimeout(() => el.classList.remove('show','big'), priority >= 3 ? 4200 : 2600);
     this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62; this.idle = 0;
     if (!voice || Save.data.settings.commentary === false || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
-    if (priority >= 3) window.speechSynthesis.cancel();
-    if (window.speechSynthesis.pending && priority < 2) return;
-    const u = new SpeechSynthesisUtterance(text.replace(/GOOOOOOOAL/g, 'GOAL'));
-    u.rate = priority >= 3 ? 1.16 : 1.28; u.pitch = priority >= 3 ? 1.1 : 1.04; u.volume = Math.min(1, 0.5 + (Save.data.settings.sfx || 0) * 0.45);
-    const voices = window.speechSynthesis.getVoices(); u.voice = voices.find((v) => /en-(GB|AU|IE)/i.test(v.lang)) || voices.find((v) => /^en/i.test(v.lang)) || null;
-    window.speechSynthesis.speak(u);
+    const synth = window.speechSynthesis;
+    if ((synth.speaking || synth.pending || this.speaking) && priority < 2) return;
+    if (priority >= 2) synth.cancel();
+    if (!this.voice) this.refreshVoices();
+    const spoken = text.replace(/GOOOOOOOAL/g, 'Gooooal').replace(/—/g, ', ');
+    const u = new SpeechSynthesisUtterance(spoken);
+    u.voice = this.voice; u.lang = (this.voice && this.voice.lang) || 'en-GB';
+    u.rate = priority >= 3 ? 1.02 : priority === 2 ? 1.08 : 1.12;
+    u.pitch = priority >= 3 ? 0.92 : 0.96;
+    u.volume = Math.min(1, 0.58 + (Save.data.settings.sfx || 0) * 0.42);
+    this.speaking = true;
+    const finished = () => {
+      this.speaking = false;
+      const rareBreath = Math.random() < 0.22;
+      this.nextVoiceAt = Date.now() + (rareBreath ? 1400 + Math.random() * 1600 : 120 + Math.random() * 520);
+    };
+    u.onend = finished; u.onerror = finished; synth.speak(u);
   },
   passLine(team, p) {
     const n = this.passChain, who = this.name(p);
@@ -106,6 +145,7 @@ const Commentary = {
     }
     if(!owner && prev && !shot) this.passChain=Math.max(0,this.passChain-1);
     this.lastOwner=owner;
-    if(this.idle>11+Math.random()*7 && this.cd<=0 && m.phase==='play') this.say(this.pick(this.banks.quiet),1,true);
+    const synth=window.speechSynthesis;
+    if(m.phase==='play' && this.idle>1.25 && Date.now()>=this.nextVoiceAt && !this.speaking && !(synth && (synth.speaking||synth.pending))) this.say(this.flowLine(m),1,true);
   },
 };

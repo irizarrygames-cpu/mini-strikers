@@ -4,11 +4,12 @@ const $ = (id) => document.getElementById(id);
 const UI = {
   init() {
     document.title = GAME_NAME;
+    Commentary.init();
     $('logo').innerHTML = GAME_NAME.split(' ').map((w) => `<span>${w}</span>`).join('');
     $('splash-logo').innerHTML = $('logo').innerHTML;
     const leaveSplash = () => {
       if ($('splash').classList.contains('gone')) return;
-      Sound.unlock(); Sound.tap(); Sound.startMusic();
+      Sound.unlock(); Commentary.unlock(); Sound.tap(); Sound.startMusic();
       $('splash').classList.add('gone');
       setTimeout(() => { $('splash').hidden = true; }, 450);
       Game.enter();
