@@ -4,7 +4,7 @@
 const Commentary = {
   m: null, cd: 0, idle: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
-  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false,
+  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false, captionToken: 0,
   banks: {
     kickoff: ['And we are UNDERWAY!', 'The whistle goes—let the chaos begin!', 'Here we go! Ninety seconds of tiny-football madness!', 'Strap in. This could get ridiculous.'],
     shot: ['HE HITS IT!', 'SHOT ON!', 'That has been absolutely launched!', 'He has put his entire postcode through that!', 'From there?! Audacious!', 'The net is looking nervous!', 'Someone check the ball—it has been THUMPED!', 'HE HAS HIT THAT LIKE IT INSULTED HIS FAMILY!', 'The keeper has seen it coming and immediately started negotiating!', 'That shot had absolutely no chill!', 'He shoots from a different postal code!'],
@@ -76,7 +76,32 @@ const Commentary = {
     for (const k of ['saves','tackles','skills']) this[k] = { blue: (m.stats.blue[k] || 0), red: (m.stats.red[k] || 0) };
     this.say(this.pick(this.banks.kickoff), 1, false);
   },
-  hide() { const el = typeof $ === 'function' ? $('commentary') : null; if (el) el.classList.remove('show','big'); },
+  hide() {
+    clearInterval(this.typeTimer); clearTimeout(this.hideTimer); this.captionToken++;
+    const el = typeof $ === 'function' ? $('commentary') : null; if (el) el.classList.remove('show','big');
+  },
+  showCaption(text, priority, typed = true) {
+    const el = $('commentary'), line = $('commentary-line'); if (!el || !line) return 0;
+    clearInterval(this.typeTimer); clearTimeout(this.hideTimer);
+    const token = ++this.captionToken;
+    el.classList.toggle('big', priority >= 3); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    if (!typed) line.textContent = text;
+    else {
+      let i = 0; line.textContent = '';
+      this.typeTimer = setInterval(() => {
+        if (token !== this.captionToken) return clearInterval(this.typeTimer);
+        i = Math.min(text.length, i + 1); line.textContent = text.slice(0, i);
+        if (i >= text.length) clearInterval(this.typeTimer);
+      }, 50);
+    }
+    const visibleMs = Math.max(priority >= 3 ? 4200 : 2600, text.length * 50 + 900);
+    this.hideTimer = setTimeout(() => { if (token === this.captionToken) el.classList.remove('show','big'); }, visibleMs);
+    return token;
+  },
+  finishCaption(token, text) {
+    if (token !== this.captionToken) return;
+    clearInterval(this.typeTimer); const line = $('commentary-line'); if (line) line.textContent = text;
+  },
   speakVoice(item) {
     const synth = window.speechSynthesis;
     if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
@@ -89,9 +114,10 @@ const Commentary = {
     u.pitch = (item.priority >= 3 ? 0.92 : 0.96) + (Math.random() - 0.5) * 0.035;
     u.volume = Math.min(1, 0.58 + (Save.data.settings.sfx || 0) * 0.42);
     this.speaking = true;
+    const caption = this.showCaption(item.text, item.priority, true);
     const finished = () => {
       if (token !== this.voiceToken) return;
-      this.speaking = false;
+      this.speaking = false; this.finishCaption(caption, item.text);
       if (this.voiceQueue.length) { this.speakVoice(this.voiceQueue.shift()); return; }
       const rareBreath = Math.random() < 0.22;
       this.nextVoiceAt = Date.now() + (rareBreath ? 1400 + Math.random() * 1600 : 100 + Math.random() * 360);
@@ -100,11 +126,9 @@ const Commentary = {
   },
   say(text, priority = 1, voice = true) {
     if (!text || Save.data.settings.commentary === false) return;
-    const el = $('commentary'), line = $('commentary-line'); if (!el || !line) return;
-    line.textContent = text; el.classList.toggle('big', priority >= 3); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-    clearTimeout(this.hideTimer); this.hideTimer = setTimeout(() => el.classList.remove('show','big'), priority >= 3 ? 4200 : 2600);
     this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62; this.idle = 0;
-    if (!voice || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    const canSpeak = voice && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined';
+    if (!canSpeak) { this.showCaption(text, priority, false); return; }
     const item = { text, priority }, synth = window.speechSynthesis;
     if (priority >= 2) {
       this.voiceToken++; this.speaking = false; synth.cancel(); this.speakVoice(item); return;

@@ -4,7 +4,7 @@ const els = new Map();
 const el = (id) => els.get(id) || els.set(id, { id, textContent: '', offsetWidth: 1, classList: { add() {}, remove() {}, toggle() {} } }).get(id);
 const spoken = [];
 function SpeechSynthesisUtterance(text) { this.text = text; }
-const sandbox = { console, Math, Set, Map, String, clearTimeout, setTimeout, SpeechSynthesisUtterance,
+const sandbox = { console, Math, Set, Map, String, clearTimeout, setTimeout, clearInterval, setInterval, SpeechSynthesisUtterance,
   Save: { data: { settings: { commentary: true, sfx: .8 } } },
   TEAMS: { blue: { name: 'SPAIN' }, red: { name: 'BRAZIL' } },
   $: el, window: { speechSynthesis: { pending: false, speaking: false, pending: false, speak: (u) => { spoken.push(u.text); if (u.onend) u.onend(); }, cancel() {}, getVoices: () => [{ name: 'Microsoft Ryan Online (Natural)', voiceURI: 'Ryan Natural', lang: 'en-GB', localService: false }] } },
@@ -26,8 +26,9 @@ check('no unresolved commentary placeholders', Object.values(C.banks).flat().eve
 check('spoken delivery used', spoken.length >= 4, String(spoken.length));
 check('natural English voice selected', C.voice && /Natural/.test(C.voice.name), C.voice && C.voice.name);
 check('occasional break capped at three seconds', C.nextVoiceAt - Date.now() <= 3050, String(C.nextVoiceAt - Date.now()));
-C.speaking = true; sandbox.window.speechSynthesis.speaking = true; const queuedBefore = C.voiceQueue.length; C.say('THE MOVE CONTINUES!', 1, true);
-check('busy speech queues rather than drops a line', C.voiceQueue.length === queuedBefore + 1, String(C.voiceQueue.length)); C.speaking = false; sandbox.window.speechSynthesis.speaking = false;
+C.speaking = true; sandbox.window.speechSynthesis.speaking = true; const queuedBefore = C.voiceQueue.length, captionBefore = el('commentary-line').textContent; C.say('THE MOVE CONTINUES!', 1, true);
+check('busy speech queues rather than drops a line', C.voiceQueue.length === queuedBefore + 1, String(C.voiceQueue.length));
+check('queued speech does not get ahead on screen', el('commentary-line').textContent === captionBefore, el('commentary-line').textContent); C.speaking = false; sandbox.window.speechSynthesis.speaking = false;
 C.pause(); check('pause clears queued speech', C.paused && C.voiceQueue.length === 0 && !C.speaking, JSON.stringify({ paused: C.paused, queued: C.voiceQueue.length, speaking: C.speaking }));
 C.resume(); check('resume restarts with fresh commentary', !C.paused && C.nextVoiceAt > Date.now(), String(C.nextVoiceAt - Date.now()));
 if (fails) process.exit(1); console.log('all commentary checks passed'); process.exit(0);
