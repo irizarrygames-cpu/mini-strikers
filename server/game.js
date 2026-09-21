@@ -17,6 +17,7 @@ const QUEUE_WAIT_MIN = 30000, QUEUE_WAIT_MAX = 33000;
 const RECONNECT_MS = 20000;         // a dropped player keeps their seat this long
 const PARTY_MAX = 4;                // a party fills one side at most
 const PARTY_INVITE_MS = 60000;      // an invite you don't answer runs out
+const CHALLENGE_INVITE_MS = 60000;
 const PARTY_OFFLINE_MS = 60000;     // someone whose game closed keeps their party spot this long
 const CHAT_GAP_MS = 1200, CHAT_BURST = 5, CHAT_BURST_MS = 10000; // quick chat: one at a time, five in any 10s
 const MATCH_MINUTES = 3;
@@ -100,6 +101,41 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     return c.busy ? 'busy' : 'online';
   }
   const friends = createFriends({ getUser, userName, saveDB, statusOf, push });
+
+  // Direct friend challenges skip matchmaking, but availability is checked again on acceptance.
+  const challenges = new Map(); // recipient -> { id, from, until }
+  let nextChallenge = 1;
+  function challengeInvite(me, name) {
+    const them = friends.idOf(name);
+    if (!them || them === me || !friends.areFriends(me, them)) return { ok: false, msg: 'You can only challenge friends' };
+    if (statusOf(me) !== 'online') return { ok: false, msg: 'Finish your match or search first' };
+    if (statusOf(them) !== 'online') return { ok: false, msg: `${userName(them)} is unavailable right now` };
+    const pending = challenges.get(them);
+    if (pending && pending.until > Date.now()) return { ok: false, msg: `${userName(them)} already has a challenge waiting` };
+    const invite = { id: nextChallenge++, from: me, until: Date.now() + CHALLENGE_INVITE_MS };
+    challenges.set(them, invite);
+    push(them, { t: 'challenge.invite', id: invite.id, from: userName(me), club: profileOf(me).club });
+    return { ok: true, msg: `Challenged ${userName(them)} to a 1v1` };
+  }
+  function challengeAccept(me, inviteId) {
+    const invite = challenges.get(me);
+    if (!invite || invite.id !== Number(inviteId)) return { ok: false, msg: 'That challenge is gone' };
+    challenges.delete(me);
+    if (invite.until < Date.now()) return { ok: false, msg: 'That challenge ran out' };
+    if (!friends.areFriends(me, invite.from) || statusOf(me) !== 'online' || statusOf(invite.from) !== 'online') {
+      push(invite.from, { t: 'challenge.info', msg: `${userName(me)} is unavailable for a 1v1` });
+      return { ok: false, msg: 'One of you is already in a match or search' };
+    }
+    startRoom('1v1', [{ id: invite.from, team: 'blue' }, { id: me, team: 'red' }], null);
+    return { ok: true, msg: `1v1 with ${userName(invite.from)} starting` };
+  }
+  function challengeDecline(me, inviteId) {
+    const invite = challenges.get(me);
+    if (!invite || invite.id !== Number(inviteId)) return { ok: true };
+    challenges.delete(me);
+    push(invite.from, { t: 'challenge.info', msg: `${userName(me)} declined the 1v1 challenge` });
+    return { ok: true };
+  }
 
   /* ---------------- parties ----------------
      Friends team up: the leader queues and the whole party goes into the same match on the same
@@ -300,7 +336,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (++conn.msgs > 150) return;
     const id = conn.userId;
     // friends and parties: plenty for anyone clicking about, not enough to spam people
-    if (/^(friend|party)\./.test(msg.t)) {
+    if (/^(friend|party|challenge)\./.test(msg.t)) {
       if (now - (conn.socialWindow || 0) > 60000) { conn.socialWindow = now; conn.social = 0; }
       if (++conn.social > 40) return send(conn, { t: 'social', ok: false, msg: 'Slow down a bit' });
     }
@@ -323,6 +359,9 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'party.decline': return answer(partyDecline(id, msg.id));
       case 'party.leave': leaveParty(id); return;
       case 'party.kick': return answer(partyKick(id, msg.name));
+      case 'challenge.send': return answer(challengeInvite(id, msg.name));
+      case 'challenge.accept': return answer(challengeAccept(id, msg.id));
+      case 'challenge.decline': return answer(challengeDecline(id, msg.id));
       case 'queue': return joinQueue(conn, msg.format, msg.wc === true);
       case 'unqueue': if (!stopQueue(id, `${userName(id)} stopped the search`)) send(conn, { t: 'unqueued' }); return;
       case 'room.create': return createLobby(conn, msg.format);
