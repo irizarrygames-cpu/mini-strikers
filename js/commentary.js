@@ -2,7 +2,7 @@
 // voice for the biggest calls. Lines are assembled from contextual banks, so matches do not
 // sound scripted and pass moves build from "one" into a full dramatic sequence.
 const Commentary = {
-  m: null, cd: 0, idle: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
+  m: null, cd: 0, idle: 0, lastMinorAt: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
   kickCount: 0, recent: [], usedLines: new Set(), serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false, captionToken: 0,
   banks: {
@@ -141,12 +141,14 @@ const Commentary = {
   },
   say(text, priority = 1, voice = true) {
     if (!text || Save.data.settings.commentary === false) return;
+    if (voice && priority === 1 && Date.now() - this.lastMinorAt < 5000) return;
+    if (voice && priority === 1) this.lastMinorAt = Date.now();
     this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62; this.idle = 0;
     const canSpeak = voice && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined';
     if (!canSpeak) { this.showCaption(text, priority, false); return; }
     const item = { text, priority }, synth = window.speechSynthesis;
     if (priority >= 2) {
-      this.voiceToken++; this.speaking = false; synth.cancel(); this.speakVoice(item); return;
+      this.voiceToken++; this.speaking = false; this.voiceQueue.length = 0; synth.cancel(); this.speakVoice(item); return;
     }
     if (synth.speaking || synth.pending || this.speaking) { this.voiceQueue.push(item); return; }
     this.speakVoice(item);
@@ -205,6 +207,6 @@ const Commentary = {
     if(!owner && prev && !shot) this.passChain=Math.max(0,this.passChain-1);
     this.lastOwner=owner;
     const synth=window.speechSynthesis;
-    if(m.phase==='play' && this.idle>1.25 && Date.now()>=this.nextVoiceAt && !this.speaking && !(synth && (synth.speaking||synth.pending))) this.say(this.flowLine(m),1,true);
+    if(m.phase==='play' && this.idle>3 && Date.now()>=this.nextVoiceAt && !this.speaking && !(synth && (synth.speaking||synth.pending))) this.say(this.flowLine(m),1,true);
   },
 };
