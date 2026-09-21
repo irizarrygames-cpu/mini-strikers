@@ -4,7 +4,7 @@
 const Commentary = {
   m: null, cd: 0, idle: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
-  kickCount: 0, recent: [], serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false, captionToken: 0,
+  kickCount: 0, recent: [], usedLines: new Set(), serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false, captionToken: 0,
   banks: {
     kickoff: ['And we are UNDERWAY!', 'The whistle goes—let the chaos begin!', 'Here we go! Ninety seconds of tiny-football madness!', 'Strap in. This could get ridiculous.'],
     shot: ['HE HITS IT!', 'SHOT ON!', 'That has been absolutely launched!', 'He has put his entire postcode through that!', 'From there?! Audacious!', 'The net is looking nervous!', 'Someone check the ball—it has been THUMPED!', 'HE HAS HIT THAT LIKE IT INSULTED HIS FAMILY!', 'The keeper has seen it coming and immediately started negotiating!', 'That shot had absolutely no chill!', 'He shoots from a different postal code!'],
@@ -17,7 +17,7 @@ const Commentary = {
     quiet: ['A tense little spell here.', 'Both teams plotting. Neither team sharing the plan.', 'The crowd senses something coming.', 'This match is simmering nicely.', 'One pass could open the whole thing up.', 'Everyone is running. Some even know where.'],
     flow: ['{team} have the ball and they are looking for an opening.', '{player} takes possession. What can they create here?', '{team} move forward with real purpose.', 'The pressure is building. {team} are asking questions now.', '{player} slows it down, looks up, and picks the next move.', '{team} keep it moving. The defenders are being pulled everywhere.', 'Plenty of space ahead of {player}. This could become dangerous.', '{team} recycle possession and start again.', '{player} carries it into midfield with options left and right.', 'Listen to the crowd. They sense a chance for {team}.', '{team} are trying to turn possession into something spectacular.', '{player} is dictating the tempo right now.', 'A patient spell from {team}, but one sharp pass could change everything.', '{team} come again. The opposition cannot switch off for a second.', '{player} wants the ball, gets the ball, and drives the play forward.', 'End-to-end football here. Nobody is interested in slowing down.', 'The shape is opening up, and {team} are ready to attack it.', '{player} checks over the shoulder. There is room to work with.', 'Good control from {player}; now the next pass has to be right.', '{team} are camped in the attacking half and looking hungry.'],
     chaos: ['I have no idea what is happening anymore, but I absolutely love it!', 'This match needs seatbelts!', 'My notes are useless. The football has become pure chaos!', 'Somebody check on the tactical board. It just burst into flames!', 'I was promised a football match, not an action movie!', 'The ball is moving faster than my ability to form sentences!', 'This is less of a match and more of a very polite riot!', 'I need a replay, a calculator, and a lie down!', 'Both managers have thrown the game plan directly into the bin!', 'There are players everywhere! This pitch has become a pinball machine!', 'I blinked once and missed three tactical revolutions!', 'The crowd is roaring, the players are flying, and my tea is now on the floor!', 'This game has the emotional stability of a shopping cart with one bad wheel!', 'Nobody knows what comes next. Especially the defenders!', 'The tactics are gone. We are operating entirely on vibes now!', 'I have seen calmer scenes at a squirrel convention!', 'This is football served with extra chaos and absolutely no receipt!', 'The match has gone completely bananas, and the bananas are winning!', 'If this gets any wilder, the referee will need a parachute!', 'My voice may not survive this match, but what a way to go!', 'The laws of football are currently hiding behind the sofa!', 'Someone tell the players this is not a speed-running competition!', 'This match is bouncing around like popcorn in a washing machine!', 'I cannot keep up! Even the scoreboard looks nervous!'],
-    joke: ['{loser} are defending like the ball owes them money.', '{loser} have brought traffic cones to a football match.', '{winner} are cooking; {loser} forgot the recipe.', '{loser} need a timeout, a whiteboard, and possibly a compass.', '{winner} are moving the ball like it is remote-controlled.', 'The {loser} defense is socially distancing from the ball.', '{loser} are marking imaginary players with incredible dedication.', '{loser} have lost the plot, the sequel, and the director’s commentary.', '{winner} are serving five-star football; {loser} brought a packed lunch.', 'The {loser} defense has more holes than a block of cheese.', '{loser} look like their controllers have disconnected.', '{winner} are playing chess while {loser} are eating the pieces.'],
+    joke: ['{loser} are defending like the ball owes them money.', '{loser} have brought traffic cones to a football match.', '{winner} are cooking; {loser} forgot the recipe.', '{loser} need a timeout, a whiteboard, and possibly a compass.', '{winner} are moving the ball like it is remote-controlled.', 'The {loser} defense is socially distancing from the ball.', '{loser} are marking imaginary players with incredible dedication.', '{loser} have lost the plot, the sequel, and the director’s commentary.', '{winner} are serving five-star football; {loser} brought a packed lunch.', 'The {loser} defense has more holes than a block of cheese.', '{loser} look like their controllers have disconnected.', '{winner} are playing chess while {loser} are eating the pieces.', '{loser} are chasing shadows, and the shadows are winning.', '{loser} have parked the bus, but somebody forgot to bring the bus.', '{winner} are putting on a masterclass; {loser} are still looking for the classroom.', '{loser} are defending with the confidence of penguins on roller skates.', '{winner} have turned this match into their personal highlight reel.', '{loser} need a new plan, because the current plan has requested a transfer.', 'The {loser} back line is held together with hope and imaginary tape.', '{winner} are passing so smoothly the ball should be paying rent.', '{loser} are one more mistake away from asking the referee for directions.', 'The {loser} defense just opened the door, held it politely, and waved them through.', '{winner} are playing football; {loser} appear to be assembling furniture without instructions.', '{loser} have been spun around so often they now qualify as a washing machine.', '{winner} are cooking at maximum heat and {loser} have become the smoke alarm.', 'The tactical plan from {loser} appears to be: panic, but enthusiastically.', '{loser} are giving away space like free samples at the supermarket.', '{winner} are moving like a sports car; {loser} are stuck looking for the keys.', 'The {loser} midfield has vanished. Please check under the sofa.', '{loser} are having the kind of day that requires turning the console off and on again.'],
     goal: ['GOOOOOOOAL!', 'OH MY WORD! WHAT A GOAL!', 'THE NET HAS EXPLODED!', 'ABSOLUTE SCENES!', 'YOU CANNOT WRITE THIS!', 'BEDLAM IN THE STANDS!', 'That is outrageous! Simply OUTRAGEOUS!', 'Stop it! That is football from another planet!', 'GOAL! THE STADIUM HAS COMPLETELY LOST ITS MIND!', 'SOMEBODY HOLD ME! THAT IS ABSOLUTELY RIDICULOUS!', 'WHAT HAVE WE JUST WITNESSED?! FRAME IT AND PUT IT IN A MUSEUM!', 'THE CROWD ERUPTS! I CAN BARELY HEAR MYSELF THINK!', 'That is not a goal. That is a public service announcement!', 'Football has peaked! Everybody can go home now!'],
     comeback: ['THE COMEBACK IS COMPLETE!', 'FROM THE DEAD—THEY HAVE TURNED IT AROUND!', 'They were buried, and now they lead! Incredible!', 'THEY HAVE RISEN FROM THE FOOTBALL GRAVE!', 'Plot twist! The comeback nobody saw coming!', 'They looked finished. Apparently nobody told them!'],
     equalizer: ['EQUALIZER! We are level and nobody can breathe!', 'ALL SQUARE! Throw the script away!', 'They have dragged it back! What a game!', 'LEVEL AGAIN! THIS MATCH HAS COMPLETELY LOST CONTROL!', 'Back from the brink! The scriptwriter deserves a raise!', 'Nobody blink! This game is officially bananas!'],
@@ -28,9 +28,19 @@ const Commentary = {
   },
   pick(lines) {
     if (!lines || !lines.length) return '';
-    const pool = lines.filter((x) => !this.recent.includes(x));
-    const line = (pool.length ? pool : lines)[Math.floor(Math.random() * (pool.length ? pool.length : lines.length))];
-    this.recent.push(line); if (this.recent.length > 8) this.recent.shift(); return line;
+    const isJoke = lines === this.banks.joke;
+    if (isJoke) {
+      const seen = Save.data.commentaryJokes || (Save.data.commentaryJokes = []);
+      const unseen = lines.filter((x) => !seen.includes(x));
+      if (!unseen.length) return this.pick(this.banks.chaos);
+      const joke = unseen[Math.floor(Math.random() * unseen.length)];
+      seen.push(joke); Save.write(); this.usedLines.add(joke); this.recent.push(joke); return joke;
+    }
+    let pool = lines.filter((x) => !this.usedLines.has(x));
+    if (!pool.length) { lines.forEach((x) => this.usedLines.delete(x)); pool = lines.filter((x) => !this.recent.includes(x)); }
+    if (!pool.length) pool = lines;
+    const line = pool[Math.floor(Math.random() * pool.length)];
+    this.usedLines.add(line); this.recent.push(line); if (this.recent.length > 12) this.recent.shift(); return line;
   },
   name(p) { return p ? (p.isHuman ? 'YOU' : p.name || `${TEAMS[p.team].name} NUMBER ${p.number}`) : 'THE PLAYER'; },
   team(t) { return (TEAMS[t] && TEAMS[t].name) || String(t || '').toUpperCase(); },
@@ -41,16 +51,21 @@ const Commentary = {
   },
   refreshVoices() {
     this.voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    const english = this.voices.filter((v) => /^en/i.test(v.lang));
+    const male = /\b(ryan|guy|davis|david|mark|daniel|george|aaron|arthur|oliver|liam|thomas|james|brian|tony|alex|fred|reed|eddy|ralph|rocko|male)\b/i;
+    const female = /\b(aria|jenny|ava|sonia|samantha|victoria|karen|moira|tessa|veena|fiona|susan|hazel|zira|female|woman)\b/i;
+    const label = (v) => `${v.name || ''} ${v.voiceURI || ''}`;
+    const knownMale = english.filter((v) => male.test(label(v)) && !female.test(label(v)));
+    const candidates = knownMale.length ? knownMale : english.filter((v) => !female.test(label(v)));
     const score = (v) => {
-      const n = `${v.name} ${v.voiceURI}`.toLowerCase(); let x = /^en/i.test(v.lang) ? 20 : -100;
-      if (/natural|neural|premium|enhanced|online/.test(n)) x += 100;
-      if (/ryan|guy|daniel|george|aaron|arthur|oliver|liam/.test(n)) x += 35;
-      if (/google uk english male|microsoft.*english.*united kingdom/.test(n)) x += 30;
-      if (/en-(gb|ie|au)/i.test(v.lang)) x += 18;
+      const n = label(v); let x = 0;
+      if (/natural|neural|premium|enhanced|online/i.test(n)) x += 100;
+      if (/en-(gb|ie|au)/i.test(v.lang)) x += 22;
+      if (/ryan|guy|daniel|george|arthur|oliver|liam/i.test(n)) x += 18;
       if (v.localService) x += 4;
       return x;
     };
-    this.voice = this.voices.filter((v) => /^en/i.test(v.lang)).sort((a, b) => score(b) - score(a))[0] || null;
+    this.voice = (candidates.length ? candidates : english).sort((a, b) => score(b) - score(a))[0] || null;
   },
   unlock() {
     if (this.unlocked || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
@@ -111,7 +126,7 @@ const Commentary = {
     u.voice = this.voice; u.lang = (this.voice && this.voice.lang) || 'en-GB';
     const baseRate = item.priority >= 3 ? 1.15 : item.priority === 2 ? 1.22 : 1.28;
     u.rate = baseRate + (Math.random() - 0.5) * 0.07;
-    u.pitch = (item.priority >= 3 ? 0.92 : 0.96) + (Math.random() - 0.5) * 0.035;
+    u.pitch = (item.priority >= 3 ? 0.78 : 0.84) + (Math.random() - 0.5) * 0.025;
     u.volume = Math.min(1, 0.58 + (Save.data.settings.sfx || 0) * 0.42);
     this.speaking = true;
     const caption = this.showCaption(item.text, item.priority, true);
