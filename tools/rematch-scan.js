@@ -1,6 +1,7 @@
 'use strict';
 const fs = require('fs');
 const src = fs.readFileSync('js/ui.js', 'utf8');
+if (!src.includes("this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';")) throw new Error('results screen can misroute a normal match to penalties');
 const hit = src.match(/  resultsAgain\(\) \{([\s\S]*?)\n  \},\n\};/);
 if (!hit) throw new Error('resultsAgain not found');
 const make = new Function('Game', 'Clubs', 'Save', 'PenCup', 'Cup', 'Online', `return function resultsAgain() {${hit[1]}\n}`);

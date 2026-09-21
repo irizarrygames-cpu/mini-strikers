@@ -721,7 +721,7 @@ const UI = {
       if (onlinePenCup.champion) Trophy.show({ title: 'WORLD CHAMPIONS!', sub: `ONLINE PENALTY WORLD CUP · +${PWC_PRIZE} COINS`, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
-      this._againMode = m.net ? 'onlinepens' : 'pens';
+      this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';
       $('r-again').textContent = 'PLAY AGAIN';
     }
     $('results').hidden = false;
