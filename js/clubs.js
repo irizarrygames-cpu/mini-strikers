@@ -244,7 +244,7 @@ const Clubs = {
   get(id) { return CLUBS.find((c) => c.id === id) || CLUBS[0]; },
   valid(id) { return CLUBS.some((c) => c.id === id); },
   mine() { return this.get((typeof Save !== 'undefined' && Save.data && Save.data.club) || DEFAULT_CLUB); },
-  random(except) { const pool = CLUBS.filter((c) => !except || c.id !== except.id); return pick(pool); },
+  random(...except) { const ids = new Set(except.filter(Boolean).map((c) => typeof c === 'string' ? c : c.id)); const pool = CLUBS.filter((c) => !ids.has(c.id)); return pick(pool.length ? pool : CLUBS); },
 
   // Kits for two clubs on one pitch: the home side wears its home kit, the away side
   // switches to its away kit when the two would be hard to tell apart.

@@ -827,14 +827,15 @@ const UI = {
   },
 
   resultsAgain() {
+    const previous = Game.match && Game.match.club;
     if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
     else if (this._againMode === 'penscup') Game.startMatch({ mode: 'penscup' });
     else if (this._againMode === 'newpenscup') { PenCup.start(); Game.startMatch({ mode: 'penscup' }); }
     else if (this._againMode === 'onlinepenscup') { Game.goHome(); Online.m = null; Online.findMatch('pens', true); }
     else if (this._againMode === 'newcup') { Cup.start(); Game.startMatch({ mode: 'cup' }); }
-    else if (this._againMode === 'pens') Game.startMatch({ mode: 'pens', club: Clubs.random(Clubs.mine()) });
+    else if (this._againMode === 'pens') Game.startMatch({ mode: 'pens', club: Clubs.random(Clubs.mine(), previous) });
     else if (this._againMode === 'onlinepens') { Game.goHome(); Online.m = null; Online.findMatch('pens'); }
-    else Game.startMatch({ mode: 'quick' });
+    else Game.startMatch({ mode: 'quick', format: (Game.match && Game.match.format) || Save.data.format, club: Clubs.random(Clubs.mine(), previous) });
   },
 };
 
