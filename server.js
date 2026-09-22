@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 32;
+const BUILD = 33;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -132,11 +132,12 @@ function sanitizeSave(incoming, previous, club) {
 // player's game syncs: on sign-in / opening the game, or on a save from a game that knows gifts.
 const GIFTS = [
   { key: '2026-09-17-billion', user: 'irizarrygamez1', club: 'germany', coins: 1000000000 },
+  { key: '2026-09-22-lilotter-billion', user: 'lilotter', coins: 1000000000 },
 ];
-function queueGifts() {
+function queueGifts(quiet) {
   for (const g of GIFTS) {
     const u = getUser(g.user);
-    if (!u) { console.log(`gift ${g.key}: no account ${g.user}`); continue; }
+    if (!u) { if (!quiet) console.log(`gift ${g.key}: no account ${g.user}`); continue; }
     if (g.club && u.club !== g.club) { console.log(`gift ${g.key}: ${g.user} plays for ${u.club}, not ${g.club}`); continue; }
     u.giftsDone = Array.isArray(u.giftsDone) ? u.giftsDone : [];
     if (u.giftsDone.includes(g.key)) continue;
@@ -543,6 +544,8 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
   }
   restoreSessions();
   queueGifts();
+  // an account that signs up later still gets what was meant for it
+  setInterval(() => queueGifts(true), 300000).unref();
   server.listen(PORT, () => {
     console.log(`Mini Strikers server on http://localhost:${PORT}`);
     console.log(`accounts: ${Object.keys(DB.users).filter((id) => id !== LEAGUE_ID).length} (storage: ${store.kind})`);
