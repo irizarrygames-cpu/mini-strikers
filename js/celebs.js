@@ -78,6 +78,16 @@ const CELEBRATIONS = [
   { id: 'conductor', name: 'The Conductor', price: 230000 },
   { id: 'phoenix', name: 'Phoenix Rise', price: 250000 },
   { id: 'galaxy', name: 'Galaxy Dance', price: 275000 },
+  { id: 'meteor', name: 'Meteor Crash', price: 300000 },
+  { id: 'portal', name: 'Portal Step', price: 325000 },
+  { id: 'headspin', name: 'Headspin', price: 350000 },
+  { id: 'dragonroar', name: 'Dragon Roar', price: 375000 },
+  { id: 'rewind', name: 'Time Rewind', price: 400000 },
+  { id: 'spotlight', name: 'Center Stage', price: 425000 },
+  { id: 'hattrick', name: 'Hat Trick', price: 450000 },
+  { id: 'shadowdash', name: 'Shadow Dash', price: 475000 },
+  { id: 'gravityflip', name: 'Gravity Flip', price: 500000 },
+  { id: 'finalwhistle', name: 'Final Whistle', price: 550000 },
 ];
 const CELE_IDS = CELEBRATIONS.map((c) => c.id);
 const CELE_PREMIUM = new Set(CELEBRATIONS.slice(CELEBRATIONS.findIndex((c) => c.id === 'lightning')).map((c) => c.id));
@@ -460,6 +470,67 @@ const CELE_POSES = {
     rot: Math.sin(e * 4) * 0.22, hands: [[-28, -58 + Math.sin(e * 8) * 8], [28, -58 - Math.sin(e * 8) * 8]],
     feet: [[-8, -7], [9, -10]], screen: 'galaxy' }),
 
+  meteor: (e) => {
+    const leap = e < 0.75 ? Math.sin(e / 0.75 * Math.PI) * 43 : 0;
+    const slam = celeEase((e - 0.72) / 0.16);
+    return { jump: leap - slam * 7, kneel: e >= 0.75, upper: slam * 0.35,
+      hands: e < 0.75 ? [[-22, -55], [22, -64]] : [[-21, -19], [18, -22]],
+      feet: [[-11, -3], [12, -4]], screen: 'meteor' };
+  },
+  portal: (e) => {
+    const dash = celeEase((e - 0.45) / 0.18), pose = celeEase((e - 1.1) / 0.2);
+    return { lean: 0.2 * (1 - pose), faceX: e > 1.1 ? -1 : 1,
+      jump: Math.sin(Math.min(1, dash) * Math.PI) * 8,
+      hands: [[-22, -51 + pose * 15], [25, -46 - pose * 20]],
+      feet: [[-13 + dash * 7, -4], [13 + dash * 5, -6]], screen: 'portal' };
+  },
+  headspin: (e) => {
+    const down = celeEase(e / 0.33), spin = Math.max(0, e - 0.33) * 13;
+    return { rot: down * Math.PI + spin, jump: down * 38,
+      hands: [[-18, -54], [17, -54]], feet: [[-14, -6], [14, -7]], screen: 'headspin' };
+  },
+  dragonroar: (e) => {
+    const roar = celeEase((e - 0.3) / 0.22);
+    return { lean: -0.14 * roar, jump: Math.sin(e * 6) * 2 * roar,
+      hands: [[-30, -48 - roar * 9], [30, -48 - roar * 9]],
+      feet: [[-12, -3], [12, -3]], screen: 'dragonroar' };
+  },
+  rewind: (e) => {
+    const tick = Math.floor(e * 6) % 2 ? 1 : -1;
+    return { faceX: e < 1.35 ? -1 : 1, lean: e < 1.35 ? -0.15 : 0.08,
+      bob: Math.abs(Math.sin(e * 10)) * 2,
+      hands: [[-17 + tick * 4, -33], [17 - tick * 4, -49]],
+      feet: [[-9 + tick * 6, -3], [9 - tick * 6, -7]], screen: 'rewind' };
+  },
+  spotlight: (e) => {
+    const bow = celeEase((e - 0.7) / 0.32) * (e < 1.8 ? 1 : 1 - celeEase((e - 1.8) / 0.3));
+    return { upper: 0.65 * bow, lean: -0.08,
+      hands: [[-23, -42 + bow * 17], [24, -40 + bow * 13]],
+      feet: [[-9, -3], [9, -3]], screen: 'spotlight' };
+  },
+  hattrick: (e) => {
+    const toss = Math.sin(e * 8);
+    return { jump: Math.max(0, toss) * 4, lean: Math.sin(e * 4) * 0.07,
+      hands: [[-20, -42 - toss * 8], [22, -45 + toss * 8]],
+      feet: [[-8, -3], [9, -5]], screen: 'hattrick' };
+  },
+  shadowdash: (e) => {
+    const dash = e > 0.4 && e < 1.2;
+    return { run: dash, lean: dash ? 0.32 : -0.04, bob: dash ? Math.abs(Math.sin(e * 15)) * 3 : 0,
+      hands: dash ? [[-22, -30], [18, -55]] : celeUp(),
+      feet: dash ? [[-14, -3], [16, -7]] : [[-9, -3], [9, -3]], screen: 'shadowdash' };
+  },
+  gravityflip: (e) => {
+    const u = celeEase((e - 0.25) / 0.8), settle = celeEase((e - 1.6) / 0.45);
+    return { rot: Math.PI * 2 * u, jump: Math.sin(u * Math.PI) * 36 + (1 - settle) * 8,
+      hands: [[-24, -53], [24, -53]], feet: [[-11, -8], [11, -8]], screen: 'gravityflip' };
+  },
+  finalwhistle: (e) => {
+    const blow = celeEase(e / 0.28), cheer = celeEase((e - 1.15) / 0.2);
+    return { jump: cheer * Math.abs(Math.sin(e * 8)) * 7,
+      hands: [[-14 - cheer * 8, -28 - cheer * 36], [lerp(13, 14, blow), lerp(-27, -56, blow)]],
+      feet: [[-9, -3], [9, -3]], prop: 'whistle', screen: 'finalwhistle' };
+  },
 };
 
 // The ult shot: how the strike looks, 0..1 through it. Same shape as a celebration pose.
@@ -504,6 +575,9 @@ const CELE_MOVES = {
   swim: (e) => (e > 0.2 && e < 2.3 ? 120 : 0),
   bowling: (e) => (e < 0.45 ? 220 : 0),
   cartwheel: (e) => (e > 0.2 && e < 1.6 ? 200 : 0),
+  portal: (e) => (e > 0.4 && e < 0.95 ? 160 : 0),
+  rewind: (e) => (e < 1.3 ? 110 : 0),
+  shadowdash: (e) => (e > 0.4 && e < 1.2 ? 360 : 0),
 };
 // airplane banks round in a curve instead of a straight line
 const CELE_TURN = { airplane: 1.7, bird: 1.4, surfer: 0.6 };

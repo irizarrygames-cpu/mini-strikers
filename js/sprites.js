@@ -461,6 +461,13 @@ const Sprites = {
         ctx.lineWidth = 3.4; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(25, y); ctx.lineTo(38, y - 23); ctx.stroke();
         ctx.lineWidth = 1.6; ctx.strokeStyle = '#ffffff'; ctx.stroke(); break;
       }
+      case 'whistle': {
+        const k = celeEase(e / 0.28);
+        const x = lerp(13, 14, k), y = lerp(-27, -56, k);
+        ctx.beginPath(); ctx.arc(x + 2, y + 1, 4, 0, Math.PI * 2); this.blob(ctx, '#ffc21a');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 2, y - 1, 6, 2.5);
+        break;
+      }
       case 'cash': {
         this.rr(ctx, -1, -47, 11, 7, 1.5); this.blob(ctx, '#3fbf5a');
         ctx.fillStyle = '#2a8a3f'; ctx.fillRect(1, -45, 7, 1.2); ctx.fillRect(1, -42.6, 7, 1.2);
@@ -630,6 +637,89 @@ const Sprites = {
         for (const side of [-1, 1]) for (let i = 0; i < 5; i++) {
           const x = side * (16 + i * 7), y = -34 - rise * 0.6 - i * 5, flame = 9 + Math.sin(e * 12 + i) * 4;
           line([[side * 5, -42 - rise], [x, y], [x + side * 4, y - flame]], i % 2 ? '#ffe14d' : '#ff6338', 4 - i * 0.35);
+        }
+        break;
+      case 'meteor': {
+        const u = Math.max(0, e - 0.72), wave = Math.min(1, u / 0.65);
+        if (e < 0.75) for (let i = 0; i < 5; i++)
+          line([[-17 + i * 8, -85 - rise], [-12 + i * 8, -65 - rise]], i % 2 ? '#ffe14d' : '#ff6338', 4);
+        if (u > 0) {
+          ctx.globalAlpha = 1 - wave;
+          ring(0, -6, 15 + wave * 53, 4 + wave * 9, '#ff9a3c', 4);
+          for (let i = 0; i < 7; i++) {
+            const a = i * 2 * pi / 7;
+            star(Math.cos(a) * (18 + wave * 38), -8 + Math.sin(a) * (8 + wave * 12), 3, '#ffe14d');
+          }
+        }
+        break;
+      }
+      case 'portal':
+        for (const side of [-1, 1]) {
+          const wob = Math.sin(e * 6 + side) * 3;
+          ctx.globalAlpha = 0.78; ring(side * 49, -48, 13 + wob, 36, side < 0 ? '#a58bff' : '#7feaff', 3.5);
+          ctx.globalAlpha = 0.34; ring(side * 49, -48, 8 + wob, 30, '#ffffff', 2);
+        }
+        break;
+      case 'headspin':
+        for (let i = 0; i < 3; i++) {
+          ctx.globalAlpha = 0.75 - i * 0.17;
+          ring(Math.sin(e * 8 + i) * 3, -8, 20 + i * 10, 5 + i * 3, i % 2 ? '#ff9ee8' : '#7fdcff', 2.5);
+        }
+        break;
+      case 'dragonroar':
+        if (e > 0.45) for (let i = 0; i < 5; i++) {
+          const u = (e * 0.8 + i / 5) % 1, x = 22 + u * 52, y = -59 - Math.sin(u * pi) * (8 + i * 3);
+          ctx.globalAlpha = 1 - u;
+          line([[x - 8, y + 9], [x, y - 8 - i], [x + 5, y + 8]], i % 2 ? '#ffe14d' : '#ff6338', 4);
+        }
+        break;
+      case 'rewind':
+        ring(0, -49, 41, 41, '#a8eaff', 2.5);
+        for (let i = 0; i < 8; i++) {
+          const a = i * pi / 4;
+          line([[Math.cos(a) * 34, -49 + Math.sin(a) * 34], [Math.cos(a) * 39, -49 + Math.sin(a) * 39]], '#ffffff', 2);
+        }
+        const a = -e * 7;
+        line([[0, -49], [Math.cos(a) * 26, -49 + Math.sin(a) * 26]], '#ffe14d', 3);
+        break;
+      case 'spotlight':
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = '#fff4b0'; ctx.beginPath(); ctx.moveTo(-33, -120); ctx.lineTo(33, -120); ctx.lineTo(55, -3); ctx.lineTo(-55, -3); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 0.8; ring(0, -4, 44, 8, '#fff2b0', 2);
+        for (let i = 0; i < 4; i++) star(-30 + i * 20, -104 + Math.sin(e * 4 + i) * 5, 3, '#ffffff');
+        break;
+      case 'hattrick':
+        for (let i = 0; i < 3; i++) {
+          const a = e * 4 + i * 2 * pi / 3, x = Math.cos(a) * 31, y = -62 + Math.sin(a) * 20;
+          ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * pi); ctx.fillStyle = '#ffffff'; ctx.fill();
+          ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.8; ctx.stroke();
+          ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 2 * pi); ctx.fillStyle = OUTLINE; ctx.fill();
+        }
+        break;
+      case 'shadowdash':
+        for (let i = 1; i <= 3; i++) {
+          const u = (e * 2.5 + i / 3) % 1;
+          ctx.globalAlpha = (1 - u) * 0.48;
+          ring(-u * 55 - 10, -39, 12, 28, i % 2 ? '#6a66d9' : '#a8a1ff', 3);
+          line([[-u * 55 - 19, -6], [-u * 55 + 1, -6]], '#a8a1ff', 2);
+        }
+        break;
+      case 'gravityflip':
+        for (let i = 0; i < 4; i++) {
+          const a = e * 3 + i * pi / 2;
+          const x = Math.cos(a) * (24 + i * 6), y = -50 - rise * 0.3 + Math.sin(a) * (15 + i * 4);
+          ctx.beginPath(); ctx.arc(x, y, 2.5 + i * 0.5, 0, 2 * pi); ctx.fillStyle = i % 2 ? '#ffe14d' : '#a8eaff'; ctx.fill();
+        }
+        ctx.globalAlpha = 0.5; ring(0, -5, 35, 7, '#a8eaff', 2);
+        break;
+      case 'finalwhistle':
+        if (e > 0.25) for (let i = 0; i < 3; i++) {
+          const u = (e * 0.65 + i / 3) % 1; ctx.globalAlpha = 1 - u;
+          ring(21 + u * 25, -57, 5 + u * 18, 5 + u * 18, '#ffe14d', 2);
+        }
+        if (e > 1.15) for (let i = 0; i < 8; i++) {
+          const u = (e * 0.5 + i / 8) % 1;
+          ctx.globalAlpha = 1 - u; star(((i * 23) % 100) - 50, -100 + u * 65, 2.5, i % 2 ? '#ffffff' : '#ff5fa8');
         }
         break;
       case 'galaxy':
