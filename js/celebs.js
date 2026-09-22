@@ -80,6 +80,7 @@ const CELEBRATIONS = [
   { id: 'galaxy', name: 'Galaxy Dance', price: 275000 },
 ];
 const CELE_IDS = CELEBRATIONS.map((c) => c.id);
+const CELE_PREMIUM = new Set(CELEBRATIONS.slice(CELEBRATIONS.findIndex((c) => c.id === 'lightning')).map((c) => c.id));
 // cool customers keep their mouths shut
 const CELE_CALM = new Set(['chill', 'salute', 'bow', 'sleep', 'archer', 'robot', 'calmdown', 'thinker', 'golf', 'fishing', 'ballerina']);
 
@@ -350,31 +351,115 @@ const CELE_POSES = {
     return { lean: -0.06, bob: Math.sin(e * 6) * 0.8, hands: [[4, -40], [18 + flick * 4, -50 - flick * 6]], prop: 'cash', screen: 'money' };
   },
 
-  lightning: (e) => ({ jump: Math.abs(Math.sin(e * 15)) * 10, rot: Math.sin(e * 7) * 0.12, hands: e % 0.55 < 0.28 ? [[-28, -65], [20, -30]] : [[-18, -28], [30, -66]], feet: [[-8, -3], [10, -7]] }),
-  superhero: (e) => e < 0.75 ? ({ jump: Math.sin((e / 0.75) * Math.PI) * 46, rot: -0.35, hands: [[-26, -58], [24, -58]], feet: [[-7, -10], [10, -14]] }) : ({ kneel: true, jump: -9, upper: 0.42, hands: [[-20, -22], [16, -50]] }),
-  samba: (e) => { const s = Math.sin(e * 13); return { bob: Math.abs(s) * 3, rot: s * 0.11, hands: [[-22 + s * 6, -50], [24 + s * 6, -34]], feet: [[-8 - s * 5, -3], [9 + s * 5, -7]] }; },
-  disco: (e) => { const s = Math.sin(e * 8); return { jump: Math.max(0, s) * 4, faceX: Math.cos(e * 5), hands: s > 0 ? [[-18, -27], [22, -70]] : [[-23, -68], [18, -28]], feet: [[-8, -3], [10, -3]] }; },
-  micdrop: (e) => ({ lean: -0.08, hands: e < 1.2 ? [[-14, -28], [18, -53]] : [[-14, -28], [28, -15]], bob: e > 1.2 ? -2 : 0 }),
-  statue: (e) => ({ lean: -0.12, upper: 0.08, hands: [[-24, -60], [26, -34]], feet: [[-11, -3], [11, -3]], bob: Math.sin(e * 2) * 0.2 }),
-  drummer: (e) => { const s = Math.sin(e * 19); return { bob: Math.abs(s) * 2, hands: [[-15 + s * 7, -32 - Math.abs(s) * 8], [17 - s * 7, -32 - Math.abs(s) * 8]] }; },
-  trumpet: (e) => ({ lean: -0.08, bob: Math.sin(e * 5), hands: [[7, -48], [23, -48]], feet: [[-9, -3], [9, -3]] }),
-  magician: (e) => { const k = celeEase(e / 0.5); return { jump: Math.sin(e * 6) * 2, rot: e > 1.1 ? Math.sin((e - 1.1) * 7) * 0.15 : 0, hands: [[lerp(-13, -27, k), lerp(-27, -66, k)], [lerp(13, 26, k), lerp(-27, -66, k)]] }; },
-  freeze: (e) => ({ rot: -0.22, lean: 0.18, hands: [[-28, -52], [25, -29]], feet: [[-13, -3], [14, -10]], jump: e < 0.25 ? Math.sin((e / 0.25) * Math.PI) * 8 : 0 }),
-  earthquake: (e) => { const hit = Math.max(0, Math.sin(e * 10)); return { kneel: true, jump: -8 - hit * 3, upper: 0.35, hands: [[-20, -18], [18, -20]], rot: Math.sin(e * 28) * 0.025 }; },
-  rocket: (e) => ({ jump: Math.min(42, e * 35) + Math.sin(e * 13) * 2, hands: celeUp(), feet: [[-5, -12], [7, -12]], lean: -0.08 }),
-  tornado: (e) => ({ faceX: Math.cos(e * 24), jump: Math.abs(Math.sin(e * 12)) * 13, rot: Math.sin(e * 12) * 0.18, hands: [[-25, -45], [25, -45]] }),
-  royalwave: (e) => ({ lean: -0.06, hands: [[-14, -28], [20 + Math.sin(e * 7) * 3, -65]], bob: Math.sin(e * 3) * 0.7 }),
-  meditate: (e) => ({ kneel: true, jump: -6 + Math.sin(e * 3) * 2, hands: [[-8, -29], [9, -29]], upper: 0.05 }),
-  victorylap: (e) => ({ run: true, jump: Math.abs(Math.sin(e * 11)) * 4, hands: e % 0.8 < 0.4 ? celeUp() : [[-23, -48], [24, -48]], lean: 0.12 }),
-  snowangel: (e) => { const s = Math.sin(e * 7); return { lie: 'back', hands: [[-8 - s * 22, -48 - Math.abs(s) * 12], [9 + s * 22, -48 - Math.abs(s) * 12]], feet: [[-3 - s * 8, -3], [5 + s * 8, -5]] }; },
-  handstand: (e) => ({ rot: Math.PI, jump: 43 + Math.sin(e * 4) * 2, hands: [[-7, -67], [8, -67]], feet: [[-11, -4], [12, -8]] }),
-  pogo: (e) => ({ jump: Math.abs(Math.sin(e * 9)) * 32, hands: [[-16, -38], [17, -38]], feet: [[-5, -8], [6, -8]] }),
-  boxing: (e) => { const a = Math.floor(e * 8) % 2; return { bob: Math.sin(e * 16) * 2, lean: 0.08, hands: a ? [[-5, -50], [29, -48]] : [[-28, -48], [7, -50]], feet: [[-11, -3], [11, -3]] }; },
-  chefkiss: (e) => { const k = celeEase(e / 0.35), send = celeEase((e - 1) / 0.4); return { hands: [[-14, -28], [lerp(14, 12 + send * 18, k), lerp(-28, -56 - send * 8, k)]], lean: -0.04 }; },
-  paparazzi: (e) => ({ faceX: Math.cos(e * 5), hands: [[5, -54], [17, -54]], jump: e % 0.7 < 0.12 ? 3 : 0, bob: Math.sin(e * 8) }),
-  conductor: (e) => ({ lean: -0.08, hands: [[-22, -42 + Math.sin(e * 6) * 16], [25, -48 + Math.cos(e * 6) * 17]], feet: [[-9, -3], [9, -3]] }),
-  phoenix: (e) => ({ jump: Math.sin(Math.min(1, e / 1.5) * Math.PI) * 48, rot: Math.sin(e * 5) * 0.2, hands: [[-32, -52], [32, -52]], feet: [[-8, -10], [10, -10]] }),
-  galaxy: (e) => ({ faceX: Math.cos(e * 10), jump: 7 + Math.sin(e * 6) * 7, rot: Math.sin(e * 4) * 0.22, hands: [[-28, -58 + Math.sin(e * 8) * 8], [28, -58 - Math.sin(e * 8) * 8]], feet: [[-8, -7], [9, -10]] }),
+  // Premium celebrations have an opening beat, a signature move, and a readable finish.
+  lightning: (e) => {
+    const charge = celeEase(e / 0.42), strike = Math.max(0, 1 - Math.abs(e - 0.83) / 0.18);
+    return { jump: charge * 5 + strike * 17 + Math.abs(Math.sin(e * 12)) * 3, rot: Math.sin(e * 11) * 0.055,
+      hands: [[-28, -40 - charge * 28], [27, -38 - strike * 35]], feet: [[-9, -3], [11, -8]], screen: 'lightning' };
+  },
+  superhero: (e) => {
+    const u = Math.min(1, e / 0.75), land = celeEase((e - 0.75) / 0.13);
+    return e < 0.75
+      ? { jump: Math.sin(u * Math.PI) * 48, rot: -0.33, hands: [[-27, -60], [25, -57]], feet: [[-7, -10], [11, -14]], screen: 'superhero' }
+      : { kneel: true, jump: -9 + (1 - land) * 8, upper: 0.42, hands: [[-20, -22], [17, -49]], screen: 'superhero' };
+  },
+  samba: (e) => {
+    const s = Math.sin(e * 13), turn = Math.sin(e * 3.3);
+    return { bob: Math.abs(s) * 3, jump: Math.max(0, s) * 3, rot: s * 0.12, faceX: Math.cos(e * 4.2),
+      hands: [[-23 + s * 8, -51 - turn * 7], [24 + s * 8, -36 + turn * 8]], feet: [[-8 - s * 6, -3], [9 + s * 6, -7]], screen: 'samba' };
+  },
+  disco: (e) => {
+    const beat = Math.sin(e * 9), turn = Math.cos(e * 5);
+    return { jump: Math.max(0, beat) * 6, faceX: turn, rot: beat * 0.08,
+      hands: beat > 0 ? [[-19, -28], [22, -72]] : [[-24, -68], [19, -29]], feet: [[-8, -3], [10, -3]], screen: 'disco' };
+  },
+  micdrop: (e) => {
+    const drop = celeEase((e - 0.92) / 0.22);
+    return { lean: -0.08 + drop * 0.13, hands: [[-14, -28], [18 + drop * 12, -53 + drop * 37]],
+      bob: -drop * 2, prop: 'mic', screen: 'micdrop' };
+  },
+  statue: (e) => {
+    const lock = celeEase((e - 0.38) / 0.16);
+    return { lean: -0.12 * lock, upper: 0.08 * lock,
+      hands: [[lerp(-13, -24, lock), lerp(-27, -60, lock)], [lerp(13, 26, lock), lerp(-27, -34, lock)]],
+      feet: [[-11, -3], [11, -3]], screen: 'statue' };
+  },
+  drummer: (e) => {
+    const a = Math.sin(e * 18), b = Math.sin(e * 18 + Math.PI);
+    return { bob: Math.abs(a) * 2, hands: [[-12 + a * 4, -51 + Math.max(0, a) * 20], [15 + b * 4, -51 + Math.max(0, b) * 20]],
+      prop: 'drums', screen: 'drummer' };
+  },
+  trumpet: (e) => ({ lean: -0.08, bob: Math.sin(e * 5) * 1.2,
+    hands: [[7, -48], [23, -48]], feet: [[-9, -3], [9, -3]], prop: 'trumpet', screen: 'trumpet' }),
+  magician: (e) => {
+    const reveal = celeEase((e - 0.75) / 0.28);
+    return { jump: Math.sin(e * 6) * 2, rot: reveal * Math.sin((e - 0.75) * 7) * 0.08,
+      hands: [[-13 - reveal * 14, -27 - reveal * 34], [13 + reveal * 13, -27 - reveal * 38]],
+      prop: 'wand', screen: 'magician' };
+  },
+  freeze: (e) => {
+    const snap = celeEase(e / 0.28);
+    return { rot: -0.22 * snap, lean: 0.18 * snap, hands: [[-28, -52], [25, -29]],
+      feet: [[-13, -3], [14, -10]], jump: Math.sin(Math.min(1, e / 0.28) * Math.PI) * 8, screen: 'freeze' };
+  },
+  earthquake: (e) => {
+    const slam = e > 0.55 ? 1 : celeEase(e / 0.55);
+    return { kneel: true, jump: -8 - Math.max(0, Math.sin(e * 10)) * 3, upper: 0.35 * slam,
+      hands: [[-20, -19], [18, -20]], rot: Math.sin(e * 28) * 0.025, screen: 'earthquake' };
+  },
+  rocket: (e) => {
+    const lift = e < 0.45 ? 0 : Math.sin(Math.min(1, (e - 0.45) / 1.6) * Math.PI) * 47;
+    return { jump: lift, hands: celeUp(), feet: [[-5, -12], [7, -12]], lean: -0.08, screen: 'rocket' };
+  },
+  tornado: (e) => {
+    const k = celeEase(e / 0.26);
+    return { faceX: Math.cos(e * 22), jump: k * (8 + Math.abs(Math.sin(e * 11)) * 8),
+      rot: Math.sin(e * 11) * 0.15, hands: [[-25, -45], [25, -45]], screen: 'tornado' };
+  },
+  royalwave: (e) => ({ lean: -0.06, hands: [[-14, -28], [20 + Math.sin(e * 7) * 4, -66]],
+    bob: Math.sin(e * 3) * 0.7, prop: 'crown', screen: 'royalwave' }),
+  meditate: (e) => {
+    const k = celeEase(e / 0.4);
+    return { kneel: true, jump: -6 + Math.sin(e * 3) * 2 * k, hands: [[-8, -29], [9, -29]],
+      upper: 0.05, screen: 'meditate' };
+  },
+  victorylap: (e) => ({ run: true, jump: Math.abs(Math.sin(e * 11)) * 4,
+    hands: e % 0.8 < 0.4 ? celeUp() : [[-23, -48], [24, -48]], lean: 0.12, prop: 'flag', screen: 'victorylap' }),
+  snowangel: (e) => {
+    const s = Math.sin(e * 7);
+    return { lie: 'back', hands: [[-8 - s * 22, -48 - Math.abs(s) * 12], [9 + s * 22, -48 - Math.abs(s) * 12]],
+      feet: [[-3 - s * 8, -3], [5 + s * 8, -5]], screen: 'snowangel' };
+  },
+  handstand: (e) => {
+    const up = celeEase(e / 0.28);
+    return { rot: Math.PI * up, jump: 43 * up + Math.sin(e * 4) * 2 * up,
+      hands: [[-7, -67], [8, -67]], feet: [[-11, -4], [12, -8]], screen: 'handstand' };
+  },
+  pogo: (e) => ({ jump: Math.abs(Math.sin(e * 8)) * 30, hands: [[-15, -39], [16, -39]],
+    feet: [[-5, -8], [6, -8]], prop: 'pogo', screen: 'pogo' }),
+  boxing: (e) => {
+    const punch = Math.sin(e * 13), lead = punch > 0;
+    return { bob: Math.sin(e * 16) * 2, lean: 0.08, hands: lead ? [[-5, -50], [29, -48]] : [[-28, -48], [7, -50]],
+      feet: [[-11, -3], [11, -3]], prop: 'gloves', screen: 'boxing' };
+  },
+  chefkiss: (e) => {
+    const k = celeEase(e / 0.35), send = celeEase((e - 1) / 0.4);
+    return { hands: [[-14, -28], [lerp(14, 12 + send * 18, k), lerp(-28, -56 - send * 8, k)]],
+      lean: -0.04, screen: 'chefkiss' };
+  },
+  paparazzi: (e) => ({ faceX: Math.cos(e * 5), hands: [[5, -54], [17, -54]],
+    jump: Math.max(0, Math.sin(e * 9)) * 3, prop: 'camera', screen: 'paparazzi' }),
+  conductor: (e) => ({ lean: -0.08, hands: [[-22, -42 + Math.sin(e * 6) * 16], [25, -48 + Math.cos(e * 6) * 17]],
+    feet: [[-9, -3], [9, -3]], prop: 'baton', screen: 'conductor' }),
+  phoenix: (e) => {
+    const rise = Math.sin(Math.min(1, e / 1.75) * Math.PI);
+    return { jump: rise * 48, rot: Math.sin(e * 5) * 0.12,
+      hands: [[-32, -52 - rise * 8], [32, -52 - rise * 8]], feet: [[-8, -10], [10, -10]], screen: 'phoenix' };
+  },
+  galaxy: (e) => ({ faceX: Math.cos(e * 10), jump: 7 + Math.sin(e * 6) * 7,
+    rot: Math.sin(e * 4) * 0.22, hands: [[-28, -58 + Math.sin(e * 8) * 8], [28, -58 - Math.sin(e * 8) * 8]],
+    feet: [[-8, -7], [9, -10]], screen: 'galaxy' }),
+
 };
 
 // The ult shot: how the strike looks, 0..1 through it. Same shape as a celebration pose.

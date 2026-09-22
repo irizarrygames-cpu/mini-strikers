@@ -392,6 +392,75 @@ const Sprites = {
         ctx.restore();
         break;
       }
+      case 'mic': {
+        const drop = celeEase((e - 0.92) / 0.22);
+        const x = 18 + drop * 12, y = Math.min(-20, -53 + drop * 37);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(drop * 0.9);
+        this.rr(ctx, -2, -1, 4, 17, 2); this.blob(ctx, '#393f63');
+        ctx.beginPath(); ctx.ellipse(0, -2, 5, 5, 0, 0, Math.PI * 2); this.blob(ctx, '#cbd5e8');
+        ctx.restore(); break;
+      }
+      case 'drums': {
+        ctx.beginPath(); ctx.ellipse(0, -29, 19, 12, 0, 0, Math.PI * 2); this.blob(ctx, '#e23952');
+        ctx.beginPath(); ctx.ellipse(0, -35, 19, 5, 0, 0, Math.PI * 2); this.blob(ctx, '#ffe5a3');
+        ctx.fillStyle = '#ffe14d'; for (const x of [-12, 0, 12]) ctx.fillRect(x, -30, 3, 9);
+        for (const [x, a] of [[-12, Math.sin(e * 18)], [15, Math.sin(e * 18 + Math.PI)]]) {
+          ctx.lineWidth = 2.8; ctx.strokeStyle = '#c47a2c';
+          ctx.beginPath(); ctx.moveTo(x, -49 + Math.max(0, a) * 18); ctx.lineTo(x + 5, -32); ctx.stroke();
+        }
+        break;
+      }
+      case 'trumpet': {
+        ctx.lineWidth = 6; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(10, -48); ctx.lineTo(34, -48); ctx.stroke();
+        ctx.lineWidth = 3; ctx.strokeStyle = '#ffc21a'; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(30, -53); ctx.lineTo(40, -57); ctx.lineTo(40, -39); ctx.lineTo(30, -43); ctx.closePath(); this.blob(ctx, '#ffc21a');
+        for (const x of [18, 23]) { ctx.fillStyle = '#fff3a0'; ctx.fillRect(x, -47, 2, 5); }
+        break;
+      }
+      case 'wand': {
+        const reveal = celeEase((e - 0.75) / 0.28), x = 13 + reveal * 13, y = -27 - reveal * 38;
+        ctx.lineWidth = 4; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 16, y - 13); ctx.stroke();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#f6efff'; ctx.stroke();
+        this.star(ctx, x + 18, y - 15, 4.5, '#ffe14d'); break;
+      }
+      case 'crown': {
+        ctx.beginPath(); ctx.moveTo(-11, -87); ctx.lineTo(-11, -98); ctx.lineTo(-5, -93); ctx.lineTo(1, -102);
+        ctx.lineTo(7, -93); ctx.lineTo(13, -98); ctx.lineTo(13, -87); ctx.closePath(); this.blob(ctx, '#ffc21a');
+        ctx.fillStyle = '#e23952'; for (const x of [-5, 2, 9]) { ctx.beginPath(); ctx.arc(x, -90, 1.8, 0, Math.PI * 2); ctx.fill(); }
+        break;
+      }
+      case 'flag': {
+        const wave = Math.sin(e * 11) * 5;
+        ctx.lineWidth = 3.2; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(24, -48); ctx.lineTo(24, -90); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(24, -88); ctx.quadraticCurveTo(37, -95 + wave, 51, -87); ctx.lineTo(51, -65);
+        ctx.quadraticCurveTo(37, -73 + wave, 24, -68); ctx.closePath(); this.blob(ctx, '#ffe14d');
+        ctx.fillStyle = '#2f7bff'; ctx.fillRect(28, -84, 4, 15); break;
+      }
+      case 'pogo': {
+        ctx.lineWidth = 4; ctx.strokeStyle = OUTLINE;
+        ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, 13); ctx.stroke();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#9fd5ff'; ctx.stroke();
+        ctx.lineWidth = 4; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(-16, -40); ctx.lineTo(17, -40); ctx.moveTo(-12, -8); ctx.lineTo(12, -8); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 13, 4, 0, Math.PI * 2); this.blob(ctx, '#ff5a3c'); break;
+      }
+      case 'gloves': {
+        const pose = CELE_POSES.boxing(e, e, p);
+        for (const hand of pose.hands) {
+          ctx.beginPath(); ctx.ellipse(hand[0], hand[1], 6.5, 5.7, 0, 0, Math.PI * 2); this.blob(ctx, '#ef334b');
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(hand[0] - 4, hand[1] + 3, 8, 2);
+        }
+        break;
+      }
+      case 'camera': {
+        this.rr(ctx, 4, -61, 21, 14, 3); this.blob(ctx, '#272d4d');
+        ctx.beginPath(); ctx.arc(15, -54, 5, 0, Math.PI * 2); this.blob(ctx, '#8adfff');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(7, -63, 7, 3); break;
+      }
+      case 'baton': {
+        const y = -48 + Math.cos(e * 6) * 17;
+        ctx.lineWidth = 3.4; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.moveTo(25, y); ctx.lineTo(38, y - 23); ctx.stroke();
+        ctx.lineWidth = 1.6; ctx.strokeStyle = '#ffffff'; ctx.stroke(); break;
+      }
       case 'cash': {
         this.rr(ctx, -1, -47, 11, 7, 1.5); this.blob(ctx, '#3fbf5a');
         ctx.fillStyle = '#2a8a3f'; ctx.fillRect(1, -45, 7, 1.2); ctx.fillRect(1, -42.6, 7, 1.2);
@@ -400,8 +469,185 @@ const Sprites = {
     }
   },
 
+  // Premium effects live in screen space so flips never rotate text, sparks, or floor marks.
+  premiumCelebFX(ctx, name, e, sx, sy, k, flip, cp) {
+    if (!CELE_PREMIUM.has(name)) return false;
+    ctx.save(); ctx.translate(sx, sy); ctx.scale(k, k);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const pi = Math.PI, pulse = Math.sin(e * 8), rise = Math.max(0, cp.jump || 0);
+    const ring = (x, y, rx, ry, color, width = 2) => {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 2 * pi); ctx.stroke();
+    };
+    const star = (x, y, r, color) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke();
+    };
+    const line = (pts, color, width = 2) => {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+      pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+    };
+    switch (name) {
+      case 'lightning':
+        for (const side of [-1, 1]) {
+          const glow = 0.45 + Math.abs(pulse) * 0.45;
+          ctx.globalAlpha = glow;
+          line([[side * 23, -100], [side * 12, -79], [side * 25, -70], [side * 9, -44]], '#7feaff', 5);
+          line([[side * 23, -100], [side * 12, -79], [side * 25, -70], [side * 9, -44]], '#ffffff', 2);
+        }
+        star(0, -86 - rise, 8 + Math.abs(pulse) * 4, '#ffe14d');
+        break;
+      case 'superhero': {
+        const u = Math.max(0, e - 0.75), spread = Math.min(1, u / 0.7);
+        if (u > 0) {
+          ctx.globalAlpha = 1 - spread;
+          ring(0, -8, 14 + spread * 67, 5 + spread * 10, '#ffe14d', 4);
+          for (const side of [-1, 1]) for (let i = 0; i < 4; i++)
+            line([[side * (8 + i * 5), -4], [side * (24 + spread * 42 + i * 4), -9 - i * 4]], '#e9dfc4', 3);
+        } else star(0, -78 - rise, 10, '#ffffff');
+        break;
+      }
+      case 'samba':
+        for (let i = 0; i < 5; i++) {
+          const a = e * 5 + i * 1.26, x = Math.cos(a) * 29, y = -47 + Math.sin(a) * 25;
+          ctx.strokeStyle = ['#ff5fa8', '#ffe14d', '#7fdcff', '#52df80', '#ffffff'][i]; ctx.lineWidth = 3.5;
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.cos(a + 1) * 13, y - 15, x + Math.cos(a + 2) * 22, y - 27); ctx.stroke();
+        }
+        break;
+      case 'disco':
+        for (let i = 0; i < 4; i++) {
+          const a = e * 3 + i * pi / 2, x = Math.cos(a) * 55, y = -50 + Math.sin(a) * 23;
+          ctx.globalAlpha = 0.35; line([[0, -53], [x, y]], ['#ff5fa8', '#7fdcff', '#ffe14d', '#92ff95'][i], 10);
+          ctx.globalAlpha = 1; star(x, y, 5, '#ffffff');
+        }
+        break;
+      case 'micdrop':
+        if (e > 1.1) {
+          const u = (e - 1.1) * 1.2; ctx.globalAlpha = Math.max(0, 1 - u);
+          for (let i = 0; i < 3; i++) ring(30, -10, 6 + u * 17 + i * 10, 4 + u * 9 + i * 5, '#7fdcff', 2.5);
+        }
+        break;
+      case 'statue':
+        for (let i = 0; i < 5; i++) star(Math.cos(i * 2.5 + e) * 26, -50 + Math.sin(i * 2.5 + e) * 36, 2.5 + Math.abs(pulse) * 2, '#fff2b0');
+        ring(0, -1, 23, 5, '#b5bdca', 3);
+        break;
+      case 'drummer':
+        for (const side of [-1, 1]) for (let i = 0; i < 2; i++) {
+          ctx.globalAlpha = 0.55 - i * 0.18; ring(side * 25, -32, 8 + i * 8 + Math.abs(pulse) * 3, 8 + i * 8, '#ffe14d', 2);
+        }
+        break;
+      case 'trumpet':
+      case 'conductor':
+        for (let i = 0; i < 4; i++) {
+          const u = (e * 0.6 + i * 0.25) % 1, x = (name === 'trumpet' ? 38 : 22) + u * 38, y = -50 - u * 36 + Math.sin(e * 5 + i) * 5;
+          ctx.globalAlpha = 1 - u; line([[x, y], [x, y - 9], [x + 6, y - 7]], i % 2 ? '#7fdcff' : '#ffe14d', 2.6);
+          ctx.beginPath(); ctx.ellipse(x - 2, y, 3, 2, -0.3, 0, 2 * pi); ctx.fillStyle = i % 2 ? '#7fdcff' : '#ffe14d'; ctx.fill();
+        }
+        break;
+      case 'magician':
+        for (let i = 0; i < 9; i++) {
+          const u = (e * 0.45 + i / 9) % 1, a = i * 2.4 + e * 2;
+          ctx.globalAlpha = Math.sin(u * pi);
+          star(Math.cos(a) * (12 + u * 46), -53 - u * 25 + Math.sin(a) * 12, 3 + u * 4, i % 2 ? '#ff9ee8' : '#ffe14d');
+        }
+        break;
+      case 'freeze':
+        for (let i = 0; i < 8; i++) {
+          const a = i * pi / 4, x = Math.cos(a) * 39, y = -47 + Math.sin(a) * 38;
+          line([[x - Math.cos(a) * 7, y - Math.sin(a) * 7], [x + Math.cos(a) * 8, y + Math.sin(a) * 8]], '#bff3ff', 2.5);
+          star(x, y, 3, '#ffffff');
+        }
+        break;
+      case 'earthquake':
+        if (e > 0.48) {
+          const u = Math.min(1, (e - 0.48) / 0.7); ctx.globalAlpha = 1 - u * 0.7;
+          for (const side of [-1, 1]) line([[side * 6, 0], [side * 22, 3], [side * 31, -1], [side * (48 + u * 30), 5]], '#463b40', 3);
+          ring(0, -5, 16 + u * 50, 4 + u * 8, '#e9dfc4', 2);
+        }
+        break;
+      case 'rocket':
+        if (e > 0.45 && rise > 10) for (let i = 0; i < 5; i++) {
+          const x = (i - 2) * 6, h = 13 + Math.abs(Math.sin(e * 13 + i)) * 15;
+          line([[x, -rise + 1], [x + Math.sin(e * 10 + i) * 3, -rise + h]], i % 2 ? '#ffe14d' : '#ff6338', 5 - i * 0.4);
+          ctx.globalAlpha = 0.5; ring(x * 3, -2, 7 + i * 3, 3 + i, '#d5e0e7', 2); ctx.globalAlpha = 1;
+        }
+        break;
+      case 'tornado':
+        for (let i = 0; i < 4; i++) {
+          const y = -17 - i * 19, w = 15 + i * 8 + Math.sin(e * 8 + i) * 4;
+          ctx.globalAlpha = 0.8 - i * 0.12; ring(Math.sin(e * 8 + i) * 3, y, w, 5 + i, i % 2 ? '#ffffff' : '#bff3ff', 2.6);
+        }
+        break;
+      case 'royalwave':
+        for (let i = 0; i < 5; i++) star(-25 + i * 13, -100 - Math.sin(e * 3 + i) * 6, 3 + (i % 2) * 2, '#ffe14d');
+        break;
+      case 'meditate':
+        for (let i = 0; i < 3; i++) {
+          const u = (e * 0.35 + i / 3) % 1; ctx.globalAlpha = 1 - u;
+          ring(0, -43, 18 + u * 37, 26 + u * 32, '#a7ecff', 2.2);
+        }
+        break;
+      case 'victorylap':
+        for (let i = 0; i < 6; i++) {
+          const u = (e * 0.8 + i / 6) % 1; ctx.globalAlpha = 1 - u;
+          line([[-12 - u * 60, -13 - i * 7], [-2 - u * 45, -13 - i * 7]], i % 2 ? '#ffffff' : '#ffe14d', 2.5);
+        }
+        break;
+      case 'snowangel':
+        for (const side of [-1, 1]) {
+          ctx.globalAlpha = 0.55;
+          ctx.strokeStyle = '#d6f4bd'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.ellipse(side * 17, -4, 22, 8, side * 0.4, 0, pi); ctx.stroke();
+        }
+        break;
+      case 'handstand':
+        for (let i = 0; i < 5; i++) star((i - 2) * 12, -9 + Math.sin(e * 5 + i) * 3, 2.5, '#ffe14d');
+        break;
+      case 'pogo':
+        if (Math.abs(Math.sin(e * 8)) < 0.3) {
+          const u = Math.abs(Math.sin(e * 8)); ctx.globalAlpha = 0.8 - u;
+          ring(0, -1, 18 + u * 25, 5 + u * 7, '#ffe14d', 3);
+        }
+        break;
+      case 'boxing':
+        for (let i = 0; i < 3; i++) {
+          const u = (e * 1.5 + i / 3) % 1; ctx.globalAlpha = 1 - u;
+          star(34 + u * 34, -49 + (i - 1) * 11, 4 + (1 - u) * 5, i % 2 ? '#ffe14d' : '#ffffff');
+        }
+        break;
+      case 'chefkiss':
+        if (e > 1) for (let i = 0; i < 5; i++) {
+          const u = (e - 1) * 0.5 + i * 0.15; ctx.globalAlpha = Math.max(0, 1 - u);
+          star(26 + u * 33, -65 - u * 25 + i * 3, 3 + i * 0.5, '#ff9ec8');
+        }
+        break;
+      case 'paparazzi':
+        for (let i = 0; i < 3; i++) {
+          const flash = Math.max(0, 1 - Math.abs((e % 0.7) - i * 0.18) / 0.12);
+          ctx.globalAlpha = flash; star(28 + i * 7, -67 - i * 8, 8 + flash * 10, '#ffffff');
+        }
+        break;
+      case 'phoenix':
+        for (const side of [-1, 1]) for (let i = 0; i < 5; i++) {
+          const x = side * (16 + i * 7), y = -34 - rise * 0.6 - i * 5, flame = 9 + Math.sin(e * 12 + i) * 4;
+          line([[side * 5, -42 - rise], [x, y], [x + side * 4, y - flame]], i % 2 ? '#ffe14d' : '#ff6338', 4 - i * 0.35);
+        }
+        break;
+      case 'galaxy':
+        for (let i = 0; i < 3; i++) {
+          const a = e * (2.4 + i * 0.5) + i * 2.1;
+          ring(0, -48 - rise * 0.4, 23 + i * 11, 10 + i * 5, ['#7fdcff', '#ff9ee8', '#ffe14d'][i], 1.6);
+          ctx.beginPath(); ctx.arc(Math.cos(a) * (23 + i * 11), -48 - rise * 0.4 + Math.sin(a) * (10 + i * 5), 3 + i, 0, 2 * pi);
+          ctx.fillStyle = ['#7fdcff', '#ff9ee8', '#ffe14d'][i]; ctx.fill();
+        }
+        break;
+    }
+    ctx.restore();
+    return true;
+  },
+
   // props drawn upright on screen (text and floating shapes)
   celebScreen(ctx, name, e, sx, sy, k, flip, cp) {
+    if (this.premiumCelebFX(ctx, name, e, sx, sy, k, flip, cp)) return;
     const headY = sy - (76 + Math.max(0, cp.jump || 0)) * k;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     switch (name) {

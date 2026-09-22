@@ -458,7 +458,7 @@ Object.assign(UI, {
     p.vx = run; p.vy = 0; p.runPhase = e * 9;
     const pose = CELE_POSES[id] ? CELE_POSES[id](e, e, p) : null;
     const lying = pose && pose.lie;
-    const ground = h - 14 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
+    const ground = h - 14 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && (pose.jump > 25 || id === 'snowangel') ? 0.72 : pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
     g.fillStyle = 'rgba(20,60,20,0.28)'; g.beginPath(); g.ellipse(w / 2, ground, lying ? 38 : 25, 8, 0, 0, Math.PI * 2); g.fill();
     // Wider framing keeps every flip, floor pose, prop and equipped accessory inside its card.
     Sprites.player(g, p, w / 2 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground, scale, e);

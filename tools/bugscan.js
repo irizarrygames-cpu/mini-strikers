@@ -213,7 +213,7 @@ window.BS = {
         const p = { team: 'blue', isKeeper: false, number: 10, look: { ...look, acc }, vx: CELE_MOVES[c.id] ? CELE_MOVES[c.id](e) : 0, vy: 0,
           fx: 1, fy: 0.25, faceX: 1, kickT: 0, kickDur: 0.2, celebrateT: CELE_TIME - e, celebKind: c.id,
           diveT: 0, stunT: 0, recoverT: 0, seed: 0, runPhase: e * 9, sad: false, slideT: 0, fallT: 0, hopT: 0 };
-        const pose = CELE_POSES[c.id](e, e, p), lying = pose && pose.lie, ground = 136 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
+        const pose = CELE_POSES[c.id](e, e, p), lying = pose && pose.lie, ground = 136 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && (pose.jump > 25 || c.id === 'snowangel') ? 0.72 : pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
         g.clearRect(0, 0, cv.width, cv.height);
         try { Sprites.player(g, p, 80 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground, scale, e); }
         catch (err) { issues.push(`${c.id}/${acc || 'none'} @${e}: ${err.message}`); continue; }
