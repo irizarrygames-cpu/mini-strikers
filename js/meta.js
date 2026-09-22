@@ -23,7 +23,7 @@ const PRICES = {
   // ~100-150 coins a match: commons in a session, legendaries take days of play
   character: { street: 0, striker: 0, buzz: 500, curly: 700, speedster: 900, captain: 2500, bandit: 3000, beanie: 3500, turbo: 4200, ninja: 7000, mohawk: 8000, robot: 9500, viking: 11000, afroking: 16000, phantom: 20000, goldenboot: 25000,
     dreads: 30000, samurai: 34000, cowboy: 38000, pirate: 45000, knight: 52000, pharaoh: 60000, shark: 70000,
-    lion: 85000, wizard: 100000, astronaut: 115000, iceking: 130000, inferno: 150000, galaxy: 175000, titan: 200000, goat: 250000 },
+    lion: 85000, wizard: 100000, astronaut: 115000, iceking: 130000, inferno: 150000, galaxy: 175000, titan: 200000, goat: 250000, jacob: 0 },
   accessory: Object.fromEntries(ACCESSORIES.map((a) => [a.id, a.price])),
   trail: { electric: 0, fire: 250, blast: 300, plasma: 350, frost: 600, toxic: 900, shadow: 1400, rainbow: 2200, golden: 3500 },
   celebration: Object.fromEntries(CELEBRATIONS.map((c) => [c.id, c.price])),
@@ -177,7 +177,7 @@ const PenCup = {
 };
 // ===== Career achievements ==========================================
 // stat(d) reads the save; progress is capped at goal; each one pays out once when claimed.
-const ownedCount = (pred) => CHARACTERS.filter((c) => pred(c) && Shop.owns('character', c.id)).length;
+const ownedCount = (pred) => CHARACTERS.filter((c) => pred(c) && charOk(c) && Shop.owns('character', c.id)).length;
 const ACHIEVEMENTS = [
   { id: 'goal1', name: 'Off The Mark', text: 'Score your first goal', goal: 1, coins: 50, stat: (d) => d.goals },
   { id: 'win1', name: 'First Win', text: 'Win a match', goal: 1, coins: 60, stat: (d) => d.wins },

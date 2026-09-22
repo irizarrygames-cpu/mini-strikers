@@ -263,6 +263,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     for (const party of partiesToSend) partyUpdate(party);
   }
 
+  // a character locked to certain accounts is only ever worn by those accounts, whatever a save claims
+  function charFor(wanted, id) {
+    const ch = sim.CHARACTERS.find((c) => c.id === wanted);
+    return ch && (!ch.only || ch.only.includes(id)) ? ch.id : 'street';
+  }
+
   function profileOf(id) {
     const u = getUser(id);
     const save = (u && u.save) || {};
@@ -270,7 +276,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     return {
       name: userName(id),
       club: (u && u.club) || sim.CLUBS[0].id,
-      character: has(sim.CHARACTERS, save.character) && save.character ? save.character : 'street',
+      character: charFor(save.character, id),
       trail: has(sim.TRAILS, save.trail) && save.trail ? save.trail : 'electric',
       celebration: has(sim.CELEBRATIONS, save.celebration) && save.celebration ? save.celebration : 'jump',
       // only an accessory the save actually owns

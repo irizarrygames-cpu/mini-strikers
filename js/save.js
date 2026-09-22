@@ -81,7 +81,7 @@ const Save = {
   // equipped items fall back to a free one if they are somehow not owned
   character() {
     const c = CHARACTERS.find((x) => x.id === this.data.character);
-    return c && Shop.owns('character', c.id) ? c : CHARACTERS[0];
+    return c && charOk(c) && Shop.owns('character', c.id) ? c : CHARACTERS[0];
   },
   trail() {
     const t = TRAILS.find((x) => x.id === this.data.trail);
@@ -106,6 +106,6 @@ const Save = {
   // your player as drawn: the character plus whatever accessory you have on
   look() {
     const ch = this.character();
-    return { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, acc: this.accessory() };
+    return { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, thin: ch.thin || 0, acc: this.accessory() };
   },
 };

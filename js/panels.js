@@ -199,15 +199,15 @@ Object.assign(UI, {
   panel_characters(body) {
     $('modal-title').textContent = 'CHARACTERS';
     const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
-    const list = CHARACTERS.slice().sort((a, b) => Shop.price('character', a.id) - Shop.price('character', b.id));
+    const list = CHARACTERS.filter(charOk).sort((a, b) => Shop.price('character', a.id) - Shop.price('character', b.id));
     body.innerHTML = `${this.coinsLine()}<p class="note">Better players are faster, shoot harder, pass sharper, keep the ball and win tackles. The best ones take days of play to afford.</p><div class="char-grid">${list.map((c) => `
       <button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
         <span class="rar-tag">${RARITIES[c.rarity].name}</span>
-        <span class="ovr"><b>${overall(c.r)}</b><small>OVR</small></span>
+        <span class="ovr"><b>${charOvr(c)}</b><small>OVR</small></span>
         <canvas width="96" height="96" data-portrait="${c.id}"></canvas>
         <strong>${c.name}</strong>
         ${this.priceTag('character', c.id)}
-        <div class="bars">${statRow('SPD', c.r.spd)}${statRow('SHT', c.r.sht)}${statRow('PAS', c.r.pas)}${statRow('CTL', c.r.ctl)}${statRow('DEF', c.r.def)}</div>
+        <div class="bars ${charStats(c).some(([label]) => label.length > 4) ? 'long' : ''}">${charStats(c).map(([label, v]) => statRow(label, v)).join('')}</div>
       </button>`).join('')}</div>`;
     body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('.char-card-sm').forEach((el) => this.shopCard(el, 'character', el.dataset.id, () => {
@@ -369,7 +369,7 @@ Object.assign(UI, {
         <canvas width="96" height="96" id="prof-canvas"></canvas>
         <div class="prof-id">
           <strong>${ch.name}</strong>
-          <small>${Save.account || 'GUEST'} · ${Clubs.mine().name} · LEVEL ${lv.level} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${overall(ch.r)}</small>
+          <small>${Save.account || 'GUEST'} · ${Clubs.mine().name} · LEVEL ${lv.level} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${charOvr(ch)}</small>
           <small class="ramp-note">Every level makes every match harder — opponents are +${levelRampPct(lv.level)}% sharper than at level 1${lv.level >= LEVEL_RAMP_TOP ? ' (maxed)' : ''}.</small>
           <span>${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L · ${winPct}% WON</span>
         </div>

@@ -38,6 +38,7 @@ const Sprites = {
     if (cp && cp.faceX !== undefined) faceX = cp.faceX;
     const flip = faceX < 0 ? -1 : 1;
     const squash = Math.abs(faceX) < 0.35 ? 0.86 + Math.abs(faceX) * 0.4 : 1;
+    const slim = look.thin ? (look.thin === true ? 0.7 : look.thin) : 1; // a skinny build: the body only
 
     let legSwing = 0, armSwing = 0, bob = 0, jump = 0, lean = 0, rot = 0, kick = 0;
     let armsUp = 0, slide = 0, upperLean = 0, tuck = 0, dive = 0, fall = 0;
@@ -84,7 +85,7 @@ const Sprites = {
     // identical at 30, 60 and 120 FPS, and accessories share the exact same transform.
     const celeIn = cp && p.celebrateT > 0 ? celeEase(ce / 0.18) : 0;
     const celePop = cp ? Math.sin(Math.min(1, ce / 0.34) * Math.PI) * 0.055 * celeIn : 0;
-    ctx.scale(k * flip * squash * (1 + celePop), k * (1 - celePop * 0.45));
+    ctx.scale(k * flip * squash * slim * (1 + celePop), k * (1 - celePop * 0.45));
     if (fall) {
       // tripped: lying on the grass, face down
       ctx.translate(0, -4);
@@ -202,11 +203,14 @@ const Sprites = {
     arm(1, armSwing);
 
     // ---- head ----
+    // a skinny body still gets a normal head, so the face never looks squeezed
+    if (slim !== 1) { ctx.save(); ctx.scale(1 / slim, 1); }
     this.head(ctx, look, back, t, p);
     const faceProp = cp && (cp.prop === 'shades' || cp.prop === 'glasses');
     const faceAcc = acc && ACCESSORY_FACE_IDS.has(acc);
     if (acc && !(faceProp && faceAcc)) this.accessory(ctx, acc, 'head', p, t, back, sp);
     if (cp && cp.prop) this.celebProp(ctx, cp.prop, ce, back, p);
+    if (slim !== 1) ctx.restore();
     ctx.restore();
     if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, true);
     if (cp && cp.screen) this.celebScreen(ctx, cp.screen, ce, sx, sy, k, flip, cp);
@@ -1001,6 +1005,15 @@ const Sprites = {
         }
         ctx.fillStyle = hc; ctx.beginPath(); ctx.arc(hx, hy - 4, R - 3, Math.PI, Math.PI * 2); ctx.fill();
         ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(hx - 4, hy - 12, 2.4, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case 'flat': {
+        const hair = back
+          ? [[-R - 1, 3], [-R - 2, -8], [-8, -16], [2, -17], [R, -9], [R + 1, 3], [0, 7]]
+          : [[-R - 1, 1], [-R - 2, -7], [-9, -15], [0, -16.5], [9, -14.5], [R + 1, -6], [R + 1, 1], [R - 3, -2.5], [-R + 3, -2.5]];
+        tuft(hair, hc);
+        ctx.fillStyle = hl;
+        ctx.fillRect(hx - 8, hy - 12, 11, 2.2);
         break;
       }
       case 'buzz': {

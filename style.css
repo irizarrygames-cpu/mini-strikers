@@ -272,7 +272,9 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .char-card-sm strong { font-weight: 400; font-size: 18px; }
 .bars { width: 100%; display: grid; gap: 3px; }
 .bar { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-.bar i { font-style: normal; width: 28px; }
+.bar i { font-style: normal; width: 28px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars.long .bar i { width: auto; max-width: 64%; font-size: 8px; letter-spacing: -0.2px; }
+.bars.long .bar em { width: 24px; }
 .bar span { flex: 1; height: 8px; background: #fff; border: 2px solid var(--ink); border-radius: 4px; overflow: hidden; }
 .bar b { display: block; height: 100%; background: var(--blue); }
 
@@ -965,7 +967,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .acc-opt canvas { width: 84px; height: 84px; margin: 4px auto 2px; display: block; }
 .char-card-sm.rar-epic { background: #f1e6ff; }
 .char-card-sm.sel { background: var(--yellow); }
-.bar em { font-style: normal; width: 20px; text-align: right; font-size: 11px; }
+.bar em { font-style: normal; width: 20px; flex: none; text-align: right; font-size: 11px; }
 .toast.low { top: max(2px, env(safe-area-inset-top)); font-size: 14px; padding: 3px 12px; }
 @media (max-height: 430px) {
   .r-left .r-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 4px; }
@@ -1229,4 +1231,6 @@ body.kb .chat-menu kbd { display: inline-block; }
 .commentary strong { display: block; width: fit-content; max-width: 100%; margin: 0 auto; background: rgba(22,26,51,.94); color: #fff; border: 3px solid #fff; outline: 3px solid var(--ink); border-radius: 10px; padding: 4px 10px; font-size: clamp(11px, 2.1vmin, 16px); line-height: 1.12; text-shadow: 2px 2px 0 var(--ink); }
 .commentary.big strong { color: var(--yellow); font-size: clamp(15px, 3vmin, 23px); animation: commentary-pop .35s cubic-bezier(.2,1.8,.4,1); }
 @keyframes commentary-pop { 0% { transform: scale(.55) rotate(-2deg); } 70% { transform: scale(1.08) rotate(1deg); } 100% { transform: scale(1); } }
+/* a penalty shootout keeps its scoreboard at the top of the screen, so the caption drops below it */
+#hud.pens .commentary { top: calc(var(--st) + clamp(74px, 18.5vh, 104px)); }
 @media (max-height: 430px) { .commentary { top: calc(var(--st) + 46px); width: min(520px, 66vw); } .commentary strong { font-size: 11px; padding: 2px 8px; } .commentary.big strong { font-size: 16px; } }

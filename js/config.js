@@ -93,6 +93,7 @@ const RARITIES = {
   epic:      { name: 'EPIC',      color: '#a35cff' },
   legendary: { name: 'LEGENDARY', color: '#ffb400' },
   mythic:    { name: 'MYTHIC',    color: '#ff3a6e' },
+  oneofone:  { name: 'ONE OF ONE', color: '#ffe14d' },
 };
 const CHARACTERS = [
   { id: 'street',     name: 'Street',      rarity: 'starter',   r: { spd: 62, sht: 58, pas: 60, ctl: 60, def: 56 }, hair: 'cap',      hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#2f7bff' },
@@ -127,6 +128,11 @@ const CHARACTERS = [
   { id: 'galaxy',     name: 'Galaxy',      rarity: 'mythic',    r: { spd: 96, sht: 96, pas: 96, ctl: 96, def: 92 }, hair: 'galaxy',   hairColor: '#4b2aa8', skin: '#a8693f' },
   { id: 'titan',      name: 'Titan',       rarity: 'mythic',    r: { spd: 94, sht: 98, pas: 94, ctl: 96, def: 98 }, hair: 'flattop',  hairColor: '#1b1b2a', skin: '#7a4a2a' },
   { id: 'goat',       name: 'The GOAT',    rarity: 'mythic',    r: { spd: 99, sht: 99, pas: 98, ctl: 99, def: 95 }, hair: 'goat',     hairColor: '#f4f5f7', skin: '#f2c49b' },
+  // Jacob: LILOTTER and irizarrygamez1 only. The card shows his own six stats; the three that
+  // mean anything on the pitch (pace, ball control, crossing) are what he actually plays at.
+  { id: 'jacob', name: 'Jacob', rarity: 'oneofone', only: ['lilotter', 'irizarrygamez1'], thin: 0.55, ovr: 98,
+    stats: [['SKINNY', 99], ['PACE', 21], ['BALL CONTROL', 67], ['YAP', 200], ['EXCUSES', 200], ['CROSSING', 0]],
+    r: { spd: 21, sht: 34, pas: 40, ctl: 67, def: 28 }, hair: 'flat', hairColor: '#3a2a1c', skin: '#e9b489' },
 ];
 // Accessories: one slot, worn over any character. slot says where it's drawn on the body.
 const ACCESSORIES = [
@@ -198,13 +204,18 @@ const BOT_RARITY_ONLINE = { starter: 4, common: 12, rare: 30, epic: 30, legendar
 function pickBotCharacter(rand = Math.random, share = BOT_RARITY_SHARE) {
   const count = {};
   for (const c of CHARACTERS) count[c.rarity] = (count[c.rarity] || 0) + 1;
-  const weight = (c) => (share[c.rarity] || 0) / count[c.rarity];
+  // a character tied to an account is never handed to a bot
+  const weight = (c) => (c.only ? 0 : (share[c.rarity] || 0) / count[c.rarity]);
   let roll = rand() * CHARACTERS.reduce((sum, c) => sum + weight(c), 0);
   for (const c of CHARACTERS) { roll -= weight(c); if (roll <= 0) return c; }
   return CHARACTERS[0];
 }
 
 const overall = (r) => Math.round((r.spd + r.sht + r.pas + r.ctl + r.def) / 5);
+// characters can be locked to certain accounts, and can show their own stat lines
+const charOk = (c) => !c.only || (typeof Save !== 'undefined' && c.only.includes(String(Save.account || '').toLowerCase()));
+const charStats = (c) => c.stats || [['SPD', c.r.spd], ['SHT', c.r.sht], ['PAS', c.r.pas], ['CTL', c.r.ctl], ['DEF', c.r.def]];
+const charOvr = (c) => (c.ovr !== undefined ? c.ovr : overall(c.r));
 // rating 70 = 0; 95 ≈ +1; 99 ≈ +1.16; 45 ≈ -1. Kept small on purpose: better, not unfair.
 const NEUTRAL_ATTR = { speed: 1, shot: 1, pass: 1, finish: 0, ctl: 0, def: 0 };
 function ratingAttr(r) {

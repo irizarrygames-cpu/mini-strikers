@@ -136,7 +136,7 @@ const UI = {
     $('home-record').textContent = `${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L` + (d.career.streak >= 2 ? ` · ${d.career.streak} WIN STREAK` : '');
     this.portrait($('home-char-canvas'), Save.look());
     const ovr = $('home-ovr');
-    ovr.querySelector('b').textContent = overall(ch.r);
+    ovr.querySelector('b').textContent = charOvr(ch);
     ovr.style.setProperty('--rar', RARITIES[ch.rarity].color);
     const ready = Achievements.readyList().length;
     $('prof-badge').hidden = ready === 0;
@@ -425,7 +425,7 @@ const UI = {
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
     const ch = Save.character();
-    $('intro-you').innerHTML = `${ch.name.toUpperCase()} <b style="color:${RARITIES[ch.rarity].color}">${overall(ch.r)}</b>`;
+    $('intro-you').innerHTML = `${ch.name.toUpperCase()} <b style="color:${RARITIES[ch.rarity].color}">${charOvr(ch)}</b>`;
     $('intro-stars').textContent = '★'.repeat(m.club.level + 1) + '☆'.repeat(3 - m.club.level);
     this.portrait($('intro-canvas'), ch);
     $('intro').querySelector('.intro-ch').hidden = !(m.challenges && m.challenges.length);
