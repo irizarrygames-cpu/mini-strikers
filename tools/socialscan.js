@@ -326,7 +326,7 @@ async function endRoom(id) {
     check('three at once: only the first goes out', socks.xan.since(k2, 'chat').length === 1);
     let sent = 0;
     const k3 = socks.xan.got.length;
-    for (let i = 0; i < 8; i++) { clockSkew += 1300; say('yul', { t: 'chat', m: 9 }); sent++; }
+    for (let i = 0; i < 8; i++) { clockSkew += 1150; say('yul', { t: 'chat', m: 9 }); sent++; }
     await sleep(50);
     const got = socks.ann.since(0, 'chat').filter((c) => c.p === pi('yul')).length;
     check('no more than five in any ten seconds', got === 5, { sent, got });
