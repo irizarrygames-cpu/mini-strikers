@@ -1003,6 +1003,63 @@ const Sprites = {
       ctx.closePath(); this.blob(ctx, fill);
     };
     switch (style) {
+      case 'curtains': {
+        const h = back
+          ? [[-R - 1, 4], [-R - 3, -8], [-4, -18], [4, -18], [R + 2, -8], [R + 1, 5], [0, 8]]
+          : [[-R - 1, 4], [-R - 3, -7], [-R + 1, -15], [-6, -19], [1, -20], [8, -17], [R + 1, -8], [R + 2, 3], [R - 1, 3], [12, -5], [7, -10], [2, -3], [0, -12], [-3, -3], [-8, -10], [-13, -2]];
+        tuft(h, hc);
+        ctx.fillStyle = hl; ctx.fillRect(hx - 7, hy - 15, 9, 2);
+        break;
+      }
+      case 'topknot': {
+        const h = back
+          ? [[-R - 1, 4], [-R - 2, -8], [0, -16], [R + 2, -8], [R + 1, 5], [0, 8]]
+          : [[-R - 1, 2], [-R - 2, -8], [-8, -14], [0, -15.5], [9, -13], [R + 1, -7], [R + 1, 2], [R - 3, -1.5], [-R + 3, -1.5]];
+        tuft(h, hc);
+        ctx.beginPath(); ctx.arc(hx + 1, hy - 20, 5.4, 0, Math.PI * 2); this.blob(ctx, hc);
+        ctx.strokeStyle = look.band || '#ffffff'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(hx - 3, hy - 15); ctx.lineTo(hx + 5, hy - 15); ctx.stroke();
+        break;
+      }
+      case 'braids': {
+        const h = back
+          ? [[-R - 1, 4], [-R - 2, -9], [0, -17], [R + 2, -9], [R + 1, 5], [0, 8]]
+          : [[-R - 1, 3], [-R - 2, -8], [-7, -15], [1, -16.5], [9, -14], [R + 1, -7], [R + 1, 3], [R - 3, -1], [-R + 3, -1]];
+        tuft(h, hc);
+        // a braid down each side: three beads and a tip
+        for (const side of [-1, 1]) {
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath(); ctx.arc(hx + side * (R - 1.5), hy + 4 + i * 5, 3.1 - i * 0.35, 0, Math.PI * 2);
+            this.blob(ctx, i % 2 ? shadeHex(hc, 0.14) : hc);
+          }
+          ctx.beginPath(); ctx.arc(hx + side * (R - 1.5), hy + 18, 1.7, 0, Math.PI * 2); this.blob(ctx, look.band || '#ffe14d');
+        }
+        break;
+      }
+      case 'fade': {
+        ctx.beginPath(); ctx.arc(hx, hy + 0.4, R + 0.4, Math.PI * 1.04, Math.PI * 1.96);
+        if (!back) ctx.quadraticCurveTo(hx + 5, hy - 8, hx - R + 1, hy - 2);
+        ctx.closePath(); this.blob(ctx, hc);
+        ctx.strokeStyle = shadeHex(hc, 0.35); ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(hx - R + 3, hy - 5); ctx.lineTo(hx + (back ? R - 3 : 2), hy - 8.5); ctx.stroke();
+        break;
+      }
+      case 'shaggy': {
+        const h = back
+          ? [[-R - 2, 9], [-R - 3, -8], [-6, -19], [3, -19], [R + 2, -8], [R + 2, 9], [8, 5], [0, 10], [-8, 5]]
+          : [[-R - 2, 8], [-R - 4, -6], [-R, -16], [-6, -21], [3, -20], [11, -16], [R + 2, -7], [R + 3, 6], [R - 1, 2], [12, 5], [9, -4], [4, 3], [0, -5], [-5, 2], [-10, -4], [-13, 4]];
+        tuft(h, hc);
+        ctx.fillStyle = hl; ctx.fillRect(hx - 9, hy - 14, 8, 2);
+        break;
+      }
+      case 'emo': {
+        const h = back
+          ? [[-R - 1, 6], [-R - 3, -8], [-3, -18], [5, -17], [R + 2, -8], [R + 1, 6], [0, 9]]
+          : [[-R - 2, 5], [-R - 3, -7], [-R + 1, -16], [-4, -20], [6, -18], [R + 1, -8], [R + 2, 2], [R - 1, 4], [4, 6], [-2, 1], [-9, 5], [-13, 0]];
+        tuft(h, hc);
+        ctx.fillStyle = hl; ctx.fillRect(hx - 10, hy - 13, 9, 2);
+        break;
+      }
       case 'cap': {
         const cap = look.cap || '#2f7bff';
         ctx.beginPath(); ctx.arc(hx, hy - 1.5, R + 1.4, Math.PI * 1.03, Math.PI * 1.97); ctx.closePath();

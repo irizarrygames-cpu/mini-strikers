@@ -21,7 +21,9 @@ const SIDES = {
 // ===== Unlocks ======================================================
 const PRICES = {
   // ~100-150 coins a match: commons in a session, legendaries take days of play
-  character: { street: 0, striker: 0, buzz: 500, curly: 700, speedster: 900, captain: 2500, bandit: 3000, beanie: 3500, turbo: 4200, ninja: 7000, mohawk: 8000, robot: 9500, viking: 11000, afroking: 16000, phantom: 20000, goldenboot: 25000,
+  character: { street: 0, striker: 0, buzz: 500, rookie: 550, hustle: 600, scrappy: 650, curly: 700, dash: 750, bounce: 800, cleats: 850, speedster: 900,
+    tinker: 950, braidz: 1000, topknot: 1100, curtains: 1200, fringe: 1300, tank: 1400, sparky: 1500, winger: 1800, maestro: 2100, volley: 2400,
+    anchor: 2700, shuffle: 3200, cannon: 3600, silk: 3900, wall: 4300, jester: 4600, comet: 4900, tempo: 5200, vault: 5500, captain: 2500, bandit: 3000, beanie: 3500, turbo: 4200, ninja: 7000, mohawk: 8000, robot: 9500, viking: 11000, afroking: 16000, phantom: 20000, goldenboot: 25000,
     dreads: 30000, samurai: 34000, cowboy: 38000, pirate: 45000, knight: 52000, pharaoh: 60000, shark: 70000,
     lion: 85000, wizard: 100000, astronaut: 115000, iceking: 130000, inferno: 150000, galaxy: 175000, titan: 200000, goat: 250000, jacob: 0 },
   accessory: Object.fromEntries(ACCESSORIES.map((a) => [a.id, a.price])),
