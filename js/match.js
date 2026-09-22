@@ -31,7 +31,7 @@ const Match = {
     const r = (arr) => arr[(rng() * arr.length) | 0];
     const aiLook = () => ({ hair: r(AI_HAIRS), hairColor: r(HAIR_COLORS), skin: r(SKINS), band: r(['#ffffff', '#ffe14d', '#1b1d33']), cap: r(['#2f7bff', '#ff8a1f', '#3fcf4a', '#1b1d33']) });
 
-    const lookOf = (ch, acc) => ({ hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, thin: ch.thin || 0, acc: acc && ACCESSORY_IDS.has(acc) ? acc : null });
+    const lookOf = (ch, acc) => ({ hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, thin: ch.thin || 0, anime: !!ch.anime, mewing: !!ch.mewing, acc: acc && ACCESSORY_IDS.has(acc) ? acc : null });
     if (opts.seats) {
       // online: both sides symmetric, real players take roles from the front of their side
       const sides = SIDES[m.format] || SIDES['4v4'];

@@ -939,6 +939,23 @@ const Sprites = {
       const blink = Math.sin(t * 1.3 + (p ? p.seed : 0)) > 0.985;
       for (const ex of [5.2, 11.6]) {
         if (blink) { ctx.fillRect(hx + ex - 2, hy + 1, 4, 1.6); continue; }
+        if (look.anime) {
+          // white, then a coloured iris, a dark pupil and two glints — all flat shapes
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.ellipse(hx + ex, hy + 1.4, 3.1, 4.6, -0.12, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = look.eyeColor || '#2f7bff';
+          ctx.beginPath(); ctx.ellipse(hx + ex + 0.5, hy + 2, 2.4, 3.6, -0.12, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = OUTLINE;
+          ctx.beginPath(); ctx.ellipse(hx + ex + 0.6, hy + 2.2, 1.3, 2.4, -0.12, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(hx + ex + 1.6, hy - 0.4, 1.3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(hx + ex - 0.9, hy + 3.4, 0.7, 0, Math.PI * 2); ctx.fill();
+          // lash line, angled down towards the nose: the cool stare
+          ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.9; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(hx + ex - 3, hy - 2.2); ctx.lineTo(hx + ex + 3.1, hy - 3.4); ctx.stroke();
+          ctx.fillStyle = OUTLINE;
+          continue;
+        }
         ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.ellipse(hx + ex, hy + 1.2, 3, 4, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = OUTLINE;
@@ -948,10 +965,16 @@ const Sprites = {
         ctx.fillStyle = OUTLINE;
       }
       // brows
-      ctx.strokeStyle = shadeHex(hc, -0.2); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.strokeStyle = shadeHex(hc, -0.2); ctx.lineWidth = look.anime ? 2.1 : 1.8; ctx.lineCap = 'round';
       const angry = p && (p.slideT > 0 || p.charging);
+      if (look.anime) {
+        // steeper, straighter brows
+        ctx.beginPath(); ctx.moveTo(hx + 2.4, hy - 5.4 + (angry ? 1.4 : 0)); ctx.lineTo(hx + 7.8, hy - 7.4 - (angry ? -1.6 : 0)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx + 9.4, hy - 7.6 - (angry ? -1.6 : 0)); ctx.lineTo(hx + 14.2, hy - 5.2 + (angry ? 1.4 : 0)); ctx.stroke();
+      } else {
       ctx.beginPath(); ctx.moveTo(hx + 3, hy - 4.5 + (angry ? 1 : 0)); ctx.lineTo(hx + 7.5, hy - 5.5 - (angry ? -1.2 : 0)); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(hx + 9.6, hy - 5.5 - (angry ? -1.2 : 0)); ctx.lineTo(hx + 13.6, hy - 4.5 + (angry ? 1 : 0)); ctx.stroke();
+      }
       // mouth
       ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.7;
       if (p && (p.celebrateT > 0 || p.fallT > 0) && !(p.celebrateT > 0 && CELE_CALM.has(p.celebKind))) {
@@ -961,6 +984,14 @@ const Sprites = {
         ctx.beginPath(); ctx.arc(hx + 8.5, hy + 10.5, 2.6, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
       } else {
         ctx.beginPath(); ctx.arc(hx + 8.5, hy + 6.5, 2.6, Math.PI * 0.2, Math.PI * 0.8); ctx.stroke();
+      }
+      if (look.mewing && !(p && (p.slideT > 0 || p.fallT > 0 || p.diveT > 0 || p.celebrateT > 0))
+          && Math.hypot(p ? p.vx : 0, p ? p.vy : 0) < 30) {
+        // the jawline, then a finger running along it
+        ctx.strokeStyle = look.shade || shadeHex(look.skin, -0.14); ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(hx + 5, hy + 13.4); ctx.lineTo(hx + 13.4, hy + 7.6); ctx.stroke();
+        this.limb(ctx, hx + 4.6, hy + 14, hx + 12.6, hy + 8.4, 2.2, look.skin);
+        ctx.beginPath(); ctx.arc(hx + 3.8, hy + 14.4, 1.9, 0, Math.PI * 2); this.blob(ctx, look.skin);
       }
       ctx.fillStyle = 'rgba(255, 110, 110, 0.35)';
       ctx.beginPath(); ctx.ellipse(hx + 1.5, hy + 6, 2.8, 1.7, 0, 0, Math.PI * 2); ctx.fill();
@@ -1005,6 +1036,18 @@ const Sprites = {
         }
         ctx.fillStyle = hc; ctx.beginPath(); ctx.arc(hx, hy - 4, R - 3, Math.PI, Math.PI * 2); ctx.fill();
         ctx.fillStyle = hl; ctx.beginPath(); ctx.arc(hx - 4, hy - 12, 2.4, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case 'anime': {
+        const hair = back
+          ? [[-R - 1, 5], [-R - 4, -7], [-R + 1, -15], [-9, -9], [-10, -21], [-3, -11], [1, -25], [6, -11], [11, -20], [R, -10], [R + 3, -5], [R + 1, 6], [8, 3], [3, 8], [-3, 3], [-9, 7]]
+          : [[-R - 1, 4], [-R - 3, -8], [-R + 2, -16], [-8, -10], [-9, -23], [-2, -12], [2, -27], [7, -13], [12, -22], [R, -12], [R + 3, -4], [R + 1, 4], [R - 2, 0], [13, -6], [10, 1], [6, -5], [2, 2], [-2, -4], [-6, 1], [-10, -5], [-13, 2]];
+        tuft(hair, hc);
+        // a flat anime shine across the top
+        ctx.fillStyle = hl;
+        ctx.beginPath();
+        ctx.moveTo(hx - 9, hy - 13); ctx.lineTo(hx - 1, hy - 18); ctx.lineTo(hx + 6, hy - 13); ctx.lineTo(hx - 1, hy - 10);
+        ctx.closePath(); ctx.fill();
         break;
       }
       case 'flat': {

@@ -106,6 +106,6 @@ const Save = {
   // your player as drawn: the character plus whatever accessory you have on
   look() {
     const ch = this.character();
-    return { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, thin: ch.thin || 0, acc: this.accessory() };
+    return { hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band, thin: ch.thin || 0, anime: !!ch.anime, mewing: !!ch.mewing, acc: this.accessory() };
   },
 };

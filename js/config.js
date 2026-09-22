@@ -132,7 +132,7 @@ const CHARACTERS = [
   // mean anything on the pitch (pace, ball control, crossing) are what he actually plays at.
   { id: 'jacob', name: 'Jacob', rarity: 'oneofone', only: ['lilotter', 'irizarrygamez1'], thin: 0.55, ovr: 98,
     stats: [['SKINNY', 99], ['PACE', 21], ['BALL CONTROL', 67], ['YAP', 200], ['EXCUSES', 200], ['CROSSING', 0]],
-    r: { spd: 21, sht: 34, pas: 40, ctl: 67, def: 28 }, hair: 'flat', hairColor: '#3a2a1c', skin: '#e9b489' },
+    r: { spd: 98, sht: 98, pas: 96, ctl: 99, def: 92 }, hair: 'anime', hairColor: '#3aa0ff', skin: '#f6cfa6', anime: true, mewing: true },
 ];
 // Accessories: one slot, worn over any character. slot says where it's drawn on the body.
 const ACCESSORIES = [
