@@ -1,10 +1,10 @@
-// Live match commentary: captions every important moment and uses the browser's built-in
-// voice for the biggest calls. Lines are assembled from contextual banks, so matches do not
-// sound scripted and pass moves build from "one" into a full dramatic sequence.
+// Live match commentary: a caption for every important moment. Text only — nothing is ever
+// spoken out loud. Lines are assembled from contextual banks, so matches do not sound
+// scripted and pass moves build from "one" into a full dramatic sequence.
 const Commentary = {
   m: null, cd: 0, idle: 0, lastMinorAt: 0, passChain: 0, passTeam: null, lastOwner: null, lastShot: false,
   score: { blue: 0, red: 0 }, saves: { blue: 0, red: 0 }, tackles: { blue: 0, red: 0 }, skills: { blue: 0, red: 0 },
-  kickCount: 0, recent: [], usedLines: new Set(), serial: 0, voices: [], voice: null, speaking: false, voiceQueue: [], voiceToken: 0, nextVoiceAt: 0, unlocked: false, paused: false, captionToken: 0,
+  kickCount: 0, recent: [], usedLines: new Set(), serial: 0, nextLineAt: 0, paused: false, captionToken: 0,
   banks: {
     kickoff: ['And we are UNDERWAY!', 'The whistle goes—let the chaos begin!', 'Here we go! Ninety seconds of tiny-football madness!', 'Strap in. This could get ridiculous.'],
     shot: ['HE HITS IT!', 'SHOT ON!', 'That has been absolutely launched!', 'He has put his entire postcode through that!', 'From there?! Audacious!', 'The net is looking nervous!', 'Someone check the ball—it has been THUMPED!', 'HE HAS HIT THAT LIKE IT INSULTED HIS FAMILY!', 'The keeper has seen it coming and immediately started negotiating!', 'That shot had absolutely no chill!', 'He shoots from a different postal code!'],
@@ -44,34 +44,8 @@ const Commentary = {
   },
   name(p) { return p ? (p.isHuman ? 'YOU' : p.name || `${TEAMS[p.team].name} NUMBER ${p.number}`) : 'THE PLAYER'; },
   team(t) { return (TEAMS[t] && TEAMS[t].name) || String(t || '').toUpperCase(); },
-  init() {
-    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
-    this.refreshVoices();
-    if (window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', () => this.refreshVoices());
-  },
-  refreshVoices() {
-    this.voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    const english = this.voices.filter((v) => /^en/i.test(v.lang));
-    const male = /\b(ryan|guy|davis|david|mark|daniel|george|aaron|arthur|oliver|liam|thomas|james|brian|tony|alex|fred|reed|eddy|ralph|rocko|male)\b/i;
-    const female = /\b(aria|jenny|ava|sonia|samantha|victoria|karen|moira|tessa|veena|fiona|susan|hazel|zira|female|woman)\b/i;
-    const label = (v) => `${v.name || ''} ${v.voiceURI || ''}`;
-    const knownMale = english.filter((v) => male.test(label(v)) && !female.test(label(v)));
-    const candidates = knownMale.length ? knownMale : english.filter((v) => !female.test(label(v)));
-    const score = (v) => {
-      const n = label(v); let x = 0;
-      if (/natural|neural|premium|enhanced|online/i.test(n)) x += 100;
-      if (/en-(gb|ie|au)/i.test(v.lang)) x += 22;
-      if (/ryan|guy|daniel|george|arthur|oliver|liam/i.test(n)) x += 18;
-      if (v.localService) x += 4;
-      return x;
-    };
-    this.voice = (candidates.length ? candidates : english).sort((a, b) => score(b) - score(a))[0] || null;
-  },
-  unlock() {
-    if (this.unlocked || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
-    this.unlocked = true; this.refreshVoices();
-    const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u);
-  },
+  init() {},
+  unlock() {},
   flowLine(m) {
     const p = m.ball && m.ball.owner, team = p ? p.team : (m.score.blue >= m.score.red ? 'red' : 'blue');
     const bank = Math.random() < 0.3 ? this.banks.chaos : this.banks.flow;
@@ -79,11 +53,10 @@ const Commentary = {
   },
   pause() {
     if (this.paused) return;
-    this.paused = true; this.voiceToken++; this.speaking = false; this.voiceQueue.length = 0;
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    this.paused = true;
     this.hide();
   },
-  resume() { this.paused = false; this.nextVoiceAt = Date.now() + 350; this.idle = 0; },
+  resume() { this.paused = false; this.nextLineAt = Date.now() + 350; this.idle = 0; },
   stop() { this.pause(); this.m = null; },
   reset(m) {
     this.m = m; this.cd = 0; this.idle = 0; this.passChain = 0; this.passTeam = null; this.lastOwner = m.ball && m.ball.owner;
@@ -113,46 +86,19 @@ const Commentary = {
     this.hideTimer = setTimeout(() => { if (token === this.captionToken) el.classList.remove('show','big'); }, visibleMs);
     return token;
   },
-  finishCaption(token, text) {
-    if (token !== this.captionToken) return;
-    clearInterval(this.typeTimer); const line = $('commentary-line'); if (line) line.textContent = text;
-  },
-  speakVoice(item) {
-    const synth = window.speechSynthesis;
-    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
-    if (!this.voice) this.refreshVoices();
-    const spoken = item.text.replace(/GOOOOOOOAL/g, 'Gooooal').replace(/—/g, ', ');
-    const u = new SpeechSynthesisUtterance(spoken), token = ++this.voiceToken;
-    u.voice = this.voice; u.lang = (this.voice && this.voice.lang) || 'en-GB';
-    const baseRate = item.priority >= 3 ? 1.15 : item.priority === 2 ? 1.22 : 1.28;
-    u.rate = baseRate + (Math.random() - 0.5) * 0.07;
-    u.pitch = (item.priority >= 3 ? 0.78 : 0.84) + (Math.random() - 0.5) * 0.025;
-    u.volume = Math.min(1, 0.58 + (Save.data.settings.sfx || 0) * 0.42);
-    this.speaking = true;
-    const caption = this.showCaption(item.text, item.priority, true);
-    const finished = () => {
-      if (token !== this.voiceToken) return;
-      this.speaking = false; this.finishCaption(caption, item.text);
-      if (this.voiceQueue.length) { this.speakVoice(this.voiceQueue.shift()); return; }
-      const rareBreath = Math.random() < 0.22;
-      this.nextVoiceAt = Date.now() + (rareBreath ? 1400 + Math.random() * 1600 : 100 + Math.random() * 360);
-    };
-    u.onend = finished; u.onerror = finished; synth.speak(u);
-  },
-  say(text, priority = 1, voice = true) {
+  // gate: hold the small talk back if something was just said (big calls always show)
+  say(text, priority = 1, gate = true) {
     if (!text || Save.data.settings.commentary === false) return;
-    if (voice && priority === 1 && Date.now() - this.lastMinorAt < 5000) return;
-    if (voice && priority === 1) this.lastMinorAt = Date.now();
-    this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62; this.idle = 0;
-    const canSpeak = voice && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined';
-    if (!canSpeak) { this.showCaption(text, priority, false); return; }
-    const item = { text, priority }, synth = window.speechSynthesis;
-    if (priority >= 2) {
-      this.voiceToken++; this.speaking = false; this.voiceQueue.length = 0; synth.cancel(); this.speakVoice(item); return;
+    if (gate && priority === 1) {
+      if (Date.now() - this.lastMinorAt < 5000) return;
+      this.lastMinorAt = Date.now();
     }
-    if (synth.speaking || synth.pending || this.speaking) { this.voiceQueue.push(item); return; }
-    this.speakVoice(item);
+    this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62;
+    this.idle = 0;
+    this.showCaption(text, priority, true);
+    this.nextLineAt = Date.now() + (priority >= 3 ? 2400 : 1500) + Math.random() * 900;
   },
+
   passLine(team, p) {
     const n = this.passChain, who = this.name(p);
     if (n === 1) return `${who}. PASS ONE.`;
@@ -206,7 +152,6 @@ const Commentary = {
     }
     if(!owner && prev && !shot) this.passChain=Math.max(0,this.passChain-1);
     this.lastOwner=owner;
-    const synth=window.speechSynthesis;
-    if(m.phase==='play' && this.idle>3 && Date.now()>=this.nextVoiceAt && !this.speaking && !(synth && (synth.speaking||synth.pending))) this.say(this.flowLine(m),1,true);
+    if(m.phase==='play' && this.idle>3 && Date.now()>=this.nextLineAt) this.say(this.flowLine(m),1,true);
   },
 };

@@ -9,7 +9,7 @@ const UI = {
     $('splash-logo').innerHTML = $('logo').innerHTML;
     const leaveSplash = () => {
       if ($('splash').classList.contains('gone')) return;
-      Sound.unlock(); Commentary.unlock(); Sound.tap(); Sound.startMusic();
+      Sound.unlock(); Sound.tap(); Sound.startMusic();
       $('splash').classList.add('gone');
       setTimeout(() => { $('splash').hidden = true; }, 450);
       Game.enter();
