@@ -71,7 +71,7 @@ const CFG = {
   // gap: seconds between attempts · chance/botChance: how often he goes for it
   // speed: how fast he closes · windup: the crouch that gives you a window to skill past him
   // grab: how much of the ball-winning chance he keeps when he gets there
-  SMOTHER: { range: 270, close: 155, gap: 0.08, chance: 0.95, botChance: 0.97, speed: 1.7, windup: 0.16, grab: 1.4,
+  SMOTHER: { range: 205, close: 150, gap: 0.08, chance: 0.95, botChance: 0.97, speed: 1.7, windup: 0.16, grab: 1.4,
     // dodgeStop: a keeper at your feet is not a sliding tackle — skilling past him works, but not always
     // loose: inside the six-yard box the ball sits further ahead of you, so it is never a stroll
     dodgeStop: 0.6, loose: 1.45, retry: 0.3, fumble: 0.25 },
@@ -291,6 +291,24 @@ const LEVEL_RAMP_TOP = 50;
 const RANKS = [[1, 'ROOKIE'], [6, 'PRO'], [12, 'STAR'], [20, 'ELITE'], [30, 'WORLD CLASS'], [40, 'LEGEND'], [50, 'GOAT']];
 const rankFor = (level) => { let n = RANKS[0][1]; for (const [lv, name] of RANKS) if (level >= lv) n = name; return n; };
 const levelRampPct = (level) => Math.round(clamp((level - 1) / (LEVEL_RAMP_TOP - 1), 0, 1) * 100);
+// The bigger the format, the more room an attacker gets and the less each bot can cover, so the
+// opposition is sharpened to match. 1v1 stays exactly as it was; 4v4 was the runaway one.
+const FORMAT_RAMP = { '4v4': 1, '3v3': 0.8, '2v2': 0.45, '1v1': 0, training: 0 };
+function formatRamp(b, format) {
+  const u = FORMAT_RAMP[format] || 0;
+  if (u <= 0) return b;
+  return {
+    ...b,
+    redSpeed: b.redSpeed + u * 0.05,
+    aiSlide: b.aiSlide * (1 + u * 0.8),
+    aiDodge: Math.min(0.85, b.aiDodge * (1 + u * 0.5)),
+    aiSkill: Math.min(0.6, b.aiSkill * (1 + u * 0.5)),
+    aiShotNoise: Math.max(14, b.aiShotNoise * (1 - u * 0.3)),
+    react: Math.max(0.45, b.react * (1 - u * 0.3)),
+    mistakes: Math.max(0.35, b.mistakes * (1 - u * 0.35)),
+  };
+}
+
 function playerRamp(b, level) {
   const u = clamp(((level || 1) - 1) / (LEVEL_RAMP_TOP - 1), 0, 1);
   if (u <= 0) return { ...b, playerLevel: level || 1, ramp: 0 };

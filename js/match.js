@@ -7,7 +7,9 @@ const Match = {
     const club = opts.club || Clubs.random(home);
     if (!Game.headless) Clubs.setMatch(home, club);
     if (!opts.diff) Game.setDifficulty(club);
-    const diff = opts.diff || Game.difficulty();
+    // the format ramp is for the bots you meet offline; online fill-ins keep their own tuning
+    const fmt0 = FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4');
+    const diff = opts.online ? (opts.diff || Game.difficulty()) : formatRamp(opts.diff || Game.difficulty(), fmt0);
     const m = {
       players: [], ball: new Ball(), human: null, keepers: {},
       score: { blue: 0, red: 0 },

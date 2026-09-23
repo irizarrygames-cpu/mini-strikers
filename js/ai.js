@@ -1,7 +1,9 @@
 // Simple role-based AI: one presser, markers, supporters, and a goalkeeper.
 // Keeper save model (see decideSave). blueBonus is for the bots' shots at your keeper.
 const KEEPER = { base: 0.94, speed: 0.34, power: 0.12, close: 0.2, mid: 0.08, far: 0.12, corner: 0.22, blueBonus: 0, botShot: 0.04,
-  format: { '4v4': 0, '3v3': 0.03, '2v2': 0.08, '1v1': 0.18 } };
+  // more team-mates means more room and closer shots, so the bigger formats need MORE help,
+  // not less: 4v4 used to give the keeper nothing and 64% of shots went in.
+  format: { '4v4': 0.15, '3v3': 0.13, '2v2': 0.1, '1v1': 0.18 } };
 const AI = {
   update(m, dt) {
     const b = m.ball;
