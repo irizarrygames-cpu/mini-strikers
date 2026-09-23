@@ -380,14 +380,20 @@ const AI = {
     }
     // an attacker dribbling right at goal: come out and smother it
     // an attacker walking it in: come out and smother — telegraphed, and only up close
-    if (tx === undefined && b.owner && b.owner.team !== k.team && dist(b.owner.x, b.owner.y, gx, gy) < 150) {
-      tx = lerp(k.x, b.x, 0.15); ty = lerp(k.y, b.y, 0.6);
+    const SM = CFG.SMOTHER;
+    if (tx === undefined && b.owner && b.owner.team !== k.team && dist(b.owner.x, b.owner.y, gx, gy) < SM.range) {
+      // stand between the ball and the middle of the goal, right on top of it
+      const bgx = gx - b.x, bgy = gy - b.y, bg = Math.hypot(bgx, bgy) || 1;
+      tx = b.x + (bgx / bg) * Math.min(32, bg * 0.5);
+      ty = b.y + (bgy / bg) * Math.min(32, bg * 0.5);
+      sp = SM.speed;
+      if (k.slideCd > SM.retry) k.slideCd = SM.retry; // beaten once, back up and at it again
       const dC = dist(k.x, k.y, b.owner.x, b.owner.y);
       k.ai.slideT -= dt;
-      if (k.ai.slideT <= 0 && dC < 80 && k.slideCd <= 0) {
-        k.ai.slideT = 0.25;
+      if (k.ai.slideT <= 0 && dC < SM.close && k.slideCd <= 0) {
+        k.ai.slideT = SM.gap;
         const vsHuman = b.owner.isHuman && !m.autopilot;
-        if (Math.random() < (vsHuman ? 0.3 : 0.5) && performSlide(m, k, b.x - k.x, b.y - k.y, vsHuman ? SLIDE.windup : 0)) return;
+        if (Math.random() < (vsHuman ? SM.chance : SM.botChance) && performSlide(m, k, b.x - k.x, b.y - k.y, vsHuman ? SM.windup : SLIDE.botWindup)) return;
       }
     }
     if (tx === undefined) {

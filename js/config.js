@@ -66,6 +66,15 @@ const CFG = {
   ULT_TACKLE: 3,
   ULT_SHOT_SPEED: 1750,
   OVERTIME_SECONDS: 90,
+  // The goalmouth: how hard the keeper makes it to simply walk the ball in.
+  // range: he leaves his line for a carrier this close to goal · close: he commits inside this
+  // gap: seconds between attempts · chance/botChance: how often he goes for it
+  // speed: how fast he closes · windup: the crouch that gives you a window to skill past him
+  // grab: how much of the ball-winning chance he keeps when he gets there
+  SMOTHER: { range: 270, close: 155, gap: 0.08, chance: 0.95, botChance: 0.97, speed: 1.7, windup: 0.16, grab: 1.4,
+    // dodgeStop: a keeper at your feet is not a sliding tackle — skilling past him works, but not always
+    // loose: inside the six-yard box the ball sits further ahead of you, so it is never a stroll
+    dodgeStop: 0.6, loose: 1.45, retry: 0.3, fumble: 0.25 },
 };
 const GOAL_Y1 = (CFG.FIELD_H - CFG.GOAL_W) / 2;
 const GOAL_Y2 = GOAL_Y1 + CFG.GOAL_W;

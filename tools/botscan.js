@@ -17,6 +17,8 @@ const N = Number(args[0] || 12);
 const FORMAT = args[1] || '4v4';
 const OPP = args[2] || 'croatia';
 if (CLEAN) sim.run('for (const k in BOT_MISTAKES) if (typeof BOT_MISTAKES[k] === "number") BOT_MISTAKES[k] = 0;');
+// --oldkeeper: the goalmouth as it was before the smother fix, to compare balance against
+if (process.argv.includes('--oldkeeper')) sim.run('CFG.SMOTHER = { range: 150, close: 80, gap: 0.25, chance: 0.3, botChance: 0.5, speed: 1, windup: SLIDE.windup, grab: 1, dodgeStop: 0, loose: 1, retry: 99, fumble: 1 };');
 
 class ScriptInput {
   constructor() { this.move = { x: 0, y: 0 }; this.sprintHeld = false; this.q = 0; }

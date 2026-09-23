@@ -270,7 +270,9 @@ function updateBall(m, dt) {
       o.touchT -= dt;
       if (o.touchT <= 0 && sp > 0.25) { o.touchT = lerp(0.38, 0.22, clamp(sp, 0, 1)); b.touchKick = 1; }
       b.touchKick = Math.max(0, b.touchKick - dt * 3.2);
-      const off = o.r + CFG.BALL_R + 1 + (sp * 7 + b.touchKick * (o.sprinting ? 17 : 11) * sp) * (1 - o.attr.ctl * 0.3);
+      let off = o.r + CFG.BALL_R + 1 + (sp * 7 + b.touchKick * (o.sprinting ? 17 : 11) * sp) * (1 - o.attr.ctl * 0.3);
+      // right in front of goal the ball runs further ahead of you: no strolling it over the line
+      if (Math.abs(o.x - attackGoalX(o.team)) < CFG.SMALL_D && Math.abs(o.y - CFG.FIELD_H / 2) < CFG.SMALL_W / 2) off *= CFG.SMOTHER.loose;
       const tx = o.x + o.fx * off, ty = o.y + o.fy * off;
       // sharp turns: swing the ball around the body instead of dragging it through
       const lag = dist(b.x, b.y, tx, ty);
@@ -885,14 +887,15 @@ function checkSlides(m) {
     const hitBall = dist(footX, footY, b.x, b.y) < p.r + CFG.BALL_R + reach && b.z < 26;
     const hitBody = onCarrier && dist(footX, footY, c.x, c.y) < p.r + c.r + 6;
     if (onCarrier && (hitBall || hitBody)) {
-      if (c.dodgeT > 0) { dodged(m, p, c); continue; }
+      if (c.dodgeT > 0 && !(p.isKeeper && Math.random() < CFG.SMOTHER.dodgeStop)) { dodged(m, p, c); continue; }
       p.slideHit = true;
       const d = dist(p.x, p.y, c.x, c.y) || 1;
       const fromFront = c.fx * ((p.x - c.x) / d) + c.fy * ((p.y - c.y) / d) > -0.35;
       let chance = hitBall ? (fromFront ? SLIDE.front : SLIDE.behind) : SLIDE.body;
       chance *= (1 + p.attr.def * 0.12) * (1 - c.attr.ctl * 0.12);
       if (c.isHuman) chance *= (m.diff || Game.difficulty()).slideOnHuman;
-      if (Math.random() < BOT_MISTAKES.tackleMiss * botSlip(m, p)) chance = 0; // mistimed
+      if (p.isKeeper) chance = Math.min(0.97, chance * CFG.SMOTHER.grab); // his own goalmouth
+      if (Math.random() < BOT_MISTAKES.tackleMiss * botSlip(m, p) * (p.isKeeper ? CFG.SMOTHER.fumble : 1)) chance = 0; // mistimed
       if (Math.random() < chance) trip(m, p, c);
       else {
         p.recoverT = 0.2;
