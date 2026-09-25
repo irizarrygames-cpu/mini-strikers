@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 48;
+const BUILD = 49;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -334,10 +334,35 @@ function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals, ranked, chal
   o.gf += goalsFor | 0; o.ga += goalsAgainst | 0; o.goals += goals | 0;
   if (ranked) rankRecord(u, outcome, challenges); // ranked matches are the only thing that moves a rank
   leagueCache = null;
+  boardCache = null;
   saveDB();
 }
 
 let leagueCache = null;
+// The ranked ladder: everyone with points this season, best first. Read-only — it never rolls
+// anyone's season over, since that belongs to them playing or logging in.
+let boardCache = null;
+function rankBoard(meId, limit) {
+  const season = seasonNow();
+  if (!boardCache || boardCache.season !== season || Date.now() - boardCache.at > 15000) {
+    const rows = [];
+    for (const [id, u] of Object.entries(DB.users)) {
+      if (id === LEAGUE_ID || !u || !u.rank || typeof u.rank !== 'object') continue;
+      if ((u.rank.season | 0) !== season) continue; // last season's points are last season's
+      const rp = Math.max(0, Number(u.rank.rp) || 0);
+      if (rp <= 0) continue;
+      rows.push({ id, name: u.name, club: u.club, rp, wins: u.rank.wins | 0, played: u.rank.played | 0 });
+    }
+    // most points first, then most wins, then alphabetical so the order never wobbles
+    rows.sort((a, b) => b.rp - a.rp || b.wins - a.wins || String(a.name).localeCompare(String(b.name)));
+    boardCache = { at: Date.now(), season, rows };
+  }
+  const rows = boardCache.rows;
+  const view = (r, i) => { const t = rankTier(r.rp); return { pos: i + 1, name: r.name, club: r.club, rp: r.rp, tier: t.id, tierName: t.name, wins: r.wins, played: r.played }; };
+  const mine = meId ? rows.findIndex((r) => r.id === meId) : -1;
+  return { season, ends: seasonEndsAt(season), players: rows.length, top: rows.slice(0, limit).map(view), you: mine >= 0 ? view(rows[mine], mine) : null };
+}
+
 function leagueTable() {
   if (leagueCache && Date.now() - leagueCache.at < 10000) return leagueCache.rows;
   const rows = CLUBS.map((c) => ({ club: c.id, players: 0, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0 }));
@@ -489,6 +514,12 @@ async function handleRequest(req, res) {
   if (route === '/api/league') {
     if (throttled(ip, 'league', 60, 60000)) return sendJSON(res, 429, { ok: false, msg: 'Slow down' });
     return sendJSON(res, 200, { ok: true, ...leagueTable() });
+  }
+
+  if (route === '/api/leaderboard') {
+    if (throttled(ip, 'board', 60, 60000)) return sendJSON(res, 429, { ok: false, msg: 'Slow down' });
+    const limit = Math.max(3, Math.min(50, Number(body.limit) || 25));
+    return sendJSON(res, 200, { ok: true, ...rankBoard(userIdFromToken(body.token), limit) });
   }
 
   if (route === '/api/auth/signup' || route === '/api/auth/login') {

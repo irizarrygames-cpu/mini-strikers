@@ -197,6 +197,37 @@ Object.assign(UI, {
     on('[data-leave]', () => { this.tap(); Net.send({ t: 'cup.leave' }); this.closeModal(); });
   },
 
+  // ---- LEADERBOARD: the ranked ladder, best first ----
+  async panel_leaderboard(body) {
+    $('modal-title').textContent = 'LEADERBOARD';
+    body.innerHTML = '<p class="note">Loading the ladder…</p>';
+    const r = await Net.leaderboard();
+    if ($('modal').dataset.kind !== 'leaderboard') return;
+    if (!r || !r.ok) { body.innerHTML = `<p class="note">${(r && r.msg) || "Can't reach the server"}</p>`; return; }
+    const days = Math.max(0, Math.ceil((r.ends - Date.now()) / 86400000));
+    const me = Net.user && Net.user.name;
+    const row = (x) => {
+      const t = RANK_TIERS.find((y) => y.id === x.tier) || RANK_TIERS[0];
+      return `<li class="${x.name === me ? 'you' : ''} ${x.pos <= 3 ? 'podium p' + x.pos : ''}">
+        <b>${x.pos}</b><canvas width="42" height="28" data-club="${x.club}"></canvas>
+        <span>${esc(x.name)}</span>
+        <em style="--t:${t.color}">${x.tierName}</em>
+        <i>${x.rp}<small>RP</small></i></li>`;
+    };
+    const outside = r.you && r.you.pos > r.top.length;
+    body.innerHTML = `
+      <p class="note">${r.players} player${r.players === 1 ? '' : 's'} on the board this season · ${days} day${days === 1 ? '' : 's'} left. Rank points come from RANKED matches only.</p>
+      ${r.top.length ? `<ol class="lb-board">${r.top.map(row).join('')}</ol>` : '<p class="note">Nobody has won a ranked match yet. Be the first one on it.</p>'}
+      ${outside ? `<h3 class="fr-h">YOU</h3><ol class="lb-board">${row(r.you)}</ol>` : ''}
+      ${!r.you && Net.user ? '<p class="note">Win a ranked match and you are on it.</p>' : ''}
+      <div class="cup-foot"><button class="mid-btn" data-open2="ranked">YOUR RANK</button><button class="big-btn green" data-rankplay>PLAY RANKED</button></div>`;
+    body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
+    const go = body.querySelector('[data-rankplay]');
+    if (go) go.addEventListener('click', () => { this.tap(); this.closeModal(); Online.findMatch('ranked'); });
+    const back = body.querySelector('[data-open2="ranked"]');
+    if (back) back.addEventListener('click', () => { this.tap(); this.openModal('ranked'); });
+  },
+
   // ---- RANKED: your tier this season and what is left to climb ----
   panel_ranked(body) {
     $('modal-title').textContent = 'RANKED';
@@ -218,7 +249,9 @@ Object.assign(UI, {
       <div class="rank-tiers">${RANK_TIERS.map((x) => `<div class="rank-tier ${x.id === tier.id ? 'you' : ''}" style="--t:${x.color}"><i></i><b>${x.name}</b><small>${x.at} RP</small><em><span class="coin"></span>${x.reward}</em></div>`).join('')}</div>
       <div class="rank-how"><b>HOW POINTS WORK</b><span>WIN <em>+10</em></span><span>DRAW <em>+5</em></span><span>LOSE <em>0</em></span><span>EACH CHALLENGE YOU WIN WITH <em>+1</em></span></div>
       <p class="note">Only RANKED matches move your rank — 1v1, from PLAY. Every ranked match sets you three challenges, each worth a point if you win the match. A rank never goes backwards: losing costs nothing. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>
-      <button class="big-btn green rank-play" data-rankplay>PLAY RANKED</button>`;
+      <div class="cup-foot"><button class="mid-btn" data-board>LEADERBOARD</button><button class="big-btn green rank-play" data-rankplay>PLAY RANKED</button></div>`;
+    const lb = body.querySelector('[data-board]');
+    if (lb) lb.addEventListener('click', () => { this.tap(); this.openModal('leaderboard'); });
     const go = body.querySelector('[data-rankplay]');
     if (go) go.addEventListener('click', () => { this.tap(); this.closeModal(); Online.findMatch('ranked'); });
   },
@@ -445,11 +478,14 @@ Object.assign(UI, {
           <tbody>${r.table.map((row, i) => { const c = Clubs.get(row.club); return `<tr class="${row.club === mine ? 'mine' : ''} ${i < 4 ? 'top' : ''}"><td>${i + 1}</td><td class="lg-club"><span class="lg-name"><canvas width="42" height="28" data-club="${c.id}"></canvas><b>${c.name}</b></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd > 0 ? '+' : ''}${row.gd}</td><td class="mv ${row.move > 0 ? 'up' : row.move < 0 ? 'down' : ''}">${row.move > 0 ? '▲' : row.move < 0 ? '▼' : '–'}</td><td>${row.players}</td></tr>`; }).join('')}</tbody>
         </table></div>
         <div class="lg-side">
+          <button class="mid-btn lg-board" data-board>PLAYER LEADERBOARD</button>
           <h3>TOP SCORERS</h3>
           ${r.scorers.length ? `<ol class="lg-scorers">${r.scorers.map((s) => `<li><canvas width="42" height="28" data-club="${s.club}"></canvas><b>${s.name}</b><em>${s.goals}</em></li>`).join('')}</ol>` : '<p class="note">No online goals yet. Be the first.</p>'}
         </div>
       </div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
+    const lb = body.querySelector('[data-board]');
+    if (lb) lb.addEventListener('click', () => { this.tap(); this.openModal('leaderboard'); });
   },
 
   // ---- profile: career stats + achievements ----

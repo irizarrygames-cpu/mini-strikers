@@ -85,6 +85,10 @@ const Net = {
     } catch (e) { this.saveTimer = setTimeout(() => this.pushSave(), 8000); }
   },
 
+  async leaderboard() {
+    try { return await this.api('/api/leaderboard'); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+  },
+
   async league() {
     try { return await this.api('/api/league'); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
   },
