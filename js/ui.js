@@ -31,6 +31,7 @@ const UI = {
       if (!$('howto').hidden) this.closeHowTo();
     });
     $('btn-pause').addEventListener('click', () => { this.tap(); this.togglePause(); });
+    $('watch-leave').addEventListener('click', () => { this.tap(); Online.stopWatching(); });
     $('p-resume').addEventListener('click', () => { this.tap(); this.togglePause(); });
     $('p-restart').addEventListener('click', () => { this.tap(); Game.startMatch(Game.lastOpts); });
     $('p-quit').addEventListener('click', () => { this.tap(); if (Game.match && Game.match.net) Online.quit(); else Game.goHome(); });
@@ -148,6 +149,14 @@ const UI = {
     $('home-club-name').textContent = club.name;
     this.flagBadge($('home-club-badge'), club);
     $('home-club-pos').textContent = this._leaguePos ? '#' + this._leaguePos : '';
+    // ranked: your tier this season sits next to your country
+    const myRank = Net.user && Net.user.rank, pill = $('home-rank');
+    pill.hidden = !myRank;
+    if (myRank) {
+      const tier = RANK_TIERS.find((x) => x.id === myRank.tier) || RANK_TIERS[0];
+      pill.style.setProperty('--t', tier.color);
+      pill.innerHTML = `<i></i><span>${tier.name}</span><em>${myRank.rp}</em>`;
+    }
     this.portrait($('home-char-canvas'), Save.look());
   },
 
@@ -420,7 +429,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.wc !== null && m.wc !== undefined ? `PENALTY WORLD CUP · ${PWC_ROUNDS[m.wc]}` : m.mode === 'penscup' && PenCup.state() ? `PENALTY WORLD CUP · ${PenCup.ROUNDS[PenCup.state().round]}` : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.wc !== null && m.wc !== undefined ? `PENALTY WORLD CUP · ${PWC_ROUNDS[m.wc]}` : m.mode === 'penscup' && PenCup.state() ? `PENALTY WORLD CUP · ${PenCup.ROUNDS[PenCup.state().round]}` : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -764,6 +773,10 @@ const UI = {
       if (cup.champion) { d.coins += WC_PRIZE; d.wcTitles = (d.wcTitles || 0) + 1; }
       if (Net.user) Net.user.wc = { round: cup.next, titles: cup.titles };
     }
+    // a friend cup: this round, and the prize if you just won the lot
+    const fcup = msg.fcup || null;
+    const fcupPrize = fcup && fcup.champion ? FCUP_PRIZE : 0;
+    if (fcupPrize) d.coins += fcupPrize;
     const wcPrize = cup && cup.champion ? WC_PRIZE : 0;
     const levelAfter = Levels.info(d.xp).level;
     let levelCoins = 0;
@@ -794,8 +807,17 @@ const UI = {
     const lg = msg.league;
     const lgText = lg && lg.pos ? (lg.d > 0 ? `${club.name} MOVES UP TO ${ordinal(lg.pos)} ▲` : lg.d < 0 ? `${club.name} DROPS TO ${ordinal(lg.pos)} ▼` : `${club.name} STAYS ${ordinal(lg.pos)}`) : `${club.name}: ${outcome === 'win' ? 'UP A PLACE' : outcome === 'loss' ? 'DOWN A PLACE' : 'NO CHANGE'}`;
     $('r-challenges').innerHTML = `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`;
-    $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize}`;
-    $('r-mult').hidden = false; $('r-mult').textContent = cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
+    $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize}`;
+    $('r-mult').hidden = false; $('r-mult').textContent = fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
+    // what this match did to your rank
+    const rankBox = $('r-rank'), rk = msg.rank;
+    rankBox.hidden = !rk;
+    if (rk) {
+      const tier = RANK_TIERS.find((x) => x.id === rk.tier) || RANK_TIERS[0], rd = msg.rankD || 0;
+      rankBox.style.setProperty('--t', tier.color);
+      rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${rk.rp} RP</b><em class="${rd >= 0 ? 'up' : 'down'}">${rd >= 0 ? '+' : ''}${rd}</em>`;
+      if (Net.user) Net.user.rank = rk;
+    }
     $('r-streak').hidden = c.streak < 2;
     $('r-streak').innerHTML = `<b>${c.streak}</b> WIN STREAK${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
     const lv = Levels.info(d.xp);
@@ -814,8 +836,15 @@ const UI = {
       }).join('');
       if (cup.champion) Trophy.show({ title: 'WORLD CHAMPIONS!', sub: `ONLINE WORLD CUP · +${WC_PRIZE} COINS`, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     }
+    if (fcup) {
+      const round = (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'THE CUP').replace('THE ', ''), next = CUP_ROUNDS[fcup.of - 2 - fcup.round] || 'THE NEXT ROUND';
+      $('r-title').textContent = fcup.champion ? 'CUP WINNER!' : fcup.won ? 'THROUGH!' : 'KNOCKED OUT';
+      $('r-title').className = 'r-title ' + (fcup.champion ? 'win champ' : fcup.won ? 'win' : 'loss');
+      setTimeout(() => { if (Game.state === 'results') this.toast(fcup.champion ? `YOU WON THE FRIEND CUP · +${FCUP_PRIZE} COINS` : fcup.won ? `YOU ARE THROUGH TO ${next}` : `OUT OF THE CUP IN THE ${round}`); }, 1400);
+      if (fcup.champion) Trophy.show({ title: 'CUP WINNER!', sub: `FRIEND CUP · ${fcup.size} PLAYERS · +${FCUP_PRIZE} COINS`, club: Clubs.mine(), mates: [] });
+    }
     this._againMode = 'online';
-    $('r-again').textContent = !cup ? 'PLAY AGAIN' : cup.champion ? 'NEW WORLD CUP' : cup.won ? `PLAY ${WC_ROUNDS[cup.next]}` : 'TRY AGAIN';
+    $('r-again').textContent = fcup ? 'SEE THE BOARD' : !cup ? 'PLAY AGAIN' : cup.champion ? 'NEW WORLD CUP' : cup.won ? `PLAY ${WC_ROUNDS[cup.next]}` : 'TRY AGAIN';
     // in a party, the leader starts the next one (and brings you with them)
     const party = Social.party;
     if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = 'HOME';

@@ -1261,3 +1261,81 @@ body.kb .chat-menu kbd { display: inline-block; }
 .chal-new { color: var(--green-d); font-size: 16px; }
 .chal-coins { display: flex; align-items: center; gap: 6px; justify-content: center; font-size: 22px; color: var(--ink); }
 .chal-buttons { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+
+/* ================= RANKED ================= */
+.rank-pill { display: flex; align-items: center; gap: 6px; background: var(--t, #8a90b8); }
+.rank-pill i { width: 0.95em; height: 0.95em; border-radius: 50%; background: #fff; border: 2px solid var(--ink); display: inline-block; }
+.rank-pill span { -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
+.rank-pill em { font-style: normal; background: var(--ink); color: #fff; border-radius: 7px; padding: 0 6px; font-size: 0.82em; }
+.r-rank { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; font-size: 15px; }
+.r-rank[hidden] { display: none; }
+.r-rank .r-rank-tier { background: var(--t, #8a90b8); color: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 0 8px; -webkit-text-stroke: 0.08em var(--ink); paint-order: stroke fill; }
+.r-rank b { font-weight: 400; color: var(--ink); }
+.r-rank em { font-style: normal; font-weight: 400; border-radius: 7px; padding: 0 7px; border: 2px solid var(--ink); }
+.r-rank em.up { background: var(--green); color: #fff; }
+.r-rank em.down { background: var(--ui-red); color: #fff; }
+.rank-head { display: flex; align-items: center; gap: 14px; background: #eef2ff; border: 4px solid var(--ink); border-radius: 16px; padding: 10px 14px; }
+.rank-badge { display: flex; align-items: center; gap: 8px; }
+.rank-badge i { width: 34px; height: 34px; border-radius: 50%; background: var(--t); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); }
+.rank-badge b { font-weight: 400; font-size: clamp(20px, 6vmin, 28px); color: var(--ink); }
+.rank-rp { margin-left: auto; text-align: right; }
+.rank-rp b { display: block; font-weight: 400; font-size: clamp(22px, 7vmin, 32px); color: var(--ink); }
+.rank-rp small { font-size: 11px; color: #6b7299; }
+.rank-bar { height: 12px; background: #dfe2f0; border: 3px solid var(--ink); border-radius: 8px; overflow: hidden; margin: 10px 0 6px; }
+.rank-bar b { display: block; height: 100%; }
+.rank-stats { display: flex; gap: 14px; justify-content: center; font-size: 13px; color: #6b7299; }
+.rank-stats b { font-weight: 400; font-size: 17px; color: var(--ink); }
+.rank-tiers { display: grid; gap: 6px; }
+.rank-tier { display: flex; align-items: center; gap: 8px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 4px 10px; }
+.rank-tier.you { background: #fff8d6; }
+.rank-tier i { width: 18px; height: 18px; border-radius: 50%; background: var(--t); border: 2px solid var(--ink); }
+.rank-tier b { font-weight: 400; font-size: 16px; color: var(--ink); }
+.rank-tier small { color: #6b7299; font-size: 12px; }
+.rank-tier em { margin-left: auto; font-style: normal; display: flex; align-items: center; gap: 4px; color: var(--ink); font-size: 15px; }
+
+/* ================= WATCHING A FRIEND ================= */
+#hud.watching .action, #hud.watching #joy-base, #hud.watching #kb-legend,
+#hud.watching #touch-zone, #hud.watching .ult-btn, #hud.watching #btn-chat { display: none !important; }
+.watch-bar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+  background: var(--ink); color: #fff; border: 4px solid #fff; border-radius: 14px; padding: 6px 10px 6px 12px; font-size: 16px; z-index: 4; }
+.watch-bar[hidden] { display: none; }
+.watch-bar b { font-weight: 400; color: var(--yellow); }
+.watch-bar .live { width: 12px; height: 12px; border-radius: 50%; background: var(--ui-red); border: 2px solid #fff; animation: watch-live 1.2s infinite; }
+.watch-bar .mid-btn { padding: 2px 10px; font-size: 15px; }
+@keyframes watch-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.mid-btn.gold { background: #ffc02e; color: var(--ink); box-shadow: inset 0 -5px 0 #d99400, 0 5px 0 var(--ink); }
+
+/* ================= FRIEND CUP ================= */
+.cup-bar small { background: #ffc02e; color: var(--ink); }
+.cup-bar span { font-size: 0.95em; color: var(--ink); }
+.cup-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cup-pick .big-btn { font-size: clamp(16px, 4.6vmin, 24px); padding: 0.45em 0.35em; min-width: 0; line-height: 1.1; }
+.cup-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cup-slot { display: flex; align-items: center; gap: 7px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 4px 8px; min-height: 36px; }
+.cup-slot b { font-weight: 400; font-size: 16px; color: var(--ink); }
+.cup-slot small { margin-left: auto; font-size: 11px; color: #6b7299; }
+.cup-slot canvas { width: 26px; height: 18px; }
+.cup-slot.empty { background: #e9ecf7; border-style: dashed; }
+.cup-slot.empty b { color: #9aa0c0; }
+.cup-slot.you { background: #fff8d6; }
+.cup-slot.out { opacity: 0.55; }
+.cup-slot.out b { text-decoration: line-through; }
+.cup-slot .crown { width: 14px; height: 10px; background: var(--yellow); border: 1px solid var(--ink); clip-path: polygon(0 100%, 0 20%, 25% 55%, 50% 0, 75% 55%, 100% 20%, 100% 100%); }
+.cup-slot .fr-x { margin-left: auto; }
+.cup-ties { display: grid; gap: 6px; }
+.cup-tie { position: relative; display: grid; gap: 3px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 5px 9px; }
+.cup-tie.live { background: #fff1f1; border-color: var(--ui-red); }
+.cup-tie > span { display: flex; align-items: center; gap: 8px; }
+.cup-tie b { font-weight: 400; font-size: 16px; color: #6b7299; }
+.cup-tie span.won b { color: var(--ink); }
+.cup-tie span.you b { color: var(--blue-d); }
+.cup-tie em { margin-left: auto; font-style: normal; font-size: 16px; color: var(--ink); }
+.tag-live { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 11px; background: var(--ui-red); color: #fff; border-radius: 6px; padding: 1px 6px; }
+.cup-champ { text-align: center; background: #fff8d6; border: 4px solid var(--ink); border-radius: 16px; padding: 8px; }
+.cup-champ small { display: block; font-size: 12px; color: #6b7299; }
+.cup-champ strong { font-weight: 400; font-size: clamp(22px, 7vmin, 34px); color: var(--ink); }
+.cup-foot { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 4px; }
+.cup-foot .big-btn[disabled] { opacity: 0.6; }
+.big-note { font-size: 16px; color: var(--ink); text-align: center; }
+.fr-row.cup-row small { color: #6b7299; }
+.mode.friendcup { background: #ffe9b8; }

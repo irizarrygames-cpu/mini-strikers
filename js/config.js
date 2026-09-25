@@ -238,6 +238,39 @@ const sigName = (c) => ULT_NAMES[sigKind(c)];
 // the online World Cup's rounds (the server keeps which one you're in)
 const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 const WC_PRIZE = 1000;
+// RANKED: online results move your rank points. Tiers are pure thresholds so both sides agree.
+// A season lasts SEASON_DAYS and pays out by the tier you finished in.
+const CUP_ROUNDS = ['THE FINAL', 'THE SEMI-FINALS', 'THE QUARTER-FINALS']; // named from the end backwards
+const FCUP_PRIZE = 500; // winning a friend cup
+
+const RANK_TIERS = [
+  { id: 'bronze', name: 'BRONZE', at: 0, color: '#c87d3a', reward: 200 },
+  { id: 'silver', name: 'SILVER', at: 150, color: '#c9d2e4', reward: 500 },
+  { id: 'gold', name: 'GOLD', at: 400, color: '#ffc21a', reward: 1200 },
+  { id: 'platinum', name: 'PLATINUM', at: 800, color: '#46d9ff', reward: 2500 },
+  { id: 'diamond', name: 'DIAMOND', at: 1300, color: '#b04dff', reward: 5000 },
+  { id: 'legend', name: 'LEGEND', at: 2000, color: '#ff3a6e', reward: 10000 },
+];
+const SEASON_DAYS = 14;
+const SEASON_START = Date.UTC(2026, 8, 21); // seasons have counted from here
+const seasonNow = () => Math.max(0, Math.floor((Date.now() - SEASON_START) / (SEASON_DAYS * 86400000)));
+const seasonEndsAt = (n) => SEASON_START + (n + 1) * SEASON_DAYS * 86400000;
+function rankTier(rp) {
+  let t = RANK_TIERS[0];
+  for (const x of RANK_TIERS) if ((rp || 0) >= x.at) t = x;
+  return t;
+}
+function rankNext(rp) {
+  const i = RANK_TIERS.indexOf(rankTier(rp));
+  return i + 1 < RANK_TIERS.length ? RANK_TIERS[i + 1] : null;
+}
+// what a result is worth: a win pays, a loss costs less, and goals count for a little
+function rankDelta(outcome, goalsFor, goalsAgainst) {
+  const gd = Math.max(-3, Math.min(3, (goalsFor | 0) - (goalsAgainst | 0)));
+  if (outcome === 'win') return 25 + gd * 3;
+  if (outcome === 'draw') return 5;
+  return Math.max(-20, -14 + gd * 2);
+}
 const PWC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 const PWC_PRIZE = 750;
 // quick chat: the only things anyone can say in a match (no typing, so nothing nasty gets through)

@@ -60,10 +60,13 @@ const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 
 // worldCup: { round(id) -> 0..3, result(id, won) -> { round, champion, titles } } (the run lives on the account)
 // league: { move(club, +1 up | -1 down), result([[club, ±1]...]) for a whole match, pos(club) -> 1.. } (server.js)
-function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, penaltyWorldCup, league }) {
+function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, penaltyWorldCup, ranked, league }) {
   const wc = worldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
   const pwc = penaltyWorldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
   const ladder = league || { move: () => {}, result: () => {}, pos: () => 0 };
+  // ranked seasons: read AFTER the result is banked, so the view carries the new points
+  const rankOf = (ranked && ranked.view) || (() => null);
+  const rankDeltaFor = (outcome, gf, ga) => (sim.rankDelta ? sim.rankDelta(outcome, gf, ga) : 0);
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
   const ULTS = sim.ULT_KINDS;
@@ -110,6 +113,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!them || them === me || !friends.areFriends(me, them)) return { ok: false, msg: 'You can only challenge friends' };
     if (statusOf(me) !== 'online') return { ok: false, msg: 'Finish your match or search first' };
     if (statusOf(them) !== 'online') return { ok: false, msg: `${userName(them)} is unavailable right now` };
+    if (inCup(me)) return { ok: false, msg: 'You are in the middle of a cup' };
+    if (inCup(them)) return { ok: false, msg: `${userName(them)} is in the middle of a cup` };
     const pending = challenges.get(them);
     if (pending && pending.until > Date.now()) return { ok: false, msg: `${userName(them)} already has a challenge waiting` };
     const invite = { id: nextChallenge++, from: me, until: Date.now() + CHALLENGE_INVITE_MS };
@@ -122,7 +127,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!invite || invite.id !== Number(inviteId)) return { ok: false, msg: 'That challenge is gone' };
     challenges.delete(me);
     if (invite.until < Date.now()) return { ok: false, msg: 'That challenge ran out' };
-    if (!friends.areFriends(me, invite.from) || statusOf(me) !== 'online' || statusOf(invite.from) !== 'online') {
+    if (!friends.areFriends(me, invite.from) || statusOf(me) !== 'online' || statusOf(invite.from) !== 'online' || inCup(me) || inCup(invite.from)) {
       push(invite.from, { t: 'challenge.info', msg: `${userName(me)} is unavailable for a 1v1` });
       return { ok: false, msg: 'One of you is already in a match or search' };
     }
@@ -247,6 +252,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   // friends see each other come online, start matches, finish them... (checked once a second)
   let lastStatus = new Map();
   function sweepStatus() {
+    for (const [id, room] of watchers) if (!rooms.has(room.id) || room.state === 'over') stopWatching(id, true);
     const now = new Map();
     for (const id of conns.keys()) now.set(id, statusOf(id));
     const changed = [];
@@ -325,6 +331,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
 
   function dropped(userId) {
+    stopWatching(userId, false);
+    { const c = cupOf.get(userId); if (c && c.state === 'lobby') cupLeave(userId, false); }
     stopQueue(userId, `${userName(userId)} lost connection`);
     const party = partyOf.get(userId);
     if (party) party.off.set(userId, Date.now());
@@ -355,6 +363,16 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'chat': return quickChat(conn, msg.m);
       // playing a match against bots on this device (so friends see you're busy and parties don't pull you out)
       case 'busy': conn.busy = msg.on === true; return;
+      case 'cup.create': return cupCreate(conn, msg.size | 0);
+      case 'cup.invite': return cupInvite(conn, msg.name);
+      case 'cup.uninvite': return cupUninvite(conn, msg.name);
+      case 'cup.accept': return cupAnswer(conn, msg.id | 0, true);
+      case 'cup.decline': return cupAnswer(conn, msg.id | 0, false);
+      case 'cup.start': return cupStart(conn);
+      case 'cup.leave': return cupLeave(id, true);
+      case 'cup.view': { const c = cupOf.get(id); return send(conn, c ? cupView(c) : { t: 'cup', state: null }); }
+      case 'watch': return watchFriend(conn, msg.name);
+      case 'unwatch': return stopWatching(id, true);
       case 'friends': return send(conn, friends.view(id));
       case 'friend.add': return answer(friends.add(id, msg.name));
       case 'friend.accept': return answer(friends.accept(id, msg.name));
@@ -399,11 +417,13 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         if (m === id) continue;
         if (!conns.has(m)) return fail(`${userName(m)} is offline`);
         if (roomOf(m)) return fail(`${userName(m)} is still in a match`);
+        if (inCup(m)) return fail(`${userName(m)} is in the middle of a cup`);
         if (conns.get(m).busy) return fail(`${userName(m)} is playing a match`);
       }
       ids = party.members.slice();
     }
     if (roomOf(id)) return fail('You are already in a match');
+    if (inCup(id)) return fail('Your cup match is next');
     for (const m of ids) { const e = entryOf(m); if (e) removeEntry(e); }
     // a party plays the World Cup round the furthest of them has reached (each one's own run moves on)
     const round = worldCup ? Math.max(...ids.map((x) => wcRoundOf(x, format))) : null;
@@ -675,7 +695,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       results.push({ seat, outcome, cup });
     }
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
-    for (const { seat, outcome, cup } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
+    for (const { seat, outcome, cup } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, rank: rankOf(seat.userId), rankD: rankDeltaFor(outcome, 0, 0), score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
     saveDB();
   }
   function tickPens(room, now) {
@@ -693,7 +713,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   /* ---------------- matches ---------------- */
 
   // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
-  function startRoom(format, entries, code, wcRound = null) {
+  function startRoom(format, entries, code, wcRound = null, cup = null) {
     if (format === 'pens') return startPensRoom(entries, code, wcRound);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
@@ -724,10 +744,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!clubFor.blue) clubFor.blue = pickOne(clubIds.filter((c) => c !== clubFor.red));
     if (!clubFor.red) clubFor.red = pickOne(clubIds.filter((c) => c !== clubFor.blue));
 
-    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound };
+    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cup };
     room.m = sim.create({
       // World Cup rounds: no draws, and each round a notch tougher than the last
-      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null,
+      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null || !!cup,
       // (the fill-ins start strong, so your level and the round only add half as much as they do offline)
       diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
@@ -740,10 +760,13 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     return room;
   }
 
-  function sendStart(room, seat) {
-    if (room.pen) return send(seat.conn, penView(room, seat));
+  function sendStart(room, seat, viewer) {
+    const to = viewer ? viewer.conn : seat.conn;
+    if (!viewer) stopWatching(seat.userId, true); // taking a seat of your own ends any watch
+    if (room.pen) return send(to, penView(room, seat));
     const m = room.m;
-    send(seat.conn, {
+    send(to, {
+      watch: viewer ? viewer.name : undefined, fcup: room.cup ? { round: room.cup.round, of: room.cup.of } : undefined,
       t: 'start', room: room.id, code: room.code, format: room.format, minutes: MATCH_MINUTES,
       side: seat.team, you: m.players.indexOf(seat.player), clubs: room.clubs,
       startsIn: Math.max(0, room.startAt - Date.now()), tick: room.tick, character: seat.character, wc: seat.wc == null ? room.wc : seat.wc,
@@ -770,6 +793,240 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (Number.isFinite(s)) seat.ack = s;
   }
 
+  /* ---------------- friend tournaments ----------------
+     A knockout between four or eight friends. The host invites, everyone plays 1v1s, the winner
+     of each tie goes through, and the last one standing lifts the cup. Nobody waits on a player
+     who isn't there: an empty side of a tie is a walkover. */
+  const CUP_SIZES = [4, 8];
+  const CUP_GAP_MS = 9000;        // the breather between rounds
+  const CUP_LOBBY_MS = 30 * 60000; // a cup nobody starts goes away
+  const cups = new Map();         // cup id -> cup
+  const cupOf = new Map();        // user id -> the cup they're in
+  let nextCupId = 1;
+  const shuffled = (a) => { const l = a.slice(); for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; };
+  const cupTies = (ids) => { const t = []; for (let i = 0; i < ids.length; i += 2) t.push({ a: ids[i] || null, b: ids[i + 1] || null, sa: null, sb: null, w: null, live: false, done: false }); return t; };
+  const cupBusy = (id) => (roomOf(id) ? 'Finish your match first' : inQueue(id) ? 'Stop searching first' : conns.get(id) && conns.get(id).busy ? 'In a match right now' : null);
+  const inCup = (id) => { const c = cupOf.get(id); return c && c.state === 'playing' && !c.out.has(id) ? c : null; };
+
+  function cupView(cup) {
+    return {
+      t: 'cup', id: cup.id, size: cup.size, host: userName(cup.host), state: cup.state, round: cup.round,
+      of: Math.round(Math.log2(cup.size)),
+      players: cup.players.map((p) => ({ name: userName(p), club: profileOf(p).club, out: cup.out.has(p), gone: !conns.has(p) })),
+      invited: [...cup.invites].map((i) => userName(i)),
+      rounds: cup.rounds.map((r) => r.map((t) => ({
+        a: t.a ? userName(t.a) : null, b: t.b ? userName(t.b) : null, sa: t.sa, sb: t.sb,
+        w: t.w ? userName(t.w) : null, live: !!t.live, done: !!t.done,
+      }))),
+      nextIn: cup.nextAt && cup.state === 'playing' ? Math.max(0, cup.nextAt - Date.now()) : 0,
+      champion: cup.champion ? userName(cup.champion) : null,
+    };
+  }
+  function cupPush(cup) { const v = cupView(cup); for (const id of cup.players) push(id, v); }
+
+  function cupCreate(conn, size) {
+    const id = conn.userId, fail = (msg) => send(conn, { t: 'error', msg });
+    if (!CUP_SIZES.includes(size)) return fail('A cup is 4 or 8 players');
+    if (cupOf.has(id)) return fail('You are already in a cup');
+    const busy = cupBusy(id); if (busy) return fail(busy);
+    const cup = { id: nextCupId++, host: id, size, players: [id], invites: new Set(), out: new Set(), state: 'lobby', rounds: [], round: 0, champion: null, nextAt: 0, made: Date.now() };
+    cups.set(cup.id, cup); cupOf.set(id, cup);
+    return cupPush(cup);
+  }
+
+  function cupInvite(conn, name) {
+    const id = conn.userId, cup = cupOf.get(id), fail = (msg) => send(conn, { t: 'error', msg });
+    if (!cup || cup.host !== id) return fail('Only the host can invite');
+    if (cup.state !== 'lobby') return fail('The cup has already started');
+    const them = friends.idOf(name);
+    if (!them || !friends.areFriends(id, them)) return fail('You can only invite a friend');
+    if (cup.players.includes(them)) return fail(userName(them) + ' is already in');
+    if (cup.invites.has(them)) return fail(userName(them) + ' has already been asked');
+    if (cup.players.length + cup.invites.size >= cup.size) return fail('The cup is full');
+    if (!conns.has(them)) return fail(userName(them) + ' is offline');
+    if (cupOf.has(them)) return fail(userName(them) + ' is already in a cup');
+    cup.invites.add(them);
+    push(them, { t: 'cup.invite', id: cup.id, from: userName(id), club: profileOf(id).club, size: cup.size });
+    return cupPush(cup);
+  }
+
+  function cupUninvite(conn, name) {
+    const cup = cupOf.get(conn.userId);
+    if (!cup || cup.host !== conn.userId) return;
+    const them = friends.idOf(name);
+    if (them && cup.invites.delete(them)) { push(them, { t: 'cup.gone', id: cup.id }); cupPush(cup); }
+  }
+
+  function cupAnswer(conn, cupId, yes) {
+    const id = conn.userId, cup = cups.get(cupId), fail = (msg) => send(conn, { t: 'error', msg });
+    if (!cup || !cup.invites.has(id)) return fail('That cup has gone');
+    cup.invites.delete(id);
+    if (!yes) { push(cup.host, { t: 'error', msg: userName(id) + ' said no' }); return cupPush(cup); }
+    if (cup.state !== 'lobby') return fail('The cup has already started');
+    if (cupOf.has(id)) return fail('You are already in a cup');
+    const busy = cupBusy(id); if (busy) return fail(busy);
+    if (cup.players.length >= cup.size) return fail('The cup is full');
+    cup.players.push(id); cupOf.set(id, cup);
+    return cupPush(cup);
+  }
+
+  function cupStart(conn) {
+    const id = conn.userId, cup = cupOf.get(id), fail = (msg) => send(conn, { t: 'error', msg });
+    if (!cup || cup.host !== id) return fail('Only the host can start it');
+    if (cup.state !== 'lobby') return fail('It has already started');
+    if (cup.players.length !== cup.size) return fail('Wait until all ' + cup.size + ' are in');
+    for (const p of cup.players) {
+      if (!conns.has(p)) return fail(userName(p) + ' has gone offline');
+      const busy = cupBusy(p);
+      if (busy) return fail(userName(p) + ' is busy right now');
+    }
+    cup.state = 'playing'; cup.round = 0; cup.rounds = [cupTies(shuffled(cup.players))];
+    return cupRun(cup);
+  }
+
+  // start every tie of this round that has two players; the rest are walkovers
+  function cupRun(cup) {
+    const ties = cup.rounds[cup.round];
+    cup.nextAt = 0;
+    let live = 0;
+    ties.forEach((tie, i) => {
+      if (tie.w || tie.done) return;
+      const ready = (p) => !!p && conns.has(p) && !cup.out.has(p) && !roomOf(p) && !inQueue(p);
+      const a = ready(tie.a), b = ready(tie.b);
+      if (a && b) {
+        startRoom('1v1', [{ id: tie.a, team: 'blue' }, { id: tie.b, team: 'red' }], null, null, { id: cup.id, round: cup.round, tie: i, of: Math.round(Math.log2(cup.size)) });
+        tie.live = true; live++;
+      } else if (a || b) {
+        tie.w = a ? tie.a : tie.b;
+        push(tie.w, { t: 'cup.bye', msg: 'YOU GO THROUGH · NOBODY TURNED UP' });
+      } else { tie.done = true; }
+    });
+    cupPush(cup);
+    if (!live) cupRoundDone(cup);
+  }
+
+  // called the moment a cup match ends, before its results card goes out
+  function cupResult(room, forfeitTeam) {
+    const cup = cups.get(room.cup.id);
+    if (!cup || cup.state !== 'playing') return null;
+    const tie = (cup.rounds[room.cup.round] || [])[room.cup.tie];
+    if (!tie || tie.w || tie.done) return null;
+    const m = room.m, A = tie.a, B = tie.b; // a kicks off in blue, b in red
+    tie.sa = m.score.blue; tie.sb = m.score.red; tie.live = false;
+    const w = forfeitTeam ? (forfeitTeam === 'blue' ? B : A)
+      : m.score.blue !== m.score.red ? (m.score.blue > m.score.red ? A : B)
+        : conns.has(A) ? A : B; // (a cup match is golden goal, so a draw can't really happen)
+    tie.w = w;
+    cup.out.add(w === A ? B : A);
+    cupRoundDone(cup);
+    return { winner: w, round: room.cup.round, of: Math.round(Math.log2(cup.size)), champion: cup.champion, size: cup.size };
+  }
+
+  function cupRoundDone(cup) {
+    if (cup.state !== 'playing') return;
+    const ties = cup.rounds[cup.round];
+    if (!ties.every((t) => t.w || t.done)) return;
+    const through = ties.map((t) => t.w).filter(Boolean);
+    if (through.length <= 1) {
+      cup.state = 'done'; cup.champion = through[0] || null; cup.nextAt = Date.now() + 120000;
+      cupPush(cup);
+      if (cup.champion) push(cup.champion, { t: 'cup.won', size: cup.size });
+      return;
+    }
+    cup.rounds.push(cupTies(through));
+    cup.round++;
+    cup.nextAt = Date.now() + CUP_GAP_MS;
+    cupPush(cup);
+  }
+
+  function cupLeave(id, tell) {
+    const cup = cupOf.get(id);
+    if (!cup) return;
+    cupOf.delete(id);
+    if (cup.state === 'lobby') {
+      cup.players = cup.players.filter((p) => p !== id);
+      if (tell) push(id, { t: 'cup.end' });
+      if (cup.host === id || !cup.players.length) return cupDisband(cup, 'THE CUP WAS CALLED OFF');
+      return cupPush(cup);
+    }
+    // once it's under way, leaving is giving up: your tie is a walkover for the other one
+    cup.out.add(id);
+    if (tell) push(id, { t: 'cup.end', msg: 'YOU LEFT THE CUP' });
+    if (cup.state === 'playing') {
+      for (const tie of cup.rounds[cup.round]) {
+        if (tie.w || tie.done || tie.live || (tie.a !== id && tie.b !== id)) continue;
+        const other = tie.a === id ? tie.b : tie.a;
+        if (other && !cup.out.has(other) && conns.has(other)) { tie.w = other; push(other, { t: 'cup.bye', msg: 'YOU GO THROUGH · THEY LEFT' }); }
+        else tie.done = true;
+      }
+      cupPush(cup);
+      cupRoundDone(cup);
+    }
+    return undefined;
+  }
+
+  function cupDisband(cup, msg) {
+    cups.delete(cup.id);
+    for (const id of cup.players) { if (cupOf.get(id) === cup) cupOf.delete(id); push(id, { t: 'cup.end', msg }); }
+    for (const id of cup.invites) push(id, { t: 'cup.gone', id: cup.id });
+    cup.invites.clear();
+  }
+
+  function tickCups() {
+    const now = Date.now();
+    for (const cup of [...cups.values()]) {
+      if (!cup.nextAt || now < cup.nextAt) {
+        if (cup.state === 'lobby' && now - cup.made > CUP_LOBBY_MS) cupDisband(cup, 'THE CUP TIMED OUT');
+        continue;
+      }
+      if (cup.state === 'playing') { cup.nextAt = 0; cupRun(cup); }
+      else if (cup.state === 'done') cupDisband(cup, null);
+    }
+  }
+
+  /* ---------------- watching a friend ----------------
+     A viewer takes no seat and sends no input: they are simply copied every snapshot the players
+     get, and are let go when the match finishes or they walk away. */
+  const watchers = new Map(); // viewer id -> the room they're watching
+
+  function watchFriend(conn, name) {
+    const me = conn.userId;
+    const fail = (msg) => send(conn, { t: 'error', msg });
+    const them = friends.idOf(name);
+    if (!them || !friends.areFriends(me, them)) return fail('You can only watch a friend');
+    if (roomOf(me)) return fail('Finish your own match first');
+    if (inQueue(me)) return fail('Stop searching first');
+    const room = roomOf(them);
+    if (!room || room.state === 'lobby' || !room.m) return fail(userName(them) + ' is not in a match');
+    if (room.pen) return fail(userName(them) + ' is in a shootout');
+    const seat = room.seats.find((s) => s.userId === them && s.player);
+    if (!seat) return fail(userName(them) + ' is not in a match');
+    stopWatching(me, false);
+    room.viewers = room.viewers || new Map();
+    room.viewers.set(me, seat.team);
+    watchers.set(me, room);
+    sendStart(room, seat, { conn, name: userName(them) });
+    return undefined;
+  }
+
+  function stopWatching(id, tell) {
+    const room = watchers.get(id);
+    if (room && room.viewers) room.viewers.delete(id);
+    watchers.delete(id);
+    if (tell && room) push(id, { t: 'watch.end' });
+  }
+
+  // the match is over (or gone): everyone watching it is sent home with the score
+  function dropViewers(room) {
+    if (!room.viewers || !room.viewers.size) return;
+    for (const [v, team] of room.viewers) {
+      watchers.delete(v);
+      const s = room.m && room.m.score;
+      push(v, { t: 'watch.end', msg: s ? `THAT MATCH FINISHED ${s[team]}-${s[team === 'blue' ? 'red' : 'blue']}` : 'THAT MATCH FINISHED' });
+    }
+    room.viewers.clear();
+  }
+
   /* ---------------- quick chat ----------------
      Only the preset lines (sim.QUICK_CHAT), never typed text. It shows as a bubble over the
      player who said it, for everyone in the match. */
@@ -790,6 +1047,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function roomChat(room, player, n, from) {
     const msg = { t: 'chat', p: room.m.players.indexOf(player), m: n };
     for (const s of room.seats) if (s.human && !s.gone && s !== from) send(s.conn, msg);
+    if (room.viewers) for (const v of room.viewers.keys()) push(v, msg);
   }
 
   // The filled spots chat like people do: now and then, about what just happened.
@@ -904,11 +1162,20 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const me = p ? [seat.ack, r100(p.skillCd), r100(p.slideCd), r100(p.stamina), p.exhausted ? 1 : 0, p.charging ? 1 : 0, r100(p.chargeT), p.bufferT > 0 ? 1 : 0, r100(p.burstT), Math.round(p.ult || 0)] : null;
       seat.conn.ws.send(`{"t":"s","me":${JSON.stringify(me)},${body}`);
     }
+    // anyone watching sees exactly what the players see, minus the "that's you" bits
+    if (room.viewers && room.viewers.size) {
+      for (const v of room.viewers.keys()) {
+        const c = conns.get(v);
+        if (!c || !c.ws.open || c.ws.backlog > 512 * 1024) continue;
+        c.ws.send(`{"t":"s","me":null,${body}`);
+      }
+    }
   }
 
   function finish(room, forfeitTeam) {
     const m = room.m;
     room.state = 'over'; room.endedAt = Date.now();
+    dropViewers(room);
     const pt = m.poss.blue + m.poss.red;
     const rating = (p) => { const s = p.stats; return s.goals * 3 + s.assists * 2 + s.saves * 1.2 + s.steals * 0.8 + s.passes * 0.35 + s.shots * 0.3; };
     let mvp = m.players[0];
@@ -921,6 +1188,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       goals: m.goals.map((g) => ({ team: g.team, scorer: g.scorer ? m.players.indexOf(g.scorer) : -1, own: g.own, time: Math.round(g.time) })),
       forfeit: !!forfeitTeam,
     };
+    const fc = room.cup ? cupResult(room, forfeitTeam) : null;
     const results = [], moves = new Map();
     for (const seat of room.seats) {
       if (!seat.human || seat.gone) continue;
@@ -940,7 +1208,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
     for (const { seat, outcome, cup } of results) {
       const d = seat.club ? Math.sign(moves.get(seat.club) || 0) : 0;
-      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, league: seat.club ? { pos: ladder.pos(seat.club), d } : null });
+      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, league: seat.club ? { pos: ladder.pos(seat.club), d } : null, rank: rankOf(seat.userId), rankD: rankDeltaFor(outcome, m.score[seat.team], m.score[seat.team === 'blue' ? 'red' : 'blue']), fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
     }
     saveDB();
   }
@@ -959,7 +1227,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       // dropped players get a bot after a grace period
       for (const s of room.seats) if (s.human && !s.conn && !s.gone && s.leftAt && now - s.leftAt > RECONNECT_MS && room.state !== 'over') playerLeft(room, s);
       if (room.state === 'over') continue;
-      if (!room.seats.some((s) => s.human && !s.gone)) { rooms.delete(room.id); continue; }
+      if (!room.seats.some((s) => s.human && !s.gone)) { dropViewers(room); rooms.delete(room.id); continue; }
       if (room.state === 'intro') {
         if (now < room.startAt) continue;
         room.state = 'playing'; room.last = now; room.acc = 0;
@@ -982,6 +1250,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   // the client pings every few seconds; a socket silent for a minute is a dead connection
   setInterval(() => { const cut = Date.now() - 60000; for (const c of conns.values()) if (c.ws.lastSeen < cut) c.ws.close(4002); }, 15000).unref();
   setInterval(matchmake, 1000).unref();
+  setInterval(tickCups, 500).unref();
 
   return {
     connect,
@@ -989,9 +1258,9 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     countryFor: sim.countryFor,
     stats: () => ({ online: conns.size, rooms: [...rooms.values()].filter((r) => r.state !== 'lobby').length, lobbies: codes.size, queued: Object.values(queues).reduce((a, q) => a + q.length, 0) }),
     inMatch: (id) => !!roomOf(id),
-    removeUser(id) { stopQueue(id, `${userName(id)} left`); leaveParty(id); for (const p of parties.values()) if (p.invites.delete(id)) tidyParty(p); const r = roomOf(id); if (r) { if (r.state === 'lobby') leaveLobby(r, id); else leaveMatch(id); } const c = conns.get(id); if (c) c.ws.close(); },
+    removeUser(id) { stopWatching(id, false); cupLeave(id, false); stopQueue(id, `${userName(id)} left`); leaveParty(id); for (const p of parties.values()) if (p.invites.delete(id)) tidyParty(p); const r = roomOf(id); if (r) { if (r.state === 'lobby') leaveLobby(r, id); else leaveMatch(id); } const c = conns.get(id); if (c) c.ws.close(); },
     _roomOf: roomOf, // tools only (tools/ballscan.js sets up drills in a live room)
-    _social: { queues, parties, partyOf }, // tools only (tools/socialscan.js)
+    _social: { queues, parties, partyOf, cups, cupOf }, // tools only (tools/socialscan.js, tools/cupscan.js)
   };
 }
 

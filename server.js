@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 41;
+const BUILD = 42;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -149,6 +149,10 @@ function queueGifts(quiet) {
 }
 // moves queued coins into the stored save; returns how many arrived
 function deliverGifts(u) {
+  // a season that finished while they were away pays out here
+  const r = rankOf(u);
+  if (r.owed > 0) { u.pendingCoins = (Number(u.pendingCoins) || 0) + r.owed; r.owed = 0; saveDB(); }
+  u.rank = r;
   const n = Number(u.pendingCoins) || 0;
   if (n <= 0) return 0;
   if (!u.save || typeof u.save !== 'object') u.save = {};
@@ -290,6 +294,37 @@ function leagueResult(list) {
 }
 const leaguePos = (club) => ladder().order.indexOf(club) + 1;
 
+// the rank record on an account, rolled over when a new season has started
+function rankOf(u) {
+  const r = u && u.rank && typeof u.rank === 'object' ? u.rank : {};
+  const now = seasonNow();
+  const rp = Math.max(0, Number(r.rp) || 0);
+  if ((r.season | 0) !== now) {
+    // a season ended: pay out for where they finished, then start again a tier lower
+    const paid = (r.season | 0) < now && rp > 0 ? rankTier(rp).reward : 0;
+    const carry = Math.max(0, Math.round(rp * 0.4));
+    return { season: now, rp: carry, best: Math.max(rp, Number(r.best) || 0), owed: paid + (Number(r.owed) || 0), last: rp ? rankTier(rp).id : null, wins: 0, played: 0 };
+  }
+  return { season: now, rp, best: Math.max(rp, Number(r.best) || 0), owed: Number(r.owed) || 0, last: r.last || null, wins: r.wins | 0, played: r.played | 0 };
+}
+function rankRecord(u, outcome, goalsFor, goalsAgainst) {
+  const r = rankOf(u);
+  r.rp = Math.max(0, r.rp + rankDelta(outcome, goalsFor, goalsAgainst));
+  r.best = Math.max(r.best, r.rp);
+  r.played++;
+  if (outcome === 'win') r.wins++;
+  u.rank = r;
+  return r;
+}
+// what the client is told about a rank (and any season payout waiting)
+function rankView(u) {
+  const r = rankOf(u);
+  u.rank = r;
+  const tier = rankTier(r.rp), next = rankNext(r.rp);
+  return { rp: r.rp, tier: tier.id, name: tier.name, next: next ? { id: next.id, name: next.name, at: next.at } : null,
+    season: r.season, ends: seasonEndsAt(r.season), best: r.best, wins: r.wins, played: r.played, last: r.last };
+}
+
 function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals }) {
   const u = getUser(id);
   if (!u) return;
@@ -297,6 +332,7 @@ function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals }) {
   o.p++;
   if (outcome === 'win') o.w++; else if (outcome === 'draw') o.d++; else o.l++;
   o.gf += goalsFor | 0; o.ga += goalsAgainst | 0; o.goals += goals | 0;
+  rankRecord(u, outcome, goalsFor, goalsAgainst);
   leagueCache = null;
   saveDB();
 }
@@ -413,7 +449,8 @@ const penaltyWorldCup = {
   },
 };
 const game = createGame({
-  getUser, userName, saveDB, onlineRecord, worldCup, penaltyWorldCup, league: { move: (club, d) => leagueMove(club, d), result: (list) => leagueResult(list), pos: (club) => leaguePos(club) },
+  getUser, userName, saveDB, onlineRecord, worldCup, penaltyWorldCup, ranked: { view: (id) => (getUser(id) ? rankView(getUser(id)) : null) },
+  league: { move: (club, d) => leagueMove(club, d), result: (list) => leagueResult(list), pos: (club) => leaguePos(club) },
   isNameTaken: (name) => !!getUser(String(name).toLowerCase()),
 });
 const CLUBS = game.clubs;
@@ -427,7 +464,7 @@ const server = http.createServer((req, res) => {
 
 function publicUser(id) {
   const u = getUser(id);
-  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u), pwc: penaltyWorldCupOf(u) };
+  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u), pwc: penaltyWorldCupOf(u), rank: rankView(u) };
 }
 
 

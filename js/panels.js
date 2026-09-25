@@ -49,6 +49,11 @@ Object.assign(UI, {
           <p>Five kicks each, then sudden death. Pick your corner, then save theirs.</p>
           <span class="tag">VS ${pensClub.name}</span>
         </button>
+        <button class="mode friendcup" data-mode="friendcup">
+          <strong>FRIEND CUP</strong>
+          <p>A knockout between 4 or 8 friends. Win your 1v1 and you go through. No draws.</p>
+          <span class="tag">ONLINE · WITH FRIENDS</span>
+        </button>
         <button class="mode chal" data-mode="challenges">
           <strong>SKILL CHALLENGES</strong>
           <p>Target practice, keeper mode and the dribble gauntlet. Medals and coins.</p>
@@ -76,6 +81,7 @@ Object.assign(UI, {
     body.querySelector('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
     body.querySelector('[data-mode="pens"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('pensmode'); });
     body.querySelector('[data-mode="challenges"]').addEventListener('click', () => { this.tap(); this.openModal('challenges'); });
+    body.querySelector('[data-mode="friendcup"]').addEventListener('click', () => { this.tap(); this.openModal('cup'); });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
     body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
   },
@@ -132,6 +138,81 @@ Object.assign(UI, {
     body.querySelector('[data-pwc="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens', true); });
     body.querySelector('[data-pwc="bots"]').addEventListener('click', () => { this.tap(); if (!PenCup.state()) PenCup.start(); Game.startMatch({ mode: 'penscup' }); });
   },
+  // ---- FRIEND CUP: a knockout between four or eight friends ----
+  panel_cup(body) {
+    $('modal-title').textContent = 'FRIEND CUP';
+    const c = Social.cup;
+    if (!Net.user) { body.innerHTML = '<p class="note">Log in to run a cup with your friends.</p>'; return; }
+    if (!c) {
+      body.innerHTML = `
+        <p class="note">A knockout between your friends. Everyone plays 1v1, the winner of each tie goes through, and the last one standing lifts the cup. No draws: golden goal decides it.</p>
+        <div class="cup-pick"><button class="big-btn" data-size="4">4 PLAYERS</button><button class="big-btn" data-size="8">8 PLAYERS</button></div>
+        <p class="note">You pick the size, then invite friends who are online. The draw is random.</p>`;
+      body.querySelectorAll('[data-size]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.send({ t: 'cup.create', size: Number(b.dataset.size) }); }));
+      return;
+    }
+    const you = Net.user.name, host = c.host === you;
+    const slots = [];
+    for (const p of c.players) slots.push(`<div class="cup-slot ${p.out ? 'out' : ''} ${p.name === you ? 'you' : ''}"><canvas width="36" height="24" data-club="${p.club}"></canvas><b>${esc(p.name)}</b>${p.name === c.host ? '<i class="crown"></i>' : ''}${p.gone ? '<small>OFFLINE</small>' : ''}</div>`);
+    for (const nm of c.invited) slots.push(`<div class="cup-slot asked"><b>${esc(nm)}</b><small>ASKED…</small>${host ? `<button class="fr-x" data-drop="${esc(nm)}" aria-label="Cancel">×</button>` : ''}</div>`);
+    while (slots.length < c.size) slots.push('<div class="cup-slot empty"><b>EMPTY</b></div>');
+
+    if (c.state === 'lobby') {
+      const free = Social.friends.filter((f) => f.status !== 'offline' && !c.players.some((p) => p.name === f.name) && !c.invited.includes(f.name));
+      body.innerHTML = `
+        <div class="cup-slots">${slots.join('')}</div>
+        ${host ? `<h3 class="fr-h">INVITE FRIENDS</h3>
+          ${free.length ? free.map((f) => `<div class="fr-row"><b>${esc(f.name)}</b><em class="fr-st on">${(FRIEND_STATUS[f.status] || FRIEND_STATUS.online)[0]}</em><button class="mid-btn blue" data-ask="${esc(f.name)}">INVITE</button></div>`).join('')
+            : '<p class="note">No friends online to ask right now.</p>'}` : '<p class="note">Waiting for the host to start it.</p>'}
+        <div class="cup-foot">
+          ${host ? `<button class="big-btn green" data-start ${c.players.length === c.size ? '' : 'disabled'}>${c.players.length === c.size ? 'START THE CUP' : `WAITING · ${c.players.length}/${c.size}`}</button>` : ''}
+          <button class="mid-btn red" data-leave>${host ? 'CALL IT OFF' : 'LEAVE'}</button>
+        </div>`;
+    } else {
+      const left = Social.cupAt ? Math.max(0, Math.ceil((Social.cupAt - performance.now()) / 1000)) : 0;
+      const rounds = c.rounds.map((ties, r) => `
+        <h3 class="fr-h">${CUP_ROUNDS[c.of - 1 - r] || 'ROUND ' + (r + 1)}</h3>
+        <div class="cup-ties">${ties.map((t) => {
+          const line = (nm, sc, won) => `<span class="${won ? 'won' : ''} ${nm === you ? 'you' : ''}"><b>${esc(nm || '—')}</b><em>${sc === null || sc === undefined ? '' : sc}</em></span>`;
+          return `<div class="cup-tie ${t.live ? 'live' : ''}">${line(t.a, t.sa, t.w && t.w === t.a)}${line(t.b, t.sb, t.w && t.w === t.b)}${t.live ? '<i class="tag-live">LIVE</i>' : ''}</div>`;
+        }).join('')}</div>`).join('');
+      body.innerHTML = `
+        ${c.state === 'done' ? `<div class="cup-champ"><small>WINNER</small><strong>${esc(c.champion || 'NOBODY')}</strong></div>`
+        : left ? `<p class="note big-note">${CUP_ROUNDS[c.of - 1 - c.round] || 'THE NEXT ROUND'} STARTS IN ${left}…</p>`
+          : '<p class="note big-note">MATCHES ARE ON</p>'}
+        ${rounds}
+        <div class="cup-foot"><button class="mid-btn red" data-leave>${c.state === 'done' ? 'CLOSE THE CUP' : 'GIVE UP'}</button></div>`;
+    }
+    body.querySelectorAll('canvas[data-club]').forEach((cv) => UI.flagBadge(cv, Clubs.get(cv.dataset.club)));
+    const on = (sel, fn) => body.querySelectorAll(sel).forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); fn(b); }));
+    on('[data-ask]', (b) => { this.tap(); Net.send({ t: 'cup.invite', name: b.dataset.ask }); });
+    on('[data-drop]', (b) => { this.tap(); Net.send({ t: 'cup.uninvite', name: b.dataset.drop }); });
+    on('[data-start]', () => { this.tap(); Net.send({ t: 'cup.start' }); });
+    on('[data-leave]', () => { this.tap(); Net.send({ t: 'cup.leave' }); this.closeModal(); });
+  },
+
+  // ---- RANKED: your tier this season and what is left to climb ----
+  panel_ranked(body) {
+    $('modal-title').textContent = 'RANKED';
+    const rk = (Net.user && Net.user.rank) || null;
+    if (!rk) { body.innerHTML = '<p class="note">Play an online match and your rank starts here.</p>'; return; }
+    const tier = RANK_TIERS.find((x) => x.id === rk.tier) || RANK_TIERS[0];
+    const next = rk.next;
+    const into = next ? clamp((rk.rp - tier.at) / (next.at - tier.at), 0, 1) : 1;
+    const days = Math.max(0, Math.ceil((rk.ends - Date.now()) / 86400000));
+    body.innerHTML = `
+      <div class="rank-head" style="--t:${tier.color}">
+        <div class="rank-badge"><i></i><b>${tier.name}</b></div>
+        <div class="rank-rp"><b>${rk.rp}</b><small>RANK POINTS</small></div>
+      </div>
+      <div class="rank-bar"><b style="width:${Math.round(into * 100)}%;background:${tier.color}"></b></div>
+      <p class="note">${next ? `${Math.max(0, next.at - rk.rp)} RP TO ${next.name}` : 'TOP TIER — NOBODY IS ABOVE YOU'} · SEASON ENDS IN ${days} DAY${days === 1 ? '' : 'S'}</p>
+      <div class="rank-stats"><span>WON <b>${rk.wins}</b></span><span>PLAYED <b>${rk.played}</b></span><span>BEST <b>${rk.best}</b></span></div>
+      <h3 class="fr-h">TIERS · WHAT EACH PAYS WHEN THE SEASON ENDS</h3>
+      <div class="rank-tiers">${RANK_TIERS.map((x) => `<div class="rank-tier ${x.id === tier.id ? 'you' : ''}" style="--t:${x.color}"><i></i><b>${x.name}</b><small>${x.at} RP</small><em><span class="coin"></span>${x.reward}</em></div>`).join('')}</div>
+      <p class="note">A win is worth about 25 points, a loss costs about 14, and the score counts for a little. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>`;
+  },
+
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
   panel_worldcup(body) {
     $('modal-title').textContent = 'WORLD CUP';

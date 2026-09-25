@@ -15,6 +15,9 @@ const Social = {
   party: null,          // { id, leader, lead, members: [{ name, club, status, leader, you }], invited }
   invites: [],          // party invites waiting for an answer: { id, from, club, until }
   challenges: [],
+  cup: null,            // the friend cup you're in, as the server sees it
+  cupInvites: [],       // cups you've been asked to join: { id, from, club, size, until }
+  cupAt: 0,             // when the next round of it starts (on this clock)
   busy: false,
   chatOn: false, chatSent: [], feed: [], _armed: null,
 
@@ -34,6 +37,24 @@ const Social = {
     Net.on('friend.req', (m) => UI.toast(`${m.name} WANTS TO BE FRIENDS`));
     Net.on('friend.new', (m) => UI.toast(`YOU AND ${m.name} ARE FRIENDS`));
     Net.on('social', (m) => { if (m.msg) UI.toast(String(m.msg).toUpperCase()); });
+    // friend cups
+    Net.on('cup', (m) => {
+      const was = this.cup && this.cup.state;
+      this.cup = m && m.state ? m : null;
+      this.cupAt = this.cup && this.cup.nextIn ? performance.now() + this.cup.nextIn : 0;
+      // the draw being made is worth looking at
+      if (this.cup && this.cup.state === 'playing' && was === 'lobby' && Game.state === 'home') UI.openModal('cup');
+      this.changed();
+    });
+    Net.on('cup.invite', (m) => {
+      this.cupInvites = this.cupInvites.filter((i) => i.id !== m.id);
+      this.cupInvites.push({ id: m.id, from: m.from, club: m.club, size: m.size, until: performance.now() + 118000 });
+      Sound.tap(); this.changed();
+    });
+    Net.on('cup.gone', (m) => { this.cupInvites = this.cupInvites.filter((i) => i.id !== m.id); this.changed(); });
+    Net.on('cup.end', (m) => { this.cup = null; this.cupAt = 0; if (m && m.msg) UI.toast(String(m.msg).toUpperCase()); this.changed(); });
+    Net.on('cup.bye', (m) => UI.toast(String((m && m.msg) || 'YOU GO THROUGH').toUpperCase()));
+    Net.on('cup.won', () => { if (Game.state !== 'match' && Game.state !== 'results') { Sound.powerReady(); UI.toast('YOU WON THE FRIEND CUP!'); } });
     Net.on('chat', (m) => this.onChat(m));
 
     $('btn-friends').addEventListener('click', () => { UI.tap(); UI.openModal('friends'); });
@@ -54,17 +75,18 @@ const Social = {
 
   signedIn: () => !!(Net.user && Net.token),
   // signed out: nothing of the last account's lists stays on screen
-  reset() { this.friends = []; this.incoming = []; this.outgoing = []; this.loaded = false; this.party = null; this.invites = []; this.challenges = []; this.busy = false; this.refreshHome(); },
+  reset() { this.friends = []; this.incoming = []; this.outgoing = []; this.loaded = false; this.party = null; this.invites = []; this.challenges = []; this.cup = null; this.cupInvites = []; this.cupAt = 0; this.busy = false; this.refreshHome(); },
 
   // something changed: redraw whatever is showing it
   changed() {
     this.refreshHome();
     if (!$('modal').hidden && $('modal').dataset.kind === 'friends') UI.panel_friends($('modal-body'), true);
+    if (!$('modal').hidden && $('modal').dataset.kind === 'cup') UI.panel_cup($('modal-body'));
   },
 
   refreshHome() {
     const on = this.friends.filter((f) => f.status !== 'offline').length;
-    const ask = this.incoming.length + this.liveInvites().length + this.liveChallenges().length;
+    const ask = this.incoming.length + this.liveInvites().length + this.liveChallenges().length + this.liveCups().length;
     $('friends-badge').hidden = !ask;
     $('friends-badge').textContent = ask;
     $('friends-on').hidden = !on;
@@ -74,6 +96,16 @@ const Social = {
     if (!bar.hidden) {
       bar.innerHTML = `<small>PARTY</small>${p.members.map((m) => `<span class="${m.you ? 'me' : ''}"><canvas width="36" height="24" data-club="${m.club}"></canvas>${m.leader ? '<i class="crown"></i>' : ''}${esc(m.you ? 'YOU' : m.name)}</span>`).join('')}<em>${p.lead ? 'YOU START THE MATCH' : `${esc(p.leader)} STARTS THE MATCH`}</em>`;
       bar.querySelectorAll('canvas[data-club]').forEach((cv) => UI.flagBadge(cv, Clubs.get(cv.dataset.club)));
+    }
+    const cupBar = $('cup-bar'), c = this.cup;
+    cupBar.hidden = !c;
+    if (c) {
+      const left = this.cupAt ? Math.max(0, Math.ceil((this.cupAt - performance.now()) / 1000)) : 0;
+      const where = c.state === 'done' ? (c.champion ? `${esc(c.champion)} WON IT` : 'OVER')
+        : c.state === 'lobby' ? `${c.players.length}/${c.size} PLAYERS`
+          : left ? `${CUP_ROUNDS[c.of - 1 - c.round] || 'NEXT ROUND'} IN ${left}`
+            : CUP_ROUNDS[c.of - 1 - c.round] || 'PLAYING';
+      cupBar.innerHTML = `<small>FRIEND CUP</small><span>${where}</span><em>SEE THE BOARD</em>`;
     }
     this.showInvite();
   },
@@ -86,23 +118,28 @@ const Social = {
 
   liveChallenges() { this.challenges = this.challenges.filter((i) => i.until > performance.now()); return this.challenges; },
 
+  liveCups() { this.cupInvites = this.cupInvites.filter((i) => i.until > performance.now() && !(this.cup && this.cup.id === i.id)); return this.cupInvites; },
+
   // the invite card waits until you're not in the middle of a match
   showInvite() {
     const card = $('party-invite');
-    const challenge = this.liveChallenges()[0];
-    const inv = challenge || this.liveInvites()[0];
+    const challenge = this.liveChallenges()[0], cupAsk = this.liveCups()[0];
+    const inv = challenge || cupAsk || this.liveInvites()[0];
+    const kind = challenge ? 'c' : cupAsk ? 'u' : 'p';
     const free = !['match', 'intro', 'paused'].includes(Game.state);
     // the FRIENDS panel lists it already; over any other menu it sits at the bottom, clear of the title
     const friendsOpen = !$('modal').hidden && $('modal').dataset.kind === 'friends';
     if (!inv || !free || friendsOpen) { card.hidden = true; card.dataset.id = ''; return; }
     card.classList.toggle('low', !$('modal').hidden || !$('results').hidden || !$('queue').hidden || !$('lobby').hidden);
-    if (card.dataset.id === (challenge ? 'c' : 'p') + String(inv.id) + inv.from && !card.hidden) return;
-    card.dataset.id = (challenge ? 'c' : 'p') + String(inv.id) + inv.from;
-    card.innerHTML = `<canvas width="48" height="32"></canvas><p><b>${esc(inv.from)}</b> ${challenge ? 'challenged you to a 1v1' : 'invited you to their party'}</p><button class="mid-btn green" data-a="join">${challenge ? 'PLAY' : 'JOIN'}</button><button class="mid-btn red" data-a="no">NO</button>`;
+    if (card.dataset.id === kind + String(inv.id) + inv.from && !card.hidden) return;
+    card.dataset.id = kind + String(inv.id) + inv.from;
+    const what = challenge ? 'challenged you to a 1v1' : cupAsk ? `invited you to a ${inv.size}-player cup` : 'invited you to their party';
+    card.innerHTML = `<canvas width="48" height="32"></canvas><p><b>${esc(inv.from)}</b> ${what}</p><button class="mid-btn green" data-a="join">${challenge ? 'PLAY' : 'JOIN'}</button><button class="mid-btn red" data-a="no">NO</button>`;
     UI.flagBadge(card.querySelector('canvas'), Clubs.get(inv.club));
     card.hidden = false;
-    card.querySelector('[data-a="join"]').addEventListener('click', () => { UI.tap(); challenge ? this.answerChallenge(inv, true) : this.answerInvite(inv, true); });
-    card.querySelector('[data-a="no"]').addEventListener('click', () => { UI.tap(); challenge ? this.answerChallenge(inv, false) : this.answerInvite(inv, false); });
+    const answer = (yes) => { UI.tap(); if (challenge) this.answerChallenge(inv, yes); else if (cupAsk) this.answerCup(inv, yes); else this.answerInvite(inv, yes); };
+    card.querySelector('[data-a="join"]').addEventListener('click', () => answer(true));
+    card.querySelector('[data-a="no"]').addEventListener('click', () => answer(false));
   },
   answerInvite(inv, yes) {
     this.invites = this.invites.filter((i) => i !== inv);
@@ -110,6 +147,8 @@ const Social = {
     Net.send({ t: yes ? 'party.accept' : 'party.decline', id: inv.id });
     this.changed();
   },
+
+  answerCup(inv, yes) { this.cupInvites = this.cupInvites.filter((i) => i !== inv); $('party-invite').hidden = true; $('party-invite').dataset.id = ''; Net.send({ t: yes ? 'cup.accept' : 'cup.decline', id: inv.id }); this.changed(); },
 
   answerChallenge(inv, yes) { this.challenges = this.challenges.filter((i) => i !== inv); $('party-invite').hidden = true; $('party-invite').dataset.id = ''; Net.send({ t: yes ? 'challenge.accept' : 'challenge.decline', id: inv.id }); this.changed(); },
 
@@ -128,7 +167,16 @@ const Social = {
     if ($('btn-chat').hidden === on) { $('btn-chat').hidden = !on; $('kl-chat').hidden = !on; if (!on) { this.toggleChat(false); this.feed = []; this.drawFeed(); } }
     if (this.chatOn) $('chat-menu').classList.toggle('cool', !this.canSay());
     if (this.feed.length && this.feed[0].until < performance.now()) { this.feed = this.feed.filter((f) => f.until > performance.now()); this.drawFeed(); }
-    if (!$('party-invite').hidden || (this.invites.length || this.challenges.length)) this.showInvite();
+    if (!$('party-invite').hidden || (this.invites.length || this.challenges.length || this.cupInvites.length)) this.showInvite();
+    // the countdown to the next round ticks on the bar and on the board, once a second
+    if (this.cup && this.cupAt) {
+      const left = Math.max(0, Math.ceil((this.cupAt - performance.now()) / 1000));
+      if (left !== this._cupLeft) {
+        this._cupLeft = left;
+        if (Game.state === 'home') this.refreshHome();
+        if (!$('modal').hidden && $('modal').dataset.kind === 'cup') UI.panel_cup($('modal-body'));
+      }
+    }
   },
 
   // Offline the bots are all on this machine, so their chat happens here. Same habits as the
@@ -190,7 +238,7 @@ const Social = {
   /* ---------------- quick chat ---------------- */
   chatAllowed() {
     const m = Game.match;
-    if (!m || (m.net && Online.status !== 'match') || m.mode === 'pens') return false;
+    if (!m || (m.net && Online.status !== 'match') || m.mode === 'pens' || Online.watching) return false;
     return Game.state === 'match' || Game.state === 'intro';
   },
 
@@ -284,6 +332,7 @@ Object.assign(UI, {
       </section>` : '';
     const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>CHALLENGED YOU TO A 1V1</small><button class="mid-btn green" data-accept-challenge="${i.id}">PLAY</button><button class="mid-btn red" data-decline-challenge="${i.id}">NO</button></div>`).join('');
     const invites = S.liveInvites().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>INVITED YOU TO THEIR PARTY</small><button class="mid-btn green" data-join="${i.id}">JOIN</button><button class="mid-btn red" data-nojoin="${i.id}">NO</button></div>`).join('');
+    const cupBtn = `<div class="fr-row cup-row"><b>FRIEND CUP</b><small>${S.cup ? 'YOU ARE IN ONE' : '4 OR 8 FRIENDS, KNOCKOUT'}</small><button class="mid-btn gold" data-cup="1">${S.cup ? 'SEE THE BOARD' : 'START ONE'}</button></div>`;
     const asks = S.incoming.map((f) => `<div class="fr-row ask">${flag(f.club)}<b>${esc(f.name)}</b><small>WANTS TO BE FRIENDS</small><button class="mid-btn green" data-accept="${esc(f.name)}">ACCEPT</button><button class="mid-btn red" data-decline="${esc(f.name)}">NO</button></div>`).join('');
     const partyFull = p && p.members.length + p.invited.length >= 4;
     const rows = S.friends.map((f) => {
@@ -292,6 +341,7 @@ Object.assign(UI, {
       else if (p && p.invited.includes(f.name)) act = '<span class="fr-tag">INVITED</span>';
       else if (lead && f.status !== 'offline' && !partyFull) act = `<button class="mid-btn blue" data-invite="${esc(f.name)}">INVITE</button>`;
       if (f.status === 'online') act += `<button class="mid-btn green" data-challenge="${esc(f.name)}">1V1</button>`;
+      if (f.status === 'match') act += `<button class="mid-btn gold" data-watch="${esc(f.name)}">WATCH</button>`;
       const armed = S._armed === f.name;
       return `<div class="fr-row">${flag(f.club)}<b>${esc(f.name)}</b>${status(f.status)}${act}<button class="fr-x ${armed ? 'armed' : ''}" data-remove="${esc(f.name)}" aria-label="Remove friend">${armed ? 'REMOVE?' : '×'}</button></div>`;
     }).join('');
@@ -300,10 +350,11 @@ Object.assign(UI, {
       <form class="fr-add" autocomplete="off"><input id="fr-name" maxlength="14" placeholder="THEIR USERNAME" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">ADD FRIEND</button></form>
       ${partyHtml}
       ${challenges || invites || asks ? `<h3 class="fr-h">WAITING FOR YOU</h3>${challenges}${invites}${asks}` : ''}
+      ${cupBtn}
       <h3 class="fr-h">FRIENDS${S.friends.length ? ` · ${S.friends.length}` : ''}</h3>
       ${rows || `<p class="note fr-empty">${S.loaded ? 'No friends yet. Ask your mates for their username and add them here.' : 'Connecting…'}</p>`}
       ${sent ? `<h3 class="fr-h">SENT</h3>${sent}` : ''}
-      <p class="note fr-foot">Challenge an online friend to a 1v1, or invite them to your party to play on the same team. Only the quick chat lines can be sent in a match.</p>`;
+      <p class="note fr-foot">Challenge an online friend to a 1v1, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match.</p>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     const input = body.querySelector('#fr-name');
     input.value = typed;
@@ -327,6 +378,8 @@ Object.assign(UI, {
       go({ t: 'friend.remove', name: b.dataset.remove });
     });
     on('[data-invite]', (b) => go({ t: 'party.invite', name: b.dataset.invite }));
+    on('[data-watch]', (b) => { this.tap(); this.closeAll(); Online.watch(b.dataset.watch); });
+    on('[data-cup]', () => { this.tap(); this.openModal('cup'); });
     on('[data-challenge]', (b) => go({ t: 'challenge.send', name: b.dataset.challenge }));
     on('[data-accept-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.acceptChallenge); if (inv) S.answerChallenge(inv, true); });
     on('[data-decline-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.declineChallenge); if (inv) S.answerChallenge(inv, false); });

@@ -26,6 +26,7 @@ const Online = {
     Net.on('room', (m) => this.onRoom(m));
     Net.on('room.left', () => { this.status = 'idle'; this.room = null; UI.hideLobby(); });
     Net.on('start', (m) => this.start(m));
+    Net.on('watch.end', (m) => this.stopWatching(m && m.msg));
     Net.on('pen.start', (m) => this.startPens(m));
     Net.on('pen.turn', (m) => { if (this.m && this.m.pens) Pens.netTurn(this.m, m); });
     Net.on('pen.result', (m) => { if (this.m && this.m.pens) Pens.netResult(this.m, m); });
@@ -100,9 +101,28 @@ const Online = {
     m.phase = 'over'; m.onlinePenEnd = msg;
     setTimeout(() => { if (Game.match === m) UI.showResults(m); }, 900);
   },
+  // ---------- watching a friend's match ----------
+  watching: null,
+  nobody: { x: 0, y: 0, vx: 0, vy: 0, fx: 0, fy: 0, r: 0 }, // stands in for "you" when there is no you
+  watch(name) {
+    if (this.status !== 'idle') { UI.toast('FINISH WHAT YOU ARE DOING FIRST'); return; }
+    Sound.unlock();
+    UI.toast('WATCHING ' + String(name).toUpperCase() + '…');
+    Net.whenReady({ t: 'watch', name });
+  },
+  stopWatching(msg) {
+    if (!this.watching) return;
+    this.watching = null;
+    Net.send({ t: 'unwatch' });
+    $('hud').classList.remove('watching');
+    this.abandon();
+    if (msg) UI.toast(String(msg).toUpperCase());
+  },
+
   // ---------- match start ----------
   start(msg) {
     const resync = this.m && this.m.roomId === msg.room;
+    this.watching = msg.watch || null;
     this.status = 'match';
     this.mirror = msg.side === 'red';
     this.you = msg.you;
@@ -131,7 +151,7 @@ const Online = {
       stats: { blue: {}, red: {} }, duration: msg.minutes * 60, time: msg.minutes * 60, overtime: false, otTime: 0,
       phase: 'kickoff', phaseT: 0, clock: 0, format: msg.format, mode: 'online', club: theirs, home: mine, goals: [], flags: {},
       challenges: null, timeScale: 1, demo: false, replay: null, rec: null, humanRarity: players[msg.you].rarity, events: null,
-      wc: Number.isInteger(msg.wc) ? msg.wc : null,
+      wc: Number.isInteger(msg.wc) ? msg.wc : null, fcup: msg.fcup || null,
     };
     m.noDraw = m.wc !== null;
     this.m = m;
@@ -142,6 +162,9 @@ const Online = {
     const fromQueue = !$('queue').hidden;
     UI.closeAll(); UI.hideQueue(); UI.hideLobby();
     $('hud').classList.remove('pens'); Pens.label('SHOOT');
+    $('hud').classList.toggle('watching', !!this.watching);
+    $('watch-bar').hidden = !this.watching;
+    if (this.watching) $('watch-name').textContent = this.watching;
     UI.show('match');
     if (fromQueue) Sound.powerReady();
     Render.updateCamera(m, 0, true);
@@ -157,11 +180,13 @@ const Online = {
 
   // leave a live match (counts as a loss) and go home
   quit() {
+    if (this.watching) { this.stopWatching(); return; }
     if (this.status === 'match') Net.send({ t: 'leave' });
     this.abandon();
     if (Game.state !== 'home') Game.goHome();
   },
   abandon() {
+    this.watching = null; $('hud').classList.remove('watching'); $('watch-bar').hidden = true;
     this.status = 'idle'; this.m = null; this.snaps = []; this.room = null;
     UI.hideQueue(); UI.hideLobby();
     if (Game.match && Game.match.net) Game.goHome();
@@ -247,13 +272,13 @@ const Online = {
     this._lastPhase = m.phase;
     m.overtime = latest.ot >= 0; m.otTime = Math.max(0, latest.ot);
     m.score = latest.score; m.meter = latest.meter; m.timeScale = latest.ts;
-    const me = m.human;
+    const me = this.watching ? this.nobody : m.human;
     m.players.forEach((p, i) => {
       const S = latest.p[i];
       if (!S || p === me) return;
       this.applyNow(p, S, since, ahead, dt, phaseChanged);
     });
-    this.updateMe(latest, since, ahead, dt, phaseChanged);
+    if (!this.watching) this.updateMe(latest, since, ahead, dt, phaseChanged);
 
     // ball, on your clock like everyone: "you have it" comes from the newest snapshot, touching a loose
     // ball picks it up at once (the server confirms a moment later), a pass or shot leaves your feet the
@@ -479,6 +504,7 @@ const Online = {
 
   // ---------- your own player ----------
   sendInput(dt) {
+    if (this.watching) return;
     const m = this.m;
     if (Game.state === 'paused') { Input.move.x = 0; Input.move.y = 0; }
     const s = this.mirror ? -1 : 1;
@@ -681,6 +707,7 @@ const Online = {
   },
 
   again() {
+    if (Social.cup && Social.cup.state === 'playing') { Game.goHome(); this.m = null; UI.openModal('cup'); return; }
     const p = Social.party;
     if (p && p.members.length > 1 && !p.lead) { Game.goHome(); this.m = null; UI.toast(`${p.leader} STARTS THE NEXT MATCH`); return; }
     const f = this.format;

@@ -53,7 +53,7 @@ const Net = {
     // a different account: the live connection still belongs to the old one, so drop it
     if (r.token && r.token !== this.token) { this.closeSocket(); if (typeof Social !== 'undefined') Social.reset(); }
     if (r.token) { this.token = r.token; try { localStorage.setItem(TOKEN_KEY, r.token); } catch (e) {} }
-    this.user = { name: r.name, club: r.club, online: r.online, wc: r.wc || { round: 0, titles: 0 } };
+    this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 } };
     Save.useAccount(r.name, r.save, r.club, fresh);
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
   },
