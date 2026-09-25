@@ -22,7 +22,8 @@ const Social = {
   chatOn: false, chatSent: [], feed: [], _armed: null,
 
   init() {
-    Net.on('hello', () => { this.busy = null; this.syncBusy(); });
+    // (a refresh in the middle of a cup: ask the server which one you are in)
+    Net.on('hello', () => { this.busy = null; this.syncBusy(); Net.send({ t: 'cup.view' }); });
     Net.on('friends', (m) => { this.friends = m.friends || []; this.incoming = m.incoming || []; this.outgoing = m.outgoing || []; this.loaded = true; this.changed(); });
     Net.on('party', (m) => { this.party = m.id ? m : null; this.changed(); });
     Net.on('party.invite', (m) => {
@@ -59,6 +60,7 @@ const Social = {
 
     $('btn-friends').addEventListener('click', () => { UI.tap(); UI.openModal('friends'); });
     $('party-bar').addEventListener('click', () => { UI.tap(); UI.openModal('friends'); });
+    $('cup-bar').addEventListener('click', () => { UI.tap(); UI.openModal('cup'); });
     this.buildChat();
     // PC: T opens quick chat, then a number picks the line (Esc closes it without pausing)
     window.addEventListener('keydown', (e) => {
