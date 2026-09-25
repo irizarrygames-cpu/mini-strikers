@@ -550,7 +550,7 @@ function ultSteer(b, h) {
 // the ult shot: an acrobatic strike that cannot be stopped
 function ultShot(m, p) {
   const b = m.ball;
-  const kind = ULT_KINDS[(Math.random() * ULT_KINDS.length) | 0];
+  const kind = p.sig || ULT_KINDS[(Math.random() * ULT_KINDS.length) | 0]; // their signature finish
   const gx = attackGoalX(p.team), gy = CFG.FIELD_H / 2, dir = TEAMS[p.team].dir;
   const GW2 = CFG.GOAL_W / 2;
   const tx = gx + dir * 70, ty = gy + rand(-1, 1) * (GW2 - 70);

@@ -143,6 +143,7 @@ const Pens = {
   // the next kick (or the end)
   next(m, first) {
     const P = m.pens;
+    if (P.chal) return SkillRun.nextKick(m, first);
     if (!first) {
       P.winner = PEN.decided(P.kicks);
       if (P.winner) { P.phase = 'end'; P.t = 0; this.label('SHOOT'); if (P.winner === 'blue') { Sound.cheer(true); Sound.goalJingle(true); } else Sound.ooh(); return; }
@@ -292,6 +293,7 @@ const Pens = {
     else res = s.out;
     const scored = res === 'goal' || res === 'postIn' || res === 'barIn';
     P.result = res; P.say = PEN_SAY[res];
+    if (P.chal) return SkillRun.scoreKick(m, s, res);
     P.kicks[P.team].push(scored);
     m.score = { blue: P.kicks.blue.filter(Boolean).length, red: P.kicks.red.filter(Boolean).length };
     // the catch-or-parry and where a rebound goes
@@ -522,6 +524,7 @@ const Pens = {
   },
 
   drawKeeper(ctx, L, P, t) {
+    if (P.noKeeper) return;
     const gk = this.goalie(P), k = (1.9 * L.s) / 68;
     const flying = P.phase === 'flight' || P.phase === 'after' || (P.net && P.phase === 'runup' && P.dive);
     const tt = P.phase === 'flight' ? P.t : P.phase === 'after' ? P.shot.T + P.t : P.phase === 'runup' ? P.t : 0;
@@ -607,13 +610,15 @@ const Pens = {
     const W = L.W, H = L.H;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     // tally: a row of five for each side (sudden death shows the latest)
+    const chal = !!P.chal;
     const n = Math.max(5, P.kicks.blue.length, P.kicks.red.length), from = Math.max(0, n - 5);
     const dot = clamp(H * 0.028, 9, 15), gap = dot * 2.7, rowH = dot * 2.6;
     const pw = gap * 5 + dot * 7.5, ph = rowH * 2 + dot * 0.8, px = W / 2 - pw / 2, py = Math.max(8, Render.S ? 10 : 10);
-    ctx.fillStyle = OUTLINE; Sprites.rr(ctx, px + 3, py + 4, pw, ph, dot); ctx.fill();
+    if (chal) SkillRun.drawPens(ctx, L, P, t);
+    if (!chal) { ctx.fillStyle = OUTLINE; Sprites.rr(ctx, px + 3, py + 4, pw, ph, dot); ctx.fill();
     ctx.fillStyle = '#ffffff'; Sprites.rr(ctx, px, py, pw, ph, dot); ctx.fill();
-    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; ctx.stroke();
-    ['blue', 'red'].forEach((team, row) => {
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; ctx.stroke(); }
+    if (!chal) ['blue', 'red'].forEach((team, row) => {
       const cy = py + dot * 0.4 + rowH * (row + 0.5);
       const fcv = this.flag(team, dot * 3.2);
       if (fcv) ctx.drawImage(fcv, px + dot * 0.8, cy - dot * 1.07, dot * 3.2, dot * 2.13);
@@ -637,8 +642,11 @@ const Pens = {
     if (P.phase === 'start' || P.phase === 'ready') {
       const u = clamp(P.t / 0.3, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.55); ctx.scale(z, z);
+      if (chal) Render.chunkyText(ctx, P.chal.id === 'targets' ? 'HIT A TARGET' : 'SAVE IT!', 0, 0, big, P.chal.id === 'targets' ? '#ffe14d' : '#46d9ff');
+      else {
       if (P.phase === 'start') Render.chunkyText(ctx, P.first === 'blue' ? 'YOU KICK FIRST' : `${TEAMS.red.name} KICK FIRST`, 0, -big * 0.8, big * 0.55, '#ffffff');
       Render.chunkyText(ctx, this.sudden(P) && P.team === P.first ? 'SUDDEN DEATH' : P.team === 'blue' ? 'YOUR KICK' : 'SAVE IT!', 0, 0, big, P.team === 'blue' ? '#ffe14d' : '#46d9ff');
+      }
       ctx.restore();
     } else if (P.phase !== 'after' && P.phase !== 'end' && this.sudden(P)) {
       Render.chunkyText(ctx, 'SUDDEN DEATH', W / 2, cy, sub, '#ff8a8e');
@@ -685,7 +693,7 @@ const Pens = {
       Render.chunkyText(ctx, P.say[0], 0, 0, big * (P.say[0].length > 8 ? 0.8 : 1), P.say[1]);
       ctx.restore();
     }
-    if (P.phase === 'end') {
+    if (P.phase === 'end' && !chal) {
       const u = clamp(P.t / 0.35, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.5); ctx.scale(z, z);
       Render.chunkyText(ctx, P.winner === 'blue' ? 'YOU WIN THE SHOOTOUT!' : `${TEAMS.red.name} WIN IT`, 0, 0, big * 0.8, P.winner === 'blue' ? '#ffe14d' : '#ffffff');

@@ -31,6 +31,7 @@ const Save = {
       career: { assists: 0, tackles: 0, skills: 0, dodges: 0, passes: 0, shots: 0, powerGoals: 0, hattricks: 0, cleanSheets: 0, streak: 0, bestStreak: 0, formats: {}, online: 0, onlineWins: 0 },
       achievements: {},
       daily: { last: null, streak: 0 },
+      challenges: {},
       settings: { music: 0.5, sfx: 0.85, vibration: true, difficulty: 'normal', minutes: 3, graphics: 'auto', controls: 'auto', minimap: true, replays: true, chatMute: false, commentary: true },
     };
   },

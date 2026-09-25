@@ -217,6 +217,24 @@ const ACCESSORY_FACE_IDS = new Set(ACCESSORIES.filter((a) => a.slot === 'face').
 
 // the four ways an ult shot can be struck, picked at random
 const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scissors'];
+const ULT_NAMES = { volley: 'VOLLEY', bicycle: 'BICYCLE KICK', backflip: 'BACKFLIP KICK', scissors: 'SCISSOR KICK' };
+// Every character has a signature finish: the kick they always pull out when their ult goes off.
+// A handful are hand-picked, the rest are spread evenly and never change for that character.
+const SIGNATURES = {
+  goat: 'bicycle', phantom: 'scissors', ninja: 'scissors', goldenboot: 'volley', afroking: 'bicycle',
+  mohawk: 'volley', viking: 'volley', robot: 'backflip', titan: 'volley', galaxy: 'backflip',
+  inferno: 'bicycle', iceking: 'scissors', astronaut: 'backflip', wizard: 'scissors', lion: 'bicycle',
+  shark: 'scissors', pharaoh: 'backflip', knight: 'volley', pirate: 'bicycle', cowboy: 'volley',
+  samurai: 'scissors', dreads: 'bicycle', jacob: 'backflip', street: 'volley', striker: 'volley',
+};
+function sigKind(c) {
+  if (!c) return ULT_KINDS[0];
+  if (SIGNATURES[c.id]) return SIGNATURES[c.id];
+  let h = 0;
+  for (let i = 0; i < c.id.length; i++) h = (h * 31 + c.id.charCodeAt(i)) >>> 0;
+  return ULT_KINDS[h % ULT_KINDS.length];
+}
+const sigName = (c) => ULT_NAMES[sigKind(c)];
 // the online World Cup's rounds (the server keeps which one you're in)
 const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 const WC_PRIZE = 1000;

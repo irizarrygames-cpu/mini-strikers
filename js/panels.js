@@ -49,6 +49,11 @@ Object.assign(UI, {
           <p>Five kicks each, then sudden death. Pick your corner, then save theirs.</p>
           <span class="tag">VS ${pensClub.name}</span>
         </button>
+        <button class="mode chal" data-mode="challenges">
+          <strong>SKILL CHALLENGES</strong>
+          <p>Target practice, keeper mode and the dribble gauntlet. Medals and coins.</p>
+          <span class="tag">3 TESTS</span>
+        </button>
         <button class="mode training" data-mode="training">
           <strong>TRAINING</strong>
           <p>No clock, no pressure: beat a defender and practice shots, skills and tackles.</p>
@@ -70,6 +75,7 @@ Object.assign(UI, {
     body.querySelector('[data-room="join"]').addEventListener('click', join);
     body.querySelector('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
     body.querySelector('[data-mode="pens"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('pensmode'); });
+    body.querySelector('[data-mode="challenges"]').addEventListener('click', () => { this.tap(); this.openModal('challenges'); });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
     body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
   },
@@ -206,6 +212,7 @@ Object.assign(UI, {
         <span class="ovr"><b>${charOvr(c)}</b><small>OVR</small></span>
         <canvas width="96" height="96" data-portrait="${c.id}"></canvas>
         <strong>${c.name}</strong>
+        <span class="sig-tag">${sigName(c)}</span>
         ${this.priceTag('character', c.id)}
         <div class="bars ${charStats(c).some(([label]) => label.length > 4) ? 'long' : ''}">${charStats(c).map(([label, v]) => statRow(label, v)).join('')}</div>
       </button>`).join('')}</div>`;

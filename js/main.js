@@ -151,7 +151,8 @@ const Game = {
         Render.updateCamera(m, realDt);
       }
       Render.drawMatch(m, this.t);
-      if (this.state === 'match') UI.updateHUD(m);
+      if (m.challenge) { if (this.state === 'match') SkillRun.step(m, realDt); SkillRun.drawGauntlet(Render.ctx, m); }
+      if (this.state === 'match' && !m.challenge) UI.updateHUD(m);
     } else {
       this.stepDemo(realDt);
       Render.drawHome(this.t, this.demo);
