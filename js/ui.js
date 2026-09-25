@@ -474,7 +474,7 @@ const UI = {
       const chal = m.netChal ? m.netChal.map((c) => `<li><i></i><span>${c.text.toUpperCase()}</span><em>+1</em></li>`).join('') : '';
       $('intro-challenges').innerHTML = `<li class="done"><span>${names('blue')}</span></li><li><span>${names('red')}</span></li>` + chal;
       $('intro').querySelector('.intro-ch').hidden = false;
-      $('intro').querySelector('.intro-ch small').textContent = m.netChal ? 'PLAYERS · CHALLENGES WORTH A RANK POINT EACH' : 'PLAYERS';
+      $('intro').querySelector('.intro-ch small').textContent = m.netChal ? 'PLAYERS · CHALLENGES: A RANK POINT EACH IF YOU WIN' : 'PLAYERS';
     } else $('intro').querySelector('.intro-ch small').textContent = 'CHALLENGES';
     $('intro').hidden = false;
     this._introT = m.net ? 999 : 6;
@@ -835,7 +835,7 @@ const UI = {
     const club = Clubs.mine();
     const lg = msg.league;
     const lgText = lg && lg.pos ? (lg.d > 0 ? `${club.name} MOVES UP TO ${ordinal(lg.pos)} ▲` : lg.d < 0 ? `${club.name} DROPS TO ${ordinal(lg.pos)} ▼` : `${club.name} STAYS ${ordinal(lg.pos)}`) : `${club.name}: ${outcome === 'win' ? 'UP A PLACE' : outcome === 'loss' ? 'DOWN A PLACE' : 'NO CHANGE'}`;
-    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${c.text.toUpperCase()}</span>${c.done ? '<em>+1 RP</em>' : ''}</li>`).join('');
+    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${c.text.toUpperCase()}</span>${c.done ? `<em>${outcome === 'win' ? '+1 RP' : 'WIN IT NEXT TIME'}</em>` : ''}</li>`).join('');
     $('r-challenges').innerHTML = chalRows + `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`;
     $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize}`;
     $('r-mult').hidden = false; $('r-mult').textContent = msg.ranked ? 'RANKED' : fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
@@ -845,7 +845,7 @@ const UI = {
     if (rk) {
       const tier = RANK_TIERS.find((x) => x.id === rk.tier) || RANK_TIERS[0], rd = msg.rankD || 0;
       rankBox.style.setProperty('--t', tier.color);
-      rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${rk.rp} RP</b><em class="${rd >= 0 ? 'up' : 'down'}">${rd >= 0 ? '+' : ''}${rd}</em>`;
+      rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${rk.rp} RP</b><em class="${rd > 0 ? 'up' : rd < 0 ? 'down' : 'flat'}">${rd > 0 ? '+' + rd : rd < 0 ? rd : 'NO CHANGE'}</em>`;
       if (Net.user) Net.user.rank = rk;
     }
     $('r-streak').hidden = c.streak < 2;

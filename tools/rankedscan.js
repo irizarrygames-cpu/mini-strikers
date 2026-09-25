@@ -61,9 +61,10 @@ async function endWith(room, blue, red) {
   console.log('the points on their own');
   check('a win is 10', sim.rankDelta('win') === 10, sim.rankDelta('win'));
   check('a draw is 5', sim.rankDelta('draw') === 5, sim.rankDelta('draw'));
-  check('a loss costs 5', sim.rankDelta('loss') === -5, sim.rankDelta('loss'));
+  check('a loss costs nothing', sim.rankDelta('loss') === 0, sim.rankDelta('loss'));
   check('the score does not change it', sim.rankDelta('win', 0) === sim.rankDelta('win', 0) && sim.rankDelta('win') === 10);
-  check('each challenge is one more point', sim.rankDelta('win', 3) === 13 && sim.rankDelta('loss', 2) === -3, [sim.rankDelta('win', 3), sim.rankDelta('loss', 2)]);
+  check('each challenge is one more point, on a win', sim.rankDelta('win', 3) === 13, sim.rankDelta('win', 3));
+  check('...and nothing on a loss or a draw', sim.rankDelta('loss', 3) === 0 && sim.rankDelta('draw', 3) === 5, [sim.rankDelta('loss', 3), sim.rankDelta('draw', 3)]);
   check('three challenges is the most a match can have', sim.NET_CHALLENGES.length >= 3);
   check('nothing in the ranked pool needs a team-mate', sim.NET_CHALLENGES.every((c) => !c.team));
 
@@ -122,9 +123,9 @@ async function endWith(room, blue, red) {
   check('the points are 10 for the win plus one a challenge', endW.rankD === 10 + doneW, { rankD: endW.rankD, done: doneW });
   check('and the new rank came with it', !!(endW.rank && typeof endW.rank.rp === 'number'), endW.rank);
   const doneL = endL.challenges.filter((c) => c.done).length;
-  check('the loser drops 5, less what they finished', endL.rankD === -5 + doneL, { rankD: endL.rankD, done: doneL });
+  check('the loser drops nothing, whatever they finished', endL.rankD === 0, { rankD: endL.rankD, done: doneL });
   check('the account was given exactly that', account(winner).rp === endW.rankD, { rp: account(winner).rp, rankD: endW.rankD });
-  check('a loser never goes below zero', account(loser).rp === 0, account(loser).rp);
+  check('and their account is untouched', account(loser).rp === 0, account(loser).rp);
   check('the game was told it was a ranked result', banked.filter((b) => b.ranked).length === 2, banked.map((b) => [b.id, b.ranked, b.challenges]));
   check('a clean sheet counted for the winner', !endW.challenges.some((c) => /clean sheet/i.test(c.text) && !c.done), endW.challenges);
   check('...and not for the loser', !endL.challenges.some((c) => /clean sheet/i.test(c.text) && c.done), endL.challenges);

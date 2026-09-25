@@ -267,12 +267,13 @@ function rankNext(rp) {
   return i + 1 < RANK_TIERS.length ? RANK_TIERS[i + 1] : null;
 }
 // what a result is worth: a win pays, a loss costs less, and goals count for a little
-// What a ranked match is worth: a win 10, a draw 5, a loss costs 5, and every challenge you
-// finish in it is one more point on top. Nothing else on the game moves your rank.
+// What a ranked match is worth: a win 10 plus a point for every challenge you finished in it,
+// a draw 5, and a loss costs nothing — your rank never goes backwards. The challenges only pay
+// when you win. Nothing else in the game moves your rank.
 const RANK_CHALLENGE = 1;
 function rankDelta(outcome, challenges = 0) {
-  const base = outcome === 'win' ? 10 : outcome === 'draw' ? 5 : -5;
-  return base + Math.max(0, challenges | 0) * RANK_CHALLENGE;
+  if (outcome === 'win') return 10 + Math.max(0, challenges | 0) * RANK_CHALLENGE;
+  return outcome === 'draw' ? 5 : 0;
 }
 const PWC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 const PWC_PRIZE = 750;

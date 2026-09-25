@@ -1373,3 +1373,4 @@ body.kb .chat-menu kbd { display: inline-block; }
 .rank-how em { font-style: normal; background: var(--ink); color: #fff; border-radius: 7px; padding: 0 6px; }
 .rank-play { width: 100%; margin-top: 2px; }
 #intro-challenges em, #r-challenges em { margin-left: auto; font-style: normal; background: var(--ink); color: #fff; border-radius: 7px; padding: 0 6px; font-size: 0.85em; }
+.r-rank em.flat { background: #e9ecf7; color: #6b7299; }

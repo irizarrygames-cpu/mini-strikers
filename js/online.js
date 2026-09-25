@@ -249,7 +249,7 @@ const Online = {
       if (c.complete || !(mask & (1 << i))) return;
       c.complete = true;
       if (quiet) return;
-      UI.toast(`CHALLENGE: ${c.text.toUpperCase()}  +1 RP`);
+      UI.toast(`${c.text.toUpperCase()} ✓  ·  +1 RP IF YOU WIN`);
       Sound.powerReady();
     });
   },
