@@ -725,7 +725,7 @@ const Render = {
     }
     FX.drawAir(ctx, this);
     this.drawWeather(ctx, t);
-    if (m.net) this.drawNames(ctx, m);
+    if (m.net) this.drawNames(ctx, m); else this.drawChatOnly(ctx, m);
     if (!m.demo) {
       if (m.phase !== 'cele') this.drawIndicators(ctx, m);
       if (m.phase !== 'cele') this.drawSlideWarning(ctx, m, t);
@@ -825,6 +825,17 @@ const Render = {
       const me = p === m.human;
       this.chunkyText(ctx, me ? 'YOU' : p.name, x, y, size, me ? '#ffe14d' : p.team === 'blue' ? '#ffffff' : '#ffd0d3', Math.max(2.5, size * 0.28));
       if (p.chat) this.drawChat(ctx, p.chat, x, y - size * 0.9, size);
+    }
+  },
+
+  // offline there are no name tags, but the chat bubbles still belong over people's heads
+  drawChatOnly(ctx, m) {
+    const size = clamp(11 * this.S, 10, 15);
+    for (const p of m.players) {
+      if (!p.chat || p.isKeeper) continue;
+      const x = this.sx(p.x, p.y), y = this.sy(p.y, 96) - (p.hopT > 0 ? 18 : 0);
+      if (x < -60 || x > this.W + 60 || y < -20 || y > this.H + 20) continue;
+      this.drawChat(ctx, p.chat, x, y - size * 0.9, size);
     }
   },
 

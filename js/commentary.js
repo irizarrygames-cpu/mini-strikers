@@ -70,6 +70,7 @@ const Commentary = {
   },
   showCaption(text, priority, typed = true) {
     const el = $('commentary'), line = $('commentary-line'); if (!el || !line) return 0;
+    this.typing = typed ? text : null;
     clearInterval(this.typeTimer); clearTimeout(this.hideTimer);
     const token = ++this.captionToken;
     el.classList.toggle('big', priority >= 3); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -79,10 +80,10 @@ const Commentary = {
       this.typeTimer = setInterval(() => {
         if (token !== this.captionToken) return clearInterval(this.typeTimer);
         i = Math.min(text.length, i + 1); line.textContent = text.slice(0, i);
-        if (i >= text.length) clearInterval(this.typeTimer);
-      }, 50);
+        if (i >= text.length) { clearInterval(this.typeTimer); this.typing = null; }
+      }, 28);
     }
-    const visibleMs = Math.max(priority >= 3 ? 4200 : 2600, text.length * 50 + 900);
+    const visibleMs = Math.max(priority >= 3 ? 4200 : 2600, text.length * 28 + 1100);
     this.hideTimer = setTimeout(() => { if (token === this.captionToken) el.classList.remove('show','big'); }, visibleMs);
     return token;
   },
@@ -93,6 +94,7 @@ const Commentary = {
       if (Date.now() - this.lastMinorAt < 5000) return;
       this.lastMinorAt = Date.now();
     }
+    if (priority === 1 && this.typing) return; // never chop a line that is still being typed
     this.cd = priority >= 3 ? 2.2 : priority === 2 ? 1.15 : 0.62;
     this.idle = 0;
     this.showCaption(text, priority, true);

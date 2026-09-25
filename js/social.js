@@ -120,8 +120,9 @@ const Social = {
     if (busy !== this.busy && Net.wsReady) { this.busy = busy; Net.send({ t: 'busy', on: busy }); }
   },
 
-  tick() {
+  tick(dt) {
     this.syncBusy();
+    this.botChat(dt);
     // the chat button is only there in an online match
     const on = this.chatAllowed();
     if ($('btn-chat').hidden === on) { $('btn-chat').hidden = !on; $('kl-chat').hidden = !on; if (!on) { this.toggleChat(false); this.feed = []; this.drawFeed(); } }
@@ -130,8 +131,68 @@ const Social = {
     if (!$('party-invite').hidden || (this.invites.length || this.challenges.length)) this.showInvite();
   },
 
+  // Offline the bots are all on this machine, so their chat happens here. Same habits as the
+  // fill-ins online: a word after a goal, hello at kick-off, GG at the end, and the odd reply.
+  botChat(dt) {
+    const m = Game.match;
+    if (!m || m.net || Game.state !== 'match' || Save.data.settings.chatMute) { this.botSays = null; return; }
+    if (this.botMatch !== m) { this.botMatch = m; this.botSays = null; this.botSeen = 0; this.botQuiet = 2.5; this.botHi = false; this.botGG = false; }
+    this.botQuiet = Math.max(0, this.botQuiet - (dt || 0));
+    if (this.botSays) {
+      this.botSays.t -= dt || 0;
+      if (this.botSays.t <= 0) { const s = this.botSays; this.botSays = null; if (s.p && m.players.includes(s.p)) this.bubble(s.p, s.line, false); }
+      return;
+    }
+    const mates = m.players.filter((p) => !p.isKeeper && !p.isHuman);
+    if (!mates.length) return;
+    const say = (pool, who, delay) => {
+      if (this.botQuiet > 0 || !who) return;
+      this.botQuiet = 5;
+      this.botSays = { p: who, line: QUICK_CHAT.indexOf(pool[Math.floor(Math.random() * pool.length)]), t: delay };
+    };
+    if (!this.botHi && m.phase === 'play' && m.clock > 1) {
+      this.botHi = true;
+      if (Math.random() < 0.25) say(['HI!'], mates[Math.floor(Math.random() * mates.length)], 0.6 + Math.random() * 2);
+    }
+    if (m.goals.length > this.botSeen) {
+      this.botSeen = m.goals.length;
+      const g = m.goals[m.goals.length - 1];
+      if (Math.random() < 0.45) {
+        const scored = mates.filter((p) => p.team === g.team), conceded = mates.filter((p) => p.team !== g.team);
+        if (g.scorer && !g.scorer.isHuman && scored.includes(g.scorer) && Math.random() < 0.5) say(["LET'S GO!", 'WOW!'], g.scorer, 0.9 + Math.random() * 1.4);
+        else if (scored.length && Math.random() < 0.75) say(g.scorer && g.scorer.isHuman ? ['NICE ONE!', 'WHAT A GOAL!', 'WOW!'] : ['NICE ONE!', "LET'S GO!"], scored[Math.floor(Math.random() * scored.length)], 1 + Math.random() * 1.6);
+        else if (conceded.length) say(['UNLUCKY', 'DEFEND!', 'WOW!'], conceded[Math.floor(Math.random() * conceded.length)], 1.2 + Math.random() * 1.6);
+      }
+    }
+    if (!this.botGG && !m.overtime && m.time < 4 && m.phase === 'play') {
+      this.botGG = true; this.botQuiet = 0;
+      if (Math.random() < 0.3) say(['GG'], mates[Math.floor(Math.random() * mates.length)], Math.random() * 1.5);
+    }
+  },
+
+  // your own line can get one back
+  botReply(line) {
+    const m = Game.match;
+    if (!m || m.net || this.botSays) return;
+    const said = QUICK_CHAT[line];
+    const mates = m.players.filter((p) => !p.isKeeper && !p.isHuman);
+    if (!mates.length || this.botQuiet > 0) return;
+    const who = mates[Math.floor(Math.random() * mates.length)];
+    const delay = 0.8 + Math.random() * 1.4;
+    if ((said === 'HI!' || said === 'GG') && Math.random() < 0.45) { this.botQuiet = 5; this.botSays = { p: who, line, t: delay }; }
+    else if (said === 'SORRY!' && Math.random() < 0.35) { this.botQuiet = 5; this.botSays = { p: who, line: QUICK_CHAT.indexOf('UNLUCKY'), t: delay }; }
+    else if ((said === 'NICE ONE!' || said === 'WHAT A GOAL!') && Math.random() < 0.5) {
+      const g = m.goals[m.goals.length - 1];
+      if (g && g.scorer && mates.includes(g.scorer)) { this.botQuiet = 5; this.botSays = { p: g.scorer, line: QUICK_CHAT.indexOf('THANKS!'), t: delay }; }
+    }
+  },
+
   /* ---------------- quick chat ---------------- */
-  chatAllowed() { const m = Game.match; return !!(m && m.net && Online.status === 'match' && (Game.state === 'match' || Game.state === 'intro')); },
+  chatAllowed() {
+    const m = Game.match;
+    if (!m || (m.net && Online.status !== 'match') || m.mode === 'pens') return false;
+    return Game.state === 'match' || Game.state === 'intro';
+  },
 
   buildChat() {
     const menu = $('chat-menu');
@@ -168,7 +229,7 @@ const Social = {
     if (!this.chatAllowed() || !QUICK_CHAT[i]) return;
     if (!this.canSay()) { Sound.tap(); return; }
     this.chatSent.push(performance.now());
-    Net.send({ t: 'chat', m: i });
+    if (m.net) Net.send({ t: 'chat', m: i }); else this.botReply(i);
     this.bubble(m.human, i, true);
     this.toggleChat(false);
     Sound.tap();

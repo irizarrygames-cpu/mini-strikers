@@ -1,9 +1,12 @@
 // Simple role-based AI: one presser, markers, supporters, and a goalkeeper.
 // Keeper save model (see decideSave). blueBonus is for the bots' shots at your keeper.
 const KEEPER = { base: 0.94, speed: 0.34, power: 0.12, close: 0.2, mid: 0.08, far: 0.12, corner: 0.22, blueBonus: 0, botShot: 0.04,
+  // YOUR keeper gets a hand in the small formats: in 1v1 one bot attacks him all match and he
+  // used to get nothing, which is why 1v1 was the one format the player lost.
+  yours: { '1v1': 0.12, '2v2': 0.06, '3v3': 0.02, '4v4': 0, training: 0 },
   // more team-mates means more room and closer shots, so the bigger formats need MORE help,
   // not less: 4v4 used to give the keeper nothing and 64% of shots went in.
-  format: { '4v4': 0.15, '3v3': 0.13, '2v2': 0.1, '1v1': 0.18 } };
+  format: { '4v4': 0.15, '3v3': 0.13, '2v2': 0.1, '1v1': 0.11 } };
 const AI = {
   update(m, dt) {
     const b = m.ball;
@@ -445,7 +448,7 @@ const AI = {
     if (s.curved) c -= 0.06;
     if (s.from && s.from.attr) c += s.from.attr.finish;
     if (late) c -= 0.15;
-    c += (m.autopilot ? k.team === 'red' : m.teamHuman[otherTeam(k.team)]) ? diff.keeperBonus : K.blueBonus;
+    c += (m.autopilot ? k.team === 'red' : m.teamHuman[otherTeam(k.team)]) ? diff.keeperBonus : (K.yours[m.format] || K.blueBonus);
     if (!(s.from && s.from.isHuman && !m.autopilot)) c += K.botShot; // bots finish worse than you
     c += K.format[m.format] || 0; // fewer players = more open shots, so keepers get a little help
     c = clamp(c, 0.05, 0.9);
