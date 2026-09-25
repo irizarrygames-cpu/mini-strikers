@@ -92,22 +92,24 @@
 
   <!-- ===== HOME ===== -->
   <div id="home" class="screen">
-    <div class="home-top">
-      <button id="home-club" class="pill club-pill" data-open="league" title="League table"><canvas id="home-club-badge" width="72" height="48"></canvas><span id="home-club-name">CLUB</span><em id="home-club-pos"></em><span class="table-ico"></span></button>
-      <button id="home-rank" class="pill rank-pill" data-open="ranked" title="Ranked" hidden></button>
-      <div class="pill trophies" title="Cups won"><span class="cup-ico"></span><span id="trophies">0</span></div>
-      <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
+    <div class="home-bar">
+      <button id="home-char" class="home-char">
+        <canvas id="home-char-canvas" width="96" height="96"></canvas>
+        <span id="home-ovr" class="hc-ovr"><b>60</b><small>OVR</small></span>
+        <div class="hc-info">
+          <small>LEVEL <b id="home-level">1</b> · <span id="home-user">GUEST</span></small>
+          <strong id="home-char-name">Street</strong>
+          <i class="xpbar"><b id="home-xp"></b></i>
+        </div>
+      </button>
+      <div class="home-top">
+        <button id="home-club" class="pill club-pill" data-open="league" title="League table"><canvas id="home-club-badge" width="72" height="48"></canvas><span id="home-club-name">CLUB</span><em id="home-club-pos"></em><span class="table-ico"></span></button>
+        <button id="home-rank" class="pill rank-pill" data-open="ranked" title="Ranked" hidden></button>
+        <div class="pill trophies" title="Cups won"><span class="cup-ico"></span><span id="trophies">0</span></div>
+        <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
+      </div>
     </div>
     <h1 class="logo" id="logo">Mini Strikers</h1>
-    <button id="home-char" class="home-char">
-      <canvas id="home-char-canvas" width="96" height="96"></canvas>
-      <span id="home-ovr" class="hc-ovr"><b>60</b><small>OVR</small></span>
-      <div class="hc-info">
-        <small>LEVEL <b id="home-level">1</b> · <span id="home-user">GUEST</span></small>
-        <strong id="home-char-name">Street</strong>
-        <i class="xpbar"><b id="home-xp"></b></i>
-      </div>
-    </button>
     <div id="home-record" class="home-record">0W · 0D · 0L</div>
     <div class="home-bl">
       <button id="btn-howto" class="howto-btn">? HOW TO PLAY</button>

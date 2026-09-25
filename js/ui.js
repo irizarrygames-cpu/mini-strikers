@@ -53,7 +53,7 @@ const UI = {
     $('howto-ok').addEventListener('click', () => { this.tap(); this.closeHowTo(); });
     $('rotate-dismiss').addEventListener('click', () => { this.rotateDismissed = true; this.checkRotate(); });
     ['p-sound', 'p-music', 'p-vibe'].forEach((id) => $(id).addEventListener('click', () => this.quickToggle(id)));
-    window.addEventListener('resize', () => this.checkRotate());
+    window.addEventListener('resize', () => { this.checkRotate(); this.measureHome(); this.measureHud(); });
     window.addEventListener('keydown', (e) => {
       if (e.target && e.target.tagName === 'INPUT') return;
       if (Game.state === 'intro' && (e.key === 'Enter' || e.key === ' ') && !(Game.match && Game.match.net)) { e.preventDefault(); Game.kickOff(); }
@@ -125,7 +125,34 @@ const UI = {
     this._toastT = 2.4;
   },
 
+  // the PLAY block sits above the HOW TO PLAY / FRIENDS / PROFILE row: how tall that row is
+  // depends on the labels and whether GET THE APP is showing, so it is measured, never guessed
+  measureHome() {
+    const root = document.documentElement.style;
+    const bl = document.querySelector('.home-bl');
+    if (bl && bl.offsetHeight) root.setProperty('--bl-h', bl.offsetHeight + 'px');
+    // How far down the top of the screen reaches depends on the name, the country, how many
+    // pills there are and whether they had to wrap — so it is measured, never guessed. The logo
+    // hangs off that, and the record off the logo.
+    const home = $('home'), bar = document.querySelector('.home-bar'), pills = document.querySelector('.home-top');
+    if (!home || !bar || !bar.offsetHeight) return;
+    const top = home.getBoundingClientRect().top;
+    const head = Math.round(Math.max(bar.getBoundingClientRect().bottom, pills.getBoundingClientRect().bottom) - top);
+    root.setProperty('--head-b', head + 'px');
+    const logo = $('logo');
+    // (the logo is tilted, so its box on screen is taller than its line height)
+    if (logo && logo.offsetHeight) root.setProperty('--logo-b', Math.round(head + 12 + logo.getBoundingClientRect().height) + 'px');
+  },
+
+  // the caption sits under the scoreboard, which is taller on a big screen than a small one
+  measureHud() {
+    const sb = $('scoreboard');
+    if (!sb || !sb.offsetHeight) return;
+    document.documentElement.style.setProperty('--sb-b', Math.round(sb.getBoundingClientRect().bottom) + 'px');
+  },
+
   refreshHome() {
+    this.measureHome();
     const d = Save.data;
     $('coins').textContent = fmtCoins(d.coins);
     $('trophies').textContent = d.trophies || 0;
@@ -395,6 +422,7 @@ const UI = {
     $('results').hidden = true;
     $('intro').hidden = true;
     this.applyControls();
+    if (screen === 'match') this.measureHud();
     if (screen === 'home') { this.refreshHome(); Render._homeSpot = null; setTimeout(() => this.maybeDaily(), 350); }
   },
 

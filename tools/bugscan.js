@@ -2,6 +2,7 @@
 //   await new Promise((r) => { const s = document.createElement('script'); s.src = 'tools/bugscan.js'; s.onload = r; document.head.appendChild(s); });
 //   BS.sim({ matches: 40 })   // fuzzed headless matches with invariant checks
 //   await BS.ui()             // clicks through every screen / panel / flow and watches for errors
+//   BS.overlap()            // nothing on screen sitting on top of anything else, at this window size
 // Findings come back grouped by kind with a few examples each.
 window.BS = {
   // ---------- fuzzed matches ----------
@@ -392,5 +393,49 @@ window.BS = {
     window.removeEventListener('unhandledrejection', onErr);
     Save.data = JSON.parse(snapshot); Save.write(); UI.refreshHome();
     return { errors, failed: log.filter((l) => l.startsWith('ERR')), steps: log.length };
+  },
+
+  // ---------- nothing on top of anything else ----------
+  // The home screen and the match HUD pin their pieces to the corners, so a long name, a big
+  // number or one more pill can put two of them in the same place. This measures the boxes
+  // instead of squinting at a screenshot. It checks the size the window is NOW: resize and run
+  // it again (375x812, 320x480, 640x360, 907x520, 1280x720 are the ones that used to break).
+  OVERLAP_SEL: ['.home-char', '.home-top', '.home-record', '.home-actions', '.home-bl', '.howto-btn', '#logo',
+    '.party-bar', '#toast', '.watch-bar', '#scoreboard', '#commentary', '.action', '#joy-base', '.ult-btn',
+    '.icon-btn', '.chat-feed', '#kb-legend', '#replay-skip', '#tip', '#minimap', '#net-ping'].join(', '),
+  // a card that sits over everything else is meant to: the things inside it are its own business
+  OVERLAY_SEL: ['#pause', '#results', '#modal', '#intro', '#rotate', '#daily', '#auth', '#splash',
+    '#howto', '#lobby', '#queue', '#trophy', '#challenge-end', '#party-invite'].join(', '),
+
+  overlapBoxes() {
+    const out = [];
+    for (const el of document.querySelectorAll(this.OVERLAP_SEL)) {
+      if (el.hidden || el.closest('[hidden]') || el.closest(this.OVERLAY_SEL)) continue;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) continue;
+      const b = el.getBoundingClientRect();
+      if (b.width < 2 || b.height < 2) continue;
+      out.push({ el, b, name: el.id ? '#' + el.id : '.' + (String(el.className).split(' ')[0] || el.tagName.toLowerCase()) });
+    }
+    return out;
+  },
+
+  overlap(slack = 2) {
+    const boxes = this.overlapBoxes(), hits = [];
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const A = boxes[i], B = boxes[j];
+        if (A.el.contains(B.el) || B.el.contains(A.el)) continue;
+        const x = Math.min(A.b.right, B.b.right) - Math.max(A.b.left, B.b.left);
+        const y = Math.min(A.b.bottom, B.b.bottom) - Math.max(A.b.top, B.b.top);
+        if (x > slack && y > slack) hits.push(`${A.name} on ${B.name} (${Math.round(x)}x${Math.round(y)}px)`);
+      }
+    }
+    for (const { b, name } of boxes) {
+      if (b.left < -slack || b.top < -slack || b.right > innerWidth + slack || b.bottom > innerHeight + slack) {
+        hits.push(`${name} off the screen (${Math.round(b.left)},${Math.round(b.top)} to ${Math.round(b.right)},${Math.round(b.bottom)} in ${innerWidth}x${innerHeight})`);
+      }
+    }
+    return { size: innerWidth + 'x' + innerHeight, screen: Game.state, showing: boxes.length, hits };
   },
 };
