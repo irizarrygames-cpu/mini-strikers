@@ -16,9 +16,9 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 43;
+const BUILD = 44;
 const ROOT = __dirname;
-const DATA_FILE = path.join(ROOT, 'data.json');
+const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
 const DATABASE_URL = process.env.DATABASE_URL || '';
 
@@ -454,6 +454,8 @@ const game = createGame({
   isNameTaken: (name) => !!getUser(String(name).toLowerCase()),
 });
 const CLUBS = game.clubs;
+// the ranked-season rules live with the game rules; the accounts here just keep the points
+const { tier: rankTier, next: rankNext, delta: rankDelta, seasonNow, seasonEndsAt } = game.rank;
 
 const server = http.createServer((req, res) => {
   handleRequest(req, res).catch((err) => {

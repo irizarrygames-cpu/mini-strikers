@@ -1255,6 +1255,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   return {
     connect,
     clubs: sim.CLUBS,
+    // the rank maths the accounts need (server.js keeps the points, this keeps the rules in one place)
+    rank: { tier: sim.rankTier, next: sim.rankNext, delta: sim.rankDelta, seasonNow: sim.seasonNow, seasonEndsAt: sim.seasonEndsAt, tiers: sim.RANK_TIERS },
     countryFor: sim.countryFor,
     stats: () => ({ online: conns.size, rooms: [...rooms.values()].filter((r) => r.state !== 'lobby').length, lobbies: codes.size, queued: Object.values(queues).reduce((a, q) => a + q.length, 0) }),
     inMatch: (id) => !!roomOf(id),
