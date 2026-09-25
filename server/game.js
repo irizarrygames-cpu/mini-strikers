@@ -692,10 +692,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: other, goals: mine });
       if (seat.club) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : -1));
       const cup = room.wc === null || room.wc === undefined ? null : pwc.result(seat.userId, outcome === 'win');
-      results.push({ seat, outcome, cup });
+      results.push({ seat, outcome, cup, mine, other });
     }
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
-    for (const { seat, outcome, cup } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, rank: rankOf(seat.userId), rankD: rankDeltaFor(outcome, 0, 0), score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
+    for (const { seat, outcome, cup, mine, other } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, rank: rankOf(seat.userId), rankD: rankDeltaFor(outcome, mine, other), score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
     saveDB();
   }
   function tickPens(room, now) {
