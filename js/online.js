@@ -46,6 +46,7 @@ const Online = {
     // in a party the leader starts, and the format has to fit everyone on one side
     const p = Social.party;
     if (p && p.members.length > 1) {
+      if (format === 'ranked') { UI.toast('RANKED IS 1V1 — LEAVE YOUR PARTY FIRST'); return; }
       if (!p.lead) { UI.toast(`${p.leader} STARTS THE MATCH FOR YOUR PARTY`); return; }
       const n = p.members.length;
       if (FORMAT_SIZE_NET[format] < n) { UI.toast(`PICK ${n}v${n} OR BIGGER FOR YOUR PARTY OF ${n}`); return; }
@@ -123,6 +124,7 @@ const Online = {
   start(msg) {
     const resync = this.m && this.m.roomId === msg.room;
     this.watching = msg.watch || null;
+    this._chalQuiet = true; // whatever the first snapshot says is already done is not news
     this.status = 'match';
     this.mirror = msg.side === 'red';
     this.you = msg.you;
@@ -152,6 +154,10 @@ const Online = {
       phase: 'kickoff', phaseT: 0, clock: 0, format: msg.format, mode: 'online', club: theirs, home: mine, goals: [], flags: {},
       challenges: null, timeScale: 1, demo: false, replay: null, rec: null, humanRarity: players[msg.you].rarity, events: null,
       wc: Number.isInteger(msg.wc) ? msg.wc : null, fcup: msg.fcup || null,
+      ranked: !!msg.ranked,
+      // ranked challenges come from the server (it keeps the stats), so they are their own list —
+      // m.challenges is the offline one, whose rules are checked on this side
+      netChal: msg.challenges ? msg.challenges.map((c) => ({ id: c.id, text: c.text, complete: false })) : null,
     };
     m.noDraw = m.wc !== null;
     this.m = m;
@@ -229,8 +235,23 @@ const Online = {
       const old = this.snaps.shift();
       if (!old.fired) { old.fired = true; for (const e of old.ev) if (e.e === 'goal' || e.e === 'cele') this.playEvent(e); }
     }
+    if (m.netChal && Array.isArray(msg.me) && msg.me.length > 10) this.netChallenges(m, msg.me[10] | 0);
     if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
     this.reconcile(snap);
+  },
+
+  // ranked challenges, as the server ticks them off
+  netChallenges(m, mask) {
+    // the first snapshot after joining (or rejoining) just catches up: only new ones are announced
+    const quiet = this._chalQuiet;
+    this._chalQuiet = false;
+    m.netChal.forEach((c, i) => {
+      if (c.complete || !(mask & (1 << i))) return;
+      c.complete = true;
+      if (quiet) return;
+      UI.toast(`CHALLENGE: ${c.text.toUpperCase()}  +1 RP`);
+      Sound.powerReady();
+    });
   },
 
   flipEvent(e) {

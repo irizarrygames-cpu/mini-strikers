@@ -34,6 +34,11 @@ Object.assign(UI, {
       </div>
       <p class="note vs-bots">MORE WAYS TO PLAY</p>
       <div class="modes">
+        <button class="mode ranked" data-mode="ranked">
+          <strong>RANKED</strong>
+          <p>1v1 for rank points — the only place they are won. Win +10, draw +5, lose −5, and each of your three challenges is +1. Nobody about after 30 seconds and it fills.</p>
+          <span class="tag">ONLINE · 1V1</span>
+        </button>
         <button class="mode quick" data-mode="quick">
           <strong>QUICK MATCH</strong>
           <p>One match vs a random country. Fast, loose, fun.</p>
@@ -82,6 +87,7 @@ Object.assign(UI, {
     body.querySelector('[data-mode="pens"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('pensmode'); });
     body.querySelector('[data-mode="challenges"]').addEventListener('click', () => { this.tap(); this.openModal('challenges'); });
     body.querySelector('[data-mode="friendcup"]').addEventListener('click', () => { this.tap(); this.openModal('cup'); });
+    body.querySelector('[data-mode="ranked"]').addEventListener('click', () => { this.tap(); Online.findMatch('ranked'); });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
     body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
   },
@@ -210,7 +216,11 @@ Object.assign(UI, {
       <div class="rank-stats"><span>WON <b>${rk.wins}</b></span><span>PLAYED <b>${rk.played}</b></span><span>BEST <b>${rk.best}</b></span></div>
       <h3 class="fr-h">TIERS · WHAT EACH PAYS WHEN THE SEASON ENDS</h3>
       <div class="rank-tiers">${RANK_TIERS.map((x) => `<div class="rank-tier ${x.id === tier.id ? 'you' : ''}" style="--t:${x.color}"><i></i><b>${x.name}</b><small>${x.at} RP</small><em><span class="coin"></span>${x.reward}</em></div>`).join('')}</div>
-      <p class="note">A win is worth about 25 points, a loss costs about 14, and the score counts for a little. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>`;
+      <div class="rank-how"><b>HOW POINTS WORK</b><span>WIN <em>+10</em></span><span>DRAW <em>+5</em></span><span>LOSE <em>−5</em></span><span>EACH CHALLENGE <em>+1</em></span></div>
+      <p class="note">Only RANKED matches move your rank — 1v1, from PLAY. Every ranked match sets you three challenges worth a point each. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>
+      <button class="big-btn green rank-play" data-rankplay>PLAY RANKED</button>`;
+    const go = body.querySelector('[data-rankplay]');
+    if (go) go.addEventListener('click', () => { this.tap(); this.closeModal(); Online.findMatch('ranked'); });
   },
 
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----

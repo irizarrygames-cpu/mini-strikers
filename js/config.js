@@ -243,13 +243,15 @@ const WC_PRIZE = 1000;
 const CUP_ROUNDS = ['THE FINAL', 'THE SEMI-FINALS', 'THE QUARTER-FINALS']; // named from the end backwards
 const FCUP_PRIZE = 500; // winning a friend cup
 
+// The thresholds are set against what a ranked match pays (about 11 for a win with a challenge
+// or two), so the climb takes the same number of matches it always did.
 const RANK_TIERS = [
   { id: 'bronze', name: 'BRONZE', at: 0, color: '#c87d3a', reward: 200 },
-  { id: 'silver', name: 'SILVER', at: 150, color: '#c9d2e4', reward: 500 },
-  { id: 'gold', name: 'GOLD', at: 400, color: '#ffc21a', reward: 1200 },
-  { id: 'platinum', name: 'PLATINUM', at: 800, color: '#46d9ff', reward: 2500 },
-  { id: 'diamond', name: 'DIAMOND', at: 1300, color: '#b04dff', reward: 5000 },
-  { id: 'legend', name: 'LEGEND', at: 2000, color: '#ff3a6e', reward: 10000 },
+  { id: 'silver', name: 'SILVER', at: 60, color: '#c9d2e4', reward: 500 },
+  { id: 'gold', name: 'GOLD', at: 150, color: '#ffc21a', reward: 1200 },
+  { id: 'platinum', name: 'PLATINUM', at: 300, color: '#46d9ff', reward: 2500 },
+  { id: 'diamond', name: 'DIAMOND', at: 500, color: '#b04dff', reward: 5000 },
+  { id: 'legend', name: 'LEGEND', at: 800, color: '#ff3a6e', reward: 10000 },
 ];
 const SEASON_DAYS = 14;
 const SEASON_START = Date.UTC(2026, 8, 21); // seasons have counted from here
@@ -265,11 +267,12 @@ function rankNext(rp) {
   return i + 1 < RANK_TIERS.length ? RANK_TIERS[i + 1] : null;
 }
 // what a result is worth: a win pays, a loss costs less, and goals count for a little
-function rankDelta(outcome, goalsFor, goalsAgainst) {
-  const gd = Math.max(-3, Math.min(3, (goalsFor | 0) - (goalsAgainst | 0)));
-  if (outcome === 'win') return 25 + gd * 3;
-  if (outcome === 'draw') return 5;
-  return Math.max(-20, -14 + gd * 2);
+// What a ranked match is worth: a win 10, a draw 5, a loss costs 5, and every challenge you
+// finish in it is one more point on top. Nothing else on the game moves your rank.
+const RANK_CHALLENGE = 1;
+function rankDelta(outcome, challenges = 0) {
+  const base = outcome === 'win' ? 10 : outcome === 'draw' ? 5 : -5;
+  return base + Math.max(0, challenges | 0) * RANK_CHALLENGE;
 }
 const PWC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 const PWC_PRIZE = 750;

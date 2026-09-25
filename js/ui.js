@@ -379,7 +379,7 @@ const UI = {
   showQueue(msg) {
     this.closeAll();
     $('queue').hidden = false;
-    $('q-format').textContent = msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? 'PENALTY WORLD CUP' : 'WORLD CUP'} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : 'ONLINE · ' + msg.format;
+    $('q-format').textContent = msg.format === 'ranked' ? 'RANKED · 1v1' : msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? 'PENALTY WORLD CUP' : 'WORLD CUP'} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : 'ONLINE · ' + msg.format;
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
     $('q-note').textContent = 'Searching… 0:00';
@@ -457,7 +457,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.wc !== null && m.wc !== undefined ? `PENALTY WORLD CUP · ${PWC_ROUNDS[m.wc]}` : m.mode === 'penscup' && PenCup.state() ? `PENALTY WORLD CUP · ${PenCup.ROUNDS[PenCup.state().round]}` : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.wc !== null && m.wc !== undefined ? `PENALTY WORLD CUP · ${PWC_ROUNDS[m.wc]}` : m.mode === 'penscup' && PenCup.state() ? `PENALTY WORLD CUP · ${PenCup.ROUNDS[PenCup.state().round]}` : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.ranked ? 'RANKED · 1v1' : m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -471,9 +471,10 @@ const UI = {
     if (m.net) {
       // who's playing: real names on each side
       const names = (team) => m.players.filter((p) => p.team === team && !p.isKeeper).map((p) => (p === m.human ? 'YOU' : p.name)).join(' · ');
-      $('intro-challenges').innerHTML = `<li class="done"><span>${names('blue')}</span></li><li><span>${names('red')}</span></li>`;
+      const chal = m.netChal ? m.netChal.map((c) => `<li><i></i><span>${c.text.toUpperCase()}</span><em>+1</em></li>`).join('') : '';
+      $('intro-challenges').innerHTML = `<li class="done"><span>${names('blue')}</span></li><li><span>${names('red')}</span></li>` + chal;
       $('intro').querySelector('.intro-ch').hidden = false;
-      $('intro').querySelector('.intro-ch small').textContent = 'PLAYERS';
+      $('intro').querySelector('.intro-ch small').textContent = m.netChal ? 'PLAYERS · CHALLENGES WORTH A RANK POINT EACH' : 'PLAYERS';
     } else $('intro').querySelector('.intro-ch small').textContent = 'CHALLENGES';
     $('intro').hidden = false;
     this._introT = m.net ? 999 : 6;
@@ -834,9 +835,10 @@ const UI = {
     const club = Clubs.mine();
     const lg = msg.league;
     const lgText = lg && lg.pos ? (lg.d > 0 ? `${club.name} MOVES UP TO ${ordinal(lg.pos)} ▲` : lg.d < 0 ? `${club.name} DROPS TO ${ordinal(lg.pos)} ▼` : `${club.name} STAYS ${ordinal(lg.pos)}`) : `${club.name}: ${outcome === 'win' ? 'UP A PLACE' : outcome === 'loss' ? 'DOWN A PLACE' : 'NO CHANGE'}`;
-    $('r-challenges').innerHTML = `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`;
+    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${c.text.toUpperCase()}</span>${c.done ? '<em>+1 RP</em>' : ''}</li>`).join('');
+    $('r-challenges').innerHTML = chalRows + `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`;
     $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize}`;
-    $('r-mult').hidden = false; $('r-mult').textContent = fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
+    $('r-mult').hidden = false; $('r-mult').textContent = msg.ranked ? 'RANKED' : fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
     // what this match did to your rank
     const rankBox = $('r-rank'), rk = msg.rank;
     rankBox.hidden = !rk;

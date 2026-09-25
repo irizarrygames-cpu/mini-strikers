@@ -91,19 +91,22 @@ const Levels = {
 
 // ===== Match challenges =============================================
 const CHALLENGES = [
-  { id: 'score2', text: 'Score 2 goals', coins: 40, done: (m) => m.human.stats.goals >= 2 },
-  { id: 'hattrick', text: 'Score a hat-trick', coins: 90, done: (m) => m.human.stats.goals >= 3 },
-  { id: 'tackle3', text: 'Win 3 tackles', coins: 30, done: (m) => m.human.stats.tackles >= 3 },
-  { id: 'skill5', text: 'Pull off 5 skills', coins: 25, done: (m) => m.human.stats.skills >= 5 },
-  { id: 'dodge2', text: 'Dodge 2 tackles', coins: 40, done: (m) => (m.human.stats.dodges || 0) >= 2 },
+  { id: 'score2', text: 'Score 2 goals', coins: 40, done: (m) => m.human.stats.goals >= 2, net: (st) => st.goals >= 2 },
+  { id: 'hattrick', text: 'Score a hat-trick', coins: 90, done: (m) => m.human.stats.goals >= 3, net: (st) => st.goals >= 3 },
+  { id: 'tackle3', text: 'Win 3 tackles', coins: 30, done: (m) => m.human.stats.tackles >= 3, net: (st) => st.tackles >= 3 },
+  { id: 'skill5', text: 'Pull off 5 skills', coins: 25, done: (m) => m.human.stats.skills >= 5, net: (st) => st.skills >= 5 },
+  { id: 'dodge2', text: 'Dodge 2 tackles', coins: 40, done: (m) => (m.human.stats.dodges || 0) >= 2, net: (st) => (st.dodges || 0) >= 2 },
   { id: 'power', text: 'Score with a power shot', coins: 50, done: (m) => m.flags.powerGoal },
   { id: 'nutmeg', text: 'Nutmeg someone', coins: 40, done: (m) => m.flags.nutmeg },
-  { id: 'assist', text: 'Assist a goal', coins: 35, team: true, done: (m) => m.human.stats.assists >= 1 },
-  { id: 'clean', text: 'Keep a clean sheet', coins: 60, done: (m) => m.phase === 'over' && m.score.red === 0 },
-  { id: 'pass8', text: 'Complete 8 passes', coins: 25, team: true, done: (m) => m.human.stats.passes >= 8 },
+  { id: 'assist', text: 'Assist a goal', coins: 35, team: true, done: (m) => m.human.stats.assists >= 1, net: (st) => st.assists >= 1 },
+  { id: 'clean', text: 'Keep a clean sheet', coins: 60, done: (m) => m.phase === 'over' && m.score.red === 0, net: (st, mine, theirs, over) => over && theirs === 0 },
+  { id: 'pass8', text: 'Complete 8 passes', coins: 25, team: true, done: (m) => m.human.stats.passes >= 8, net: (st) => st.passes >= 8 },
   { id: 'curl', text: 'Score a curling shot', coins: 45, done: (m) => m.flags.curlGoal },
-  { id: 'win2', text: 'Win by 2+ goals', coins: 50, done: (m) => m.phase === 'over' && m.score.blue - m.score.red >= 2 },
+  { id: 'win2', text: 'Win by 2+ goals', coins: 50, done: (m) => m.phase === 'over' && m.score.blue - m.score.red >= 2, net: (st, mine, theirs, over) => over && mine - theirs >= 2 },
 ];
+
+// ranked is 1v1, so the team ones (an assist, eight passes) are out of that pool
+const NET_CHALLENGES = CHALLENGES.filter((c) => c.net && !c.team);
 
 const Challenges = {
   roll(format = '4v4') {

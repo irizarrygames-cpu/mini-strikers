@@ -1363,3 +1363,13 @@ body.kb .chat-menu kbd { display: inline-block; }
 @media (orientation: landscape) and (max-width: 1150px) {
   .home-top .pill, .home-top .coins { font-size: clamp(12px, min(3.6vmin, 2.1vw), 19px); }
 }
+
+/* ================= RANKED MODE ================= */
+.mode.ranked { grid-column: 1 / -1; background: #6c3fd8; }
+.mode.ranked .tag { background: var(--yellow); color: var(--ink); }
+.rank-how { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; background: #eef2ff; border: 3px solid var(--ink); border-radius: 12px; padding: 6px 10px; }
+.rank-how b { font-weight: 400; font-size: 13px; color: #6b7299; width: 100%; }
+.rank-how span { font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 5px; }
+.rank-how em { font-style: normal; background: var(--ink); color: #fff; border-radius: 7px; padding: 0 6px; }
+.rank-play { width: 100%; margin-top: 2px; }
+#intro-challenges em, #r-challenges em { margin-left: auto; font-style: normal; background: var(--ink); color: #fff; border-radius: 7px; padding: 0 6px; font-size: 0.85em; }

@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 46;
+const BUILD = 47;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -307,9 +307,9 @@ function rankOf(u) {
   }
   return { season: now, rp, best: Math.max(rp, Number(r.best) || 0), owed: Number(r.owed) || 0, last: r.last || null, wins: r.wins | 0, played: r.played | 0 };
 }
-function rankRecord(u, outcome, goalsFor, goalsAgainst) {
+function rankRecord(u, outcome, challenges) {
   const r = rankOf(u);
-  r.rp = Math.max(0, r.rp + rankDelta(outcome, goalsFor, goalsAgainst));
+  r.rp = Math.max(0, r.rp + rankDelta(outcome, challenges));
   r.best = Math.max(r.best, r.rp);
   r.played++;
   if (outcome === 'win') r.wins++;
@@ -325,14 +325,14 @@ function rankView(u) {
     season: r.season, ends: seasonEndsAt(r.season), best: r.best, wins: r.wins, played: r.played, last: r.last };
 }
 
-function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals }) {
+function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals, ranked, challenges }) {
   const u = getUser(id);
   if (!u) return;
   const o = u.online || (u.online = { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 });
   o.p++;
   if (outcome === 'win') o.w++; else if (outcome === 'draw') o.d++; else o.l++;
   o.gf += goalsFor | 0; o.ga += goalsAgainst | 0; o.goals += goals | 0;
-  rankRecord(u, outcome, goalsFor, goalsAgainst);
+  if (ranked) rankRecord(u, outcome, challenges); // ranked matches are the only thing that moves a rank
   leagueCache = null;
   saveDB();
 }
