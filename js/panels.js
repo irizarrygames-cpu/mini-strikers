@@ -36,7 +36,7 @@ Object.assign(UI, {
       <div class="modes">
         <button class="mode ranked" data-mode="ranked">
           <strong>RANKED</strong>
-          <p>1v1 for rank points — the only place they are won. Win +10, draw +5, and every one of your three challenges is +1 more when you win. Lose and you drop nothing. Nobody about after 30 seconds and it fills.</p>
+          <p>1v1 for rank points — the only place they are won. Win +10, draw +5, and every one of your three challenges is +1 more when you win. Lose and you drop nothing.</p>
           <span class="tag">ONLINE · 1V1</span>
         </button>
         <button class="mode quick" data-mode="quick">
@@ -105,7 +105,7 @@ Object.assign(UI, {
         </button>
         <button class="mode online" data-pens="online">
           <strong>ONLINE</strong>
-          <p>Play a synchronized shootout online. Open spots fill after about 30 seconds.</p>
+          <p>Kick for kick against a real opponent, live.</p>
           <span class="tag">ONLINE PENALTIES</span>
         </button>
         <button class="mode cup" data-pens="worldcup">
@@ -135,7 +135,7 @@ Object.assign(UI, {
       return `<li class="${cls}"><small>${name}</small>${cup ? flagCell(cup.opponents[i]) : '<span>?</span>'}<em>${res ? `${res.blue}-${res.red}` : ''}</em></li>`;
     }).join('');
     body.innerHTML = `<div class="wc-panels">
-      <section class="wc-panel online"><header><strong>ONLINE</strong><small>Face real players. Empty spots fill with a competitive keeper after about 30 seconds.</small></header>
+      <section class="wc-panel online"><header><strong>ONLINE</strong><small>Four shootouts online, round of 16 to the final.</small></header>
         <ol class="wc-bracket">${online}</ol><div class="wc-foot"><span class="tag">WIN IT: +${PWC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-pwc="online">PLAY ${PWC_ROUNDS[round]}</button></div></section>
       <section class="wc-panel bots"><header><strong>VS BOTS</strong><small>Four shootouts offline, with tougher keepers every round.</small></header>
         <ol class="wc-bracket">${bots}</ol><div class="wc-foot"><span class="tag">WIN IT: +300 COINS${Save.data.pensTrophies ? ` · WON ${Save.data.pensTrophies}` : ''}</span><button class="mid-btn" data-pwc="bots">${cup ? `PLAY ${PenCup.ROUNDS[cup.round]}` : 'START CUP'}</button></div></section>

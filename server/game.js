@@ -621,7 +621,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     return {
       t: 'pen.start', room: room.id, code: room.code, format: 'pens', side: seat.team,
       clubs: room.clubs, wc: seat.wc, startsIn: Math.max(0, room.startAt - Date.now()),
-      players: room.seats.map((s) => ({ team: s.team, name: s.name, character: s.character, bot: !s.human })),
+      // (nothing here says which spots are filled in: online, a filled spot is just another player)
+      players: room.seats.map((s) => ({ team: s.team, name: s.name, character: s.character })),
       state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline },
       opponent: room.seats.find((s) => s.team === other).name,
     };
