@@ -18,7 +18,7 @@ const Match = {
       poss: { blue: 0, red: 0 },
       duration: minutes * 60, time: minutes * 60, overtime: false, otTime: 0, buzzer: 0,
       phase: 'kickoff', phaseT: 0, clock: 0, kickoffWait: 1.0,
-      kickoffTeam: 'blue', shotId: 0, slowmo: 0, freeze: 0, timeScale: 1,
+      kickoffTeam: 'blue', shotId: 0, slowmo: 0, freeze: 0, timeScale: 1, ultCut: null,
       autopilot: !!opts.autopilot, diff, mateDiff: opts.mateDiff || levelDiff(MATE_BASE, home.level), home, humans: [], teamHuman: { blue: false, red: false }, online: !!opts.online,
       goals: [], result: null, resetDone: false, exciteT: 0, lastConceded: null,
       mode: opts.mode || 'quick', club, noDraw: opts.mode === 'cup' || !!opts.noDraw, flags: {}, challenges: null, challengeT: 0,
@@ -131,6 +131,7 @@ const Match = {
   step(m, dt) {
     let sdt = dt;
     if (m.freeze > 0) { m.freeze -= dt; sdt = 0; }
+    else if (m.ultCut) { if (m.slowmo > 0) m.slowmo -= dt; sdt = dt * UltCut.scale(m); }
     else if (m.slowmo > 0) { m.slowmo -= dt; sdt = dt * 0.35; }
     m.timeScale = sdt / dt;
     m.phaseT += dt;

@@ -576,7 +576,8 @@ function ultShot(m, p) {
     FX.ring(b.x, b.y, '#ff4df0', 10, 90, 0.4, 6);
     FX.doFlash('#ffffff', 0.45);
     FX.doShake(14, 0.3);
-    FX.text(p.x, p.y, names[kind], rainbow(0.3), 22);
+    // (the cutscene announces the move now: this floating text sat on top of its card)
+    if (typeof UltCut === 'undefined') FX.text(p.x, p.y, names[kind], rainbow(0.3), 22);
     Sound.powerShot();
     if (p.isHuman) vibrate([40, 30, 60]);
   }

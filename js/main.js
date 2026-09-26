@@ -135,12 +135,15 @@ const Game = {
     } else if (m && m.net && this.state !== 'home') {
       // online: the server runs the match, we draw it
       Online.update(realDt);
+      if (this.state === 'match') UltCut.update(m, realDt);
       FX.update(realDt * (m.timeScale || 1), realDt);
       Render.updateCamera(m, realDt);
       Render.drawMatch(m, this.t);
+      UltCut.draw(Render.ctx, m, this.t);
       if (this.state === 'match' || this.state === 'paused') UI.updateHUD(m);
     } else if (m && this.state !== 'home') {
       if (this.state === 'match' || this.state === 'results') {
+        if (this.state === 'match') UltCut.update(m, realDt);
         this.acc += realDt;
         let n = 0;
         while (this.acc >= CFG.STEP && n < 14) { Match.step(m, CFG.STEP); this.acc -= CFG.STEP; n++; }
@@ -151,6 +154,7 @@ const Game = {
         Render.updateCamera(m, realDt);
       }
       Render.drawMatch(m, this.t);
+      UltCut.draw(Render.ctx, m, this.t);
       if (m.challenge) { if (this.state === 'match') SkillRun.step(m, realDt); SkillRun.drawGauntlet(Render.ctx, m); }
       if (this.state === 'match' && !m.challenge) UI.updateHUD(m);
     } else {

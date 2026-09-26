@@ -568,12 +568,16 @@ const Render = {
   updateCamera(m, dt, snap) {
     const h = m.human, b = m.ball;
     let tx, ty;
-    const star = m.phase === 'cele' && m.cele && m.cele.scorer;
+    // an ult cutscene owns the camera while it runs
+    const cut = m.ultCut ? UltCut.camera(m) : null;
+    const star = !cut && m.phase === 'cele' && m.cele && m.cele.scorer;
     const wide = star && ['airplane', 'pushups', 'sleep', 'backflip', 'worm', 'swim', 'surfer', 'cartwheel', 'matrix', 'scissor'].includes(m.cele.kind);
     // Leave room for the full pose plus hats, wings, capes and celebration props.
-    const zoomTo = star ? (wide || (star.look && star.look.acc) ? 1.58 : 1.7) : 1;
-    this.zoom = snap ? zoomTo : this.zoom + (zoomTo - this.zoom) * (1 - Math.exp(-(star ? 3.2 : 6) * dt));
-    if (star) {
+    const zoomTo = cut ? cut.zoom : star ? (wide || (star.look && star.look.acc) ? 1.58 : 1.7) : 1;
+    this.zoom = snap || cut ? zoomTo : this.zoom + (zoomTo - this.zoom) * (1 - Math.exp(-(star ? 3.2 : 6) * dt));
+    if (cut) {
+      tx = cut.x; ty = cut.y;
+    } else if (star) {
       tx = star.x; ty = star.y - 16;
     } else if (m.phase === 'goal' || m.phase === 'timeup' || m.phase === 'replay') {
       tx = b.x; ty = b.y;
@@ -591,7 +595,7 @@ const Render = {
     let py = ty * CFG.TILT;
     const minY = -CFG.SIDE_M * CFG.TILT - 95 + halfH, maxY = (CFG.FIELD_H + CFG.SIDE_M) * CFG.TILT + 80 - halfH;
     py = minY > maxY ? (CFG.FIELD_H / 2) * CFG.TILT : clamp(py, minY, maxY);
-    const k = snap ? 1 : 1 - Math.exp(-(star ? 7 : 4.5) * dt);
+    const k = snap || cut ? 1 : 1 - Math.exp(-(star ? 7 : 4.5) * dt);
     this.cam.x += (tx - this.cam.x) * k;
     this.cam.y += (py - this.cam.y) * k;
   },
