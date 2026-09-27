@@ -100,9 +100,10 @@ const PEN = {
 const PEN_LEVELS = {
   // read: how often the bot keeper reads your kick; q/aim: their takers' finishing and placement;
   // sw: how often their taker spots you diving early and puts it the other way
-  easy: { read: 0.1, q: 0.3, aim: 0.15, sw: 0.3 },
-  normal: { read: 0.2, q: 0.5, aim: 0.45, sw: 0.5 },
-  hard: { read: 0.3, q: 0.68, aim: 0.75, sw: 0.65 },
+  // 2026-09-27 "the penalties 2x easier": every one of these halved, level adders too.
+  easy: { read: 0.05, q: 0.15, aim: 0.075, sw: 0.15 },
+  normal: { read: 0.1, q: 0.25, aim: 0.225, sw: 0.25 },
+  hard: { read: 0.15, q: 0.34, aim: 0.375, sw: 0.325 },
 };
 const PEN_SAY = {
   goal: ['GOAL!', '#ffe14d'], save: ['SAVED!', '#46d9ff'], wide: ['WIDE!', '#ffffff'], over: ['OVER THE BAR!', '#ffffff'],
@@ -118,7 +119,7 @@ const Pens = {
     const takerLook = () => { const bc = pickBotCharacter(rng); return { hair: bc.hair, hairColor: bc.hairColor, skin: bc.skin, cap: bc.cap, band: bc.band, acc: null }; };
     m.mode = 'pens'; m.format = 'pens'; m.phase = 'play'; m.challenges = null;
     m.pens = {
-      bot: { read: lvl.read + cl * 0.025, q: clamp(lvl.q + cl * 0.05, 0, 0.95), aim: clamp(lvl.aim + cl * 0.08, 0, 1), sw: lvl.sw },
+      bot: { read: lvl.read + cl * 0.0125, q: clamp(lvl.q + cl * 0.025, 0, 0.95), aim: clamp(lvl.aim + cl * 0.04, 0, 1), sw: lvl.sw },
       q: clamp(((ch.r && ch.r.sht) || 70) - 50, 0, 50) / 50 * 0.9 + 0.1,
       kicks: { blue: [], red: [] }, first: Math.random() < 0.5 ? 'blue' : 'red',
       n: 0, team: null, phase: 'start', t: 0, winner: null, saves: 0, theirSaves: 0,
