@@ -125,6 +125,7 @@ const Game = {
     if (window.innerWidth !== Render.W || window.innerHeight !== Render.H) Render.resize();
     if (!Render.W || !Render.H) return;
     Input.update();
+    if (!$('howto').hidden) Tutorial.update(realDt);
     UI.tick(realDt);
     Net.tick(realDt);
     const m = this.match;

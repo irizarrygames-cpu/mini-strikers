@@ -36,6 +36,8 @@ const UI = {
     $('p-restart').addEventListener('click', () => { this.tap(); Game.startMatch(Game.lastOpts); });
     $('p-quit').addEventListener('click', () => { this.tap(); if (Game.match && Game.match.net) Online.quit(); else Game.goHome(); });
     $('p-howto').addEventListener('click', () => { this.tap(); this.showHowTo(); });
+    $('tut-skip').addEventListener('click', () => { this.tap(); this.closeHowTo(); });
+    $('tut-next').addEventListener('click', () => { this.tap(); Tutorial.next(); });
     $('replay-skip').addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const m = Game.match;
@@ -488,19 +490,12 @@ const UI = {
   showHowTo(after) {
     this._howtoAfter = after || null;
     $('modal').hidden = true;
-    const kb = document.body.classList.contains('kb');
-    const k = (s) => `<span class="kc">${s}</span>`;
-    const cards = [
-      { t: 'MOVE & SPRINT', ico: 'move', d: kb ? `${k('WASD')} to move. Hold ${k('SHIFT')} to sprint — it drains stamina.` : 'Drag the joystick to move. Hold SPRINT to run faster — it drains stamina.' },
-      { t: 'PASS & SHOOT', ico: 'shoot', d: kb ? `${k('E')} passes to the teammate you face — hold it for a harder through ball. Hold ${k('SPACE')} to charge a shot, steer to curl it.` : 'Tap PASS to pass to the teammate you face, or hold it for a harder through ball. Hold SHOOT to charge, steer while releasing to curl it.' },
-      { t: 'TACKLE', ico: 'slide', d: kb ? `${k('F')} near the ball carrier lunges in and steals it. It has a short cooldown.` : 'No ball? The purple button becomes TACKLE: tap it near the carrier to lunge in and steal the ball.' },
-      { t: 'SKILLS', ico: 'skill', d: kb ? `${k('Q')} with a direction: spin, flick, nutmeg, Cruyff. No direction = HOP over tackles.` : 'SKILL + joystick direction: spin, flick, nutmeg, Cruyff. No direction = HOP over tackles.' },
-    ];
-    $('howto-cards').innerHTML = cards.map((c, i) => `<div class="hcard"><div class="hico ${c.ico}"><b>${i + 1}</b></div><strong>${c.t}</strong><p>${c.d}</p></div>`).join('');
     $('howto').hidden = false;
+    Tutorial.start();
   },
 
   closeHowTo() {
+    Tutorial.stop();
     $('howto').hidden = true;
     Save.data.tutorialSeen = true;
     Save.write();

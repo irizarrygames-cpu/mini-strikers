@@ -1393,3 +1393,19 @@ body.kb .chat-menu kbd { display: inline-block; }
 .lb-board li.p2 { background: #f1f4fb; }
 .lb-board li.p3 { background: #fbeee2; }
 .lg-board { width: 100%; margin-bottom: 6px; }
+
+/* ================= HOW TO PLAY: the animated tutorial ================= */
+.panel.howto { max-width: min(760px, 94vw); gap: 8px; }
+.tut-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.tut-head h2 { margin: 0; }
+.tut-bar { display: flex; gap: 4px; }
+.tut-bar i { width: 13px; height: 8px; border-radius: 4px; background: #dfe3f2; border: 2px solid var(--ink); }
+.tut-bar i.on { background: var(--green); }
+.tut-bar i.now { background: var(--yellow); width: 22px; }
+.tut-canvas { width: 100%; aspect-ratio: 16 / 7; max-height: 44vh; display: block; border: 4px solid var(--ink); border-radius: 14px; background: #4fbd3b; }
+.tut-caption { margin: 0; min-height: 3.1em; font-family: system-ui, sans-serif; font-weight: 600; font-size: clamp(12px, 3.2vmin, 16px); line-height: 1.35; color: var(--ink); text-align: center; }
+.tut-caption .kc { height: 20px; min-width: 22px; font-size: 11px; box-shadow: 0 2px 0 #8a90b8; font-family: var(--font); vertical-align: middle; }
+.tut-caption .kc.wide { min-width: 58px; }
+.tut-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.tut-time { font-size: 13px; color: #6b7299; }
+@media (max-height: 560px) { .tut-canvas { max-height: 32vh; } .tut-caption { min-height: 2.4em; font-size: 12px; } }

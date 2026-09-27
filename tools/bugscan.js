@@ -387,7 +387,7 @@ window.BS = {
       if ($('hud').classList.contains('replaying')) throw new Error('hud stuck in replay mode');
       Game.goHome();
     });
-    await step('how to play', () => { click($('btn-howto')); if (!visible('howto')) throw new Error('howto hidden'); click($('howto-ok')); if (visible('howto')) throw new Error('howto stuck'); });
+    await step('how to play', () => { click($('btn-howto')); if (!visible('howto')) throw new Error('howto hidden'); if ($('tut-canvas').width < 2) throw new Error('tutorial canvas never sized'); click($('tut-skip')); if (visible('howto')) throw new Error('howto stuck'); });
 
     window.removeEventListener('error', onErr);
     window.removeEventListener('unhandledrejection', onErr);

@@ -210,9 +210,15 @@
   <!-- ===== HOW TO PLAY ===== -->
   <div id="howto" class="overlay" hidden>
     <div class="panel howto">
-      <h2>HOW TO PLAY</h2>
-      <div id="howto-cards" class="howto-cards"></div>
-      <button id="howto-ok" class="big-btn green">GOT IT!</button>
+      <div class="tut-head"><h2 id="tut-title">HOW TO PLAY</h2><div id="tut-bar" class="tut-bar"></div></div>
+      <canvas id="tut-canvas" class="tut-canvas"></canvas>
+      <p id="tut-caption" class="tut-caption"></p>
+      <div class="tut-foot">
+        <button id="tut-skip" class="mid-btn red">SKIP</button>
+        <span id="tut-time" class="tut-time"></span>
+        <button id="tut-next" class="mid-btn">NEXT &#9656;</button>
+      </div>
+      <button id="howto-ok" class="big-btn green" hidden>GOT IT!</button>
     </div>
   </div>
 
@@ -307,6 +313,7 @@
   <script src="js/penalty.js"></script>
   <script src="js/challenges.js"></script>
   <script src="js/ultcut.js"></script>
+  <script src="js/tutorial.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
