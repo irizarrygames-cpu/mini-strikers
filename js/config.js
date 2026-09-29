@@ -168,6 +168,11 @@ const CHARACTERS = [
   { id: 'jacob', name: 'Jacob', rarity: 'oneofone', only: ['lilotter', 'irizarrygamez1'], thin: 0.55, ovr: 98,
     stats: [['SKINNY', 99], ['PACE', 21], ['BALL CONTROL', 67], ['YAP', 200], ['EXCUSES', 200], ['CROSSING', 0]],
     r: { spd: 98, sht: 98, pas: 96, ctl: 99, def: 92 }, hair: 'anime', hairColor: '#3aa0ff', skin: '#f6cfa6', anime: true, mewing: true },
+  // LILOTTER's own one-of-one. The card says 200; the attributes below are the ceiling the game
+  // has (ratingAttr caps at 99, so 200 there would play exactly the same and only break the maths).
+  { id: 'flow', name: 'Flow', rarity: 'oneofone', only: ['lilotter'], thin: 0.82, ovr: 200,
+    stats: [['PACE', 188], ['SHOOTING', 200], ['FIRST TOUCH', 200], ['BALL CONTROL', 200], ['PASSING', 176], ['DEFENDING', 142]],
+    r: { spd: 99, sht: 99, pas: 99, ctl: 99, def: 99 }, hair: 'anime', hairColor: '#e9e9f2', skin: '#f7dcc6', anime: true },
 ];
 // Accessories: one slot, worn over any character. slot says where it's drawn on the body.
 const ACCESSORIES = [
@@ -226,6 +231,7 @@ const SIGNATURES = {
   inferno: 'bicycle', iceking: 'scissors', astronaut: 'backflip', wizard: 'scissors', lion: 'bicycle',
   shark: 'scissors', pharaoh: 'backflip', knight: 'volley', pirate: 'bicycle', cowboy: 'volley',
   samurai: 'scissors', dreads: 'bicycle', jacob: 'backflip', street: 'volley', striker: 'volley',
+  flow: 'volley',
 };
 function sigKind(c) {
   if (!c) return ULT_KINDS[0];
