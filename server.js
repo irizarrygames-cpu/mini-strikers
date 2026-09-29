@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 55;
+const BUILD = 56;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -568,6 +568,30 @@ async function handleRequest(req, res) {
   }
 
   if (route === '/api/logout') { forgetSession(str(body.token)); return sendJSON(res, 200, { ok: true }); }
+
+  // Change your own password. You are signed in already and you still have to know the current
+  // one, so a borrowed phone cannot lock the owner out. Nothing here can read the old password:
+  // it is only ever checked by hashing what was typed and comparing.
+  if (route === '/api/account/password') {
+    if (throttled(ip, 'auth', 20, 60000)) return sendJSON(res, 429, { ok: false, msg: 'Too many attempts, wait a minute' });
+    const current = str(body.password), next = str(body.newPassword);
+    if (current.length > 200 || (await hashPassword(current, meUser.salt, meUser.iterations)) !== meUser.hash) {
+      return sendJSON(res, 200, { ok: false, msg: 'That is not your current password' });
+    }
+    const problem = validateNewPassword(meUser.name, next);
+    if (problem) return sendJSON(res, 200, { ok: false, msg: problem });
+    if (next === current) return sendJSON(res, 200, { ok: false, msg: 'That is the password you already have' });
+    const salt = crypto.randomBytes(16).toString('base64');
+    meUser.salt = salt;
+    meUser.iterations = PBKDF2_ITERATIONS;
+    meUser.hash = await hashPassword(next, salt, PBKDF2_ITERATIONS);
+    // every other device is signed out; the one that changed it stays signed in
+    const keep = str(body.token);
+    for (const s of meUser.sessions || []) if (s.token !== keep) tokens.delete(s.token);
+    meUser.sessions = (meUser.sessions || []).filter((s) => s.token === keep);
+    saveDB();
+    return sendJSON(res, 200, { ok: true, msg: 'Password changed. Any other device has been signed out.' });
+  }
 
   if (route === '/api/account/delete') {
     if (await hashPassword(str(body.password), meUser.salt, meUser.iterations) !== meUser.hash) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });

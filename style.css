@@ -1409,3 +1409,11 @@ body.kb .chat-menu kbd { display: inline-block; }
 .tut-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
 .tut-time { font-size: 13px; color: #6b7299; }
 @media (max-height: 560px) { .tut-canvas { max-height: 32vh; } .tut-caption { min-height: 2.4em; font-size: 12px; } }
+
+/* ================= CHANGE PASSWORD ================= */
+.pw-form { display: grid; gap: 6px; background: #eef2ff; border: 3px solid var(--ink); border-radius: 14px; padding: 10px; }
+.pw-form[hidden] { display: none; }
+.pw-form input { font-family: var(--font); font-size: 16px; padding: 8px 10px; border: 3px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink); }
+.pw-form input:focus { outline: 3px solid var(--blue); }
+.pw-form .note { margin: 0; text-align: center; }
+.pw-form .note.bad { color: var(--ui-red); }

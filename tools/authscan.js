@@ -57,7 +57,8 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
   check('the server starts', up);
   if (!up) { console.log(log.join('')); done(); process.exit(1); }
 
-  const name = 'scanuser', pass = 'a-good-long-password-42';
+  const name = 'scanuser';
+  let pass = 'a-good-long-password-42';
   console.log('signing up');
   const su = await post('/auth/signup', { username: name, password: pass, club: 'germany' });
   check('signing up answers 200', su.status === 200, { status: su.status, body: su.text.slice(0, 120) });
@@ -66,7 +67,7 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
   check('the account carries a rank straight away', !!(su.json && su.json.rank && su.json.rank.tier === 'bronze'), su.json && su.json.rank);
   check('a season with an end date', !!(su.json && su.json.rank && su.json.rank.ends > Date.now()), su.json && su.json.rank && new Date(su.json.rank.ends).toISOString().slice(0, 10));
   check('and the World Cup run it needs', !!(su.json && su.json.wc && su.json.pwc));
-  const token = su.json && su.json.token;
+  let token = su.json && su.json.token;
 
   console.log('the rules on the way in');
   const taken = await post('/auth/signup', { username: name.toUpperCase(), password: pass, club: 'germany' });
@@ -122,6 +123,32 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
   check('and your best is remembered', !!(paid.json && paid.json.rank.best === 900), paid.json && paid.json.rank.best);
   const twice = await post('/auth/login', { username: name, password: pass });
   check('and it only pays once, however often you come back', !!(twice.json && twice.json.save.coins === coinsBefore + prize), twice.json && twice.json.save.coins);
+
+  console.log('changing your own password');
+  const PASS2 = 'a-second-good-password-77';
+  // a second device, so we can prove it gets signed out
+  const other = (await post('/auth/login', { username: name, password: pass })).json;
+  check('signed in on a second device', !!(other && other.ok && other.token));
+  const wrongCurrent = await post('/account/password', { token, password: 'not-the-one', newPassword: PASS2 });
+  check('the wrong current password is refused', wrongCurrent.json && wrongCurrent.json.ok === false && /current password/i.test(wrongCurrent.json.msg || ''), wrongCurrent.json);
+  const weak = await post('/account/password', { token, password: pass, newPassword: 'abc' });
+  check('a new one that is too short is refused', weak.json && weak.json.ok === false && !!weak.json.msg, weak.json);
+  const same = await post('/account/password', { token, password: pass, newPassword: pass });
+  check('the one you already have is refused', same.json && same.json.ok === false, same.json);
+  const noToken = await post('/account/password', { password: pass, newPassword: PASS2 });
+  check('a stranger with no token cannot change it', noToken.status === 401, noToken.status);
+  const changed = await post('/account/password', { token, password: pass, newPassword: PASS2 });
+  check('the right current password changes it', !!(changed.json && changed.json.ok), changed.json);
+  const oldPw = await post('/auth/login', { username: name, password: pass });
+  check('the old password no longer works', oldPw.json && oldPw.json.ok === false && /wrong password/i.test(oldPw.json.msg || ''), oldPw.json);
+  const newPw = await post('/auth/login', { username: name, password: PASS2 });
+  check('the new one does', !!(newPw.json && newPw.json.ok), newPw.json && newPw.json.msg);
+  const stillMe = await post('/me', { token });
+  check('the device that changed it stays signed in', stillMe.status === 200 && !!(stillMe.json && stillMe.json.ok), stillMe.status);
+  const kicked = await post('/me', { token: other.token });
+  check('the other device is signed out', kicked.status === 401, kicked.status);
+  check('and the save came through it all', !!(newPw.json && newPw.json.save && newPw.json.save.coins === paid.json.save.coins), { after: newPw.json && newPw.json.save.coins, before: paid.json.save.coins });
+  pass = PASS2; token = newPw.json.token;
 
   console.log('saving and leaving');
   const save = await post('/save', { token, save: { coins: 120, xp: 300, trophies: 1, matches: 2, wins: 1, goals: 3 } });

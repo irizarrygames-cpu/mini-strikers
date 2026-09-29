@@ -85,6 +85,10 @@ const Net = {
     } catch (e) { this.saveTimer = setTimeout(() => this.pushSave(), 8000); }
   },
 
+  async changePassword(password, newPassword) {
+    try { return await this.api('/api/account/password', { password, newPassword }); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+  },
+
   async leaderboard() {
     try { return await this.api('/api/leaderboard'); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
   },

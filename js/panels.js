@@ -409,8 +409,32 @@ Object.assign(UI, {
       <div class="set"><span>CONTROLS</span>${seg('controls', [['auto', 'AUTO'], ['touch', 'TOUCH'], ['keyboard', 'KEYBOARD']])}</div>
       ${this.controlsRef()}
       <div class="set account"><span>ACCOUNT</span><em>${Save.account || 'GUEST'} · ${Clubs.mine().name}</em><button id="logout" class="mini-danger">LOG OUT</button></div>
+      ${Net.user ? `<div class="set"><span>PASSWORD</span><em>Only you can change it, and only from here</em><button id="chpw" class="mid-btn">CHANGE</button></div>
+      <form id="pw-form" class="pw-form" hidden autocomplete="off">
+        <input type="password" id="pw-old" placeholder="CURRENT PASSWORD" autocomplete="current-password" maxlength="200">
+        <input type="password" id="pw-new" placeholder="NEW PASSWORD" autocomplete="new-password" maxlength="200">
+        <input type="password" id="pw-new2" placeholder="NEW PASSWORD AGAIN" autocomplete="new-password" maxlength="200">
+        <button type="submit" class="mid-btn green">SAVE IT</button>
+        <p id="pw-msg" class="note"></p>
+      </form>` : ''}
       <div class="set danger"><span>PROGRESS</span><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>`;
     $('logout').addEventListener('click', async () => { this.tap(); await Net.logout(); UI.showAuth('Logged out.'); $('auth-msg').classList.remove('bad'); });
+    if ($('chpw')) {
+      $('chpw').addEventListener('click', () => { this.tap(); const f = $('pw-form'); f.hidden = !f.hidden; $('pw-msg').textContent = ''; if (!f.hidden) $('pw-old').focus(); });
+      $('pw-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = $('pw-msg'), save = $('pw-form').querySelector('button[type=submit]');
+        msg.classList.remove('bad');
+        if ($('pw-new').value !== $('pw-new2').value) { msg.classList.add('bad'); msg.textContent = 'The two new ones do not match.'; return; }
+        save.disabled = true; msg.textContent = 'Changing it…';
+        const r = await Net.changePassword($('pw-old').value, $('pw-new').value);
+        save.disabled = false;
+        if (!r || !r.ok) { msg.classList.add('bad'); msg.textContent = (r && r.msg) || 'Something went wrong'; return; }
+        $('pw-old').value = ''; $('pw-new').value = ''; $('pw-new2').value = '';
+        $('pw-form').hidden = true;
+        this.toast('PASSWORD CHANGED');
+      });
+    }
     body.querySelectorAll('input[type=range]').forEach((inp) => inp.addEventListener('input', () => {
       s[inp.dataset.key] = parseFloat(inp.value); Save.write(); Sound.applyVolumes();
     }));
