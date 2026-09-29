@@ -354,18 +354,39 @@ const levelRampPct = (level) => Math.round(clamp((level - 1) / (LEVEL_RAMP_TOP -
 // The bigger the format, the more room an attacker gets and the less each bot can cover, so the
 // opposition is sharpened to match. 1v1 stays exactly as it was; 4v4 was the runaway one.
 const FORMAT_RAMP = { '4v4': 1, '3v3': 0.8, '2v2': 0.45, '1v1': 0, training: 0 };
+// How much of the preset a format keeps. 2026-09-27: doubling the bots made 4v4 a proper contest
+// but 1v1 brutal — one bot, on you the whole match, with nobody on your side to take the weight.
+// The ramp above only ever pushed the big formats up, so this takes some back off the small ones.
+const FORMAT_EASE = { '4v4': 1, '3v3': 0.95, '2v2': 0.85, '1v1': 0.45, training: 0.45 };
 function formatRamp(b, format) {
   const u = FORMAT_RAMP[format] || 0;
-  if (u <= 0) return b;
+  let r = b;
+  if (u > 0) {
+    r = {
+      ...b,
+      redSpeed: b.redSpeed + u * 0.05,
+      aiSlide: b.aiSlide * (1 + u * 0.8),
+      aiDodge: Math.min(0.85, b.aiDodge * (1 + u * 0.5)),
+      aiSkill: Math.min(0.6, b.aiSkill * (1 + u * 0.5)),
+      aiShotNoise: Math.max(14, b.aiShotNoise * (1 - u * 0.3)),
+      react: Math.max(0.45, b.react * (1 - u * 0.3)),
+      mistakes: Math.max(0.35, b.mistakes * (1 - u * 0.35)),
+    };
+  }
+  const e = FORMAT_EASE[format] === undefined ? 1 : FORMAT_EASE[format];
+  if (e >= 1) return r;
   return {
-    ...b,
-    redSpeed: b.redSpeed + u * 0.05,
-    aiSlide: b.aiSlide * (1 + u * 0.8),
-    aiDodge: Math.min(0.85, b.aiDodge * (1 + u * 0.5)),
-    aiSkill: Math.min(0.6, b.aiSkill * (1 + u * 0.5)),
-    aiShotNoise: Math.max(14, b.aiShotNoise * (1 - u * 0.3)),
-    react: Math.max(0.45, b.react * (1 - u * 0.3)),
-    mistakes: Math.max(0.35, b.mistakes * (1 - u * 0.35)),
+    ...r,
+    redSpeed: 1 - (1 - r.redSpeed) / e,   // the speed gap to you opens back up
+    // slideOnHuman is left alone on purpose: it is what stops you strolling the ball into the
+    // net, and easing it took 1v1 walk-ins from 1% to 12%.
+    aiSlide: r.aiSlide * e,
+    aiDodge: r.aiDodge * e,
+    aiSkill: r.aiSkill * e,
+    keeperBonus: r.keeperBonus * e,
+    aiShotNoise: r.aiShotNoise / e,
+    react: r.react / e,
+    mistakes: r.mistakes / e,
   };
 }
 
