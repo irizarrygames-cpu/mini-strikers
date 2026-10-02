@@ -319,12 +319,14 @@ const UI = {
     $('auth-msg').classList.remove('bad');
   },
 
-  showAuth(msg) {
+  // calm: a message that is not the player's fault (the server waking up), so it is not red
+  showAuth(msg, calm) {
     Game.state = 'home';
     this.closeAll();
     $('home').hidden = true;
     $('auth').hidden = false;
-    if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.add('bad'); }
+    if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.toggle('bad', !calm); }
+    else { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); }
     $('auth-logo').innerHTML = $('logo').innerHTML;
   },
 
@@ -338,7 +340,19 @@ const UI = {
     go.disabled = true; msg.classList.remove('bad'); msg.textContent = this._authMode === 'signup' ? 'Creating your account…' : 'Logging in…';
     let r;
     try { r = this._authMode === 'signup' ? await Net.signup(user, pass, this._authClub) : await Net.login(user, pass); }
-    catch (e) { r = { ok: false, msg: "Can't reach the server. Check your connection." }; }
+    catch (e) { r = null; }
+    // no answer at all: the host was asleep. Wake it and have one more go before saying anything.
+    if (!r) {
+      msg.classList.remove('bad');
+      msg.textContent = 'Waking the server up…';
+      const up = await Net.wake((n, of) => { msg.textContent = `Waking the server up… (${n}/${of})`; });
+      if (up) {
+        try { r = this._authMode === 'signup' ? await Net.signup(user, pass, this._authClub) : await Net.login(user, pass); }
+        catch (e2) { r = { ok: false, msg: "Can't reach the server. Try again in a minute." }; }
+      } else {
+        r = { ok: false, msg: "Can't reach the server. Try again in a minute." };
+      }
+    }
     go.disabled = false;
     if (!r.ok) { msg.classList.add('bad'); msg.textContent = r.msg || 'Something went wrong'; Sound.steal(); return; }
     $('auth-pass').value = '';

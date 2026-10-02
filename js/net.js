@@ -26,6 +26,21 @@ const Net = {
     return data;
   },
 
+  // The free instance sleeps after about fifteen idle minutes and takes the best part of a
+  // minute to get up. This knocks until it answers (or gives up), so the game can say "waking
+  // up" instead of "check your connection".
+  async wake(onTry, tries = 14, gap = 4000) {
+    for (let i = 0; i < tries; i++) {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        if (res.ok) return true;
+      } catch (e) { /* still asleep */ }
+      if (onTry) onTry(i + 1, tries);
+      await new Promise((r) => setTimeout(r, gap));
+    }
+    return false;
+  },
+
   // ---- accounts ----
   async signup(username, password, club) {
     // a guest's progress on this device comes with them

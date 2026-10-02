@@ -98,7 +98,14 @@ const Game = {
   async enter() {
     const r = await Net.resume();
     if (r) { UI.signedIn(); return; }
-    UI.showAuth(r === false ? "Can't reach the server. Check your connection and try again." : '');
+    if (r !== false) { UI.showAuth(''); return; }
+    // it did not answer: almost always the host getting out of bed
+    UI.showAuth('Waking the server up…', true);
+    const up = await Net.wake((n, of) => UI.showAuth(`Waking the server up… (${n}/${of})`, true));
+    if (!up) { UI.showAuth("The server is not answering. Try again in a minute."); return; }
+    const again = await Net.resume();
+    if (again) { UI.signedIn(); return; }
+    UI.showAuth('');
   },
 
   goHome() {
