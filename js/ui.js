@@ -612,8 +612,9 @@ const UI = {
       this.syncToggles();
       $('p-challenges').innerHTML = this.challengeList(Game.match);
       $('p-restart').hidden = !!Game.match.net;
-      $('pause').querySelector('h2').textContent = Game.match.net ? 'MENU' : 'PAUSED';
-      $('p-quit').textContent = Game.match.net ? 'LEAVE MATCH (LOSS)' : 'QUIT';
+      const fan = !!(typeof Online !== 'undefined' && Online.watching);
+      $('pause').querySelector('h2').textContent = fan ? 'WATCHING' : Game.match.net ? 'MENU' : 'PAUSED';
+      $('p-quit').textContent = fan ? 'STOP WATCHING' : Game.match.net ? 'LEAVE MATCH (LOSS)' : 'QUIT';
       document.querySelector('.p-ch').hidden = !(Game.match.challenges && Game.match.challenges.length);
       $('pause').hidden = false;
     } else if (Game.state === 'paused') {

@@ -109,6 +109,47 @@ async function waitFor(ws, t, after, ms = 6000) {
   check('they get no results screen of their own', !socks.watchfan.since(n, 'end').length);
   check('the players still got theirs', !!socks.watchplay.last('end'));
 
+  console.log('watching a shootout');
+  for (const id of ['pena', 'penb', 'penfan']) connect(id);
+  befriend('pena', 'penfan');
+  say('pena', { t: 'queue', format: 'pens' }); say('penb', { t: 'queue', format: 'pens' });
+  const penStart = await waitFor(socks.pena, 'pen.start', 0);
+  check('a shootout started', !!penStart);
+  const proom = game._roomOf('pena');
+  { const t0 = Date.now(); while (proom.state !== 'playing' && Date.now() - t0 < 8000) await sleep(30); }
+  n = socks.penfan.got.length;
+  say('penfan', { t: 'watch', name: 'PENA' });
+  const seen = await waitFor(socks.penfan, 'pen.start', n, 2000);
+  check('the fan gets the shootout', !!seen);
+  check('and is told whose it is', seen && seen.watch === 'PENA', seen && seen.watch);
+  check("from their friend's end", seen && seen.side === penStart.side, seen && seen.side);
+  check('with the score so far', !!(seen && seen.state && seen.state.score));
+  check('watching takes no part in it', proom.seats.every((x) => x.userId !== 'penfan'));
+
+  n = socks.penfan.got.length;
+  const nPlayer = socks.pena.got.length;
+  { const t0 = Date.now(); while (!socks.penfan.since(n, 'pen.turn').length && Date.now() - t0 < 14000) await sleep(40); } // a turn runs on a 10s clock when nobody kicks
+  check('turns reach the viewer', !!socks.penfan.since(n, 'pen.turn').length, socks.penfan.since(n, 'pen.turn').length);
+  check('the same ones the players get', socks.pena.since(nPlayer, 'pen.turn').length >= socks.penfan.since(n, 'pen.turn').length);
+
+  console.log('a viewer cannot kick or dive');
+  const penBefore = { ...proom.pen.model.score }, kicks = proom.pen.model.n;
+  say('penfan', { t: 'pen.shot', ax: 0, az: 0.5, power: 1 });
+  say('penfan', { t: 'pen.dive', dx: 1, dz: 0 });
+  await sleep(120);
+  check('their shot does nothing', proom.pen.model.score.blue === penBefore.blue && proom.pen.model.score.red === penBefore.red, proom.pen.model.score);
+  check('and the shootout is where it was', proom.pen.model.n === kicks || proom.state === 'playing');
+
+  console.log('and it ends for them too');
+  n = socks.penfan.got.length;
+  proom.pen.model.score.blue = 5; proom.pen.model.score.red = 3; proom.pen.model.winner = 'blue';
+  proom.pen.phase = 'end'; proom.pen.nextAt = Date.now() - 1;
+  const penOver = await waitFor(socks.penfan, 'watch.end', n, 8000);
+  check('the viewer is sent home', !!penOver);
+  check('with the shootout score', !!(penOver && /SHOOTOUT FINISHED \d-\d/.test(penOver.msg || '')), penOver && penOver.msg);
+  check('and gets no result card of their own', !socks.penfan.since(n, 'pen.end').length);
+  check('the players still got theirs', !!socks.pena.last('pen.end'));
+
   console.log('you cannot watch while you are busy yourself');
   for (const id of ['w2a', 'w2b', 'w2c']) connect(id);
   befriend('w2a', 'w2c');

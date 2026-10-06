@@ -81,6 +81,8 @@ const Online = {
   // ---------- online penalty shootout ----------
   startPens(msg) {
     const other = msg.side === 'blue' ? 'red' : 'blue', opponent = Clubs.get(msg.clubs[other]) || Clubs.random(Clubs.mine());
+    this.watching = msg.watch || null;
+    this._chalQuiet = true;
     this.status = 'match'; this.format = 'pens'; this.worldCup = msg.wc !== null && msg.wc !== undefined; this.room = null; this.penSide = msg.side;
     Sound.unlock(); Game.goFullscreen(); FX.clear(); Input.reset(); UI.closeAll();
     const m = Match.create({ mode: 'pens', club: opponent, format: '1v1' }); Pens.init(m); Game.match = m; Game.acc = 0;
@@ -88,6 +90,11 @@ const Online = {
     $('hud').classList.remove('replaying'); UI.show('match'); Game.state = 'intro'; UI.showIntro(m); Sound.startMusic(); Sound.startAmbience(); Sound.cheer(false);
     m.net = true; m.online = true; m.wc = msg.wc; m.roomId = msg.room; m.code = msg.code; m.mode = 'pens'; m.format = 'pens';
     m.pens.net = true; m.pens.serverSide = msg.side; m.pens.phase = 'wait'; m.pens.t = 0;
+    m.pens.watch = !!msg.watch;
+    m.pens.watchName = msg.watch || null;
+    $('hud').classList.toggle('watching', !!msg.watch);
+    $('watch-bar').hidden = !msg.watch;
+    if (msg.watch) $('watch-name').textContent = msg.watch;
     this.m = m; $('hud').classList.add('pens'); UI.hideQueue(); UI.hideLobby();
     if (msg.state && msg.state.phase === 'input') Pens.netTurn(m, { ...msg.state, deadline: msg.state.deadline });
   },

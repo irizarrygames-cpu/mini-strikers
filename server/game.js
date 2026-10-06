@@ -627,7 +627,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       opponent: room.seats.find((s) => s.team === other).name,
     };
   }
-  function penBroadcast(room, payload) { for (const s of room.seats) if (s.human && s.conn && !s.gone) send(s.conn, payload); }
+  function penBroadcast(room, payload) {
+    for (const s of room.seats) if (s.human && s.conn && !s.gone) send(s.conn, payload);
+    if (room.viewers) for (const v of room.viewers.keys()) push(v, payload);
+  }
   function startPensRoom(entries, code, wcRound = null) {
     const taken = new Set(), seats = [], clubs = {};
     for (const team of ['blue', 'red']) {
@@ -703,6 +706,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const winner = forfeitTeam ? (forfeitTeam === 'blue' ? 'red' : 'blue') : room.pen.model.winner;
     if (!winner) return;
     room.state = 'over'; room.endedAt = Date.now(); room.pen.model.winner = winner;
+    dropViewers(room);
     const moves = new Map(), results = [];
     for (const seat of room.seats) {
       if (!seat.human || seat.gone) continue;
@@ -783,7 +787,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function sendStart(room, seat, viewer) {
     const to = viewer ? viewer.conn : seat.conn;
     if (!viewer) stopWatching(seat.userId, true); // taking a seat of your own ends any watch
-    if (room.pen) return send(to, penView(room, seat));
+    if (room.pen) return send(to, viewer ? { ...penView(room, seat), watch: viewer.name } : penView(room, seat));
     const m = room.m;
     send(to, {
       watch: viewer ? viewer.name : undefined, fcup: room.cup ? { round: room.cup.round, of: room.cup.of } : undefined,
@@ -1018,9 +1022,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (roomOf(me)) return fail('Finish your own match first');
     if (inQueue(me)) return fail('Stop searching first');
     const room = roomOf(them);
-    if (!room || room.state === 'lobby' || !room.m) return fail(userName(them) + ' is not in a match');
-    if (room.pen) return fail(userName(them) + ' is in a shootout');
-    const seat = room.seats.find((s) => s.userId === them && s.player);
+    if (!room || room.state === 'lobby' || (!room.m && !room.pen)) return fail(userName(them) + ' is not in a match');
+    const seat = room.seats.find((s) => s.userId === them && (room.pen || s.player));
     if (!seat) return fail(userName(them) + ' is not in a match');
     stopWatching(me, false);
     room.viewers = room.viewers || new Map();
@@ -1042,8 +1045,9 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!room.viewers || !room.viewers.size) return;
     for (const [v, team] of room.viewers) {
       watchers.delete(v);
-      const s = room.m && room.m.score;
-      push(v, { t: 'watch.end', msg: s ? `THAT MATCH FINISHED ${s[team]}-${s[team === 'blue' ? 'red' : 'blue']}` : 'THAT MATCH FINISHED' });
+      const s = room.pen ? room.pen.model.score : room.m && room.m.score;
+      const what = room.pen ? 'THAT SHOOTOUT FINISHED' : 'THAT MATCH FINISHED';
+      push(v, { t: 'watch.end', msg: s ? `${what} ${s[team]}-${s[team === 'blue' ? 'red' : 'blue']}` : what });
     }
     room.viewers.clear();
   }
