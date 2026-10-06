@@ -1229,6 +1229,35 @@ body.kb .chat-menu kbd { display: inline-block; }
 /* live commentator: readable over every stadium, clear of the scoreboard and controls */
 .commentary { position: fixed; z-index: 9; top: calc(var(--sb-b, calc(var(--st) + 62px)) + 8px); left: 50%; width: min(560px, 72vw, calc(100vw - 2 * (var(--sl) + 54px))); transform: translate(-50%, -8px) scale(.98); text-align: center; pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
 .commentary.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+
+/* CUSTOMIZE: your player on the left, everything you can put on them on the right */
+#modal[data-kind="customize"] .panel { width: min(880px, 96vw); height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+#modal[data-kind="customize"] .panel-body { flex: 1; min-height: 0; display: flex; }
+.cust { display: flex; gap: 12px; align-items: stretch; min-height: 0; flex: 1; }
+.cust-left { flex: 0 0 31%; max-width: 280px; min-width: 150px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.cust-view { flex: 1; width: 100%; min-height: 120px; border: 3px solid var(--ink); border-radius: 12px; background: #4fbd3b; display: block; }
+.cust-ground { position: relative; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; line-height: 0; flex: 0 0 auto; }
+.cust-ground canvas { width: 100%; height: auto; display: block; }
+.cust-ground b { position: absolute; left: 0; right: 0; bottom: 0; line-height: 1.5; font-size: clamp(9px, 1.9vmin, 13px); letter-spacing: .04em; color: #fff; background: rgba(22,26,51,.82); text-align: center; }
+.cust-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.cust-side .trail-grid { flex: 1; min-height: 0; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; align-content: start; }
+.cust-side .char-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); }
+.cust-side .celeb-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+.cust-side .char-card-sm { padding: 6px; gap: 2px; }
+.cust-side .char-card-sm canvas { width: 54px; height: 54px; }
+.cust-side .char-card-sm strong, .cust-side .trail-opt strong { font-size: 15px; }
+.cust-side .bar { font-size: 10px; }
+.cust-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-right: 46px; }
+.cust-top .panel-coins { margin: 0; }
+.cust-top .tabs { flex: 1; min-width: 0; margin: 0; }
+#modal[data-kind="customize"] .panel h2 { font-size: clamp(18px, 5vmin, 32px); margin-bottom: 2px; }
+#modal[data-kind="customize"] .tabs button { font-size: clamp(10px, 2.1vmin, 15px); padding: 5px 9px; }
+.cust-side .note { margin: 0; }
+@media (max-height: 430px) {
+  .cust-left { flex-basis: 27%; }
+  .cust-ground b { font-size: 9px; }
+  .cust-side .note { display: none; }
+}
 .commentary small { display: inline-block; background: var(--yellow); color: var(--ink); border: 2px solid var(--ink); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 1px 6px; font-size: 8px; letter-spacing: .7px; }
 .commentary strong { display: block; width: fit-content; max-width: 100%; margin: 0 auto; background: rgba(22,26,51,.94); color: #fff; border: 3px solid #fff; outline: 3px solid var(--ink); border-radius: 10px; padding: 4px 10px; font-size: clamp(11px, 2.1vmin, 16px); line-height: 1.12; text-shadow: 2px 2px 0 var(--ink); }
 .commentary.big strong { color: var(--yellow); font-size: clamp(15px, 3vmin, 23px); animation: commentary-pop .35s cubic-bezier(.2,1.8,.4,1); }

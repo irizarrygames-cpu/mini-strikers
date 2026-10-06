@@ -380,11 +380,13 @@ const Pens = {
     const gy = portrait ? H * 0.42 : Math.max(gh + H * 0.2, H * 0.52);
     const spot = { x: W / 2, y: portrait ? H * 0.74 : H * 0.86 };
     const near = portrait ? 1.9 : 2.0;
-    const lay = { W, H, gw, gh, s, gx: W / 2, gy, spot, near, board: gh * 0.22, crowd: null };
+    // the top of the stand is open: sky, whatever you can see of the country beyond it, then the roof
+    const sky = Math.min(gy * 0.34, H * 0.22), roofH = Math.max(6, gy * 0.045);
+    const lay = { W, H, gw, gh, s, gx: W / 2, gy, spot, near, board: gh * 0.22, crowd: null, sky, roofH };
     // the crowd behind the goal, placed once per screen size
     const rng = mulberry32(7), crowd = [];
     const rowH = Math.max(10, gh * 0.12), top = gy - lay.board;
-    for (let y = top - rowH * 0.3, row = 0; y > -rowH; y -= rowH * 0.78, row++) {
+    for (let y = top - rowH * 0.3, row = 0; y > sky + roofH; y -= rowH * 0.78, row++) {
       const size = rowH * Math.max(0.3, 0.5 - row * 0.012);
       for (let x = (row % 2) * size * 0.6 - size; x < W + size; x += size * 1.25 + rng() * size * 0.5) crowd.push({ x, y, size: Math.max(4, size), c: (rng() * 8) | 0, skin: (rng() * 4) | 0, ph: rng() * 6 });
     }
@@ -435,29 +437,110 @@ const Pens = {
 
   drawStands(ctx, L, P, t) {
     const st = Save.stadium();
-    ctx.fillStyle = st.stands[0]; ctx.fillRect(0, 0, L.W, L.gy);
+    const sky = L.sky, roofY = sky, roofH = L.roofH;
+    // --- the sky over the stand
+    ctx.fillStyle = st.sky ? st.sky[1] : '#a8dcff'; ctx.fillRect(0, 0, L.W, sky);
+    ctx.fillStyle = st.sky ? st.sky[0] : '#6fc2ff'; ctx.fillRect(0, 0, L.W, sky * 0.5);
+    const rs = mulberry32(11);
+    if (st.stars) {
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 40; i++) { const r = 1 + rs() * 1.6; ctx.fillRect(rs() * L.W, rs() * sky * 0.8, r, r); }
+    } else if (st.kind === 'dusk') {
+      ctx.fillStyle = '#ffd86a'; ctx.beginPath(); ctx.arc(L.W * 0.78, sky * 0.4, sky * 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let i = 0; i < 3; i++) {
+        const cx = L.W * (0.12 + i * 0.33), cy = sky * (0.26 + (i % 2) * 0.16), r = sky * 0.11;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.arc(cx + r, cy + r * 0.2, r * 0.8, 0, Math.PI * 2); ctx.arc(cx - r, cy + r * 0.2, r * 0.7, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // --- the country beyond the stand
+    if (typeof drawSkyline === 'function') drawSkyline(ctx, st, -L.W * 0.04, L.W * 1.04, sky + 1, sky * 0.78);
+    // --- the stand, with its roof in the country's colours
+    ctx.fillStyle = st.stands[0]; ctx.fillRect(0, roofY, L.W, L.gy - roofY);
+    ctx.fillStyle = st.roof || st.stands[1]; ctx.fillRect(0, roofY, L.W, roofH);
+    ctx.fillStyle = st.trim || '#ffe14d'; ctx.fillRect(0, roofY + roofH - Math.max(2, roofH * 0.22), L.W, Math.max(2, roofH * 0.22));
+    ctx.fillStyle = OUTLINE; ctx.fillRect(0, roofY - 3, L.W, 3); ctx.fillRect(0, roofY + roofH, L.W, 3);
+    if (st.lights) {
+      ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.5;
+      for (let i = 0; i < 4; i++) {
+        const lx = L.W * (0.14 + i * 0.24), lw = L.W * 0.07, lh = roofH * 1.1;
+        ctx.fillStyle = '#39406a'; ctx.fillRect(lx - lw / 2, roofY - lh, lw, lh); ctx.strokeRect(lx - lw / 2, roofY - lh, lw, lh);
+        ctx.fillStyle = '#fff6c8';
+        for (let q = 0; q < 3; q++) ctx.fillRect(lx - lw / 2 + lw * (0.12 + q * 0.3), roofY - lh * 0.72, lw * 0.18, lh * 0.45);
+      }
+    }
+    // --- the crowd, with the flag held up in the middle of them
     const cols = [TEAMS.blue.jersey, TEAMS.red.jersey, '#ffffff', '#ffe14d', TEAMS.blue.jersey, '#ff8a1f', TEAMS.red.jersey, '#46d9ff'];
     const skins = ['#f2c29b', '#d99a6c', '#a86b43', '#6b4228'];
     const jump = P.cheerT > 0 ? 1 : 0;
+    const tf = this.tifo(L);
     for (const f of L.crowd) {
       const hop = jump ? Math.abs(Math.sin(t * 9 + f.ph)) * f.size * 0.5 : Math.sin(t * 2 + f.ph) * f.size * 0.04;
       const y = f.y - hop;
+      const card = tf ? this.tifoColor(tf, f.x, f.y) : null;
+      if (card) {
+        ctx.fillStyle = card;
+        ctx.fillRect(f.x - f.size * 0.62, y - f.size * 0.42, f.size * 1.24, f.size * 1.24);
+        continue;
+      }
       ctx.fillStyle = cols[f.c]; ctx.fillRect(f.x - f.size * 0.45, y, f.size * 0.9, f.size * 0.9);
       ctx.fillStyle = skins[f.skin]; ctx.beginPath(); ctx.arc(f.x, y - f.size * 0.2, f.size * 0.32, 0, Math.PI * 2); ctx.fill();
       if (jump && f.c % 3 === 0) { ctx.fillStyle = cols[f.c]; ctx.fillRect(f.x - f.size * 0.55, y - f.size * 0.75, f.size * 0.2, f.size * 0.5); }
     }
-    // advertising boards along the goal line
+    // --- advertising boards along the goal line: the ground and what its fans sing
     const by = L.gy - L.board;
-    ctx.fillStyle = '#1b2a6b'; ctx.fillRect(0, by, L.W, L.board);
+    ctx.fillStyle = shadeHex(st.seat || '#1b2a6b', -0.45); ctx.fillRect(0, by, L.W, L.board);
     ctx.fillStyle = OUTLINE; ctx.fillRect(0, by - 3, L.W, 3); ctx.fillRect(0, L.gy - 3, L.W, 3);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const fs = L.board * 0.5, word = 'MINI STRIKERS';
+    const fs = L.board * 0.5;
+    const words = [st.name || 'MINI STRIKERS', st.chant || "LET'S GO!"];
     ctx.font = `900 ${fs}px "Lilita One", system-ui, sans-serif`;
-    const step = ctx.measureText(word).width + fs * 2.2;
-    for (let x = step / 2 - ((t * 20) % step); x < L.W + step; x += step) {
-      ctx.fillStyle = '#ffe14d'; ctx.fillText(word, x, by + L.board / 2 + 1);
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x + step / 2, by + L.board / 2, fs * 0.2, 0, Math.PI * 2); ctx.fill();
+    let bx = -((t * 20) % 900);
+    for (let i = 0; bx < L.W + 400; i++) {
+      const word = words[i % words.length], w = ctx.measureText(word).width;
+      ctx.fillStyle = i % 2 ? '#ffffff' : st.trim || '#ffe14d';
+      ctx.fillText(word, bx + w / 2, by + L.board / 2 + 1);
+      bx += w + fs * 2.2;
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(bx - fs * 1.1, by + L.board / 2, fs * 0.18, 0, Math.PI * 2); ctx.fill();
     }
+  },
+
+  // the fans in the middle of the stand hold up cards that make the country's flag
+  tifo(L) {
+    const club = (typeof Clubs !== 'undefined' && (Clubs.home || (Clubs.mine && Clubs.mine()))) || null;
+    if (!club || typeof document === 'undefined' || typeof UI === 'undefined' || !UI.flagBadge) return null;
+    const key = club.id + '|' + Math.round(L.W) + 'x' + Math.round(L.gy);
+    if (this._tifo && this._tifo.key === key) return this._tifo.box;
+    let box = null;
+    try {
+      const cw = 52, ch = 34, cv = document.createElement('canvas');
+      cv.width = cw; cv.height = ch;
+      UI.flagBadge(cv, club);
+      const pix = cv.getContext('2d').getImageData(0, 0, cw, ch).data;
+      const standTop = L.sky + L.roofH, standH = L.gy - L.board - standTop;
+      const gl = L.gx - L.gw / 2, gr = L.gx + L.gw / 2;
+      const y0 = standTop + standH * 0.16, h = standH * 0.56;
+      const pad = L.W * 0.015;
+      const blocks = [];
+      if (gl - pad * 2 > L.W * 0.1) blocks.push({ x0: pad, x1: gl - pad, y0, y1: y0 + h });
+      if (L.W - gr - pad * 2 > L.W * 0.1) blocks.push({ x0: gr + pad, x1: L.W - pad, y0, y1: y0 + h });
+      if (!blocks.length) blocks.push({ x0: L.W * 0.27, x1: L.W * 0.73, y0, y1: y0 + h });
+      for (const b of blocks) { b.w = b.x1 - b.x0; b.h = b.y1 - b.y0; }
+      box = { blocks, pix, cw, ch };
+    } catch (e) { box = null; }
+    this._tifo = { key, box };
+    return box;
+  },
+  tifoColor(tf, x, y) {
+    const b = tf.blocks.find((q) => x > q.x0 && x < q.x1 && y > q.y0 && y < q.y1);
+    if (!b) return null;
+    const px = Math.max(0, Math.min(tf.cw - 1, Math.floor(((x - b.x0) / b.w) * tf.cw)));
+    const py = Math.max(0, Math.min(tf.ch - 1, Math.floor(((y - b.y0) / b.h) * tf.ch)));
+    const i = (py * tf.cw + px) * 4;
+    if (tf.pix[i + 3] < 120) return null;
+    return `rgb(${tf.pix[i]},${tf.pix[i + 1]},${tf.pix[i + 2]})`;
   },
 
   drawGrass(ctx, L) {

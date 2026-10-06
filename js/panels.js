@@ -328,18 +328,8 @@ Object.assign(UI, {
   // ---- characters ----
   panel_characters(body) {
     $('modal-title').textContent = 'CHARACTERS';
-    const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
-    const list = CHARACTERS.filter(charOk).sort((a, b) => Shop.price('character', a.id) - Shop.price('character', b.id));
-    body.innerHTML = `${this.coinsLine()}<p class="note">Better players are faster, shoot harder, pass sharper, keep the ball and win tackles. The best ones take days of play to afford.</p><div class="char-grid">${list.map((c) => `
-      <button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
-        <span class="rar-tag">${RARITIES[c.rarity].name}</span>
-        <span class="ovr"><b>${charOvr(c)}</b><small>OVR</small></span>
-        <canvas width="96" height="96" data-portrait="${c.id}"></canvas>
-        <strong>${c.name}</strong>
-        <span class="sig-tag">${sigName(c)}</span>
-        ${this.priceTag('character', c.id)}
-        <div class="bars ${charStats(c).some(([label]) => label.length > 4) ? 'long' : ''}">${charStats(c).map(([label, v]) => statRow(label, v)).join('')}</div>
-      </button>`).join('')}</div>`;
+    const list = this.charList();
+    body.innerHTML = `${this.coinsLine()}<p class="note">Better players are faster, shoot harder, pass sharper, keep the ball and win tackles. The best ones take days of play to afford.</p><div class="char-grid">${list.map((c) => this.charCard(c)).join('')}</div>`;
     body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('.char-card-sm').forEach((el) => this.shopCard(el, 'character', el.dataset.id, () => {
       Save.data.character = el.dataset.id; Save.write();
@@ -348,47 +338,162 @@ Object.assign(UI, {
     }));
   },
 
-  // ---- customize: trails, celebrations, stadiums ----
+  // every player card, in both the characters panel and the customize screen
+  charList() { return CHARACTERS.filter(charOk).sort((a, b) => Shop.price('character', a.id) - Shop.price('character', b.id)); },
+  charCard(c) {
+    const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
+    return `<button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
+        <span class="rar-tag">${RARITIES[c.rarity].name}</span>
+        <span class="ovr"><b>${charOvr(c)}</b><small>OVR</small></span>
+        <canvas width="96" height="96" data-portrait="${c.id}"></canvas>
+        <strong>${c.name}</strong>
+        <span class="sig-tag">${sigName(c)}</span>
+        ${this.priceTag('character', c.id)}
+        <div class="bars ${charStats(c).some(([label]) => label.length > 4) ? 'long' : ''}">${charStats(c).map(([label, v]) => statRow(label, v)).join('')}</div>
+      </button>`;
+  },
+
+  // ---- customize: your player on the left, everything you can put on them on the right ----
+  CUST_TABS: [['character', 'PLAYER'], ['ball', 'BALL'], ['accessory', 'ACCESSORY'], ['celebration', 'CELEBRATION'], ['trail', 'POWER TRAIL']],
+  CUST_NOTES: {
+    character: 'Who you play as. Better players are faster, shoot harder and keep the ball.',
+    ball: 'The match ball in every game you play.',
+    accessory: 'Worn by your player in every match — online, everyone sees it.',
+    celebration: 'Score and the camera zooms in on you doing this. Everyone in the match sees it.',
+    trail: 'Shown on power shots. Fill the meter around SHOOT, then fully charge.',
+  },
+
   panel_customize(body) {
     $('modal-title').textContent = 'CUSTOMIZE';
-    const tab = this._custTab || 'trail';
-    const tabs = [['trail', 'POWER TRAIL'], ['ball', 'BALL'], ['celebration', 'CELEBRATION'], ['accessory', 'ACCESSORY'], ['stadium', 'STADIUM']];
-    let grid = '';
-    if (tab === 'trail') {
+    const tab = this.CUST_TABS.some(([id]) => id === this._custTab) ? this._custTab : 'character';
+    this._custTab = tab;
+    let grid = '', gridClass = '';
+    if (tab === 'character') {
+      gridClass = 'char-grid';
+      grid = this.charList().map((c) => this.charCard(c)).join('');
+    } else if (tab === 'trail') {
       grid = TRAILS.map((t) => `<button class="trail-opt ${t.id === Save.trail().id ? 'sel' : ''} ${Shop.owns('trail', t.id) ? '' : 'locked'}" data-id="${t.id}">
         <canvas width="200" height="70" data-trail="${t.id}"></canvas><strong>${t.name}</strong>${this.priceTag('trail', t.id)}</button>`).join('');
     } else if (tab === 'celebration') {
+      gridClass = 'celeb-grid';
       grid = CELEBRATIONS.map((c) => `<button class="trail-opt celeb-opt ${c.id === Save.celebration() ? 'sel' : ''} ${Shop.owns('celebration', c.id) ? '' : 'locked'}" data-id="${c.id}">
         <canvas width="160" height="150" data-celeb="${c.id}"></canvas><strong>${c.name}</strong>${this.priceTag('celebration', c.id)}</button>`).join('');
     } else if (tab === 'accessory') {
       const on = Save.accessory();
       grid = [{ id: 'none', name: 'Nothing' }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on : a.id === on) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}">
         <canvas width="120" height="120" data-acc="${a.id}"></canvas><strong>${a.name}</strong>${a.id === 'none' ? '' : this.priceTag('accessory', a.id)}</button>`).join('');
-    } else if (tab === 'ball') {
+    } else {
       grid = BALLS.map((b) => `<button class="trail-opt ${b.id === Save.ball().id ? 'sel' : ''} ${Shop.owns('ball', b.id) ? '' : 'locked'}" data-id="${b.id}">
         <canvas width="200" height="90" data-ball="${b.id}"></canvas><strong>${b.name}</strong>${this.priceTag('ball', b.id)}</button>`).join('');
-    } else {
-      grid = STADIUMS.map((s) => `<button class="trail-opt ${s.id === Save.stadium().id ? 'sel' : ''} ${Shop.owns('stadium', s.id) ? '' : 'locked'}" data-id="${s.id}">
-        <canvas width="200" height="90" data-stadium="${s.id}"></canvas><strong>${s.name}</strong>${this.priceTag('stadium', s.id)}</button>`).join('');
     }
-    const notes = { accessory: 'Worn by your player in every match — online, everyone sees it.', trail: 'Shown on power shots. Fill the meter around SHOOT, then fully charge.', ball: 'The match ball in every game you play.', celebration: 'Score and the camera zooms in on you doing this. Everyone in the match sees it.', stadium: 'Where every match is played.' };
-    body.innerHTML = `${this.coinsLine()}<div class="tabs">${tabs.map(([id, l]) => `<button data-tab="${id}" class="${id === tab ? 'sel' : ''}">${l}</button>`).join('')}</div>
-      <p class="note">${notes[tab]}</p><div class="trail-grid ${tab === 'celebration' ? 'celeb-grid' : ''}">${grid}</div>`;
+    const ground = typeof stadiumFor === 'function' ? stadiumFor(Clubs.mine()) : Save.stadium();
+    body.innerHTML = `<div class="cust">
+      <div class="cust-left">
+        <canvas id="cust-view" class="cust-view"></canvas>
+        <div class="cust-ground"><canvas id="cust-ground" width="200" height="90"></canvas><b>HOME · ${ground.name}</b></div>
+      </div>
+      <div class="cust-side">
+        <div class="cust-top">${this.coinsLine()}<div class="tabs">${this.CUST_TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === tab ? 'sel' : ''}">${label}</button>`).join('')}</div></div>
+        <p class="note">${this.CUST_NOTES[tab]}</p>
+        <div class="trail-grid ${gridClass}">${grid}</div>
+      </div>
+    </div>`;
     body.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { this.tap(); this._custTab = b.dataset.tab; this.panel_customize(body); }));
     body.querySelectorAll('canvas[data-trail]').forEach((cv) => this.trailSwatch(cv, cv.dataset.trail));
-    if (tab === 'celebration') this.animateCelebs(body);
-    body.querySelectorAll('canvas[data-stadium]').forEach((cv) => this.stadiumSwatch(cv, cv.dataset.stadium));
     body.querySelectorAll('canvas[data-ball]').forEach((cv) => this.ballSwatch(cv, cv.dataset.ball));
+    body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.portrait(cv, { ...Save.look(), acc: cv.dataset.acc === 'none' ? null : cv.dataset.acc }));
-    body.querySelectorAll('.trail-opt').forEach((el) => this.shopCard(el, tab, el.dataset.id, () => {
+    if (tab === 'celebration') this.animateCelebs(body);
+    const groundCv = $('cust-ground');
+    if (groundCv) { const g = groundCv.getContext('2d'); g.drawImage(Render.stadiumThumb(ground), 0, 0, groundCv.width, groundCv.height); }
+    body.querySelectorAll('.trail-opt, .char-card-sm').forEach((el) => this.shopCard(el, tab, el.dataset.id, () => {
+      if (tab === 'character') Save.data.character = el.dataset.id;
       if (tab === 'trail') Save.data.trail = el.dataset.id;
       if (tab === 'celebration') Save.data.celebration = el.dataset.id;
       if (tab === 'ball') Save.data.ball = el.dataset.id;
-      if (tab === 'accessory') { Save.data.accessory = el.dataset.id === 'none' ? null : el.dataset.id; this.refreshHome(); }
-      if (tab === 'stadium') { Save.data.stadium = el.dataset.id; Render.buildLayer(); Render.homeCrowd = null; }
+      if (tab === 'accessory') Save.data.accessory = el.dataset.id === 'none' ? null : el.dataset.id;
       Save.write();
       this.panel_customize(body);
+      this.refreshHome();
     }));
+    this.custStage();
+  },
+
+  // The player on the left plays a little loop: stands there, strikes the ball away with your
+  // trail behind it, then does your celebration. Everything equipped, all at once.
+  custStage() {
+    const cv = $('cust-view');
+    if (!cv) return;
+    if (this._stage) this._stage.dead = true;
+    const state = this._stage = { dead: false, d: 1 };
+    this._stageT0 = this._stageT0 || performance.now();
+    const fit = () => {
+      const r = cv.getBoundingClientRect();
+      state.d = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.max(60, Math.round(r.width * state.d));
+      cv.height = Math.max(60, Math.round(r.height * state.d));
+    };
+    fit();
+    let last = 0;
+    const frame = (now) => {
+      if (state.dead || $('modal').hidden || !cv.isConnected) return;
+      requestAnimationFrame(frame);
+      if (now - last < 33) return;
+      last = now;
+      const r = cv.getBoundingClientRect();
+      if (Math.abs(r.width * state.d - cv.width) > 2 || Math.abs(r.height * state.d - cv.height) > 2) fit();
+      this.drawStage(cv, (now - this._stageT0) / 1000);
+    };
+    requestAnimationFrame(frame);
+  },
+
+  STAGE_IDLE: 1.5, STAGE_KICK: 0.22, STAGE_FLY: 0.95,
+  drawStage(cv, t) {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    const st = Save.stadium();
+    // the home ground's own grass, mown in bands
+    const bands = 7;
+    for (let i = 0; i < bands; i++) { g.fillStyle = st.grass[i % 2][0]; g.fillRect(0, (H / bands) * i, W, H / bands + 1); }
+    g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 0, W, H * 0.1);
+    const k = Math.min(H / 108, W / 72);
+    const ground = H * 0.84, px = W * 0.4;
+    const kick = this.STAGE_IDLE, fly = kick + this.STAGE_KICK, cele = fly + this.STAGE_FLY;
+    const cycle = cele + CELE_TIME + 0.4;
+    const e = t % cycle;
+    const p = this.fakePlayer(Save.look());
+    p.faceX = 1; p.fx = 1; p.fy = 0.22; p.vx = 0; p.vy = 0; p.runPhase = 0;
+    p.kickT = 0; p.celebrateT = 0; p.celebKind = null;
+    if (e > kick && e < fly + 0.1) { p.kickT = Math.max(0, this.STAGE_KICK - (e - kick)); p.kickDur = this.STAGE_KICK; }
+    if (e > cele) { p.celebrateT = Math.max(0, CELE_TIME - (e - cele)); p.celebKind = Save.celebration(); }
+    // the ball: at his feet, then away to the right with the trail behind it
+    const ballR = 3.1 * k;
+    let bx = px + 13 * k, by = ground - ballR * 0.9, pts = null;
+    if (e > fly) {
+      const u = Math.min(1, (e - fly) / this.STAGE_FLY);
+      bx = px + 13 * k + u * (W - px - 10 * k);
+      by = ground - ballR * 0.9 - Math.sin(u * Math.PI) * H * 0.22;
+      pts = [];
+      for (let i = 1; i <= 11; i++) {
+        const uu = Math.max(0, u - i * 0.035);
+        pts.push({ x: px + 13 * k + uu * (W - px - 10 * k), y: ground - ballR * 0.9 - Math.sin(uu * Math.PI) * H * 0.22, z: -CFG.BALL_R });
+      }
+    }
+    if (e > cele) { bx = -999; }
+    // shadows first
+    g.fillStyle = 'rgba(20, 60, 20, 0.3)';
+    g.beginPath(); g.ellipse(px, ground + 2, 15 * k, 5.5 * k, 0, 0, Math.PI * 2); g.fill();
+    if (bx > 0) { g.beginPath(); g.ellipse(bx, ground + 2, ballR * 1.1, ballR * 0.4, 0, 0, Math.PI * 2); g.fill(); }
+    // the power trail off the shot, then the ball
+    const prev = Game.headless; Game.headless = true;
+    if (pts) {
+      const R = { S: k * 0.9, sx: (x) => x, sy: (y) => y };
+      Sprites.trail(g, { trailType: Save.trail().id, trail: pts, x: bx, y: by, z: -CFG.BALL_R }, R, t);
+    }
+    const pose = p.celebrateT > 0 && CELE_POSES[p.celebKind] ? CELE_POSES[p.celebKind](CELE_TIME - p.celebrateT, t, p) : null;
+    if (pose && CELE_MOVES[p.celebKind]) p.vx = CELE_MOVES[p.celebKind](CELE_TIME - p.celebrateT);
+    Sprites.player(g, p, px, ground, k, t);
+    if (bx > 0) Sprites.ball(g, { x: 0, y: 0, z: 0, vx: 1, vy: 0, roll: t * 5, shot: null, owner: null, skin: Save.ball() }, bx, by, k * 1.1, t);
+    Game.headless = prev;
   },
 
   // ---- settings ----
@@ -646,14 +751,4 @@ Object.assign(UI, {
     Sprites.ball(g, { x: 0, y: 0, z: 0, vx: 1, vy: 0.3, roll: 0.9, shot: null, owner: null, skin }, w / 2, h / 2 - 4, 3.2, Game.t);
   },
 
-  stadiumSwatch(cv, id) {
-    const g = cv.getContext('2d'), w = cv.width, h = cv.height;
-    const st = STADIUMS.find((s) => s.id === id);
-    // the real stadium, drawn small, with a still of its weather on top
-    g.drawImage(Render.stadiumThumb(st), 0, 0, w, h);
-    const sc = w / 1020;
-    g.save(); g.beginPath(); g.rect(0, 0, w, h); g.clip();
-    Render.drawWeather(g, 1.3, { st, W: w, H: h, S: 0.6, px: (x) => (x + 150) * sc, py: (y) => (y * CFG.TILT + 210) * sc, k: () => sc });
-    g.restore();
-  },
 });

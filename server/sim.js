@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const JS = path.join(__dirname, '..', 'js');
-const FILES = ['config.js', 'clubs.js', 'celebs.js', 'save.js', 'meta.js', 'entities.js', 'ai.js', 'match.js', 'replay.js'];
+const FILES = ['config.js', 'clubs.js', 'stadiums.js', 'celebs.js', 'save.js', 'meta.js', 'entities.js', 'ai.js', 'match.js', 'replay.js'];
 
 // sounds everyone should hear; the charge hum is local to whoever is charging
 const SOUND_SKIP = new Set(['chargeStart', 'chargeStop', 'unlock', 'startMusic', 'stopMusic', 'startAmbience', 'stopAmbience', 'applyVolumes', 'tap', 'ok', 'setExcitement']);

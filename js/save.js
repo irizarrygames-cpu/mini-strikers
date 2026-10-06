@@ -88,9 +88,9 @@ const Save = {
     const t = TRAILS.find((x) => x.id === this.data.trail);
     return t && Shop.owns('trail', t.id) ? t : TRAILS[0];
   },
+  // You do not buy a ground any more: you play at the home of the country you play for.
   stadium() {
-    const s = STADIUMS.find((x) => x.id === this.data.stadium);
-    return s && Shop.owns('stadium', s.id) ? s : STADIUMS[0];
+    return typeof homeStadium === 'function' ? homeStadium() : FALLBACK_STADIUM;
   },
   ball() {
     const b = BALLS.find((x) => x.id === this.data.ball);

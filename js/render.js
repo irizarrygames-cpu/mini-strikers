@@ -37,7 +37,7 @@ const Render = {
   layerFor() {
     const low = Save.data.settings.graphics === 'low' || this.quality >= 1;
     const f = Math.min(this.S * this.dpr * 1.1, low ? 0.75 : 1.0);
-    return [f.toFixed(3), Save.data.stadium, Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id].join('|');
+    return [f.toFixed(3), Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id].join('|');
   },
 
   // Slight perspective: things on the far side of the pitch shrink, the near side grows.
@@ -108,7 +108,7 @@ const Render = {
           g.fillStyle = hair[(rng() * 6) | 0];
           g.beginPath(); g.arc(cx, cy - 8.5, 5.6, Math.PI * 1.05, Math.PI * 1.95); g.fill();
         }
-        this.crowdHat(g, st.id, cx, cy, backs, rng);
+        this.crowdHat(g, st.hats || st.kind, cx, cy, backs, rng);
       }
     }
   },
@@ -191,7 +191,7 @@ const Render = {
     face(W + E - C, topBoard, W + E, (-M + C) * T, boardH, TEAMS.red.board, TEAMS.red.lip);
     // slogans on the far board
     g.font = '900 17px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    const words = [GAME_NAME.toUpperCase(), GAME_SLOGANS[0] + ' ' + GAME_SLOGANS[1], GAME_SLOGANS[2]];
+    const words = [GAME_NAME.toUpperCase(), st.chant || GAME_SLOGANS[2], st.name || GAME_SLOGANS[0]];
     for (let i = 0; i < Math.ceil(W / 205); i++) {
       const x = 90 + i * 205, y = topBoard - boardH / 2 + 1;
       const s = words[i % 3];
@@ -290,24 +290,24 @@ const Render = {
       for (let x = 0; x <= W; x += 100) { g.beginPath(); g.moveTo(x, -M * T); g.lineTo(x, (H + M) * T); g.stroke(); }
       for (let y = 0; y <= H; y += 100) { g.beginPath(); g.moveTo(-CFG.END_M, y * T); g.lineTo(W + CFG.END_M, y * T); g.stroke(); }
     }
-    for (const x of [26, W - 26]) oval(x, H / 2, 60, 120, st.id === 'snow' ? 'rgba(120, 150, 110, 0.25)' : 'rgba(170, 140, 70, 0.16)');
+    for (const x of [26, W - 26]) oval(x, H / 2, 60, 120, st.kind === 'snow' ? 'rgba(120, 150, 110, 0.25)' : 'rgba(170, 140, 70, 0.16)');
     if (st.lights) for (const [x, y] of [[0.25, 0.3], [0.75, 0.3], [0.25, 0.72], [0.75, 0.72]]) oval(W * x, H * y, 560, 380, 'rgba(255, 255, 225, 0.06)');
-    if (st.id === 'rain') {
+    if (st.kind === 'rain') {
       for (let i = 0; i < 16; i++) {
         const x = rng() * W, y = rng() * H, rx = 36 + rng() * 50, ry = 16 + rng() * 16;
         oval(x, y, rx, ry, 'rgba(40, 95, 125, 0.26)');
         g.fillStyle = 'rgba(255, 255, 255, 0.3)'; g.fillRect(x - rx * 0.4, (y - ry * 0.3) * T, rx * 0.5, 3);
       }
     }
-    if (st.id === 'desert') for (let i = 0; i < 24; i++) oval(rng() * W, rng() * H, 50 + rng() * 80, 26 + rng() * 40, 'rgba(226, 198, 120, 0.42)');
-    if (st.id === 'snow') {
+    if (st.kind === 'desert') for (let i = 0; i < 24; i++) oval(rng() * W, rng() * H, 50 + rng() * 80, 26 + rng() * 40, 'rgba(226, 198, 120, 0.42)');
+    if (st.kind === 'snow') {
       for (let x = -40; x < W + 60; x += 55) {
         oval(x, -M + 6 + rng() * 14, 45 + rng() * 40, 16 + rng() * 12, 'rgba(255, 255, 255, 0.85)');
         oval(x + 20, H + M - 6 - rng() * 14, 45 + rng() * 40, 16 + rng() * 12, 'rgba(255, 255, 255, 0.85)');
       }
       for (let i = 0; i < 18; i++) oval(rng() * W, rng() * H, 40 + rng() * 60, 20 + rng() * 30, 'rgba(255, 255, 255, 0.3)');
     }
-    if (st.id === 'royal') {
+    if (st.kind === 'royal') {
       // a crown mown into the centre circle
       const cx = W / 2, cy = (H / 2) * T, s = 5.2, q = s * T;
       g.fillStyle = 'rgba(255, 255, 255, 0.13)';
@@ -323,7 +323,7 @@ const Render = {
     const front = topBoard - boardH;
     g.fillStyle = '#c9d2de'; g.strokeStyle = OUTLINE; g.lineWidth = 2;
     g.beginPath(); g.rect(X0, front - 5, X1 - X0, 4); g.fill(); g.stroke();
-    const words = ['VAMOS!', 'ALLEZ!', "LET'S GO!", 'OLÉ OLÉ', 'FORZA!', 'GOOOAL!'];
+    const words = [st.chant || "LET'S GO!", TEAMS.blue.name, st.name || 'GOOOAL!', TEAMS.red.name];
     g.font = '900 15px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     for (let i = 0; 150 + i * 360 < W; i++) {
       const x = 150 + i * 360, team = x < W / 2 ? TEAMS.blue : TEAMS.red, w = 112;
@@ -332,16 +332,16 @@ const Render = {
       g.lineWidth = 3.5; g.strokeText(words[i % words.length], x, front - 16);
       g.fillStyle = '#ffffff'; g.fillText(words[i % words.length], x, front - 16);
     }
-    if (st.id === 'neon') {
+    if (st.kind === 'neon') {
       g.lineCap = 'butt'; g.lineWidth = 3;
       for (const [y, c] of [[front + 1.5, '#39ff88'], [topBoard - 1.5, '#ff4df0'], [nb + 1.5, '#46d9ff']]) { g.strokeStyle = c; g.beginPath(); g.moveTo(-E + C, y); g.lineTo(W + E - C, y); g.stroke(); }
     }
-    if (st.id === 'royal') { g.fillStyle = '#ffc21a'; g.fillRect(-E + C, front, W + 2 * E - 2 * C, 5); g.fillRect(-E + C, nb, W + 2 * E - 2 * C, 4); }
-    if (st.id === 'rain') {
+    if (st.kind === 'royal') { g.fillStyle = '#ffc21a'; g.fillRect(-E + C, front, W + 2 * E - 2 * C, 5); g.fillRect(-E + C, nb, W + 2 * E - 2 * C, 4); }
+    if (st.kind === 'rain') {
       g.strokeStyle = 'rgba(255, 255, 255, 0.35)'; g.lineWidth = 3; g.lineCap = 'round';
       for (let x = -E + C + 40; x < W + E - C; x += 140) { g.beginPath(); g.moveTo(x, topBoard - 6); g.lineTo(x + 14, front + 7); g.stroke(); }
     }
-    if (st.id === 'snow') {
+    if (st.kind === 'snow') {
       g.fillStyle = '#ffffff'; g.strokeStyle = OUTLINE; g.lineWidth = 2;
       g.beginPath(); g.moveTo(-E + C, front + 3);
       for (let x = -E + C; x < W + E - C; x += 26) g.quadraticCurveTo(x + 13, front - 7 - (Math.abs(x / 26) % 3), x + 26, front + 3);
