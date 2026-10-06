@@ -472,7 +472,10 @@ Object.assign(UI, {
   },
 
   // every player card, in both the characters panel and the customize screen
-  charList() { return CHARACTERS.filter(charOk).sort((a, b) => Shop.price('character', a.id) - Shop.price('character', b.id)); },
+  // worst to best, by rating — the order you would rank them in yourself
+  charList() {
+    return CHARACTERS.filter(charOk).sort((a, b) => charOvr(a) - charOvr(b) || Shop.price('character', a.id) - Shop.price('character', b.id));
+  },
   charCard(c) {
     const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
     return `<button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
