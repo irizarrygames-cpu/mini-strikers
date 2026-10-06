@@ -309,18 +309,18 @@ Object.assign(UI, {
   shopCard(el, kind, id, onEquip) {
     el.addEventListener('click', () => {
       if (Shop.owns(kind, id)) { this.tap(); onEquip(); return; }
-      const price = Shop.price(kind, id);
-      if (Save.data.coins < price) { Sound.steal(); el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400); return; }
-      if (!el.classList.contains('armed')) { this.tap(); el.parentElement.querySelectorAll('.armed').forEach((x) => x.classList.remove('armed')); el.classList.add('armed'); return; }
-      Shop.buy(kind, id);
-      Sound.powerReady();
-      onEquip();
+      Sound.steal();
+      el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400);
+      this.toast('OPEN CRATES TO FIND THIS ONE');
     });
   },
 
+  // Nothing is sold item by item any more. An item you have not got says which grade of crate it
+  // is hiding in instead.
   priceTag(kind, id) {
     if (Shop.owns(kind, id)) return '';
-    return `<span class="price"><span class="coin"></span>${Shop.price(kind, id)}</span><span class="buy">TAP TO BUY</span>`;
+    const rar = Crates.rarity(kind, id);
+    return `<span class="price locked-tag" style="--r:${RARITIES[rar].color}"><i></i>${RARITIES[rar].name}</span><span class="buy">FROM CRATES</span>`;
   },
 
   coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${fmtCoins(Save.data.coins)}</b></div>`; },
@@ -336,6 +336,139 @@ Object.assign(UI, {
       this.panel_characters(body);
       this.refreshHome();
     }));
+  },
+
+  // ---- crates: the only way to get anything new ----
+  panel_crates(body) {
+    $('modal-title').textContent = 'CRATES';
+    const cards = CRATES.map((c) => {
+      const odds = CRATE_RARITIES.filter((r) => (c.odds[r] || 0) > 0)
+        .map((r) => `<i style="--r:${RARITIES[r].color}"><b>${RARITIES[r].name}</b><em>${c.odds[r]}%</em></i>`).join('');
+      const left = Crates.left(c);
+      return `<button class="crate-card ${Save.data.coins < c.price ? 'poor' : ''} ${left ? '' : 'spent'}" data-crate="${c.id}" style="--c:${c.color}">
+        <canvas width="150" height="120" data-crateart="${c.id}"></canvas>
+        <strong>${c.name}</strong>
+        <span class="crate-odds">${odds}</span>
+        <span class="crate-left">${left ? left + ' LEFT INSIDE' : 'EMPTY'}</span>
+        <span class="crate-price"><span class="coin"></span>${fmtCoins(c.price)}</span>
+      </button>`;
+    }).join('');
+    const left = Crates.anyMissing();
+    body.innerHTML = `${this.coinsLine()}
+      <p class="note">${left ? 'Every crate gives you something you have not got yet. The dearer the crate, the better the chances.' : 'You own everything. There is nothing left in any crate.'}</p>
+      <div class="crate-grid">${cards}</div>`;
+    body.querySelectorAll('canvas[data-crateart]').forEach((cv) => this.crateArt(cv, Crates.get(cv.dataset.crateart)));
+    body.querySelectorAll('.crate-card').forEach((el) => el.addEventListener('click', () => {
+      const crate = Crates.get(el.dataset.crate);
+      if (Save.data.coins < crate.price) { Sound.steal(); el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400); return; }
+      if (!Crates.left(crate)) { Sound.steal(); this.toast('THAT CRATE IS EMPTY — TRY A BIGGER ONE'); return; }
+      this.tap();
+      this.openCrate(body, crate);
+    }));
+  },
+
+  // a crate, drawn: a box in its own colour with a band round it
+  crateArt(cv, crate) {
+    const g = cv.getContext('2d'), w = cv.width, h = cv.height;
+    g.clearRect(0, 0, w, h);
+    const x = w * 0.14, y = h * 0.26, bw = w * 0.72, bh = h * 0.56;
+    g.lineJoin = 'round'; g.strokeStyle = OUTLINE; g.lineWidth = 4;
+    // lid
+    g.fillStyle = shadeHex(crate.color, 0.18);
+    g.beginPath(); g.moveTo(x - w * 0.05, y); g.lineTo(x + bw * 0.5, y - h * 0.16); g.lineTo(x + bw + w * 0.05, y); g.lineTo(x + bw, y + h * 0.1); g.lineTo(x, y + h * 0.1); g.closePath();
+    g.fill(); g.stroke();
+    // body
+    g.fillStyle = crate.color;
+    Sprites.rr(g, x, y + h * 0.08, bw, bh, 7); g.fill(); g.stroke();
+    // band and lock
+    g.fillStyle = shadeHex(crate.color, -0.35);
+    g.fillRect(x + bw * 0.42, y + h * 0.08, bw * 0.16, bh);
+    g.fillStyle = '#ffe14d';
+    Sprites.rr(g, x + bw * 0.38, y + bh * 0.42, bw * 0.24, bh * 0.3, 4); g.fill(); g.stroke();
+    g.fillStyle = OUTLINE;
+    g.beginPath(); g.arc(x + bw * 0.5, y + bh * 0.58, bw * 0.045, 0, Math.PI * 2); g.fill();
+  },
+
+  // Opening one: a reel of things it could hand over, running down to the one it does.
+  openCrate(body, crate) {
+    const win = Crates.open(crate.id);
+    if (!win || win.poor || win.empty) { this.toast(win && win.empty ? 'THAT CRATE CAME UP EMPTY — NOTHING SPENT' : 'NOT ENOUGH COINS'); this.panel_crates(body); return; }
+    const { cells, at } = Crates.reel(crate, win);
+    const cell = (c, i) => `<span class="reel-cell rar-${Crates.rarity(c.kind, c.id)}" style="--r:${RARITIES[Crates.rarity(c.kind, c.id)].color}">
+      <canvas width="120" height="120" data-cell="${i}"></canvas><b>${Crates.name(c.kind, c.id)}</b></span>`;
+    body.innerHTML = `<div class="crate-open">
+      <h3 style="--c:${crate.color}">${crate.name}</h3>
+      <div class="reel-window"><div class="reel" id="crate-reel">${cells.map(cell).join('')}</div><span class="reel-mark"></span></div>
+      <div class="crate-result" id="crate-result" hidden></div>
+      <div class="crate-buttons" id="crate-buttons" hidden>
+        <button class="big-btn" id="crate-back">BACK</button>
+        <button class="big-btn green" id="crate-again">OPEN ANOTHER</button>
+      </div>
+    </div>`;
+    // every cell draws whatever it is holding
+    body.querySelectorAll('canvas[data-cell]').forEach((cv) => this.itemSwatch(cv, cells[+cv.dataset.cell]));
+    const reel = $('crate-reel');
+    const first = reel.querySelector('.reel-cell');
+    const cellW = (first ? first.getBoundingClientRect().width : 100) + 8; // card + the gap beside it
+    const win0 = reel.parentElement.getBoundingClientRect().width;
+    const land = win0 / 2 - (at * cellW + cellW / 2) + (Math.random() * 40 - 20);
+    reel.style.transition = 'none';
+    reel.style.transform = 'translateX(' + (win0 / 2 - cellW / 2) + 'px)';
+    void reel.offsetWidth;
+    reel.style.transition = 'transform 4.4s cubic-bezier(.08,.72,.16,1)';
+    reel.style.transform = 'translateX(' + land + 'px)';
+    Sound.tap();
+    clearTimeout(this._crateT);
+    this._crateT = setTimeout(() => {
+      if (!$('crate-result')) return;
+      const rar = Crates.rarity(win.kind, win.id);
+      const kindName = { character: 'PLAYER', ball: 'BALL', trail: 'POWER TRAIL', celebration: 'CELEBRATION', accessory: 'ACCESSORY' }[win.kind];
+      $('crate-result').innerHTML = `<span class="got" style="--r:${RARITIES[rar].color}">${RARITIES[rar].name}</span>
+        <b>${Crates.name(win.kind, win.id)}</b><em>${kindName} · NEW</em>`;
+      $('crate-result').hidden = false;
+      $('crate-buttons').hidden = false;
+      $('crate-again').textContent = Save.data.coins >= crate.price ? 'OPEN ANOTHER' : 'NOT ENOUGH COINS';
+      $('crate-again').classList.toggle('off', Save.data.coins < crate.price);
+      Sound.powerReady();
+      if (rar === 'legendary' || rar === 'mythic') { Sound.cheer(true); FX.flash && FX.flash; }
+      $('crate-back').addEventListener('click', () => { this.tap(); this.panel_crates(body); });
+      $('crate-again').addEventListener('click', () => {
+        if (Save.data.coins < crate.price) { Sound.steal(); return; }
+        this.tap(); this.openCrate(body, crate);
+      });
+      this.refreshHome();
+    }, 4500);
+  },
+
+  // An accessory card: a portrait for anything worn on the head or face, and the whole player for
+  // anything worn anywhere else — a cape or a pair of boots is not in a portrait.
+  accSwatch(cv, id) {
+    const def = ACCESSORIES.find((a) => a.id === id);
+    const look = { ...Save.look(), acc: id === 'none' ? null : id };
+    if (!def || def.slot === 'face') { this.portrait(cv, look); return; }
+    if (def.slot === 'head') { this.portrait(cv, look, 'blue', false, 10, 0.16); return; }
+    const g = cv.getContext('2d'), w = cv.width, h = cv.height;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = TEAMS.blue.board;
+    g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 3, 0, Math.PI * 2); g.fill();
+    g.save();
+    g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 3, 0, Math.PI * 2); g.clip();
+    const p2 = this.fakePlayer(look);
+    if (def.slot === 'back') { p2.fy = -1; p2.faceX = 0.001; } // turn round so the back shows
+    p2.vx = 0; p2.vy = 0;
+    Sprites.player(g, p2, w / 2, h * 0.94, w / 86, 0.4);
+    g.restore();
+    g.lineWidth = 3; g.strokeStyle = OUTLINE;
+    g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 3, 0, Math.PI * 2); g.stroke();
+  },
+
+  // one small picture of any item, whatever kind it is
+  itemSwatch(cv, item) {
+    if (item.kind === 'character') this.portrait(cv, CHARACTERS.find((c) => c.id === item.id));
+    else if (item.kind === 'accessory') this.accSwatch(cv, item.id);
+    else if (item.kind === 'ball') this.ballSwatch(cv, item.id);
+    else if (item.kind === 'trail') this.trailSwatch(cv, item.id);
+    else this.celebSwatch(cv, item.id, 1.2);
   },
 
   // every player card, in both the characters panel and the customize screen
@@ -402,7 +535,7 @@ Object.assign(UI, {
     body.querySelectorAll('canvas[data-trail]').forEach((cv) => this.trailSwatch(cv, cv.dataset.trail));
     body.querySelectorAll('canvas[data-ball]').forEach((cv) => this.ballSwatch(cv, cv.dataset.ball));
     body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
-    body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.portrait(cv, { ...Save.look(), acc: cv.dataset.acc === 'none' ? null : cv.dataset.acc }));
+    body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.accSwatch(cv, cv.dataset.acc));
     if (tab === 'celebration') this.animateCelebs(body);
     const groundCv = $('cust-ground');
     if (groundCv) { const g = groundCv.getContext('2d'); g.drawImage(Render.stadiumThumb(ground), 0, 0, groundCv.width, groundCv.height); }
@@ -667,7 +800,7 @@ Object.assign(UI, {
     return { team, isKeeper: keeper, number, look, vx: 0, vy: 0, fx: 1, fy: 0.3, faceX: 1, kickT: 0, kickDur: 0.2, celebrateT: 0, diveT: 0, stunT: 0, recoverT: 0, seed: 0, runPhase: 0, sad: false, slideT: 0, fallT: 0, hopT: 0 };
   },
 
-  portrait(cv, look, team = 'blue', keeper = false, number = 10) {
+  portrait(cv, look, team = 'blue', keeper = false, number = 10, drop = 0) {
     const g = cv.getContext('2d');
     const w = cv.width, h = cv.height;
     g.clearRect(0, 0, w, h);
@@ -676,7 +809,7 @@ Object.assign(UI, {
     g.save();
     g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 3, 0, Math.PI * 2); g.clip();
     const k = w / 50;
-    Sprites.player(g, this.fakePlayer(look, team, keeper, number), w / 2 - 2 * k, h * 0.46 + 56 * k, k, 0);
+    Sprites.player(g, this.fakePlayer(look, team, keeper, number), w / 2 - 2 * k, h * (0.46 + drop) + 56 * k, k, 0);
     g.restore();
     g.lineWidth = 3; g.strokeStyle = OUTLINE;
     g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 3, 0, Math.PI * 2); g.stroke();

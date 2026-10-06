@@ -246,7 +246,7 @@ window.BS = {
 
     await step('splash away', () => { $('splash').classList.add('gone'); $('splash').hidden = true; $('daily').hidden = true; });
     await step('home refresh', () => UI.refreshHome());
-    for (const kind of ['play', 'characters', 'customize', 'settings', 'profile']) {
+    for (const kind of ['play', 'characters', 'customize', 'crates', 'settings', 'profile']) {
       await step('open ' + kind, () => { UI.openModal(kind); if (!visible('modal')) throw new Error('modal hidden'); });
       await step('close ' + kind, () => { click($('modal-close')); if (visible('modal')) throw new Error('modal still open'); });
     }
@@ -255,25 +255,73 @@ window.BS = {
       for (const t of ['character', 'ball', 'celebration', 'accessory', 'trail']) { click(document.querySelector(`[data-tab="${t}"]`)); await wait(30); }
       UI.closeModal();
     });
-    await step('buy with no coins', async () => {
-      Save.data.coins = 0; UI.openModal('characters');
+    await step('a locked card cannot be bought', async () => {
+      Save.data.coins = 999999; UI.openModal('characters');
       const card = document.querySelector('.char-card-sm.locked');
+      if (!card) { UI.closeModal(); return; }
+      const id = card.dataset.id;
       click(card); click(card);
-      if (Save.data.owned.character.includes(card.dataset.id)) throw new Error('bought without coins');
+      if (Save.data.owned.character.includes(id)) throw new Error('a card sold itself');
       UI.closeModal();
     });
-    await step('buy + equip character', async () => {
-      Save.data.coins = 1000; UI.openModal('characters');
-      const card = document.querySelector('.char-card-sm.locked[data-id="buzz"]');
-      click(card); await wait(20); click(document.querySelector('.char-card-sm[data-id="buzz"]'));
-      if (!Save.data.owned.character.includes('buzz')) throw new Error('not owned after buy');
-      if (Save.data.coins !== 500) throw new Error('coins ' + Save.data.coins);
+    const emptyBag = () => { Save.data.owned = { character: [], ball: [], trail: [], celebration: [], accessory: [] }; };
+    await step('a crate costs coins and gives something new', async () => {
+      emptyBag();
+      Save.data.coins = 20000;
+      const before = JSON.stringify(Save.data.owned);
+      const win = Crates.open('bronze');
+      if (!win || win.poor || win.empty) throw new Error('crate gave nothing');
+      if (Save.data.coins !== 18000) throw new Error('coins ' + Save.data.coins);
+      if (JSON.stringify(Save.data.owned) === before) throw new Error('nothing was added');
+      if (!Shop.owns(win.kind, win.id)) throw new Error('the prize is not owned');
+    });
+    await step('a crate never gives the same thing twice', async () => {
+      emptyBag();
+      Save.data.coins = 999999;
+      const seen = new Set();
+      for (let i = 0; i < 40; i++) {
+        const w = Crates.open('gold');
+        if (!w || w.empty) break;
+        const key = w.kind + ':' + w.id;
+        if (seen.has(key)) throw new Error('got ' + key + ' twice');
+        seen.add(key);
+      }
+    });
+    await step('a crate you cannot afford takes nothing', async () => {
+      emptyBag();
+      Save.data.coins = 10;
+      const owned = JSON.stringify(Save.data.owned);
+      const r = Crates.open('goatcrate');
+      if (!r || !r.poor) throw new Error('it opened anyway');
+      if (Save.data.coins !== 10) throw new Error('coins ' + Save.data.coins);
+      if (JSON.stringify(Save.data.owned) !== owned) throw new Error('something was added');
+    });
+    await step('the reel ends on the prize', async () => {
+      emptyBag();
+      Save.data.coins = 999999;
+      const crate = Crates.get('ruby');
+      const win = { kind: 'ball', id: 'classic' };
+      const { cells, at } = Crates.reel(crate, win);
+      if (cells.length < 20) throw new Error('reel too short');
+      if (cells[at].id !== win.id) throw new Error('the prize is not where the marker lands');
+    });
+    await step('a crate with nothing left charges nothing', async () => {
+      Save.data.owned = { character: CHARACTERS.map((c) => c.id), ball: BALLS.map((b) => b.id), trail: TRAILS.map((t) => t.id), celebration: CELEBRATIONS.map((c) => c.id), accessory: ACCESSORIES.map((a) => a.id) };
+      Save.data.coins = 999999;
+      const r = Crates.open('bronze');
+      if (!r || !r.empty) throw new Error('it gave something out of an empty crate');
+      if (Save.data.coins !== 999999) throw new Error('it charged for nothing');
+    });
+    await step('equip a character you own', async () => {
+      Save.data.owned.character = [...new Set([...(Save.data.owned.character || []), 'buzz'])];
+      UI.openModal('characters');
+      click(document.querySelector('.char-card-sm[data-id="buzz"]'));
       if (Save.character().id !== 'buzz') throw new Error('not equipped');
       UI.closeModal();
     });
-    await step('buy + equip ball', async () => {
-      Save.data.coins = 400; UI._custTab = 'ball'; UI.openModal('customize');
-      click(document.querySelector('.trail-opt[data-id="beach"]')); await wait(20);
+    await step('equip a ball you own', async () => {
+      Save.data.owned.ball = [...new Set([...(Save.data.owned.ball || []), 'beach'])];
+      UI._custTab = 'ball'; UI.openModal('customize');
       click(document.querySelector('.trail-opt[data-id="beach"]'));
       if (Save.ball().id !== 'beach') throw new Error('ball not equipped');
       UI.closeModal();

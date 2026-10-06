@@ -1230,6 +1230,51 @@ body.kb .chat-menu kbd { display: inline-block; }
 .commentary { position: fixed; z-index: 9; top: calc(var(--sb-b, calc(var(--st) + 62px)) + 8px); left: 50%; width: min(560px, 72vw, calc(100vw - 2 * (var(--sl) + 54px))); transform: translate(-50%, -8px) scale(.98); text-align: center; pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
 .commentary.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 
+/* CRATES: the ladder, and the reel */
+.crate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.crate-card {
+  position: relative; border: 3px solid var(--ink); border-radius: 14px; background: #eef2ff; padding: 8px 8px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 4px 0 var(--ink), inset 0 0 0 3px var(--c, #ffc21a);
+}
+.crate-card canvas { width: 100%; max-width: 150px; height: auto; }
+.crate-card strong { font-weight: 400; font-size: 15px; letter-spacing: .02em; }
+.crate-card.poor { filter: saturate(.5); opacity: .72; }
+.crate-card.nope { animation: shake .35s; }
+.crate-odds { display: grid; gap: 1px; width: 100%; margin: 2px 0 4px; }
+.crate-odds i { display: flex; justify-content: space-between; font-style: normal; font-size: 9px; letter-spacing: .02em; color: var(--r, #8a90b8); }
+.crate-odds i b { font-weight: 400; }
+.crate-odds i em { font-style: normal; color: var(--ink); }
+.crate-left { font-size: 10px; letter-spacing: .04em; color: #6b7299; }
+.crate-card.spent { filter: grayscale(.8); opacity: .6; }
+.crate-card.spent .crate-left { color: var(--ui-red); }
+.crate-price { display: flex; align-items: center; gap: 4px; font-size: 15px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 9px; padding: 1px 8px; }
+
+.crate-open { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 8px; }
+.crate-open h3 { margin: 0; font-weight: 400; font-size: clamp(18px, 4.4vmin, 28px); color: var(--c, #ffc21a); -webkit-text-stroke: .1em var(--ink); paint-order: stroke fill; }
+.reel-window { position: relative; width: 100%; overflow: hidden; border: 4px solid var(--ink); border-radius: 14px; background: #1b2140; padding: 8px 0; }
+.reel { display: flex; gap: 8px; will-change: transform; }
+.reel-cell { flex: 0 0 100px; display: flex; flex-direction: column; align-items: center; gap: 2px; background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; padding: 4px 2px; box-shadow: inset 0 0 0 3px var(--r, #8a90b8); }
+.reel-cell canvas { width: 72px; height: 72px; }
+.reel-cell b { font-weight: 400; font-size: 10px; max-width: 94px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reel-mark { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: var(--yellow); box-shadow: 0 0 0 2px var(--ink); }
+.crate-result { display: flex; flex-direction: column; align-items: center; gap: 2px; animation: badgePop .4s ease-out; }
+.crate-result .got { font-size: 13px; letter-spacing: .08em; color: var(--r, #8a90b8); -webkit-text-stroke: .08em var(--ink); paint-order: stroke fill; }
+.crate-result b { font-weight: 400; font-size: clamp(20px, 5vmin, 30px); }
+.crate-result em { font-style: normal; font-size: 12px; color: #6b7299; letter-spacing: .06em; }
+.crate-buttons { display: flex; gap: 10px; }
+.crate-buttons .big-btn.off { filter: saturate(.4); opacity: .7; }
+.locked-tag { display: inline-flex; align-items: center; gap: 4px; background: #e7ebff; color: var(--r, #8a90b8); border-color: var(--r, #8a90b8); font-size: 11px; letter-spacing: .04em; }
+.locked-tag i { width: 9px; height: 9px; border-radius: 50%; background: var(--r, #8a90b8); display: inline-block; }
+@media (max-height: 430px) {
+  .reel-cell { flex-basis: 84px; }
+  .reel-cell canvas { width: 58px; height: 58px; }
+  .crate-card strong { font-size: 13px; }
+  .crate-grid { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
+  .crate-card canvas { max-width: 92px; }
+  #modal[data-kind="crates"] .note { display: none; }
+  #modal[data-kind="crates"] .panel h2 { font-size: clamp(18px, 5vmin, 30px); margin-bottom: 2px; }
+}
+
 /* CUSTOMIZE: your player on the left, everything you can put on them on the right */
 #modal[data-kind="customize"] .panel { width: min(880px, 96vw); height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 #modal[data-kind="customize"] .panel-body { flex: 1; min-height: 0; display: flex; }

@@ -8,7 +8,8 @@
 
 const NET_PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
 const NET_CELEBS = [null, ...CELEBRATIONS.map((c) => c.id), 'hype'];
-const NET_TRAILS = [null, 'pass', 'weak', 'shot', 'strong', 'electric', 'fire', 'plasma', 'blast', 'frost', 'toxic', 'shadow', 'rainbow', 'golden'];
+// the four the game gives out itself, then every trail you can own, in the order they are listed
+const NET_TRAILS = [null, 'pass', 'weak', 'shot', 'strong', ...TRAILS.map((t) => t.id)];
 const NET_ULTS = ULT_KINDS;
 const NET_TICK_MS = 1000 / 120;
 const NET_LEAD_SMOOTH = 12;          // smooth acknowledgement/ping changes without making controls laggy

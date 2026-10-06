@@ -88,6 +88,32 @@ const CELEBRATIONS = [
   { id: 'shadowdash', name: 'Shadow Dash', price: 475000 },
   { id: 'gravityflip', name: 'Gravity Flip', price: 500000 },
   { id: 'finalwhistle', name: 'Final Whistle', price: 550000 },
+  // ---- the crate shelf: these only come out of crates
+  { id: 'sprinkler', name: 'Sprinkler', rarity: 'rare', price: 12000 },
+  { id: 'mexicanwave', name: 'The Wave', rarity: 'rare', price: 14000 },
+  { id: 'trampoline', name: 'Trampoline', rarity: 'rare', price: 16000 },
+  { id: 'catwalk', name: 'Catwalk', rarity: 'rare', price: 18000 },
+  { id: 'keepyup', name: 'Keepy-Up', rarity: 'rare', price: 20000 },
+  { id: 'thunderclap', name: 'Thunder Clap', rarity: 'epic', price: 30000 },
+  { id: 'icestorm', name: 'Ice Storm', rarity: 'epic', price: 34000 },
+  { id: 'spinkick', name: 'Spin Kick', rarity: 'epic', price: 38000 },
+  { id: 'strongman', name: 'Strongman', rarity: 'epic', price: 42000 },
+  { id: 'tightrope', name: 'Tightrope', rarity: 'epic', price: 46000 },
+  { id: 'limbo', name: 'Limbo', rarity: 'epic', price: 50000 },
+  { id: 'lasso', name: 'Lasso', rarity: 'epic', price: 56000 },
+  { id: 'volcanoerupt', name: 'Eruption', rarity: 'legendary', price: 75000 },
+  { id: 'blink', name: 'Blink', rarity: 'legendary', price: 85000 },
+  { id: 'levitate', name: 'Levitate', rarity: 'legendary', price: 95000 },
+  { id: 'crowdsurf', name: 'Crowd Surf', rarity: 'legendary', price: 105000 },
+  { id: 'ninjasmoke', name: 'Smoke Bomb', rarity: 'legendary', price: 115000 },
+  { id: 'throne', name: 'The Throne', rarity: 'legendary', price: 130000 },
+  { id: 'kickflip', name: 'Kickflip', rarity: 'legendary', price: 145000 },
+  { id: 'slamdunk', name: 'Slam Dunk', rarity: 'legendary', price: 160000 },
+  { id: 'matador', name: 'Matador', rarity: 'legendary', price: 180000 },
+  { id: 'moonlanding', name: 'Moon Landing', rarity: 'mythic', price: 260000 },
+  { id: 'doubleflip', name: 'Double Backflip', rarity: 'mythic', price: 300000 },
+  { id: 'starburst', name: 'Starburst', rarity: 'mythic', price: 360000 },
+  { id: 'timefreeze', name: 'Time Freeze', rarity: 'mythic', price: 450000 },
 ];
 const CELE_IDS = CELEBRATIONS.map((c) => c.id);
 const CELE_PREMIUM = new Set(CELEBRATIONS.slice(CELEBRATIONS.findIndex((c) => c.id === 'lightning')).map((c) => c.id));
@@ -531,6 +557,177 @@ const CELE_POSES = {
       hands: [[-14 - cheer * 8, -28 - cheer * 36], [lerp(13, 14, blow), lerp(-27, -56, blow)]],
       feet: [[-9, -3], [9, -3]], prop: 'whistle', screen: 'finalwhistle' };
   },
+
+  // ---------------- the crate shelf ----------------
+  // one arm behind the head, the other sweeping round: the sprinkler
+  sprinkler: (e) => {
+    const a = e * 4.2, sweep = Math.cos(a);
+    return { bob: Math.sin(a * 2) * 1.2, lean: 0.06, hands: [[-18, -58], [6 + sweep * 24, -44 + Math.sin(a) * 6]] };
+  },
+
+  // starting a wave: both arms sweep up and over
+  mexicanwave: (e) => {
+    const u = (e * 1.6) % 1, lift = Math.sin(u * Math.PI);
+    return { jump: lift * 7, hands: [[-20 + lift * 6, -40 - lift * 26], [20 - lift * 2, -34 - lift * 32]], legSwing: Math.sin(e * 8) * 0.2 };
+  },
+
+  // bouncing higher and higher off nothing at all
+  trampoline: (e) => {
+    const u = (e * 1.5) % 1, h = Math.sin(u * Math.PI) * (10 + Math.min(e, 2) * 11);
+    return { jump: h, legSwing: h > 12 ? 0.5 : 0.1, hands: h > 12 ? celeUp(0, 3) : [[-16, -34], [16, -34]] };
+  },
+
+  // a strut down the pitch, then a pose at the end of it
+  catwalk: (e) => {
+    if (e < 1.5) return { run: true, lean: -0.08, bob: Math.sin(e * 9) * 1.6, hands: [[-15, -30], [15, -30]] };
+    const k = celeEase((e - 1.5) / 0.3);
+    return { lean: -0.12, hands: [[lerp(-15, -22, k), lerp(-30, -34, k)], [lerp(15, 20, k), lerp(-30, -58, k)]], faceX: 0.4 };
+  },
+
+  // keepy-up: knee, knee, head
+  keepyup: (e) => {
+    const u = (e * 2.2) % 1, knee = Math.sin(u * Math.PI);
+    const back = u < 0.5;
+    return {
+      jump: knee * 3, bob: Math.sin(e * 6),
+      hands: [[-22, -42 - knee * 4], [22, -42 - knee * 4]],
+      feet: back ? [[-4, -4 - knee * 20], [8, -3]] : [[-6, -3], [6, -4 - knee * 20]],
+    };
+  },
+
+  // hands apart, then together: thunder
+  thunderclap: (e) => {
+    const beat = (e * 1.8) % 1, open = beat < 0.55 ? celeEase(beat / 0.55) : 1 - celeEase((beat - 0.55) / 0.45);
+    const w = 6 + open * 24;
+    return { jump: open * 4, upper: -0.05, hands: [[-w, -50 - open * 6], [w, -50 - open * 6]], screen: open < 0.18 ? 'flash' : null };
+  },
+
+  // arms sweeping a circle, and the air goes cold
+  icestorm: (e) => {
+    const a = e * 3.6;
+    return { bob: Math.sin(e * 3) * 1.4, jump: 2, hands: [[-6 + Math.cos(a) * -20, -52 + Math.sin(a) * 13], [8 + Math.cos(a + Math.PI) * -20, -52 + Math.sin(a + Math.PI) * 13]], screen: 'frostblast' };
+  },
+
+  // a spinning kick, leg out
+  spinkick: (e) => {
+    const spin = e < 0.25 ? 0 : (e - 0.25) * 9;
+    const out = e > 0.25 && e < 1.5 ? 1 : 0;
+    return { faceX: Math.cos(spin), jump: out * 9, rot: out * Math.sin(spin) * 0.12,
+      hands: [[-24, -48], [20, -52]], feet: [[-6, -3], [10 + out * 22, -10 - out * 24]] };
+  },
+
+  // lifting something enormous overhead, and shaking with it
+  strongman: (e) => {
+    const k = celeEase(e / 0.6), sh = Math.sin(e * 22) * k;
+    return { jump: -3 * k, legSwing: 0.25 * k, upper: -0.05,
+      hands: [[lerp(-13, -20, k) + sh, lerp(-27, -72, k)], [lerp(13, 20, k) - sh, lerp(-27, -72, k)]], prop: null };
+  },
+
+  // one foot in front of the other, arms out, wobbling
+  tightrope: (e) => {
+    const w = Math.sin(e * 5) * 0.12;
+    return { run: true, rot: w, lean: 0.02, hands: [[-30, -46 + w * 40], [30, -46 - w * 40]], feet: [[-1, -2], [3, -3]] };
+  },
+
+  // leaning back under a bar that is not there
+  limbo: (e) => {
+    const k = celeEase(e / 0.5);
+    return { run: e > 0.5, upper: -0.55 * k, jump: -7 * k, legSwing: 0.6 * k,
+      hands: [[-24, -34 - k * 8], [24, -34 - k * 8]] };
+  },
+
+  // a rope spinning overhead, then thrown
+  lasso: (e) => {
+    const a = e * 9;
+    return { bob: Math.sin(e * 4), lean: 0.05, hands: [[-15, -30], [12 + Math.cos(a) * 10, -66 + Math.sin(a) * 5]], screen: e > 1.9 ? 'confetti' : null };
+  },
+
+  // a fist into the turf, and the ground answers
+  volcanoerupt: (e) => {
+    if (e < 0.55) {
+      const k = celeEase(e / 0.55);
+      return { kneel: true, upper: 0.34 * k, jump: -6 * k, hands: [[-14, -34], [10, -12 - (1 - k) * 22]] };
+    }
+    const u = Math.min(1, (e - 0.55) / 0.45);
+    return { jump: u * 9, upper: -0.12, hands: celeUp(0, -5), screen: 'lavaburst' };
+  },
+
+  // here, gone, here again
+  blink: (e) => {
+    const step = e * 3.4, f = step % 1;
+    return { faceX: Math.floor(step) % 2 ? -1 : 1, jump: f < 0.2 ? 7 : 0, hands: [[-11, -43], [11, -43]], screen: f < 0.14 ? 'flash' : null };
+  },
+
+  // sitting on the air, going up
+  levitate: (e) => {
+    const k = celeEase(e / 0.9);
+    return { jump: 8 + k * 24 + Math.sin(e * 3) * 2, hands: [[-18, -46], [18, -46]], feet: [[-7, -12 - k * 4], [9, -12 - k * 4]], screen: 'levitate' };
+  },
+
+  // on your back, carried along by the crowd
+  crowdsurf: (e) => ({ lie: 'back', lift: 9 + Math.sin(e * 4) * 2, rot: Math.sin(e * 2.2) * 0.07, hands: celeUp(Math.sin(e * 7) * 3), feet: [[-3, -7], [5, -9]] }),
+
+  // crouch, arms crossed, and the smoke takes you
+  ninjasmoke: (e) => {
+    const k = celeEase(e / 0.35);
+    return { kneel: e > 0.35, jump: -5 * k, upper: 0.1, hands: [[lerp(-13, 7, k), lerp(-27, -46, k)], [lerp(13, -4, k), lerp(-27, -46, k)]], screen: 'smoke' };
+  },
+
+  // a throne that is not there, and a king who does not care
+  throne: (e) => {
+    const k = celeEase(e / 0.4);
+    return { kneel: true, jump: -4 * k, upper: -0.12 * k, lean: -0.05,
+      hands: [[lerp(-13, -22, k), lerp(-27, -40, k)], [lerp(13, 18, k), lerp(-27, -42, k)]], prop: 'crown' };
+  },
+
+  // board under the feet, flipped on the way up
+  kickflip: (e) => {
+    if (e < 0.4) return { run: true, lean: 0.1, hands: [[-20, -38], [20, -38]] };
+    const u = Math.min(1, (e - 0.4) / 0.55), air = Math.sin(u * Math.PI);
+    return { jump: air * 28, rot: u * Math.PI * 2 * 0.25, legSwing: 0.4 + air * 0.4, hands: [[-26, -50], [26, -50]], feet: [[-8, -4 - air * 6], [10, -6 - air * 10]] };
+  },
+
+  // up, and hammer it in
+  slamdunk: (e) => {
+    const u = Math.min(1, e / 0.75), air = Math.sin(Math.min(1, e / 1.1) * Math.PI);
+    return { jump: air * 34, lean: 0.08, legSwing: 0.5 * air,
+      hands: [[-20, -46 - air * 8], [14 + air * 10, -58 - air * 26]], screen: e > 1.15 && e < 1.5 ? 'stomp' : null };
+  },
+
+  // the cape goes one way, the man goes the other
+  matador: (e) => {
+    const a = e * 3.4;
+    return { lean: -0.1, faceX: Math.cos(a * 0.5), jump: 2, upper: 0.12,
+      hands: [[-8 + Math.cos(a) * 26, -52 + Math.sin(a) * 10], [16, -40]], screen: 'matadorcape' };
+  },
+
+  // one small step, and a flag in the turf
+  moonlanding: (e) => {
+    const u = (e * 0.9) % 1, hop = Math.sin(u * Math.PI) * 16;
+    return { jump: hop, legSwing: 0.3, lean: 0.04, hands: [[-16, -34], [13, -44]], prop: 'flag', screen: 'moondust' };
+  },
+
+  // two of them, back over the top
+  doubleflip: (e) => {
+    if (e < 0.25) return { jump: -6, legSwing: 0.3, hands: [[-18, -20], [18, -20]] };
+    if (e < 1.45) {
+      const u = (e - 0.25) / 1.2;
+      return { rot: -u * Math.PI * 4, jump: Math.sin(u * Math.PI) * 40, tuck: 1, hands: [[-14, -46], [14, -46]], feet: [[-8, -14], [10, -16]] };
+    }
+    return { jump: Math.abs(Math.sin((e - 1.45) * 9)) * 8, hands: celeUp(Math.sin(e * 13) * 3) };
+  },
+
+  // arms out, and the whole thing goes off
+  starburst: (e) => {
+    const k = celeEase(e / 0.5);
+    return { jump: 6 + k * 10 + Math.sin(e * 6) * 1.5, hands: [[lerp(-13, -34, k), lerp(-27, -58, k)], [lerp(13, 34, k), lerp(-27, -58, k)]], legSwing: 0.3 * k, screen: 'starburst' };
+  },
+
+  // the clock stops, and he has a walk round
+  timefreeze: (e) => {
+    if (e < 0.4) { const k = celeEase(e / 0.4); return { jump: 3 * k, hands: [[-13, -27], [lerp(13, 20, k), lerp(-27, -62, k)]], screen: 'timefreeze' }; }
+    return { run: e < 2.1, lean: -0.06, bob: Math.sin(e * 7) * 1.2, hands: [[-15, -30], [16, -32]], screen: 'timefreeze' };
+  },
 };
 
 // The ult shot: how the strike looks, 0..1 through it. Same shape as a celebration pose.
@@ -578,6 +775,13 @@ const CELE_MOVES = {
   portal: (e) => (e > 0.4 && e < 0.95 ? 160 : 0),
   rewind: (e) => (e < 1.3 ? 110 : 0),
   shadowdash: (e) => (e > 0.4 && e < 1.2 ? 360 : 0),
+  catwalk: (e) => (e < 1.5 ? 120 : 0),
+  tightrope: (e) => (e > 0.1 && e < 2.3 ? 70 : 0),
+  limbo: (e) => (e > 0.5 && e < 2.3 ? 90 : 0),
+  crowdsurf: (e) => (e < 2.3 ? 150 : 0),
+  kickflip: (e) => (e < 0.95 ? 260 : 0),
+  slamdunk: (e) => (e < 0.75 ? 240 : 0),
+  timefreeze: (e) => (e > 0.4 && e < 2.1 ? 110 : 0),
 };
 // airplane banks round in a curve instead of a straight line
 const CELE_TURN = { airplane: 1.7, bird: 1.4, surfer: 0.6 };

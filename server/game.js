@@ -23,7 +23,6 @@ const CHAT_GAP_MS = 1200, CHAT_BURST = 5, CHAT_BURST_MS = 10000; // quick chat: 
 const MATCH_MINUTES = 3;
 const FORMAT_SIZE = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
 const PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
-const TRAIL_TYPES = [null, 'pass', 'weak', 'shot', 'strong', 'electric', 'fire', 'plasma', 'blast', 'frost', 'toxic', 'shadow', 'rainbow', 'golden'];
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const BOT_NAME_A = ['ace', 'blitz', 'cyber', 'dark', 'echo', 'frost', 'ghost', 'hyper', 'iron', 'jet', 'lunar', 'neon',
@@ -69,6 +68,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   const rankDeltaFor = (outcome, gf, ga) => (sim.rankDelta ? sim.rankDelta(outcome, gf, ga) : 0);
   const sim = createSim();
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
+  // must match NET_TRAILS on the client, so it is built the same way
+  const TRAIL_TYPES = [null, 'pass', 'weak', 'shot', 'strong', ...sim.TRAILS.map((t) => t.id)];
   const ULTS = sim.ULT_KINDS;
 
   // the level the fill bots play to: the average level of the real players in the room
