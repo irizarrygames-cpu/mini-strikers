@@ -26,8 +26,18 @@ const Render = {
     this.canvas.height = Math.round(this.H * this.dpr);
     // portrait is the fallback shape: pull the camera back so the pitch is not a keyhole
     this.S = this.W >= this.H ? Math.min(this.W / 700, this.H / 370) : this.W / 620;
-    this.buildLayer();
-    this.homeCrowd = null;
+    // The stands are drawn once into an image: thousands of little shapes, about 40ms. That image
+    // is in world units, so most window changes do not alter it at all — only its scale, the
+    // stadium and the two clubs do. Rebuilding it on every resize made a phone's address bar
+    // sliding away feel like the game had frozen.
+    if (this.layerFor() !== this._layerKey || !this.layer) { this.buildLayer(); this.homeCrowd = null; }
+  },
+
+  // what the pre-drawn stands actually depend on
+  layerFor() {
+    const low = Save.data.settings.graphics === 'low' || this.quality >= 1;
+    const f = Math.min(this.S * this.dpr * 1.1, low ? 0.75 : 1.0);
+    return [f.toFixed(3), Save.data.stadium, Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id].join('|');
   },
 
   // Slight perspective: things on the far side of the pitch shrink, the near side grows.
@@ -63,6 +73,7 @@ const Render = {
     const X0 = -270, X1 = CFG.FIELD_W + 270, Y0 = -M * T - 230, Y1 = (CFG.FIELD_H + M) * T + 190;
     const f = Math.min(this.S * this.dpr * 1.1, Save.data.settings.graphics === 'low' || this.quality >= 1 ? 0.75 : 1.0);
     this.layerClub = Clubs.home && Clubs.current ? Clubs.home.id + '/' + Clubs.current.id : null;
+    this._layerKey = this.layerFor();
     this.LF = f;
     const c = document.createElement('canvas');
     c.width = Math.ceil((X1 - X0) * f); c.height = Math.ceil((Y1 - Y0) * f);
@@ -679,6 +690,7 @@ const Render = {
 
   drawFrame(m, t) {
     const ctx = this.ctx, S = this.S, W = this.W, H = this.H, b = m.ball;
+    this.boxes = null; // refilled by whatever HUD this frame draws on the canvas
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = Save.stadium().stands[0]; ctx.fillRect(0, 0, W, H);
     const L = this.L;
@@ -966,6 +978,7 @@ const Render = {
   drawMinimap(ctx, m) {
     const W = this.W, H = this.H;
     const { mw, mh, x0, y0 } = this.minimapBox(W, H);
+    this.boxes = { minimap: [x0 - 3, y0 - 3, x0 + mw + 3, y0 + mh + 3] };
     const sx = (x) => x0 + (x / CFG.FIELD_W) * mw, sy = (y) => y0 + (y / CFG.FIELD_H) * mh;
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = '#2f9a3c'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3;

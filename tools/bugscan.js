@@ -420,6 +420,83 @@ window.BS = {
     return out;
   },
 
+  // The HUD is half DOM and half drawn on the canvas, and the two halves cannot see each other.
+  // This puts both on one map: the buttons and bars from the page, the scoreboard, minimap, power
+  // bar and shootout board from the canvas, and reports anything sitting on anything else or
+  // hanging off the screen.
+  canvasBoxes() {
+    const out = [];
+    const add = (src) => { for (const k in src || {}) if (src[k]) out.push({ name: 'canvas:' + k, b: { left: src[k][0], top: src[k][1], right: src[k][2], bottom: src[k][3], width: src[k][2] - src[k][0], height: src[k][3] - src[k][1] }, el: null }); };
+    if (Game.match && Game.match.pens && Game.state !== 'home') add(Pens.boxes);
+    add(Render.boxes);
+    return out.filter((o) => o.b.width > 2 && o.b.height > 2);
+  },
+
+  fit(slack = 2) {
+    const boxes = [...this.overlapBoxes(), ...this.canvasBoxes()], hits = [];
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const A = boxes[i], B = boxes[j];
+        if (A.el && B.el && (A.el.contains(B.el) || B.el.contains(A.el))) continue;
+        const x = Math.min(A.b.right, B.b.right) - Math.max(A.b.left, B.b.left);
+        const y = Math.min(A.b.bottom, B.b.bottom) - Math.max(A.b.top, B.b.top);
+        if (x > slack && y > slack) hits.push(`${A.name} on ${B.name} (${Math.round(x)}x${Math.round(y)}px)`);
+      }
+    }
+    for (const { b, name } of boxes) {
+      if (b.left < -slack || b.top < -slack || b.right > innerWidth + slack || b.bottom > innerHeight + slack) {
+        hits.push(`${name} off the screen (${Math.round(b.left)},${Math.round(b.top)} to ${Math.round(b.right)},${Math.round(b.bottom)} in ${innerWidth}x${innerHeight})`);
+      }
+    }
+    return { size: innerWidth + 'x' + innerHeight, screen: Game.state, showing: boxes.length, hits };
+  },
+
+  // every screen that has a HUD on it, at this window size
+  async fitSweep(touch = true) {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const out = [];
+    const was = Save.data.tutorialSeen;
+    Save.data.tutorialSeen = true;
+    document.body.classList.toggle('kb', !touch);
+    $('splash').hidden = true;
+    const line = (what) => {
+      const c = $('commentary');
+      if (Game.match && Game.match.pens) { c.classList.remove('show', 'big'); return; } // a shootout says it on the pitch
+      c.classList.add('show'); c.classList.toggle('big', what === 'big');
+      $('commentary-line').textContent = what === 'big' ? 'WHAT A BALL THROUGH THE MIDDLE — HE IS CLEAN THROUGH ON GOAL!' : 'Clean as a whistle and twice as loud.';
+    };
+    const look = async (name) => { await wait(90); out.push({ where: name, ...this.fit() }); };
+
+    UI.closeAll(); Game.goHome(); await wait(120);
+    Game.stepDemo(0.016); Render.drawHome(Game.t, Game.demo); // this pane throttles rAF: draw it by hand
+    await look('home');
+
+    Game.startMatch({ mode: 'quick', format: '4v4' });
+    await wait(150); $('intro').hidden = true; Game.state = 'match';
+    for (let i = 0; i < 600; i++) Match.step(Game.match, CFG.STEP);
+    UI.updateHUD(Game.match); Render.drawMatch(Game.match, Game.t);
+    line('big'); await look('match');
+    Game.match.human.ult = CFG.ULT_MAX; UI.updateHUD(Game.match); await look('match + ult ready');
+
+    Game.startMatch({ mode: 'pens' });
+    await wait(150); $('intro').hidden = true; Game.state = 'match';
+    const P = Game.match.pens;
+    for (const phase of ['ready', 'aim', 'after']) {
+      P.phase = phase; P.team = 'blue'; P.t = phase === 'aim' ? 0.5 : 0.2; P.power = 0.6; P.holding = phase === 'aim';
+      P.say = phase === 'after' ? ['GOAL!', '#ffe14d'] : null; P.n = 3;
+      P.shot = phase === 'after' ? { T: 0.35, ax: 0, az: 0.5, q: 1 } : null; P.dive = null;
+      Commentary.duck ? Commentary.duck(P) : 0; line('big');
+      Pens.draw(Game.match, 0.016, Game.t);
+      await look('pens: ' + phase);
+    }
+    P.team = 'red'; P.phase = 'runup'; P.t = 0.2; P.dive = null; Commentary.duck ? Commentary.duck(P) : 0;
+    Pens.draw(Game.match, 0.016, Game.t); await look('pens: facing one');
+
+    Game.goHome(); Save.data.tutorialSeen = was;
+    const bad = out.filter((o) => o.hits.length);
+    return { sizes: out[0] && out[0].size, checked: out.length, bad, clean: out.length - bad.length };
+  },
+
   overlap(slack = 2) {
     const boxes = this.overlapBoxes(), hits = [];
     for (let i = 0; i < boxes.length; i++) {

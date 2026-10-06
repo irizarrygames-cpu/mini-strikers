@@ -62,7 +62,8 @@ const Commentary = {
     this.m = m; this.cd = 0; this.idle = 0; this.passChain = 0; this.passTeam = null; this.lastOwner = m.ball && m.ball.owner;
     this.lastShot = !!(m.ball && m.ball.shot); this.score = { ...m.score }; this.kickCount = 0; this.penKicks = { blue: 0, red: 0 }; this.serial++;
     for (const k of ['saves','tackles','skills']) this[k] = { blue: (m.stats.blue[k] || 0), red: (m.stats.red[k] || 0) };
-    this.say(this.pick(this.banks.kickoff), 1, false);
+    this._quiet = !!m.pens;
+    if (!m.pens) this.say(this.pick(this.banks.kickoff), 1, false);
   },
   hide() {
     clearInterval(this.typeTimer); clearTimeout(this.hideTimer); this.captionToken++;
@@ -134,7 +135,10 @@ const Commentary = {
   update(m, dt) {
     if (!m || !m.ball) return; if (this.paused) this.resume(); if (this.m !== m) this.reset(m);
     this.cd = Math.max(0, this.cd - dt); this.idle += dt;
-    if (m.pens) { this.updatePens(m); return; }
+    // the shootout's own GOAL! / SAVED! / YOUR KICK fill the goal: a bubble on top of them covered
+    // the one thing you are looking at
+    if (m.pens) { if (!this._quiet) { this._quiet = true; this.hide(); } return; }
+    this._quiet = false;
     for (const team of ['blue','red']) if (m.score[team] > this.score[team]) { this.score = { ...m.score }; this.goal(m, team); return; }
     const shot = !!m.ball.shot;
     if (shot && !this.lastShot) { const s=m.ball.shot; this.say(this.pick(s.power ? this.banks.power : this.banks.shot), s.power ? 2 : 1, true); }

@@ -150,7 +150,13 @@ const UI = {
   measureHud() {
     const sb = $('scoreboard');
     if (!sb || !sb.offsetHeight) return;
-    document.documentElement.style.setProperty('--sb-b', Math.round(sb.getBoundingClientRect().bottom) + 'px');
+    let bottom = sb.getBoundingClientRect().bottom;
+    // the minimap is drawn on the canvas next to the scoreboard and hangs lower than it
+    if (Save.data.settings.minimap && Render.W && Render.H) {
+      const mini = Render.minimapBox(Render.W, Render.H);
+      if (mini) bottom = Math.max(bottom, mini.y0 + mini.mh + 4);
+    }
+    document.documentElement.style.setProperty('--sb-b', Math.round(bottom) + 'px');
   },
 
   refreshHome() {
@@ -544,6 +550,9 @@ const UI = {
     } else if (this._ping !== null) { $('net-ping').hidden = true; this._ping = null; }
     const rep = m.phase === 'replay' || m.phase === 'cele';
     if (this._rep !== rep) { $('hud').classList.toggle('replaying', rep); $('hud').classList.toggle('noskip', !!m.net); this._rep = rep; }
+    // the long ult cutscene plays with the world nearly still: the controls get out of its way
+    const cut = !!(m.ultCut && !m.ultCut.short);
+    if (this._cut !== cut) { $('hud').classList.toggle('cutscene', cut); this._cut = cut; }
     const h = m.human, has = m.ball.owner === h;
     $('btn-pass').classList.toggle('call', !has && !!m.ball.owner && m.ball.owner.team === 'blue');
 

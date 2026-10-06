@@ -9,6 +9,8 @@ const FX = {
   MAX: 260,
 
   low() { return Save.data.settings.graphics === 'low' || Render.quality >= 2; },
+  // the full storm of confetti is for screens that can draw it
+  max() { return this.low() ? 90 : Render.quality >= 1 ? 160 : this.MAX; },
 
   clear() {
     this.ground.length = 0; this.air.length = 0; this.texts.length = 0;
@@ -17,7 +19,7 @@ const FX = {
 
   _push(list, p) {
     if (Game.headless) return;
-    if (this.ground.length + this.air.length > this.MAX) return;
+    if (this.ground.length + this.air.length > this.max()) return;
     list.push(p);
   },
 

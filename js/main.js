@@ -43,6 +43,18 @@ const Game = {
     requestAnimationFrame((ts) => this.loop(ts));
   },
 
+  // A window that is in the middle of changing size is left alone until it settles: a phone
+  // sliding its address bar away walks the height through every pixel on the way.
+  checkSize(dt) {
+    const w = window.innerWidth, h = window.innerHeight;
+    if (w === Render.W && h === Render.H) { this._sizeT = 0; return; }
+    if (this._pendW !== w || this._pendH !== h) { this._pendW = w; this._pendH = h; this._sizeT = 0; return; }
+    this._sizeT = (this._sizeT || 0) + dt;
+    if (this._sizeT < 0.15) return;
+    this._sizeT = 0;
+    Render.resize();
+  },
+
   goFullscreen() {
     if (!UI.isTouch()) return;
     try {
@@ -129,7 +141,7 @@ const Game = {
     this.last = ts;
     this.t += realDt;
     this.watchFrames(rawDt);
-    if (window.innerWidth !== Render.W || window.innerHeight !== Render.H) Render.resize();
+    this.checkSize(realDt);
     if (!Render.W || !Render.H) return;
     Input.update();
     if (!$('howto').hidden) Tutorial.update(realDt);
@@ -165,7 +177,7 @@ const Game = {
       UltCut.draw(Render.ctx, m, this.t);
       if (m.challenge) { if (this.state === 'match') SkillRun.step(m, realDt); SkillRun.drawGauntlet(Render.ctx, m); }
       if (this.state === 'match' && !m.challenge) UI.updateHUD(m);
-    } else {
+    } else if (this.demoShows()) {
       this.stepDemo(realDt);
       Render.drawHome(this.t, this.demo);
     }
@@ -184,11 +196,26 @@ const Game = {
     if (dt > 0.08) { w.grace = 1.5; w.t = 0; w.n = 0; w.sum = 0; return; }
     if (w.grace > 0) { w.grace -= dt; return; }
     w.t += dt; w.n++; w.sum += dt;
+    // dropping down is decided in a second and a bit; climbing back up still takes its time,
+    // so a single rough patch cannot flip the picture back and forth
+    if (w.t >= 1.2 && w.n >= 20 && w.sum / w.n > 1 / 40 && Render.quality < 2) {
+      Render.quality++; Render.resize(); w.grace = 1.5; w.t = 0; w.n = 0; w.sum = 0; return;
+    }
     if (w.t < 2.5 || w.n < 40) return;
     const avg = w.sum / w.n;
     w.t = 0; w.n = 0; w.sum = 0;
     if (avg > 1 / 40 && Render.quality < 2) { Render.quality++; Render.resize(); w.grace = 2; }
     else if (avg < 1 / 55 && Render.quality > 0) { Render.quality--; Render.resize(); w.grace = 2; }
+  },
+
+  // Behind a full-screen card nobody can see the demo, so it keeps its last frame instead of
+  // costing a sim step and a whole stadium every frame. (The customize screen was paying for
+  // both while you looked at celebration cards.)
+  DEMO_HIDERS: ['splash', 'auth', 'modal', 'daily', 'howto', 'trophy', 'lobby', 'queue', 'install-steps', 'rotate', 'challenge-end'],
+  demoShows() {
+    if (document.hidden) return false;
+    for (const id of this.DEMO_HIDERS) { const el = $(id); if (el && !el.hidden) return false; }
+    return true;
   },
 
   // A bot-vs-bot match plays silently behind the home screen. It is ALWAYS on — no setting

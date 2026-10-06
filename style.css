@@ -431,7 +431,8 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 /* goal replay: only the pause button and a tap-anywhere skip layer */
 #replay-skip { position: absolute; inset: 0; display: none; }
 #hud.replaying #replay-skip { display: block; }
-#hud.replaying .action, #hud.replaying #joy-base, #hud.replaying #kb-legend, #hud.replaying #touch-zone { display: none !important; }
+#hud.replaying .action, #hud.replaying #joy-base, #hud.replaying #kb-legend, #hud.replaying #touch-zone, #hud.replaying .ult-btn { display: none !important; }
+#hud.cutscene .action, #hud.cutscene #joy-base, #hud.cutscene #kb-legend, #hud.cutscene #touch-zone, #hud.cutscene .ult-btn, #hud.cutscene #minimap { display: none !important; }
 #hud.replaying #btn-pause { z-index: 2; }
 #hud.replaying.noskip #replay-skip { display: none; }
 

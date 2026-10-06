@@ -590,17 +590,32 @@ Object.assign(UI, {
     Sprites.ball(g, { x: 0, y: 0, z: 0, vx: 1, vy: 0, roll: 0.6, shot: null, owner: null }, pts[0].x, pts[0].y, 1.8, 0);
   },
 
-  // every celebration card plays its animation on a loop while the tab is open
+  // Every celebration card plays its animation on a loop while the tab is open — but only the
+  // cards you can actually see, and at 30 a second. Eighty full player drawings a frame was most
+  // of a frame's budget on its own, for sixty cards scrolled off the screen.
   animateCelebs(body) {
     const cards = [...body.querySelectorAll('canvas[data-celeb]')];
+    if (!cards.length) return;
+    if (this._celebIO) this._celebIO.disconnect();
+    const live = new Set();
+    const io = this._celebIO = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (en.isIntersecting) { live.add(en.target); this.celebSwatch(en.target, en.target.dataset.celeb, 1.2); }
+        else live.delete(en.target);
+      }
+    }, { rootMargin: '60px' });
+    for (const cv of cards) { this.celebSwatch(cv, cv.dataset.celeb, 1.2); io.observe(cv); }
     const start = performance.now();
-    const frame = () => {
-      if ($('modal').hidden || !cards.length || !cards[0].isConnected) return;
-      const e = ((performance.now() - start) / 1000) % (CELE_TIME + 0.5);
-      for (const cv of cards) this.celebSwatch(cv, cv.dataset.celeb, Math.min(e, CELE_TIME - 0.02));
+    let last = 0;
+    const frame = (now) => {
+      if ($('modal').hidden || !cards[0].isConnected) { io.disconnect(); if (this._celebIO === io) this._celebIO = null; return; }
       requestAnimationFrame(frame);
+      if (now - last < 33) return;
+      last = now;
+      const e = ((now - start) / 1000) % (CELE_TIME + 0.5);
+      for (const cv of live) this.celebSwatch(cv, cv.dataset.celeb, Math.min(e, CELE_TIME - 0.02));
     };
-    frame();
+    requestAnimationFrame(frame);
   },
 
   celebSwatch(cv, id, e = 1.5) {

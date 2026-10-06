@@ -610,12 +610,15 @@ const Pens = {
   // the tally, the call, the aim, the power and what to press
   drawOverlay(ctx, L, P, t) {
     const W = L.W, H = L.H;
+    const boxes = this.boxes = {}; // where each piece landed, for the fit check
+    Render.boxes = null;              // a shootout has no minimap or anything else of the match's
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     // tally: a row of five for each side (sudden death shows the latest)
     const chal = !!P.chal;
     const n = Math.max(5, P.kicks.blue.length, P.kicks.red.length), from = Math.max(0, n - 5);
     const dot = clamp(H * 0.028, 9, 15), gap = dot * 2.7, rowH = dot * 2.6;
     const pw = gap * 5 + dot * 7.5, ph = rowH * 2 + dot * 0.8, px = W / 2 - pw / 2, py = Math.max(8, Render.S ? 10 : 10);
+    boxes.board = [px, py, px + pw, py + ph];
     if (chal) SkillRun.drawPens(ctx, L, P, t);
     if (!chal) { ctx.fillStyle = OUTLINE; Sprites.rr(ctx, px + 3, py + 4, pw, ph, dot); ctx.fill();
     ctx.fillStyle = '#ffffff'; Sprites.rr(ctx, px, py, pw, ph, dot); ctx.fill();
@@ -649,7 +652,9 @@ const Pens = {
       const mine = P.watch ? `${P.watchName || 'THEY'} KICKS` : 'YOUR KICK';
       const shout = this.sudden(P) && P.team === P.first ? 'SUDDEN DEATH' : P.team === 'blue' ? mine : P.watch ? `${TEAMS.red.name} KICK` : 'SAVE IT!';
       if (P.phase === 'start') Render.chunkyText(ctx, P.first === 'blue' ? (P.watch ? mine + ' FIRST' : 'YOU KICK FIRST') : `${TEAMS.red.name} KICK FIRST`, 0, -big * 0.8, big * 0.55 * this.fit(mine + ' FIRST', 17), '#ffffff');
-      Render.chunkyText(ctx, shout, 0, 0, big * this.fit(shout, 12), P.team === 'blue' ? '#ffe14d' : '#46d9ff');
+      const sh = big * this.fit(shout, 12), sw = sh * 0.56 * shout.length;
+      boxes.shout = [W / 2 - sw / 2, L.gy - L.gh * 0.55 - sh * 0.6, W / 2 + sw / 2, L.gy - L.gh * 0.55 + sh * 0.6];
+      Render.chunkyText(ctx, shout, 0, 0, sh, P.team === 'blue' ? '#ffe14d' : '#46d9ff');
       }
       ctx.restore();
     } else if (P.phase !== 'after' && P.phase !== 'end' && this.sudden(P)) {
@@ -666,8 +671,11 @@ const Pens = {
       ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(c.x - r * 1.5, c.y); ctx.lineTo(c.x - r * 0.5, c.y); ctx.moveTo(c.x + r * 0.5, c.y); ctx.lineTo(c.x + r * 1.5, c.y);
       ctx.moveTo(c.x, c.y - r * 1.5); ctx.lineTo(c.x, c.y - r * 0.5); ctx.moveTo(c.x, c.y + r * 0.5); ctx.lineTo(c.x, c.y + r * 1.5); ctx.stroke();
-      // power: fills while you hold, the top bit (red) is too much
-      const bw = Math.max(14, L.s * 0.32), bh = L.gh * 1.05, bx = Math.min(W - bw - 16, L.gx + L.gw / 2 + L.s * 0.6), by = L.gy - bh;
+      // power: fills while you hold, the top bit (red) is too much. On touch the right-hand
+      // corner belongs to SHOOT, so the bar stops short of it instead of hiding behind it.
+      const bw = Math.max(14, L.s * 0.32), bh = L.gh * 1.05;
+      const room = document.body.classList.contains('kb') ? W - bw - 16 : W * 0.8 - bw;
+      const bx = Math.min(room, L.gx + L.gw / 2 + L.s * 0.6), by = L.gy - bh;
       ctx.fillStyle = OUTLINE; Sprites.rr(ctx, bx + 3, by + 3, bw, bh, bw / 2); ctx.fill();
       ctx.fillStyle = '#e4e7f5'; Sprites.rr(ctx, bx, by, bw, bh, bw / 2); ctx.fill();
       ctx.fillStyle = '#ffc9cb'; ctx.fillRect(bx + 2, by + 2, bw - 4, bh * 0.18);
@@ -675,6 +683,7 @@ const Pens = {
       ctx.fillStyle = P.power > 0.82 ? '#ff3a3f' : P.power > 0.55 ? '#ffe14d' : '#3fcf4a';
       if (fh > 0) { Sprites.rr(ctx, bx + 2, by + bh - 2 - fh, bw - 4, fh, Math.min(bw / 2 - 2, fh / 2)); ctx.fill(); }
       ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; Sprites.rr(ctx, bx, by, bw, bh, bw / 2); ctx.stroke();
+      boxes.power = [bx, by, bx + bw, by + bh + sub * 1.2];
       Render.chunkyText(ctx, 'POWER', bx + bw / 2, by + bh + sub * 0.8, sub * 0.6, '#ffffff', 3);
       if (P.clock < 3.5) Render.chunkyText(ctx, String(Math.ceil(P.clock)), c.x, c.y - r * 2.4, sub * 1.1, '#ff8a8e');
     }
@@ -714,6 +723,7 @@ const Pens = {
       const hs = clamp(Math.min(W, H) * 0.034, 12, 18);
       ctx.font = `900 ${hs}px "Lilita One", system-ui, sans-serif`;
       const w = ctx.measureText(hint).width + hs * 1.6, hy = kb ? H - hs * 2.2 : L.gy + (L.spot.y - L.gy) * 0.18;
+      boxes.hint = [W / 2 - w / 2, hy - hs, W / 2 + w / 2, hy + hs];
       ctx.fillStyle = 'rgba(22, 26, 51, 0.78)'; Sprites.rr(ctx, W / 2 - w / 2, hy - hs, w, hs * 2, hs * 0.6); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.fillText(hint, W / 2, hy + 1);
     }
