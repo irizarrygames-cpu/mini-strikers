@@ -367,26 +367,139 @@ Object.assign(UI, {
     }));
   },
 
-  // a crate, drawn: a box in its own colour with a band round it
+  // A crate, drawn. Four builds up the ladder — a nailed wooden crate, a banded treasure chest, a
+  // sealed case and a vault — each in its own colours, with the lid lifted just enough to show
+  // there is something in there.
   crateArt(cv, crate) {
-    const g = cv.getContext('2d'), w = cv.width, h = cv.height;
-    g.clearRect(0, 0, w, h);
-    const x = w * 0.14, y = h * 0.26, bw = w * 0.72, bh = h * 0.56;
-    g.lineJoin = 'round'; g.strokeStyle = OUTLINE; g.lineWidth = 4;
-    // lid
-    g.fillStyle = shadeHex(crate.color, 0.18);
-    g.beginPath(); g.moveTo(x - w * 0.05, y); g.lineTo(x + bw * 0.5, y - h * 0.16); g.lineTo(x + bw + w * 0.05, y); g.lineTo(x + bw, y + h * 0.1); g.lineTo(x, y + h * 0.1); g.closePath();
-    g.fill(); g.stroke();
-    // body
-    g.fillStyle = crate.color;
-    Sprites.rr(g, x, y + h * 0.08, bw, bh, 7); g.fill(); g.stroke();
-    // band and lock
-    g.fillStyle = shadeHex(crate.color, -0.35);
-    g.fillRect(x + bw * 0.42, y + h * 0.08, bw * 0.16, bh);
-    g.fillStyle = '#ffe14d';
-    Sprites.rr(g, x + bw * 0.38, y + bh * 0.42, bw * 0.24, bh * 0.3, 4); g.fill(); g.stroke();
-    g.fillStyle = OUTLINE;
-    g.beginPath(); g.arc(x + bw * 0.5, y + bh * 0.58, bw * 0.045, 0, Math.PI * 2); g.fill();
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    g.clearRect(0, 0, W, H);
+    const build = crate.build || 'wood';
+    const base = crate.color, metal = crate.metal || '#c8a24a', gem = crate.gem || '#ffffff';
+    const dark = shadeHex(base, -0.3), darker = shadeHex(base, -0.5), light = shadeHex(base, 0.2);
+    const ink = OUTLINE;
+    g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = ink;
+    const u = W / 150;                       // everything is drawn against a 150-wide crate
+    const lw = 3.4 * u;
+    const cx = W / 2, floor = H * 0.9;
+    const bw = W * 0.66, bh = H * 0.42, bx = cx - bw / 2, by = floor - bh;
+    const lidH = H * 0.2, lidY = by - lidH * 0.72;
+    const fill = (col) => { g.fillStyle = col; g.fill(); g.lineWidth = lw; g.stroke(); };
+    const box = (x, y, w, h, r, col) => { Sprites.rr(g, x, y, w, h, r); fill(col); };
+    const rivet = (x, y, r2, col) => { g.beginPath(); g.arc(x, y, r2, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.lineWidth = 1.6 * u; g.stroke(); };
+
+    // the shadow it stands in
+    g.fillStyle = 'rgba(22, 26, 51, 0.22)';
+    g.beginPath(); g.ellipse(cx, floor + 3 * u, bw * 0.56, 5.5 * u, 0, 0, Math.PI * 2); g.fill();
+
+    // what is inside, showing through the gap under the lid
+    g.fillStyle = gem;
+    g.beginPath(); g.moveTo(bx + 4 * u, by + 2 * u); g.lineTo(bx + bw - 4 * u, by + 2 * u); g.lineTo(bx + bw - 10 * u, by - 7 * u); g.lineTo(bx + 10 * u, by - 7 * u); g.closePath(); g.fill();
+    for (let i = 0; i < 3; i++) {
+      const sx = bx + bw * (0.3 + i * 0.2), sy = by - 4 * u - (i % 2) * 3 * u;
+      Sprites.star ? Sprites.star(g, sx, sy, 3.4 * u, '#ffffff') : 0;
+    }
+
+    // ---- the body
+    box(bx, by, bw, bh, build === 'tech' ? 5 * u : 3 * u, base);
+    // its shaded right-hand side
+    g.beginPath(); g.moveTo(bx + bw * 0.74, by); g.lineTo(bx + bw, by + 3 * u); g.lineTo(bx + bw, by + bh - 3 * u); g.lineTo(bx + bw * 0.74, bh + by); g.closePath();
+    g.fillStyle = dark; g.fill();
+
+    if (build === 'wood') {
+      // planks across the front, and a nail in each corner
+      g.strokeStyle = darker; g.lineWidth = 2 * u;
+      for (let i = 1; i < 3; i++) { const y = by + (bh / 3) * i; g.beginPath(); g.moveTo(bx + 2 * u, y); g.lineTo(bx + bw - 2 * u, y); g.stroke(); }
+      g.strokeStyle = ink;
+      // the diagonal brace
+      g.lineWidth = 3 * u; g.strokeStyle = shadeHex(base, -0.18);
+      g.beginPath(); g.moveTo(bx + 5 * u, by + bh - 5 * u); g.lineTo(bx + bw - 5 * u, by + 5 * u); g.stroke();
+      g.strokeStyle = ink;
+      for (const [rx, ry] of [[bx + 6 * u, by + 6 * u], [bx + bw - 6 * u, by + 6 * u], [bx + 6 * u, by + bh - 6 * u], [bx + bw - 6 * u, by + bh - 6 * u]]) rivet(rx, ry, 2.4 * u, metal);
+    } else if (build === 'chest') {
+      // two bands round the body with studs on them
+      for (const fx of [0.22, 0.78]) {
+        g.fillStyle = metal; g.fillRect(bx + bw * fx - 4 * u, by, 8 * u, bh);
+        g.lineWidth = 2.2 * u; g.strokeRect(bx + bw * fx - 4 * u, by, 8 * u, bh);
+        for (let i = 0; i < 3; i++) rivet(bx + bw * fx, by + bh * (0.2 + i * 0.3), 1.8 * u, shadeHex(metal, 0.3));
+      }
+    } else if (build === 'tech') {
+      // vents and a little readout
+      box(bx + 6 * u, by + 5 * u, bw * 0.4, bh * 0.42, 2.5 * u, '#12162c');
+      g.fillStyle = gem;
+      for (let i = 0; i < 4; i++) g.fillRect(bx + 10 * u + i * 5 * u, by + 9 * u + ((i * 5) % 7) * u, 3 * u, bh * 0.2 - ((i * 5) % 7) * u);
+      g.fillStyle = darker;
+      for (let i = 0; i < 3; i++) { Sprites.rr(g, bx + bw * 0.56, by + 6 * u + i * 7 * u, bw * 0.34, 3.4 * u, 1.7 * u); g.fill(); }
+      g.strokeStyle = metal; g.lineWidth = 2.4 * u;
+      g.beginPath(); g.moveTo(bx + 4 * u, by + bh * 0.62); g.lineTo(bx + bw - 4 * u, by + bh * 0.62); g.stroke();
+      g.strokeStyle = ink;
+    } else {
+      // a vault: a thick rim, a wheel, and gems in the corners
+      box(bx + 5 * u, by + 4 * u, bw - 10 * u, bh - 8 * u, 3 * u, dark);
+      g.beginPath(); g.arc(cx, by + bh * 0.52, bh * 0.26, 0, Math.PI * 2); fill(metal);
+      g.strokeStyle = ink; g.lineWidth = 2.4 * u;
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 4 + 0.4;
+        g.beginPath(); g.moveTo(cx - Math.cos(a) * bh * 0.3, by + bh * 0.52 - Math.sin(a) * bh * 0.3);
+        g.lineTo(cx + Math.cos(a) * bh * 0.3, by + bh * 0.52 + Math.sin(a) * bh * 0.3); g.stroke();
+      }
+      g.beginPath(); g.arc(cx, by + bh * 0.52, bh * 0.1, 0, Math.PI * 2); fill(shadeHex(metal, 0.35));
+      for (const [gx, gy] of [[bx + 9 * u, by + 9 * u], [bx + bw - 9 * u, by + 9 * u], [bx + 9 * u, by + bh - 9 * u], [bx + bw - 9 * u, by + bh - 9 * u]]) {
+        g.beginPath(); g.moveTo(gx, gy - 4 * u); g.lineTo(gx + 3.4 * u, gy); g.lineTo(gx, gy + 4 * u); g.lineTo(gx - 3.4 * u, gy); g.closePath(); fill(gem);
+      }
+    }
+
+    // ---- the lid, tipped back a little
+    const lw2 = bw + 6 * u, lx = cx - lw2 / 2;
+    if (build === 'chest' || build === 'vault') {
+      // a curved lid
+      g.beginPath();
+      g.moveTo(lx, by - 2 * u);
+      g.quadraticCurveTo(cx, lidY - lidH * 0.5, lx + lw2, by - 2 * u);
+      g.lineTo(lx + lw2, by + 2 * u); g.lineTo(lx, by + 2 * u); g.closePath();
+      fill(light);
+      g.beginPath();
+      g.moveTo(cx - lw2 * 0.16, by - 2 * u);
+      g.quadraticCurveTo(cx, lidY - lidH * 0.42, cx + lw2 * 0.16, by - 2 * u);
+      g.closePath(); g.fillStyle = metal; g.fill(); g.lineWidth = 2.2 * u; g.stroke();
+    } else {
+      // a flat lid with a rim
+      g.beginPath();
+      g.moveTo(lx, by + 2 * u); g.lineTo(lx + 8 * u, lidY); g.lineTo(lx + lw2 - 8 * u, lidY); g.lineTo(lx + lw2, by + 2 * u);
+      g.closePath(); fill(light);
+      g.fillStyle = dark; g.fillRect(lx + 2 * u, by - 1 * u, lw2 - 4 * u, 4 * u);
+      g.lineWidth = 2 * u; g.strokeRect(lx + 2 * u, by - 1 * u, lw2 - 4 * u, 4 * u);
+    }
+
+    // ---- the lock, right at the front
+    const kx = cx, ky = by + bh * (build === 'tech' ? 0.84 : build === 'chest' ? 0.55 : 0.46);
+    if (build === 'tech') {
+      // a latch instead of a padlock: a bar with a light on it
+      box(kx - 15 * u, ky - 5 * u, 30 * u, 10 * u, 3 * u, metal);
+      rivet(kx - 9 * u, ky, 2 * u, gem);
+      g.fillStyle = ink; g.fillRect(kx - 2 * u, ky - 2.4 * u, 12 * u, 2 * u); g.fillRect(kx - 2 * u, ky + 0.6 * u, 8 * u, 2 * u);
+    } else if (build !== 'vault') {
+      box(kx - 9 * u, ky - 8 * u, 18 * u, 16 * u, 3 * u, metal);
+      g.fillStyle = ink;
+      g.beginPath(); g.arc(kx, ky - 1.5 * u, 2.8 * u, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(kx - 2.2 * u, ky + 5 * u); g.lineTo(kx + 2.2 * u, ky + 5 * u); g.lineTo(kx + 1.1 * u, ky - 0.5 * u); g.lineTo(kx - 1.1 * u, ky - 0.5 * u); g.closePath(); g.fill();
+      g.fillStyle = shadeHex(metal, 0.35); g.fillRect(kx - 6 * u, ky - 6 * u, 3 * u, 3 * u);
+    }
+
+    // ---- a crown for the top of the ladder, sparks for the rest
+    if (build === 'vault') {
+      const cyy = lidY - lidH * 0.26;
+      g.beginPath();
+      g.moveTo(cx - 13 * u, cyy + 6 * u); g.lineTo(cx - 15 * u, cyy - 7 * u); g.lineTo(cx - 6 * u, cyy - 1 * u);
+      g.lineTo(cx, cyy - 11 * u); g.lineTo(cx + 6 * u, cyy - 1 * u); g.lineTo(cx + 15 * u, cyy - 7 * u); g.lineTo(cx + 13 * u, cyy + 6 * u);
+      g.closePath(); fill(metal);
+      for (const dx of [-7, 0, 7]) rivet(cx + dx * u, cyy + 1 * u, 2 * u, gem);
+    }
+    g.fillStyle = gem;
+    for (const [sx, sy, s] of [[bx - 7 * u, by - 4 * u, 3.4], [bx + bw + 7 * u, by + 6 * u, 2.6], [bx + bw + 4 * u, by - 10 * u, 2]]) {
+      g.beginPath();
+      g.moveTo(sx, sy - s * u); g.lineTo(sx + s * 0.42 * u, sy); g.lineTo(sx, sy + s * u); g.lineTo(sx - s * 0.42 * u, sy);
+      g.closePath(); g.fill();
+    }
   },
 
   // Opening one: a reel of things it could hand over, running down to the one it does.
