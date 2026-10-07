@@ -17,10 +17,10 @@ const CRATES = [
   { id: 'ruby',     name: 'RUBY CRATE',     price: 25000,  color: '#e8283a', build: 'chest', metal: '#c8a24a', gem: '#ff9ab0', odds: { common: 12, rare: 42, epic: 35, legendary: 9.5, mythic: 1.5 } },
   { id: 'sapphire', name: 'SAPPHIRE CRATE', price: 50000,  color: '#2f7bff', build: 'chest', metal: '#cfd8ea', gem: '#bfe0ff', odds: { common: 0, rare: 45, epic: 40, legendary: 12.5, mythic: 2.5 } },
   { id: 'emerald',  name: 'EMERALD CRATE',  price: 90000,  color: '#1fb86a', build: 'tech',  metal: '#0d6b3f', gem: '#8dffc4', odds: { common: 0, rare: 30, epic: 48, legendary: 18, mythic: 4 } },
-  { id: 'diamond',  name: 'DIAMOND CRATE',  price: 150000, color: '#7fe0ff', build: 'tech',  metal: '#3f7fa8', gem: '#ffffff', odds: { common: 0, rare: 12, epic: 52, legendary: 29, mythic: 7 } },
-  { id: 'cosmic',   name: 'COSMIC CRATE',   price: 250000, color: '#b04dff', build: 'tech',  metal: '#5a1f9a', gem: '#f0d8ff', odds: { common: 0, rare: 0, epic: 50, legendary: 38, mythic: 12 } },
-  { id: 'legend',   name: 'LEGEND CRATE',   price: 400000, color: '#ff8a1f', build: 'vault', metal: '#c8a24a', gem: '#fff3a0', odds: { common: 0, rare: 0, epic: 28, legendary: 52, mythic: 20 } },
-  { id: 'goatcrate', name: 'GOAT CRATE',    price: 750000, color: '#ff3a6e', build: 'vault', metal: '#ffc21a', gem: '#ffffff', odds: { common: 0, rare: 0, epic: 0, legendary: 62, mythic: 38 } },
+  { id: 'diamond',  name: 'DIAMOND CRATE',  price: 120000, color: '#7fe0ff', build: 'tech',  metal: '#3f7fa8', gem: '#ffffff', odds: { common: 0, rare: 12, epic: 52, legendary: 29, mythic: 7 } },
+  { id: 'cosmic',   name: 'COSMIC CRATE',   price: 195000, color: '#b04dff', build: 'tech',  metal: '#5a1f9a', gem: '#f0d8ff', odds: { common: 0, rare: 0, epic: 50, legendary: 38, mythic: 12 } },
+  { id: 'legend',   name: 'LEGEND CRATE',   price: 300000, color: '#ff8a1f', build: 'vault', metal: '#c8a24a', gem: '#fff3a0', odds: { common: 0, rare: 0, epic: 28, legendary: 52, mythic: 20 } },
+  { id: 'goatcrate', name: 'GOAT CRATE',    price: 550000, color: '#ff3a6e', build: 'vault', metal: '#ffc21a', gem: '#ffffff', odds: { common: 0, rare: 0, epic: 0, legendary: 62, mythic: 38 } },
 ];
 
 // Everything a crate can hold, and where to find its definition.
