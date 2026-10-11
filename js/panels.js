@@ -59,6 +59,11 @@ Object.assign(UI, {
           <p>A knockout between 4 or 8 friends. Win your 1v1 and you go through. No draws.</p>
           <span class="tag">ONLINE · WITH FRIENDS</span>
         </button>
+        <button class="mode season" data-mode="career">
+          <strong>SEASON</strong>
+          <p>Ten matches against five countries in your division. Three points a win. Top two go up, bottom two go down.</p>
+          <span class="tag">${Season.state() ? DIVISIONS[Season.state().div].name + ' · MATCH ' + (Season.state().game + 1) + ' OF ' + Season.GAMES : 'START A SEASON'}</span>
+        </button>
         <button class="mode chal" data-mode="challenges">
           <strong>SKILL CHALLENGES</strong>
           <p>Target practice, keeper mode and the dribble gauntlet. Medals and coins.</p>
@@ -78,6 +83,7 @@ Object.assign(UI, {
       body.querySelectorAll('[data-format]').forEach((x) => x.classList.toggle('sel', x === b));
     }));
     body.querySelector('[data-mode="quick"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'quick', club: quickClub }); });
+    body.querySelector('[data-mode="career"]').addEventListener('click', () => { this.tap(); this.openModal('career'); });
     const fmtNow = () => Save.data.format || '4v4';
     body.querySelector('[data-mode="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow()); });
     body.querySelector('[data-room="create"]').addEventListener('click', () => { this.tap(); Online.createRoom(fmtNow()); });
@@ -338,6 +344,130 @@ Object.assign(UI, {
     }));
   },
 
+  // ---- missions: jobs worth coins ----
+  panel_missions(body) {
+    $('modal-title').textContent = 'MISSIONS';
+    const m = Missions.state();
+    const row = (job, big) => {
+      const def = Missions.def(job.id);
+      if (!def) return '';
+      const done = job.n >= def.n, pct = Math.round((job.n / def.n) * 100);
+      return `<div class="mission ${big ? 'big' : ''} ${job.done ? 'paid' : done ? 'ready' : ''}">
+        <div class="m-top"><strong>${def.text.replace('{n}', def.n)}</strong><span class="m-coins"><span class="coin"></span>${fmtCoins(def.coins)}</span></div>
+        <i class="m-bar"><b style="width:${Math.min(100, pct)}%"></b></i>
+        <div class="m-bot"><em>${Math.min(job.n, def.n)} / ${def.n}</em>
+        ${job.done ? '<span class="m-paid">CLAIMED</span>' : done ? `<button class="m-claim" data-claim="${job.id}">CLAIM</button>` : ''}</div>
+      </div>`;
+    };
+    const streak = (Save.data.daily && Save.data.daily.streak) || 0;
+    body.innerHTML = `${this.coinsLine()}
+      <p class="note">Jobs pay coins, and coins open crates. They swap over at midnight; the big one lasts the week.</p>
+      <div class="m-head">TODAY<small>day ${streak} of your run</small></div>
+      <div class="mission-list">${m.daily.map((j) => row(j, false)).join('')}</div>
+      <div class="m-head">THIS WEEK</div>
+      <div class="mission-list">${m.weekly ? row(m.weekly, true) : ''}</div>`;
+    body.querySelectorAll('[data-claim]').forEach((b) => b.addEventListener('click', () => {
+      const got = Missions.claim(b.dataset.claim);
+      if (!got) return;
+      Sound.powerReady();
+      this.toast('+' + fmtCoins(got) + ' COINS');
+      this.panel_missions(body);
+      this.refreshHome();
+    }));
+  },
+
+  // ---- collection: everything in the game, and how much of it is yours ----
+  panel_collection(body) {
+    $('modal-title').textContent = 'COLLECTION';
+    const kinds = [['character', 'PLAYERS'], ['ball', 'BALLS'], ['trail', 'POWER TRAILS'], ['celebration', 'CELEBRATIONS'], ['accessory', 'ACCESSORIES']];
+    let own = 0, all = 0;
+    const order = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+    let best = null, bestRank = -1;
+    const rows = kinds.map(([kind, label]) => {
+      const list = Crates.list(kind).filter((x) => x.rarity !== 'oneofone' && !x.only);
+      const mine = list.filter((x) => Shop.owns(kind, x.id));
+      own += mine.length; all += list.length;
+      for (const it of mine) { const r = order.indexOf(Crates.rarity(kind, it.id)); if (r > bestRank) { bestRank = r; best = { kind, id: it.id }; } }
+      const byRarity = order.map((r) => {
+        const of = list.filter((x) => Crates.rarity(kind, x.id) === r);
+        if (!of.length) return '';
+        const got = of.filter((x) => Shop.owns(kind, x.id)).length;
+        return `<i style="--r:${RARITIES[r].color}">${got}/${of.length}</i>`;
+      }).join('');
+      const pct = Math.round((mine.length / Math.max(1, list.length)) * 100);
+      return `<div class="coll-row">
+        <div class="coll-top"><strong>${label}</strong><em>${mine.length} / ${list.length}</em></div>
+        <i class="coll-bar"><b style="width:${pct}%"></b></i>
+        <div class="coll-rar">${byRarity}</div>
+      </div>`;
+    }).join('');
+    const pct = Math.round((own / Math.max(1, all)) * 100);
+    body.innerHTML = `<div class="coll-head">
+        <div class="coll-big"><b>${pct}%</b><small>${own} of ${all} things</small><i class="coll-bar wide"><b style="width:${pct}%"></b></i></div>
+        <div class="coll-best"><small>BEST FIND</small><canvas id="coll-best-art" width="120" height="120"></canvas>
+          <strong id="coll-best-name">—</strong></div>
+      </div>
+      <div class="coll-list">${rows}</div>
+      <button class="big-btn green" id="coll-crates">OPEN CRATES</button>`;
+    const art = $('coll-best-art');
+    if (best && art) {
+      this.itemSwatch(art, best);
+      const rar = Crates.rarity(best.kind, best.id);
+      $('coll-best-name').textContent = Crates.name(best.kind, best.id);
+      $('coll-best-name').style.color = RARITIES[rar].color;
+    } else if (art) {
+      art.getContext('2d').clearRect(0, 0, art.width, art.height);
+      $('coll-best-name').textContent = 'NOTHING YET';
+    }
+    $('coll-crates').addEventListener('click', () => { this.tap(); this.openModal('crates'); });
+  },
+
+  // ---- the season: a division, a table, ten matches ----
+  panel_career(body) {
+    $('modal-title').textContent = 'SEASON';
+    const s = Season.state();
+    const done = !s && Save.data.season && Save.data.season.done ? Save.data.season : null;
+    if (!s && !done) {
+      body.innerHTML = `<p class="note">A season is ten matches against five other countries in your division. Three points a win, one for a draw. Finish in the top two and you go up; finish in the bottom two and you go down.</p>
+        <div class="season-start">
+          <h3>${DIVISIONS[0].name}</h3>
+          <p>You start at the bottom with ${Clubs.mine().name}.</p>
+          <button class="big-btn green" id="season-new">START A SEASON</button>
+        </div>`;
+      $('season-new').addEventListener('click', () => { this.tap(); Season.start(0); this.panel_career(body); });
+      return;
+    }
+    if (done) {
+      const d = done.done, where = { promoted: 'PROMOTED!', relegated: 'RELEGATED', stayed: 'STAYED UP', champion: 'CHAMPIONS OF THE WORLD!' }[d.out];
+      const next = Season.nextDiv();
+      body.innerHTML = `<div class="season-end">
+          <span class="s-place">${ordinal(d.place)}</span>
+          <h3>${where}</h3>
+          <p>${DIVISIONS[d.div].name} · <span class="coin"></span> ${fmtCoins(d.prize)} prize money</p>
+          <button class="big-btn green" id="season-new">START ${DIVISIONS[next].name}</button>
+        </div>
+        ${this.seasonTable(done)}`;
+      $('season-new').addEventListener('click', () => { this.tap(); Season.start(next); this.panel_career(body); });
+      return;
+    }
+    const foe = Season.opponent();
+    body.innerHTML = `<div class="season-top">
+        <div><h3>${DIVISIONS[s.div].name}</h3><small>MATCH ${s.game + 1} OF ${Season.GAMES}</small></div>
+        <button class="big-btn green" id="season-play">PLAY ${foe ? foe.name : ''}</button>
+      </div>
+      ${s.last ? `<p class="note">Last time out: ${Season.name(s.last.foe)} ${s.last.ga}–${s.last.gf} ${s.last.gf > s.last.ga ? '· you won' : s.last.gf === s.last.ga ? '· a draw' : '· you lost'}</p>` : ''}
+      ${this.seasonTable(s)}`;
+    $('season-play').addEventListener('click', () => { this.tap(); this.closeModal(); Game.startMatch({ mode: 'career' }); });
+  },
+
+  seasonTable(s) {
+    const rows = Season.sorted(s).map((r, i) => `<tr class="${r.id === 'you' ? 'me' : ''} ${i < 2 ? 'up' : i >= 4 ? 'down' : ''}">
+        <td>${i + 1}</td><td class="s-name">${Season.name(r.id)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
+        <td>${r.gf - r.ga > 0 ? '+' : ''}${r.gf - r.ga}</td><td><b>${r.pts}</b></td>
+      </tr>`).join('');
+    return `<table class="season-table"><thead><tr><th></th><th class="s-name">TEAM</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead><tbody>${rows}</tbody></table>`;
+  },
+
   // ---- crates: the only way to get anything new ----
   panel_crates(body) {
     $('modal-title').textContent = 'CRATES';
@@ -354,9 +484,10 @@ Object.assign(UI, {
       </button>`;
     }).join('');
     const left = Crates.anyMissing();
-    body.innerHTML = `${this.coinsLine()}
+    body.innerHTML = `<div class="crate-head">${this.coinsLine()}<button class="mid-btn" id="to-collection">COLLECTION</button></div>
       <p class="note">${left ? 'Every crate gives you something you have not got yet. The dearer the crate, the better the chances.' : 'You own everything. There is nothing left in any crate.'}</p>
       <div class="crate-grid">${cards}</div>`;
+    $('to-collection').addEventListener('click', () => { this.tap(); this.openModal('collection'); });
     body.querySelectorAll('canvas[data-crateart]').forEach((cv) => this.crateArt(cv, Crates.get(cv.dataset.crateart)));
     body.querySelectorAll('.crate-card').forEach((el) => el.addEventListener('click', () => {
       const crate = Crates.get(el.dataset.crate);

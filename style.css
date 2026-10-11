@@ -1230,6 +1230,75 @@ body.kb .chat-menu kbd { display: inline-block; }
 .commentary { position: fixed; z-index: 9; top: calc(var(--sb-b, calc(var(--st) + 62px)) + 8px); left: 50%; width: min(560px, 72vw, calc(100vw - 2 * (var(--sl) + 54px))); transform: translate(-50%, -8px) scale(.98); text-align: center; pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
 .commentary.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 
+/* a count on a home-screen button has to hang off that button */
+.home-actions .mid-btn { position: relative; }
+.home-actions .mid-btn .badge { right: -7px; top: -9px; }
+
+/* MISSIONS: a board of jobs worth coins */
+.m-head { display: flex; align-items: baseline; gap: 8px; font-size: 15px; letter-spacing: .08em; color: #6b7299; margin: 6px 0 4px; }
+.m-head small { font-size: 11px; letter-spacing: .02em; color: #9aa0c0; }
+.mission-list { display: grid; gap: 8px; }
+.mission { border: 3px solid var(--ink); border-radius: 12px; background: #eef2ff; padding: 7px 10px 8px; box-shadow: 0 4px 0 var(--ink); display: grid; gap: 4px; }
+.mission.big { background: #fff6d8; box-shadow: 0 4px 0 var(--ink), inset 0 0 0 3px var(--yellow); }
+.mission.ready { background: #e4ffe8; box-shadow: 0 4px 0 var(--ink), inset 0 0 0 3px var(--green); }
+.mission.paid { filter: saturate(.45); opacity: .72; }
+.m-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.m-top strong { font-weight: 400; font-size: 16px; }
+.m-coins { display: flex; align-items: center; gap: 4px; font-size: 15px; }
+.m-bar { display: block; height: 10px; background: #fff; border: 3px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.m-bar b { display: block; height: 100%; background: var(--blue); }
+.mission.ready .m-bar b, .mission.paid .m-bar b { background: var(--green); }
+.m-bot { display: flex; align-items: center; justify-content: space-between; min-height: 22px; }
+.m-bot em { font-style: normal; font-size: 12px; color: #6b7299; }
+.m-claim { background: var(--green); color: #fff; border: 3px solid var(--ink); border-radius: 9px; padding: 1px 12px; font-size: 15px; box-shadow: 0 3px 0 var(--ink); }
+.m-claim:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.m-paid { font-size: 12px; letter-spacing: .06em; color: var(--green); }
+
+/* COLLECTION */
+.coll-head { display: flex; gap: 12px; align-items: stretch; margin-bottom: 8px; }
+.coll-big { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; border: 3px solid var(--ink); border-radius: 12px; background: #eef2ff; padding: 8px 12px; box-shadow: 0 4px 0 var(--ink); }
+.coll-big b { font-weight: 400; font-size: clamp(26px, 7vmin, 44px); line-height: 1; }
+.coll-big small { font-size: 12px; color: #6b7299; }
+.coll-best { width: 128px; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 3px solid var(--ink); border-radius: 12px; background: #eef2ff; padding: 6px; box-shadow: 0 4px 0 var(--ink); }
+.coll-best small { font-size: 10px; letter-spacing: .06em; color: #6b7299; }
+.coll-best canvas { width: 72px; height: 72px; }
+.coll-best strong { font-weight: 400; font-size: 13px; max-width: 116px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coll-list { display: grid; gap: 7px; margin-bottom: 10px; }
+.coll-row { border: 3px solid var(--ink); border-radius: 11px; background: #eef2ff; padding: 5px 10px 7px; box-shadow: 0 4px 0 var(--ink); }
+.coll-top { display: flex; justify-content: space-between; align-items: baseline; }
+.coll-top strong { font-weight: 400; font-size: 15px; }
+.coll-top em { font-style: normal; font-size: 13px; color: #6b7299; }
+.coll-bar { display: block; height: 9px; background: #fff; border: 3px solid var(--ink); border-radius: 6px; overflow: hidden; margin: 2px 0 3px; }
+.coll-bar.wide { height: 12px; margin-top: 4px; }
+.coll-bar b { display: block; height: 100%; background: var(--green); }
+.coll-rar { display: flex; gap: 8px; }
+.coll-rar i { font-style: normal; font-size: 10px; letter-spacing: .04em; color: var(--r, #8a90b8); }
+
+/* SEASON: the table and where you are in it */
+.season-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.season-top h3 { margin: 0; font-weight: 400; font-size: clamp(18px, 4.6vmin, 26px); }
+.season-top small { font-size: 12px; color: #6b7299; letter-spacing: .04em; }
+.season-start, .season-end { text-align: center; display: grid; gap: 6px; justify-items: center; padding: 6px 0 10px; }
+.season-start h3, .season-end h3 { margin: 0; font-weight: 400; font-size: clamp(20px, 5vmin, 30px); }
+.s-place { font-size: clamp(30px, 8vmin, 48px); color: var(--yellow); -webkit-text-stroke: .08em var(--ink); paint-order: stroke fill; }
+.season-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.season-table th { font-weight: 400; font-size: 10px; letter-spacing: .06em; color: #6b7299; padding: 2px 3px; }
+.season-table td { padding: 3px; text-align: center; border-top: 2px dashed #dfe3f2; }
+.season-table .s-name { text-align: left; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.season-table tr.me td { background: var(--yellow); }
+.season-table tr.me td:first-child { border-radius: 8px 0 0 8px; }
+.season-table tr.me td:last-child { border-radius: 0 8px 8px 0; }
+.season-table tr.up td:first-child { color: var(--green); }
+.season-table tr.down td:first-child { color: var(--ui-red); }
+.crate-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.crate-head .panel-coins { margin: 0; }
+@media (max-height: 430px) {
+  .mission .m-top strong { font-size: 14px; }
+  .coll-best { width: 104px; }
+  .coll-best canvas { width: 58px; height: 58px; }
+  .season-table { font-size: 11px; }
+}
+
 /* CRATES: the ladder, and the reel */
 .crate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .crate-card {

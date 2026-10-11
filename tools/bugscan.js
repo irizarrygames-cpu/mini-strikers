@@ -246,7 +246,7 @@ window.BS = {
 
     await step('splash away', () => { $('splash').classList.add('gone'); $('splash').hidden = true; $('daily').hidden = true; });
     await step('home refresh', () => UI.refreshHome());
-    for (const kind of ['play', 'characters', 'customize', 'crates', 'settings', 'profile']) {
+    for (const kind of ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'career', 'settings', 'profile']) {
       await step('open ' + kind, () => { UI.openModal(kind); if (!visible('modal')) throw new Error('modal hidden'); });
       await step('close ' + kind, () => { click($('modal-close')); if (visible('modal')) throw new Error('modal still open'); });
     }
@@ -311,6 +311,28 @@ window.BS = {
       const r = Crates.open('bronze');
       if (!r || !r.empty) throw new Error('it gave something out of an empty crate');
       if (Save.data.coins !== 999999) throw new Error('it charged for nothing');
+    });
+    await step('a job pays once, and only when it is done', async () => {
+      Save.data.missions = null; Save.data.coins = 0;
+      const board = Missions.state(), job = board.daily[0], def = Missions.def(job.id);
+      if (Missions.claim(job.id) !== 0) throw new Error('paid before it was done');
+      job.n = def.n;
+      if (Missions.claim(job.id) !== def.coins) throw new Error('wrong money');
+      if (Missions.claim(job.id) !== 0) throw new Error('paid twice');
+      if (Save.data.coins !== def.coins) throw new Error('coins ' + Save.data.coins);
+    });
+    await step('a season adds up and ends', async () => {
+      Save.data.season = null;
+      Season.start(1);
+      const fake = { score: { blue: 3, red: 0 }, mode: 'career' };
+      let last = null;
+      for (let i = 0; i < Season.GAMES; i++) last = Season.record(fake);
+      if (last === 'next') throw new Error('it never ended');
+      const t = Save.data.season.table;
+      if (new Set(t.map((r) => r.p)).size !== 1) throw new Error('teams played different numbers of games');
+      const you = t.find((r) => r.id === 'you');
+      if (you.pts !== Season.GAMES * 3) throw new Error('won them all and has ' + you.pts);
+      if (!Save.data.season.done) throw new Error('no result');
     });
     await step('equip a character you own', async () => {
       Save.data.owned.character = [...new Set([...(Save.data.owned.character || []), 'buzz'])];
@@ -450,7 +472,7 @@ window.BS = {
   // it again (375x812, 320x480, 640x360, 907x520, 1280x720 are the ones that used to break).
   OVERLAP_SEL: ['.home-char', '.home-top', '.home-record', '.home-actions', '.home-bl', '.howto-btn', '#logo',
     '.party-bar', '#toast', '.watch-bar', '#scoreboard', '#commentary', '.action', '#joy-base', '.ult-btn',
-    '.icon-btn', '.chat-feed', '#kb-legend', '#replay-skip', '#tip', '#minimap', '#net-ping'].join(', '),
+    '.icon-btn', '.chat-feed', '#kb-legend', '#replay-skip', '#tip', '#minimap', '#net-ping', '.badge'].join(', '),
   // a card that sits over everything else is meant to: the things inside it are its own business
   OVERLAY_SEL: ['#pause', '#results', '#modal', '#intro', '#rotate', '#daily', '#auth', '#splash',
     '#howto', '#lobby', '#queue', '#trophy', '#challenge-end', '#party-invite'].join(', '),

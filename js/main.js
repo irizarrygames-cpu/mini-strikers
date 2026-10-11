@@ -76,6 +76,7 @@ const Game = {
     let club = opts.club;
     if (opts.mode === 'cup') { if (!Cup.state()) Cup.start(); club = Cup.opponent(); }
     if (opts.mode === 'penscup') { if (!PenCup.state()) PenCup.start(); club = PenCup.opponent(); }
+    if (opts.mode === 'career') { if (!Season.state()) Season.start(0); club = Season.opponent(); }
     if (!club) club = Clubs.random(Clubs.mine());
     FX.clear();
     Input.reset();

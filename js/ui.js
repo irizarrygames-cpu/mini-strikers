@@ -193,6 +193,8 @@ const UI = {
       pill.innerHTML = `<i></i><span>${tier.name}</span><em>${myRank.rp}</em>`;
     }
     this.portrait($('home-char-canvas'), Save.look());
+    const badge = $('mission-badge'), toClaim = typeof Missions !== 'undefined' ? Missions.ready() : 0;
+    if (badge) { badge.hidden = !toClaim; badge.textContent = toClaim || ''; }
   },
 
   // a simple flag for a country (no crests or emblems, just its colours and shapes)
@@ -673,6 +675,8 @@ const UI = {
     // a win streak pays a little extra: +10 per win after the first, up to +50
     const streakBonus = r.outcome === 'win' ? Math.min(50, (c.streak - 1) * 10) : 0;
     d.coins += streakBonus;
+    Missions.record(m, r.outcome);
+    const seasonResult = m.mode === 'career' ? Season.record(m) : null;
     const cupResult = m.mode === 'cup' ? Cup.record(m) : null;
     const penCupResult = m.mode === 'penscup' ? PenCup.record(m) : null;
     const onlinePenCup = m.net && m.onlinePenEnd ? m.onlinePenEnd.wc : null;
@@ -778,7 +782,7 @@ const UI = {
       if (onlinePenCup.champion) Trophy.show({ title: 'WORLD CHAMPIONS!', sub: `ONLINE PENALTY WORLD CUP · +${PWC_PRIZE} COINS`, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
-      this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';
+      this._againMode = seasonResult === 'next' ? 'career' : seasonResult ? 'seasonover' : pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';
       $('r-again').textContent = 'PLAY AGAIN';
     }
     $('results').hidden = false;
@@ -906,7 +910,9 @@ const UI = {
 
   resultsAgain() {
     const previous = Game.match && Game.match.club;
-    if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
+    if (this._againMode === 'career') Game.startMatch({ mode: 'career' });
+    else if (this._againMode === 'seasonover') { Game.goHome(); this.openModal('career'); }
+    else if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
     else if (this._againMode === 'penscup') Game.startMatch({ mode: 'penscup' });
     else if (this._againMode === 'newpenscup') { PenCup.start(); Game.startMatch({ mode: 'penscup' }); }
     else if (this._againMode === 'onlinepenscup') { Game.goHome(); Online.m = null; Online.findMatch('pens', true); }
