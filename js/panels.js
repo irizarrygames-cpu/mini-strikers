@@ -59,11 +59,6 @@ Object.assign(UI, {
           <p>A knockout between 4 or 8 friends. Win your 1v1 and you go through. No draws.</p>
           <span class="tag">ONLINE · WITH FRIENDS</span>
         </button>
-        <button class="mode season" data-mode="career">
-          <strong>SEASON</strong>
-          <p>Ten matches against five countries in your division. Three points a win. Top two go up, bottom two go down.</p>
-          <span class="tag">${Season.state() ? DIVISIONS[Season.state().div].name + ' · MATCH ' + (Season.state().game + 1) + ' OF ' + Season.GAMES : 'START A SEASON'}</span>
-        </button>
         <button class="mode chal" data-mode="challenges">
           <strong>SKILL CHALLENGES</strong>
           <p>Target practice, keeper mode and the dribble gauntlet. Medals and coins.</p>
@@ -83,7 +78,6 @@ Object.assign(UI, {
       body.querySelectorAll('[data-format]').forEach((x) => x.classList.toggle('sel', x === b));
     }));
     body.querySelector('[data-mode="quick"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'quick', club: quickClub }); });
-    body.querySelector('[data-mode="career"]').addEventListener('click', () => { this.tap(); this.openModal('career'); });
     const fmtNow = () => Save.data.format || '4v4';
     body.querySelector('[data-mode="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow()); });
     body.querySelector('[data-room="create"]').addEventListener('click', () => { this.tap(); Online.createRoom(fmtNow()); });
@@ -420,52 +414,6 @@ Object.assign(UI, {
       $('coll-best-name').textContent = 'NOTHING YET';
     }
     $('coll-crates').addEventListener('click', () => { this.tap(); this.openModal('crates'); });
-  },
-
-  // ---- the season: a division, a table, ten matches ----
-  panel_career(body) {
-    $('modal-title').textContent = 'SEASON';
-    const s = Season.state();
-    const done = !s && Save.data.season && Save.data.season.done ? Save.data.season : null;
-    if (!s && !done) {
-      body.innerHTML = `<p class="note">A season is ten matches against five other countries in your division. Three points a win, one for a draw. Finish in the top two and you go up; finish in the bottom two and you go down.</p>
-        <div class="season-start">
-          <h3>${DIVISIONS[0].name}</h3>
-          <p>You start at the bottom with ${Clubs.mine().name}.</p>
-          <button class="big-btn green" id="season-new">START A SEASON</button>
-        </div>`;
-      $('season-new').addEventListener('click', () => { this.tap(); Season.start(0); this.panel_career(body); });
-      return;
-    }
-    if (done) {
-      const d = done.done, where = { promoted: 'PROMOTED!', relegated: 'RELEGATED', stayed: 'STAYED UP', champion: 'CHAMPIONS OF THE WORLD!' }[d.out];
-      const next = Season.nextDiv();
-      body.innerHTML = `<div class="season-end">
-          <span class="s-place">${ordinal(d.place)}</span>
-          <h3>${where}</h3>
-          <p>${DIVISIONS[d.div].name} · <span class="coin"></span> ${fmtCoins(d.prize)} prize money</p>
-          <button class="big-btn green" id="season-new">START ${DIVISIONS[next].name}</button>
-        </div>
-        ${this.seasonTable(done)}`;
-      $('season-new').addEventListener('click', () => { this.tap(); Season.start(next); this.panel_career(body); });
-      return;
-    }
-    const foe = Season.opponent();
-    body.innerHTML = `<div class="season-top">
-        <div><h3>${DIVISIONS[s.div].name}</h3><small>MATCH ${s.game + 1} OF ${Season.GAMES}</small></div>
-        <button class="big-btn green" id="season-play">PLAY ${foe ? foe.name : ''}</button>
-      </div>
-      ${s.last ? `<p class="note">Last time out: ${Season.name(s.last.foe)} ${s.last.ga}–${s.last.gf} ${s.last.gf > s.last.ga ? '· you won' : s.last.gf === s.last.ga ? '· a draw' : '· you lost'}</p>` : ''}
-      ${this.seasonTable(s)}`;
-    $('season-play').addEventListener('click', () => { this.tap(); this.closeModal(); Game.startMatch({ mode: 'career' }); });
-  },
-
-  seasonTable(s) {
-    const rows = Season.sorted(s).map((r, i) => `<tr class="${r.id === 'you' ? 'me' : ''} ${i < 2 ? 'up' : i >= 4 ? 'down' : ''}">
-        <td>${i + 1}</td><td class="s-name">${Season.name(r.id)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
-        <td>${r.gf - r.ga > 0 ? '+' : ''}${r.gf - r.ga}</td><td><b>${r.pts}</b></td>
-      </tr>`).join('');
-    return `<table class="season-table"><thead><tr><th></th><th class="s-name">TEAM</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead><tbody>${rows}</tbody></table>`;
   },
 
   // ---- crates: the only way to get anything new ----

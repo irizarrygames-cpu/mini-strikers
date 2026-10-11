@@ -255,12 +255,12 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .tog:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 
 .panel.wide { width: min(760px, 94vw); padding-top: 10px; }
-.panel-head { display: flex; align-items: center; justify-content: center; position: relative; }
+.panel-head { display: flex; align-items: center; justify-content: center; position: relative; min-height: 51px; }
 .close-btn {
   position: absolute; right: -6px; top: 2px; width: 44px; height: 44px; border-radius: 12px;
   background: var(--ui-red); color: #fff; border: 3px solid var(--ink); font-size: 22px; box-shadow: 0 4px 0 var(--ink);
 }
-.note { margin: 0 0 12px; text-align: center; color: #6b7299; font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; }
+.note { margin: 9px 0 12px; text-align: center; color: #6b7299; font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; }
 
 .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .char-card-sm {
@@ -337,6 +337,10 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .phone { width: 70px; height: 120px; border: 6px solid var(--ink); border-radius: 14px; background: #fff; animation: turn 1.6s ease-in-out infinite; }
 @keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 
+@media (max-height: 430px) {
+  .close-btn { width: 34px; height: 34px; font-size: 18px; top: 0; }
+  .panel-head { min-height: 39px; }
+}
 @media (max-height: 430px) {
   .panel { padding: 8px 14px 12px; }
   .panel.results { gap: 4px; padding: 6px 16px 12px; }
@@ -516,7 +520,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .room-box .mid-btn { font-size: 17px; padding: 0.3em 0.6em; }
 .join { display: flex; gap: 6px; }
 .join input { flex: 1; min-width: 0; font-family: var(--font); font-size: 20px; letter-spacing: 0.12em; text-transform: uppercase; text-align: center; border: 3px solid var(--ink); border-radius: 10px; padding: 3px 6px; color: var(--ink); }
-.note.vs-bots { margin: 10px 0 6px; font-size: 12px; }
+.note.vs-bots { margin: 12px 0 8px; font-size: 12px; }
 
 /* queue */
 .panel.queue { align-items: center; text-align: center; }
@@ -733,15 +737,15 @@ body:not(.kb) #kb-legend { display: none; }
 button.club-chip { font-family: var(--font); box-shadow: 0 3px 0 var(--ink); }
 .club-chip canvas { width: 27px; height: 18px; margin-top: 2px; }
 button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
-.clubs-note { margin: 10px 0 0; font-size: 12px; }
-.clubs-note + .clubs-row { margin-top: 4px; }
+.clubs-note { margin: 14px 0 0; font-size: 12px; }
+.clubs-note + .clubs-row { margin-top: 8px; }
 .r-mult { font-style: normal; font-size: 12px; background: #c9cde0; color: var(--ink); border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
 .r-mult.hard { background: var(--ui-red); color: #fff; }
 
 /* shop bits */
 .panel.wide { position: relative; }
 .panel-body { position: relative; }
-.panel-coins { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 20px; margin-bottom: 2px; }
+.panel-coins { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 20px; margin-bottom: 6px; }
 .panel-coins b { font-weight: 400; }
 .tabs { display: flex; gap: 6px; justify-content: center; margin: 2px 0 6px; flex-wrap: wrap; }
 .tabs button { border: 3px solid var(--ink); border-radius: 10px; background: #eef2ff; padding: 6px 12px; font-size: 15px; box-shadow: 0 3px 0 var(--ink); }
@@ -1274,29 +1278,12 @@ body.kb .chat-menu kbd { display: inline-block; }
 .coll-rar { display: flex; gap: 8px; }
 .coll-rar i { font-style: normal; font-size: 10px; letter-spacing: .04em; color: var(--r, #8a90b8); }
 
-/* SEASON: the table and where you are in it */
-.season-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.season-top h3 { margin: 0; font-weight: 400; font-size: clamp(18px, 4.6vmin, 26px); }
-.season-top small { font-size: 12px; color: #6b7299; letter-spacing: .04em; }
-.season-start, .season-end { text-align: center; display: grid; gap: 6px; justify-items: center; padding: 6px 0 10px; }
-.season-start h3, .season-end h3 { margin: 0; font-weight: 400; font-size: clamp(20px, 5vmin, 30px); }
-.s-place { font-size: clamp(30px, 8vmin, 48px); color: var(--yellow); -webkit-text-stroke: .08em var(--ink); paint-order: stroke fill; }
-.season-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.season-table th { font-weight: 400; font-size: 10px; letter-spacing: .06em; color: #6b7299; padding: 2px 3px; }
-.season-table td { padding: 3px; text-align: center; border-top: 2px dashed #dfe3f2; }
-.season-table .s-name { text-align: left; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.season-table tr.me td { background: var(--yellow); }
-.season-table tr.me td:first-child { border-radius: 8px 0 0 8px; }
-.season-table tr.me td:last-child { border-radius: 0 8px 8px 0; }
-.season-table tr.up td:first-child { color: var(--green); }
-.season-table tr.down td:first-child { color: var(--ui-red); }
-.crate-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.crate-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .crate-head .panel-coins { margin: 0; }
 @media (max-height: 430px) {
   .mission .m-top strong { font-size: 14px; }
   .coll-best { width: 104px; }
   .coll-best canvas { width: 58px; height: 58px; }
-  .season-table { font-size: 11px; }
 }
 
 /* CRATES: the ladder, and the reel */
@@ -1341,7 +1328,7 @@ body.kb .chat-menu kbd { display: inline-block; }
   .crate-grid { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
   .crate-card canvas { max-width: 92px; }
   #modal[data-kind="crates"] .note { display: none; }
-  #modal[data-kind="crates"] .panel h2 { font-size: clamp(18px, 5vmin, 30px); margin-bottom: 2px; }
+  #modal[data-kind="crates"] .panel h2 { font-size: clamp(18px, 5vmin, 30px); margin-bottom: 7px; }
 }
 
 /* CUSTOMIZE: your player on the left, everything you can put on them on the right */
@@ -1364,7 +1351,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 .cust-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-right: 46px; }
 .cust-top .panel-coins { margin: 0; }
 .cust-top .tabs { flex: 1; min-width: 0; margin: 0; }
-#modal[data-kind="customize"] .panel h2 { font-size: clamp(18px, 5vmin, 32px); margin-bottom: 2px; }
+#modal[data-kind="customize"] .panel h2 { font-size: clamp(18px, 5vmin, 32px); margin-bottom: 7px; }
 #modal[data-kind="customize"] .tabs button { font-size: clamp(10px, 2.1vmin, 15px); padding: 5px 9px; }
 .cust-side .note { margin: 0; }
 @media (max-height: 430px) {

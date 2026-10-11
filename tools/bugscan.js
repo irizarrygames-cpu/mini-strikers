@@ -246,7 +246,7 @@ window.BS = {
 
     await step('splash away', () => { $('splash').classList.add('gone'); $('splash').hidden = true; $('daily').hidden = true; });
     await step('home refresh', () => UI.refreshHome());
-    for (const kind of ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'career', 'settings', 'profile']) {
+    for (const kind of ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile']) {
       await step('open ' + kind, () => { UI.openModal(kind); if (!visible('modal')) throw new Error('modal hidden'); });
       await step('close ' + kind, () => { click($('modal-close')); if (visible('modal')) throw new Error('modal still open'); });
     }
@@ -320,19 +320,6 @@ window.BS = {
       if (Missions.claim(job.id) !== def.coins) throw new Error('wrong money');
       if (Missions.claim(job.id) !== 0) throw new Error('paid twice');
       if (Save.data.coins !== def.coins) throw new Error('coins ' + Save.data.coins);
-    });
-    await step('a season adds up and ends', async () => {
-      Save.data.season = null;
-      Season.start(1);
-      const fake = { score: { blue: 3, red: 0 }, mode: 'career' };
-      let last = null;
-      for (let i = 0; i < Season.GAMES; i++) last = Season.record(fake);
-      if (last === 'next') throw new Error('it never ended');
-      const t = Save.data.season.table;
-      if (new Set(t.map((r) => r.p)).size !== 1) throw new Error('teams played different numbers of games');
-      const you = t.find((r) => r.id === 'you');
-      if (you.pts !== Season.GAMES * 3) throw new Error('won them all and has ' + you.pts);
-      if (!Save.data.season.done) throw new Error('no result');
     });
     await step('equip a character you own', async () => {
       Save.data.owned.character = [...new Set([...(Save.data.owned.character || []), 'buzz'])];
@@ -500,6 +487,53 @@ window.BS = {
     if (Game.match && Game.match.pens && Game.state !== 'home') add(Pens.boxes);
     add(Render.boxes);
     return out.filter((o) => o.b.width > 2 && o.b.height > 2);
+  },
+
+  // Inside an open panel: anything sitting on top of anything else, or so close that the hard
+  // shadow under a button lands on the text below it. Two things in the same card are left alone —
+  // a rarity tag over a portrait is meant to be there; a close button over the first row is not.
+  panelFit(gap = 5) {
+    const root = document.querySelector('#modal .panel');
+    if (!root || $('modal').hidden) return { open: false, hits: [] };
+    const vis = (e) => {
+      const cs = getComputedStyle(e), b = e.getBoundingClientRect();
+      return !e.hidden && cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05 && b.width > 3 && b.height > 3;
+    };
+    const els = [...root.querySelectorAll('*')].filter((e) => (!e.children.length || /^(BUTTON|LABEL)$/.test(e.tagName)) && vis(e));
+    const name = (e) => (e.id ? '#' + e.id : e.tagName.toLowerCase() + (e.className ? '.' + String(e.className).split(' ')[0] : ''))
+      + (e.textContent && e.textContent.trim().length < 22 ? '[' + e.textContent.trim().slice(0, 18) + ']' : '');
+    // only a shadow that falls outside the box can land on anything
+    const shadow = (e) => { const s = getComputedStyle(e).boxShadow || ''; return s.includes('px') && !s.includes('inset') ? 4 : 0; };
+    const hits = [];
+    for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) {
+      const A = els[i], B = els[j];
+      if (A.contains(B) || B.contains(A) || A.parentElement === B.parentElement) continue;
+      const a = A.getBoundingClientRect(), b = B.getBoundingClientRect();
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) <= 2) continue;
+      const below = b.top - a.bottom, above = a.top - b.bottom;
+      const pad = Math.max(shadow(A), shadow(B));
+      if (below < -2 && above < -2) hits.push(name(A) + ' on top of ' + name(B));
+      else if (below >= -2 && below < pad) hits.push(name(A) + ' is ' + Math.round(below) + 'px above ' + name(B) + ', its shadow lands on it');
+      else if (above >= -2 && above < pad) hits.push(name(B) + ' is ' + Math.round(above) + 'px above ' + name(A) + ', its shadow lands on it');
+    }
+    return { open: true, kind: $('modal').dataset.kind, hits: [...new Set(hits)] };
+  },
+
+  // every panel, at this window size
+  async panelSweep() {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const was = Save.data.tutorialSeen;
+    Save.data.tutorialSeen = true;
+    const bad = [];
+    for (const kind of ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile']) {
+      UI.openModal(kind);
+      await wait(260);
+      const r = this.panelFit();
+      if (r.hits.length) bad.push(kind + ': ' + r.hits.join(' | '));
+      UI.closeModal();
+    }
+    Save.data.tutorialSeen = was;
+    return { size: innerWidth + 'x' + innerHeight, bad };
   },
 
   fit(slack = 2) {
