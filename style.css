@@ -1231,7 +1231,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 #hud.pens #btn-pass, #hud.pens #btn-skill, #hud.pens #btn-sprint, #hud.pens #btn-ult, #hud.pens #scoreboard, #hud.pens #kb-legend, #hud.pens #net-ping, #hud.pens #tip { display: none !important; }
 
 /* live commentator: readable over every stadium, clear of the scoreboard and controls */
-.commentary { position: fixed; z-index: 9; top: calc(var(--sb-b, calc(var(--st) + 62px)) + 8px); left: 50%; width: min(560px, 72vw, calc(100vw - 2 * (var(--sl) + 54px))); transform: translate(-50%, -8px) scale(.98); text-align: center; pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
+.commentary { position: fixed; z-index: 9; top: calc(var(--sb-b, calc(var(--st) + 62px)) + 8px); left: 50%; width: min(560px, 72vw, calc(100vw - 2 * (var(--sl) + 54px)), calc(100vw - 2 * var(--mini-w, 0px))); transform: translate(-50%, -8px) scale(.98); text-align: center; pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
 .commentary.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 
 /* a count on a home-screen button has to hang off that button */
@@ -1365,7 +1365,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 @keyframes commentary-pop { 0% { transform: scale(.55) rotate(-2deg); } 70% { transform: scale(1.08) rotate(1deg); } 100% { transform: scale(1); } }
 /* a penalty shootout keeps its scoreboard at the top of the screen, so the caption drops below it */
 #hud.pens .commentary { top: calc(var(--st) + clamp(74px, 18.5vh, 104px)); }
-@media (max-height: 430px) { .commentary { top: calc(var(--sb-b, calc(var(--st) + 46px)) + 6px); width: min(520px, 66vw); } .commentary strong { font-size: 11px; padding: 2px 8px; } .commentary.big strong { font-size: 16px; } }.char-card-sm .sig-tag { display: block; font-size: 10px; letter-spacing: 0.02em; color: var(--ink); background: rgba(255,255,255,0.72); border: 2px solid var(--ink); border-radius: 7px; padding: 0 5px; margin: 1px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-height: 430px) { .commentary { top: calc(var(--sb-b, calc(var(--st) + 46px)) + 6px); width: min(520px, 66vw, calc(100vw - 2 * var(--mini-w, 0px))); } .commentary strong { font-size: 11px; padding: 2px 8px; } .commentary.big strong { font-size: 16px; } }.char-card-sm .sig-tag { display: block; font-size: 10px; letter-spacing: 0.02em; color: var(--ink); background: rgba(255,255,255,0.72); border: 2px solid var(--ink); border-radius: 7px; padding: 0 5px; margin: 1px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ================= SKILL CHALLENGES ================= */
 .mode.chal { grid-column: 1 / -1; min-height: 0; background: #1f8fa8; flex-direction: row; align-items: center; gap: 14px; padding: 8px 14px; }

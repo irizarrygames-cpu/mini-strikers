@@ -150,13 +150,16 @@ const UI = {
   measureHud() {
     const sb = $('scoreboard');
     if (!sb || !sb.offsetHeight) return;
-    let bottom = sb.getBoundingClientRect().bottom;
-    // the minimap is drawn on the canvas next to the scoreboard and hangs lower than it
+    const root = document.documentElement.style;
+    // the commentary hangs just under the scoreboard
+    root.setProperty('--sb-b', Math.round(sb.getBoundingClientRect().bottom) + 'px');
+    // and stays narrow enough to miss the minimap beside it, rather than dropping below it
+    let mini = 0;
     if (Save.data.settings.minimap && Render.W && Render.H) {
-      const mini = Render.minimapBox(Render.W, Render.H);
-      if (mini) bottom = Math.max(bottom, mini.y0 + mini.mh + 4);
+      const box = Render.minimapBox(Render.W, Render.H);
+      if (box) mini = Math.round(box.mw + 26);
     }
-    document.documentElement.style.setProperty('--sb-b', Math.round(bottom) + 'px');
+    root.setProperty('--mini-w', mini + 'px');
   },
 
   refreshHome() {
