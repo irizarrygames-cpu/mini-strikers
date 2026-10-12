@@ -401,6 +401,7 @@ const UI = {
       Net.send({ t: 'room.team', team: me && me.team === 'blue' ? 'red' : 'blue' });
     });
     $('lb-start').addEventListener('click', () => { this.tap(); Net.send({ t: 'room.start' }); });
+    $('lb-coop').addEventListener('click', () => { this.tap(); Net.send({ t: 'room.coop', on: !(Online.room && Online.room.coop) }); });
   },
 
   showQueue(msg) {
@@ -431,14 +432,21 @@ const UI = {
       const rows = [];
       for (let i = 0; i < size; i++) {
         const p = list[i];
-        rows.push(p ? `<div class="lb-p ${p.name === msg.you ? 'me' : ''}"><canvas width="48" height="32" data-club="${p.club}"></canvas><b>${p.name}</b>${p.name === msg.host ? '<em>HOST</em>' : ''}</div>` : '<div class="lb-p empty"><b>OPEN</b></div>');
+        rows.push(p ? `<div class="lb-p ${p.name === msg.you ? 'me' : ''}"><canvas width="48" height="32" data-club="${p.club}"></canvas><b>${p.name}</b>${p.name === msg.host ? '<em>HOST</em>' : ''}</div>` : `<div class="lb-p empty"><b>${msg.coop ? 'FILLED IN' : 'OPEN'}</b></div>`);
       }
-      el.innerHTML = `<small>${team === 'blue' ? 'SIDE A' : 'SIDE B'}</small>` + rows.join('');
+      const label = msg.coop ? (team === 'blue' ? 'YOUR TEAM' : 'THE COMPUTER') : team === 'blue' ? 'SIDE A' : 'SIDE B';
+      el.innerHTML = `<small>${label}</small>` + rows.join('');
       el.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     };
     side('blue', $('lb-blue')); side('red', $('lb-red'));
     $('lb-start').hidden = !msg.isHost;
     $('lb-note').textContent = msg.isHost ? 'Send the code to your friends, then press START.' : `Waiting for ${msg.host} to start…`;
+    const coop = !!msg.coop;
+    $('lb-coop').hidden = !msg.isHost;
+    $('lb-coop').textContent = coop ? 'SAME TEAM · ON' : 'SAME TEAM · OFF';
+    $('lb-coop').classList.toggle('on', coop);
+    $('lb-switch').hidden = coop;
+    $('lb-coop-note').hidden = !coop;
   },
   hideLobby() { $('lobby').hidden = true; },
 
@@ -813,7 +821,7 @@ const UI = {
     if (st.goals >= 3) c.hattricks++;
     if (theirs === 0) c.cleanSheets++;
     c.formats[msg.format] = (c.formats[msg.format] || 0) + 1;
-    c.online = (c.online || 0) + 1; if (outcome === 'win') c.onlineWins = (c.onlineWins || 0) + 1;
+    if (!msg.coop) { c.online = (c.online || 0) + 1; if (outcome === 'win') c.onlineWins = (c.onlineWins || 0) + 1; }
     c.streak = outcome === 'win' ? c.streak + 1 : 0;
     c.bestStreak = Math.max(c.bestStreak, c.streak);
     const streakBonus = outcome === 'win' ? Math.min(50, (c.streak - 1) * 10) : 0;
@@ -861,9 +869,11 @@ const UI = {
     const lg = msg.league;
     const lgText = lg && lg.pos ? (lg.d > 0 ? `${club.name} MOVES UP TO ${ordinal(lg.pos)} ▲` : lg.d < 0 ? `${club.name} DROPS TO ${ordinal(lg.pos)} ▼` : `${club.name} STAYS ${ordinal(lg.pos)}`) : `${club.name}: ${outcome === 'win' ? 'UP A PLACE' : outcome === 'loss' ? 'DOWN A PLACE' : 'NO CHANGE'}`;
     const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${c.text.toUpperCase()}</span>${c.done ? `<em>${outcome === 'win' ? '+1 RP' : 'WIN IT NEXT TIME'}</em>` : ''}</li>`).join('');
-    $('r-challenges').innerHTML = chalRows + `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`;
+    $('r-challenges').innerHTML = chalRows + (msg.coop
+      ? '<li><i></i><span>PLAYED TOGETHER AGAINST THE COMPUTER — NOTHING MOVES IN THE LEAGUE</span></li>'
+      : `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`);
     $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize}`;
-    $('r-mult').hidden = false; $('r-mult').textContent = msg.ranked ? 'RANKED' : fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
+    $('r-mult').hidden = false; $('r-mult').textContent = msg.coop ? 'PLAYING TOGETHER' : msg.ranked ? 'RANKED' : fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
     // what this match did to your rank
     const rankBox = $('r-rank'), rk = msg.rank;
     rankBox.hidden = !rk;

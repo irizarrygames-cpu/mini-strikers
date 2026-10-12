@@ -400,6 +400,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'challenge.decline': return answer(challengeDecline(id, msg.id));
       case 'queue': return joinQueue(conn, msg.format, msg.wc === true);
       case 'unqueue': if (!stopQueue(id, `${userName(id)} stopped the search`)) send(conn, { t: 'unqueued' }); return;
+      case 'party.coop': return partyCoop(id, msg.format);
+      case 'room.coop': return lobbyCoop(id, !!msg.on);
       case 'room.create': return createLobby(conn, msg.format);
       case 'room.join': return joinLobby(conn, msg.code);
       case 'room.team': return lobbyTeam(id, msg.team);
@@ -558,6 +560,21 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     lobbyUpdate(room);
   }
 
+  // Everyone in the party on one side against fill-ins. No queue: it starts when the leader says.
+  function partyCoop(id, format) {
+    const party = partyOf.get(id);
+    if (!party) return push(id, { t: 'error', msg: 'You are not in a party' });
+    if (party.leader !== id) return push(id, { t: 'error', msg: 'Only the party leader can start it' });
+    if (!FORMAT_SIZE[format] || format === 'pens') return push(id, { t: 'error', msg: 'Pick a format' });
+    if (party.members.length > FORMAT_SIZE[format]) return push(id, { t: 'error', msg: 'Too many of you for ' + format });
+    for (const m of party.members) {
+      if (!conns.has(m)) return push(id, { t: 'error', msg: userName(m) + ' is not online' });
+      if (roomOf(m)) return push(id, { t: 'error', msg: userName(m) + ' is already in a match' });
+    }
+    for (const m of party.members) stopQueue(m);
+    startRoom(format, party.members.map((m) => ({ id: m, team: 'blue' })), null, null, null, false, true);
+  }
+
   function joinLobby(conn, code) {
     const id = conn.userId;
     const room = codes.get(String(code || '').toUpperCase().trim());
@@ -571,9 +588,18 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     lobbyUpdate(room);
   }
 
+  // the host turns the room into a kickabout: everyone on blue, fill-ins on the other side
+  function lobbyCoop(id, on) {
+    const room = roomOf(id);
+    if (!room || room.state !== 'lobby' || room.host !== id) return;
+    room.coop = on;
+    if (on) for (const s of room.seats) s.team = 'blue';
+    lobbyUpdate(room);
+  }
+
   function lobbyTeam(id, team) {
     const room = roomOf(id);
-    if (!room || room.state !== 'lobby' || (team !== 'blue' && team !== 'red')) return;
+    if (!room || room.state !== 'lobby' || room.coop || (team !== 'blue' && team !== 'red')) return;
     const seat = room.seats.find((s) => s.userId === id);
     if (room.seats.filter((s) => s.team === team && s !== seat).length >= FORMAT_SIZE[room.format]) return;
     seat.team = team;
@@ -601,7 +627,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   function lobbyUpdate(room) {
     const payload = {
-      t: 'room', code: room.code, format: room.format, host: userName(room.host),
+      t: 'room', code: room.code, format: room.format, host: userName(room.host), coop: !!room.coop,
       players: room.seats.map((s) => ({ name: userName(s.userId), team: s.team, club: profileOf(s.userId).club })),
     };
     for (const s of room.seats) send(s.conn || conns.get(s.userId), { ...payload, you: userName(s.userId), isHost: s.userId === room.host });
@@ -612,7 +638,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!room || room.state !== 'lobby' || room.host !== id) return;
     codes.delete(room.code);
     rooms.delete(room.id);
-    startRoom(room.format, room.seats.map((s) => ({ id: s.userId, team: s.team })), room.code);
+    startRoom(room.format, room.seats.map((s) => ({ id: s.userId, team: room.coop ? 'blue' : s.team })), room.code, null, null, false, !!room.coop);
   }
 
   /* ---------------- online penalty shootouts ---------------- */
@@ -736,7 +762,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   /* ---------------- matches ---------------- */
 
   // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
-  function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false) {
+  function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false, coop = false) {
     if (format === 'pens') return startPensRoom(entries, code, wcRound);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
@@ -767,7 +793,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!clubFor.blue) clubFor.blue = pickOne(clubIds.filter((c) => c !== clubFor.red));
     if (!clubFor.red) clubFor.red = pickOne(clubIds.filter((c) => c !== clubFor.blue));
 
-    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cup, ranked: !!ranked };
+    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cup, ranked: !!ranked, coop: !!coop };
     room.m = sim.create({
       // World Cup rounds: no draws, and each round a notch tougher than the last
       online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null || !!cup,
@@ -1138,12 +1164,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function playerLeft(room, seat) {
     if (room.pen) {
       const mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
-      onlineRecord(seat.userId, { outcome: 'loss', goalsFor: mine, goalsAgainst: other, goals: mine });
+      if (!room.coop) onlineRecord(seat.userId, { outcome: 'loss', goalsFor: mine, goalsAgainst: other, goals: mine });
       if (seat.club) ladder.move(seat.club, -1);
       if (room.wc !== null && room.wc !== undefined && room.state !== 'over') pwc.result(seat.userId, false);
       seat.gone = true; seat.conn = null; finishPens(room, seat.team); saveDB(); return;
     }
-    onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0, ranked: !!room.ranked, challenges: 0 });
+    if (!room.coop) onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0, ranked: !!room.ranked, challenges: 0 });
     if (room.state !== 'over' && seat.club) ladder.move(seat.club, -1);
     if (room.wc !== null && room.wc !== undefined && room.state !== 'over') wc.result(seat.userId, false);
     becomeBot(room, seat);
@@ -1228,20 +1254,20 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const stats = seat.player ? seat.player.stats : {};
       // only a ranked match moves your rank, and each challenge you finished in it is a point
       const chal = chalDone(seat);
-      onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0, ranked: !!room.ranked, challenges: chal.length });
+      if (!room.coop) onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0, ranked: !!room.ranked, challenges: chal.length });
       let cup = null;
       if (room.wc !== null && room.wc !== undefined) {
         const r = wc.result(seat.userId, outcome === 'win');
         cup = { round: seat.wc == null ? room.wc : seat.wc, won: outcome === 'win', champion: r.champion, next: r.round, titles: r.titles };
       }
-      if (seat.club) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : outcome === 'loss' ? -1 : 0));
+      if (seat.club && !room.coop) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : outcome === 'loss' ? -1 : 0));
       results.push({ seat, outcome, cup, chal });
     }
     // a country moves one place per match, however many of its players were in it
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
     for (const { seat, outcome, cup, chal } of results) {
       const d = seat.club ? Math.sign(moves.get(seat.club) || 0) : 0;
-      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, league: seat.club ? { pos: ladder.pos(seat.club), d } : null, ranked: !!room.ranked, challenges: seat.chal ? seat.chal.map((c) => ({ text: c.text, done: chal.includes(c) })) : null, rank: room.ranked ? rankOf(seat.userId) : null, rankD: room.ranked ? rankDeltaFor(outcome, chal.length) : 0, fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
+      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, coop: room.coop || undefined, league: seat.club && !room.coop ? { pos: ladder.pos(seat.club), d } : null, ranked: !!room.ranked, challenges: seat.chal ? seat.chal.map((c) => ({ text: c.text, done: chal.includes(c) })) : null, rank: room.ranked ? rankOf(seat.userId) : null, rankD: room.ranked ? rankDeltaFor(outcome, chal.length) : 0, fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
     }
     saveDB();
   }

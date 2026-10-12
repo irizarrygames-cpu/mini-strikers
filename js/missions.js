@@ -78,7 +78,7 @@ const Missions = {
     const add = {
       play: 1,
       win: won ? 1 : 0,
-      onlineWin: won && m.net ? 1 : 0,
+      onlineWin: won && m.net && !m.coop ? 1 : 0, // beating fill-ins with a friend is not an online win
       goals: hs.goals || 0,
       skills: hs.skills || 0,
       tackles: hs.tackles || 0,

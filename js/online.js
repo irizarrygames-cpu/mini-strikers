@@ -730,6 +730,7 @@ const Online = {
     if (this.status !== 'match' || !this.m) return;
     // show the last moments before the results come up
     const m = this.m;
+    m.coop = !!msg.coop;
     this.status = 'over';
     this.lastEnd = msg;
     setTimeout(() => { if (Game.match === m) UI.showOnlineResults(m, msg); }, 1200);
@@ -737,6 +738,15 @@ const Online = {
 
   again() {
     if (Social.cup && Social.cup.state === 'playing') { Game.goHome(); this.m = null; UI.openModal('cup'); return; }
+    // a kickabout runs back with the same party rather than dropping you into the queue
+    if (this.lastEnd && this.lastEnd.coop) {
+      const party = Social.party, f = this.format;
+      Game.goHome(); this.m = null;
+      if (party && party.lead) Net.send({ t: 'party.coop', format: f });
+      else if (party) UI.toast(party.leader.toUpperCase() + ' STARTS THE NEXT ONE');
+      else UI.toast('MAKE A ROOM TO PLAY ANOTHER');
+      return;
+    }
     const p = Social.party;
     if (p && p.members.length > 1 && !p.lead) { Game.goHome(); this.m = null; UI.toast(`${p.leader} STARTS THE NEXT MATCH`); return; }
     const f = this.format;

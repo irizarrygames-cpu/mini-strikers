@@ -330,6 +330,8 @@ Object.assign(UI, {
         <header><strong>YOUR PARTY</strong><small>${p.lead ? 'You start the match from PLAY. Everyone plays on your side.' : `${esc(p.leader)} starts the match. You all play on the same side.`}</small></header>
         <div class="fr-members">${p.members.map((m) => `<div class="fr-member ${m.you ? 'me' : ''}">${flag(m.club)}${m.leader ? '<i class="crown"></i>' : ''}<b>${esc(m.you ? 'YOU' : m.name)}</b>${p.lead && !m.you ? `<button class="fr-x" data-kick="${esc(m.name)}" aria-label="Take out">×</button>` : ''}</div>`).join('')}
           ${p.invited.map((n) => `<div class="fr-member invited"><b>${esc(n)}</b><small>INVITED…</small>${p.lead ? `<button class="fr-x" data-kick="${esc(n)}" aria-label="Cancel invite">×</button>` : ''}</div>`).join('')}</div>
+        ${p.lead ? `<div class="fr-coop"><b>PLAY TOGETHER</b><small>All of you on one side against the computer. No waiting.</small>
+          <div class="fr-coop-row">${['2v2', '3v3', '4v4'].filter((f) => p.members.length <= Number(f[0])).map((f) => `<button class="mid-btn green" data-coop="${f}">${f}</button>`).join('')}</div></div>` : ''}
         <button class="mid-btn red fr-leave" data-leave="1">LEAVE PARTY</button>
       </section>` : '';
     const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>CHALLENGED YOU TO A 1V1</small><button class="mid-btn green" data-accept-challenge="${i.id}">PLAY</button><button class="mid-btn red" data-decline-challenge="${i.id}">NO</button></div>`).join('');
@@ -387,6 +389,7 @@ Object.assign(UI, {
     on('[data-decline-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.declineChallenge); if (inv) S.answerChallenge(inv, false); });
     on('[data-kick]', (b) => go({ t: 'party.kick', name: b.dataset.kick }));
     on('[data-leave]', () => go({ t: 'party.leave' }));
+    on('[data-coop]', (b2) => { this.tap(); Net.send({ t: 'party.coop', format: b2.dataset.coop }); this.closeAll(); this.toast('STARTING ' + b2.dataset.coop + ' WITH YOUR PARTY…'); });
     on('[data-join]', (b) => { const inv = S.invites.find((i) => String(i.id) === b.dataset.join); if (inv) S.answerInvite(inv, true); });
     on('[data-nojoin]', (b) => { const inv = S.invites.find((i) => String(i.id) === b.dataset.nojoin); if (inv) S.answerInvite(inv, false); });
     if (!redraw) { S._armed = null; if (Net.wsReady) Net.send({ t: 'friends' }); else Net.whenReady({ t: 'friends' }); }

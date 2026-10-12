@@ -557,6 +557,8 @@ window.BS = {
 
   // every screen that has a HUD on it, at this window size
   async fitSweep(touch = true) {
+    // the canvas boxes are only true at the size the renderer last drew at
+    Render.resize(); Pens._lay = null; if (UI.measureHud) UI.measureHud();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const out = [];
     const was = Save.data.tutorialSeen;
