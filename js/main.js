@@ -31,6 +31,8 @@ const Game = {
     $('home').hidden = true; // nothing but the splash until we know who you are
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });
     document.addEventListener('visibilitychange', () => {
+      // coming back after a while: start waking the host now, not when they press something
+      if (!document.hidden && Net.token && !Net.wsReady) Net.openSocket();
       if (document.hidden) Commentary.pause();
       else if (this.state === 'match') Commentary.resume();
       // online matches keep running on the server, but their local commentary still pauses

@@ -398,10 +398,10 @@ const UI = {
       this.tap();
       const r = Online.room; if (!r) return;
       const me = r.players.find((p) => p.name === r.you);
-      Net.send({ t: 'room.team', team: me && me.team === 'blue' ? 'red' : 'blue' });
+      Net.sendSoon({ t: 'room.team', team: me && me.team === 'blue' ? 'red' : 'blue' });
     });
-    $('lb-start').addEventListener('click', () => { this.tap(); Net.send({ t: 'room.start' }); });
-    $('lb-coop').addEventListener('click', () => { this.tap(); Net.send({ t: 'room.coop', on: !(Online.room && Online.room.coop) }); });
+    $('lb-start').addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.start' }); });
+    $('lb-coop').addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.coop', on: !(Online.room && Online.room.coop) }); });
   },
 
   showQueue(msg) {
@@ -426,7 +426,7 @@ const UI = {
     $('lb-code').textContent = msg.code;
     const size = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
     $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['pens', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
-    $('lb-formats').querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.send({ t: 'room.format', format: b.dataset.f }); }));
+    $('lb-formats').querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.format', format: b.dataset.f }); }));
     const side = (team, el) => {
       const list = msg.players.filter((p) => p.team === team);
       const rows = [];

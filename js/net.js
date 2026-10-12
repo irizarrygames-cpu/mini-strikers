@@ -68,6 +68,7 @@ const Net = {
     // a different account: the live connection still belongs to the old one, so drop it
     if (r.token && r.token !== this.token) { this.closeSocket(); if (typeof Social !== 'undefined') Social.reset(); }
     if (r.token) { this.token = r.token; try { localStorage.setItem(TOKEN_KEY, r.token); } catch (e) {} }
+    this.openSocket(); // have it ready before the first thing they press
     this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 } };
     Save.useAccount(r.name, r.save, r.club, fresh);
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
@@ -153,15 +154,34 @@ const Net = {
     if (this.ws && this.ws.readyState === 1) { this.ws.send(JSON.stringify(obj)); return true; }
     return false;
   },
-  // send once the socket is ready (opening it if needed)
+  // send it now if we can, and otherwise as soon as the connection is up
+  sendSoon(obj) { if (!this.send(obj)) this.whenReady(obj); },
+  // Send once the connection is up, opening it if needed. The host sleeps when nobody has played
+  // for a while and takes most of a minute to wake, so this knocks on the door to wake it and waits
+  // for as long as that really takes rather than throwing the message away after a few seconds.
+  WAKE_AFTER: 1800,     // start knocking if the connection has not come up by now
+  GIVE_UP_AFTER: 75000, // longer than a cold start
   whenReady(obj) {
     this.openSocket();
-    const tryIt = (n) => {
-      if (this.wsReady) { this.send(obj); return; }
-      if (n > 80) { if (this.handlers.error) this.handlers.error({ msg: "Can't reach the server" }); return; }
-      setTimeout(() => tryIt(n + 1), 100);
+    const started = Date.now();
+    let knocking = false;
+    const done = () => { if (this._waking) { this._waking = false; if (this.handlers.awake) this.handlers.awake(); } };
+    const tryIt = () => {
+      if (this.wsReady) { this.send(obj); done(); return; }
+      const waited = Date.now() - started;
+      if (waited > this.WAKE_AFTER && !knocking) {
+        knocking = true; this._waking = true;
+        if (this.handlers.waking) this.handlers.waking();
+        this.wake(null, 20, 3000).then(() => this.openSocket());
+      }
+      if (waited > this.GIVE_UP_AFTER) {
+        this._waking = false;
+        if (this.handlers.error) this.handlers.error({ msg: 'The server is still waking up — try that again in a moment' });
+        return;
+      }
+      setTimeout(tryIt, 250);
     };
-    tryIt(0);
+    tryIt();
   },
   tick(dt) {
     if (!this.wsReady) return;

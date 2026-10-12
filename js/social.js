@@ -76,6 +76,22 @@ const Social = {
   },
 
   signedIn: () => !!(Net.user && Net.token),
+
+  // This screen is useless without the live connection, and the host naps when nobody is playing,
+  // so while it wakes up the screen says that instead of sitting there looking broken.
+  _connectNudge(body) {
+    clearInterval(this._nudgeT);
+    const tell = () => {
+      const el = body.querySelector('.fr-connecting');
+      if (!el || !document.body.contains(el)) { clearInterval(this._nudgeT); return; }
+      if (!Net.wsReady) return;
+      clearInterval(this._nudgeT);
+      UI.panel_friends(body, true); // it is up: draw the real lists
+    };
+    this._nudgeT = setInterval(tell, 400);
+    setTimeout(() => clearInterval(this._nudgeT), 90000);
+  },
+
   // signed out: nothing of the last account's lists stays on screen
   reset() { this.friends = []; this.incoming = []; this.outgoing = []; this.loaded = false; this.party = null; this.invites = []; this.challenges = []; this.cup = null; this.cupInvites = []; this.cupAt = 0; this.busy = false; this.refreshHome(); },
 
@@ -146,13 +162,13 @@ const Social = {
   answerInvite(inv, yes) {
     this.invites = this.invites.filter((i) => i !== inv);
     $('party-invite').hidden = true; $('party-invite').dataset.id = '';
-    Net.send({ t: yes ? 'party.accept' : 'party.decline', id: inv.id });
+    Net.sendSoon({ t: yes ? 'party.accept' : 'party.decline', id: inv.id });
     this.changed();
   },
 
-  answerCup(inv, yes) { this.cupInvites = this.cupInvites.filter((i) => i !== inv); $('party-invite').hidden = true; $('party-invite').dataset.id = ''; Net.send({ t: yes ? 'cup.accept' : 'cup.decline', id: inv.id }); this.changed(); },
+  answerCup(inv, yes) { this.cupInvites = this.cupInvites.filter((i) => i !== inv); $('party-invite').hidden = true; $('party-invite').dataset.id = ''; Net.sendSoon({ t: yes ? 'cup.accept' : 'cup.decline', id: inv.id }); this.changed(); },
 
-  answerChallenge(inv, yes) { this.challenges = this.challenges.filter((i) => i !== inv); $('party-invite').hidden = true; $('party-invite').dataset.id = ''; Net.send({ t: yes ? 'challenge.accept' : 'challenge.decline', id: inv.id }); this.changed(); },
+  answerChallenge(inv, yes) { this.challenges = this.challenges.filter((i) => i !== inv); $('party-invite').hidden = true; $('party-invite').dataset.id = ''; Net.sendSoon({ t: yes ? 'challenge.accept' : 'challenge.decline', id: inv.id }); this.changed(); },
 
   // the server needs to know when you're busy playing against bots here, so your party waits for you
   syncBusy() {
@@ -321,10 +337,11 @@ Object.assign(UI, {
       body.innerHTML = '<p class="note fr-empty">Log in to add friends and team up with them.</p>';
       return;
     }
-    if (!Net.wsReady) Net.openSocket();
+    if (!Net.wsReady) { Net.openSocket(); S._connectNudge(body); }
     const p = S.party, lead = !p || p.lead, inParty = (name) => !!p && p.members.some((m) => m.name === name);
     const flag = (club) => `<canvas width="42" height="28" data-club="${club}"></canvas>`;
     const status = (st) => { const s = FRIEND_STATUS[st] || FRIEND_STATUS.offline; return `<em class="fr-st ${s[1]}">${s[0]}</em>`; };
+    const connecting = '<p class="note fr-connecting">Connecting… the server has a nap when nobody is playing, so give it a few seconds.</p>';
     const partyHtml = p && (p.members.length > 1 || p.invited.length) ? `
       <section class="fr-party">
         <header><strong>YOUR PARTY</strong><small>${p.lead ? 'You start it. Everyone plays on your side.' : `${esc(p.leader)} starts it. You all play on the same side.`}</small></header>
@@ -353,6 +370,7 @@ Object.assign(UI, {
     const sent = S.outgoing.map((f) => `<div class="fr-row sent"><b>${esc(f.name)}</b><small>REQUEST SENT</small><button class="fr-x" data-cancel="${esc(f.name)}" aria-label="Cancel request">×</button></div>`).join('');
     body.innerHTML = `
       <form class="fr-add" autocomplete="off"><input id="fr-name" maxlength="14" placeholder="THEIR USERNAME" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">ADD FRIEND</button></form>
+      ${Net.wsReady ? '' : connecting}
       ${partyHtml}
       ${challenges || invites || asks ? `<h3 class="fr-h">WAITING FOR YOU</h3>${challenges}${invites}${asks}` : ''}
       ${cupBtn}
@@ -364,7 +382,7 @@ Object.assign(UI, {
     const input = body.querySelector('#fr-name');
     input.value = typed;
     if (focused) { input.focus(); input.setSelectionRange(typed.length, typed.length); }
-    const go = (obj) => { this.tap(); if (!Net.send(obj)) { Net.whenReady(obj); } };
+    const go = (obj) => { this.tap(); Net.sendSoon(obj); };
     body.querySelector('.fr-add').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = input.value.trim();
@@ -390,7 +408,7 @@ Object.assign(UI, {
     on('[data-decline-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.declineChallenge); if (inv) S.answerChallenge(inv, false); });
     on('[data-kick]', (b) => go({ t: 'party.kick', name: b.dataset.kick }));
     on('[data-leave]', () => go({ t: 'party.leave' }));
-    on('[data-coop]', (b2) => { this.tap(); Net.send({ t: 'party.coop', format: b2.dataset.coop }); this.closeAll(); this.toast('STARTING ' + b2.dataset.coop + ' WITH YOUR PARTY…'); });
+    on('[data-coop]', (b2) => { this.tap(); Net.sendSoon({ t: 'party.coop', format: b2.dataset.coop }); this.closeAll(); this.toast('STARTING ' + b2.dataset.coop + ' WITH YOUR PARTY…'); });
     on('[data-vs]', (b2) => { this.tap(); this.closeAll(); Online.findMatch(b2.dataset.vs); });
     on('[data-join]', (b) => { const inv = S.invites.find((i) => String(i.id) === b.dataset.join); if (inv) S.answerInvite(inv, true); });
     on('[data-nojoin]', (b) => { const inv = S.invites.find((i) => String(i.id) === b.dataset.nojoin); if (inv) S.answerInvite(inv, false); });

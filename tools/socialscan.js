@@ -82,6 +82,18 @@ async function endRoom(id) {
     check('asking by username (any case, spaces trimmed) works', answer('ann', na) && answer('ann', na).ok, answer('ann', na));
     check('they hear about it', !!(await waitFor(socks.bob, 'friend.req', n, 500)), socks.bob.last('friend.req'));
     check('it shows as waiting on both sides', friendView('bob').incoming.some((f) => f.name === 'ANN') && friendView('ann').outgoing.some((f) => f.name === 'BOB'));
+    // a request sent while they are not even playing is still there when they come back
+    {
+      account('zed');
+      say('ann', { t: 'friend.add', name: 'ZED' });
+      await sleep(40);
+      check('you can ask someone who is not online', (users.zed.reqIn || []).includes('ann'), users.zed.reqIn);
+      const z = connect('zed');
+      const seen = await waitFor(z, 'friends', 0, 2500, (v) => v.incoming.some((f) => f.name === 'ANN'));
+      check('and it is waiting for them when they turn up', !!seen, seen && seen.incoming.map((f) => f.name));
+      say('zed', { t: 'friend.decline', name: 'ANN' }); // tidy up so the rest of the scan starts clean
+      await sleep(40);
+    }
     const bad = [];
     for (const name of ['nobody_here', 'ann', '#league', '', null, { x: 1 }, 'xan'.repeat(500), 'bob']) {
       const k = socks.ann.got.length;

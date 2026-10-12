@@ -39,6 +39,9 @@ const Online = {
     Net.on('kicked', () => { this.abandon(); UI.toast('SIGNED IN ON ANOTHER DEVICE'); });
     Net.on('authLost', () => { this.abandon(); Net.forget(); UI.showAuth('Your session ended. Log in again.'); });
     Net.on('disconnected', () => { if (this.status === 'match') UI.toast('CONNECTION LOST · RECONNECTING…'); });
+    // the host naps when it is quiet: say so rather than looking broken
+    Net.on('waking', () => UI.toast('WAKING THE SERVER UP…'));
+    Net.on('awake', () => UI.toast('CONNECTED'));
   },
 
   // ---------- finding a match ----------
