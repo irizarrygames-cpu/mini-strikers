@@ -1242,6 +1242,8 @@ body.kb .chat-menu kbd { display: inline-block; }
 .fr-coop { border: 3px dashed #cfd6f0; border-radius: 12px; padding: 6px 8px 8px; margin-top: 6px; text-align: center; }
 .fr-coop b { font-weight: 400; font-size: 15px; letter-spacing: .04em; }
 .fr-coop small { display: block; font-size: 11px; color: #6b7299; margin-bottom: 5px; }
+.fr-coop-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+.fr-coop-line em { font-style: normal; font-size: 11px; letter-spacing: .05em; color: #6b7299; }
 .fr-coop-row { display: flex; gap: 6px; justify-content: center; }
 .fr-coop-row .mid-btn { min-width: 64px; }
 #lb-coop.on { background: var(--green); color: #fff; }

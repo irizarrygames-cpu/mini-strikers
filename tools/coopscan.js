@@ -99,6 +99,36 @@ async function waitFor(ws, t, after, ms = 6000) {
   say('coopa', { t: 'party.coop', format: 'pens' });
   check('shootouts are not a kickabout format', !!socks.coopa.since(n, 'error').length);
 
+  console.log('with your friends, against other people');
+  for (const id of ['randa', 'randb', 'randc', 'randd']) connect(id);
+  await party('coopa', 'coopb');
+  let nq = socks.coopa.got.length, nq2 = socks.coopb.got.length;
+  say('coopa', { t: 'queue', format: '3v3' });
+  await sleep(80);
+  const qa = socks.coopa.since(nq, 'queue')[0], qb = socks.coopb.since(nq2, 'queue')[0];
+  check('the whole party goes into the queue', !!qa && !!qb, qa && qa.party);
+  check('and it says who you are with', !!(qa && qa.party && qa.party.length === 2), qa && qa.party);
+  nq = socks.coopb.got.length;
+  say('coopb', { t: 'queue', format: '3v3' });
+  check('only the leader queues for the party', !!socks.coopb.since(nq, 'error').length, socks.coopb.last('error'));
+  // three strangers turn up
+  const nStart = { coopa: socks.coopa.got.length, coopb: socks.coopb.got.length };
+  for (const id of ['randa', 'randb', 'randc', 'randd']) say(id, { t: 'queue', format: '3v3' });
+  const sa = await waitFor(socks.coopa, 'start', nStart.coopa, 4000);
+  const sb = await waitFor(socks.coopb, 'start', nStart.coopb, 4000);
+  const sr = await waitFor(socks.randa, 'start', 0, 4000);
+  check('it fills and starts', !!sa && !!sb && !!sr);
+  check('you and your friend are on the same side', sa && sb && sa.side === sb.side, sa && sb && [sa.side, sb.side]);
+  check('the strangers are on the other side', sa && sr && sr.side !== sa.side, sr && sr.side);
+  const rm = game._roomOf('coopa');
+  check('everyone in it is a real person', !!rm && rm.seats.every((x) => x.human), rm && rm.seats.map((x) => x.human));
+  check('and it is not a kickabout', !!rm && !rm.coop);
+  rm.m.score.blue = 1; rm.m.score.red = 0; rm.m.time = 0.05;
+  records.length = 0; leagueMoves.length = 0;
+  const e2 = await waitFor(socks.coopa, 'end', socks.coopa.got.length - 1, 9000);
+  check('this one does count', !!e2 && !e2.coop && records.length > 0, { coop: e2 && e2.coop, records: records.length });
+  check('and it moves the league', leagueMoves.length > 0, leagueMoves.length);
+
   console.log('a room can be a kickabout too');
   for (const id of ['coopd', 'coope']) connect(id);
   say('coopd', { t: 'room.create', format: '2v2' });
