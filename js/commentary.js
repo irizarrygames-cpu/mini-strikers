@@ -63,10 +63,13 @@ const Commentary = {
     this.lastShot = !!(m.ball && m.ball.shot); this.score = { ...m.score }; this.kickCount = 0; this.penKicks = { blue: 0, red: 0 }; this.serial++;
     for (const k of ['saves','tackles','skills']) this[k] = { blue: (m.stats.blue[k] || 0), red: (m.stats.red[k] || 0) };
     this._quiet = !!m.pens;
-    if (!m.pens) this.say(this.pick(this.banks.kickoff), 1, false);
+    if (m.pens) this.hide(); // the shootout speaks for itself: clear anything still on screen
+    else this.say(this.pick(this.banks.kickoff), 1, false);
   },
   hide() {
-    clearInterval(this.typeTimer); clearTimeout(this.hideTimer); this.captionToken++;
+    // taking the caption away kills the typer, so let go of the line it was typing too — else
+    // every small line after this is held back for a caption that will never finish
+    clearInterval(this.typeTimer); clearTimeout(this.hideTimer); this.captionToken++; this.typing = null;
     const el = typeof $ === 'function' ? $('commentary') : null; if (el) el.classList.remove('show','big');
   },
   showCaption(text, priority, typed = true) {

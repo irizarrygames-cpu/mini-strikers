@@ -43,7 +43,11 @@ const Missions = {
   // make sure the save is holding today's jobs and this week's
   state() {
     const d = Save.data;
-    if (!d.missions) d.missions = { day: null, week: null, daily: [], weekly: null };
+    // anything but the right shape starts again: a bad save must not stop the board working
+    const m0 = d.missions;
+    if (!m0 || typeof m0 !== 'object' || Array.isArray(m0) || !Array.isArray(m0.daily)) {
+      d.missions = { day: null, week: null, daily: [], weekly: null };
+    }
     const m = d.missions;
     const day = this.dayKey(), week = this.weekKey();
     if (m.day !== day) {
@@ -55,7 +59,7 @@ const Missions = {
       m.daily = picks.map((p) => ({ id: p.id, n: 0, done: false }));
       Save.write();
     }
-    if (m.week !== week) {
+    if (m.week !== week || !m.weekly || typeof m.weekly !== 'object') {
       const rng = mulberry32(this.seed('w' + week));
       const p = WEEKLY_POOL[(rng() * WEEKLY_POOL.length) | 0];
       m.week = week;

@@ -382,7 +382,14 @@ const Pens = {
     const near = portrait ? 1.9 : 2.0;
     // the top of the stand is open: sky, whatever you can see of the country beyond it, then the roof
     const sky = Math.min(gy * 0.34, H * 0.22), roofH = Math.max(6, gy * 0.045);
-    const lay = { W, H, gw, gh, s, gx: W / 2, gy, spot, near, board: gh * 0.22, crowd: null, sky, roofH };
+    const lay = { W, H, gw, gh, s, gx: W / 2, gy, spot, near, board: gh * 0.22, crowd: null, sky, roofH, corner: null };
+    // the pause button lives in the top corner over the canvas: remember where, so the scorecard
+    // can keep out of its way on a narrow screen
+    const pauseEl = typeof $ === 'function' ? $('btn-pause') : null;
+    if (pauseEl && !pauseEl.hidden) {
+      const r = pauseEl.getBoundingClientRect();
+      if (r.width > 1 && r.height > 1) lay.corner = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    }
     // the crowd behind the goal, placed once per screen size
     const rng = mulberry32(7), crowd = [];
     const rowH = Math.max(10, gh * 0.12), top = gy - lay.board;
@@ -700,7 +707,12 @@ const Pens = {
     const chal = !!P.chal;
     const n = Math.max(5, P.kicks.blue.length, P.kicks.red.length), from = Math.max(0, n - 5);
     const dot = clamp(H * 0.028, 9, 15), gap = dot * 2.7, rowH = dot * 2.6;
-    const pw = gap * 5 + dot * 7.5, ph = rowH * 2 + dot * 0.8, px = W / 2 - pw / 2, py = Math.max(8, Render.S ? 10 : 10);
+    const pw = gap * 5 + dot * 7.5, ph = rowH * 2 + dot * 0.8, px = W / 2 - pw / 2;
+    let py = 10;
+    // on a narrow screen the card is nearly the full width, so the pause button would sit on it:
+    // there is no room beside it, so go under the button instead
+    const corner = L.corner;
+    if (corner && px < corner.right + 4 && py < corner.bottom + 4) py = corner.bottom + 6;
     boxes.board = [px, py, px + pw, py + ph];
     if (chal) SkillRun.drawPens(ctx, L, P, t);
     if (!chal) { ctx.fillStyle = OUTLINE; Sprites.rr(ctx, px + 3, py + 4, pw, ph, dot); ctx.fill();

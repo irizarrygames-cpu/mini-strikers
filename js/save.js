@@ -46,6 +46,18 @@ const Save = {
       d.career = Object.assign(this.defaults().career, o.career || {});
       d.achievements = Object.assign({}, o.achievements || {});
       d.daily = Object.assign(this.defaults().daily, o.daily || {});
+      // a part of the save that is not the shape it should be gets thrown away rather than
+      // breaking the screen that reads it
+      const obj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+      if (!obj(d.missions)) d.missions = null;
+      else {
+        if (!Array.isArray(d.missions.daily)) d.missions.day = null;
+        if (!obj(d.missions.weekly)) d.missions.week = null;
+      }
+      if (!obj(d.challenges)) d.challenges = {};
+      if (!Array.isArray(d.pwcRun)) d.pwcRun = [];
+      d.coins = Math.max(0, Math.floor(Number(d.coins) || 0));
+      d.xp = Math.max(0, Math.floor(Number(d.xp) || 0));
     }
     d.club = countryFor(d.club);
     if (d.cup && d.cup.opponents && !d.cup.opponents.every((id) => CLUBS.some((c) => c.id === id))) d.cup = null;
@@ -97,7 +109,9 @@ const Save = {
     return b && Shop.owns('ball', b.id) ? b : BALLS[0];
   },
   celebration() {
-    return Shop.owns('celebration', this.data.celebration) ? this.data.celebration : 'jump';
+    const id = this.data.celebration;
+    const real = typeof CELE_IDS !== 'undefined' ? CELE_IDS.includes(id) : CELEBRATIONS.some((c) => c.id === id);
+    return real && Shop.owns('celebration', id) ? id : 'jump';
   },
   // the equipped accessory id, or null if none (or not owned)
   accessory() {

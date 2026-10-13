@@ -53,7 +53,12 @@ async function waitFor(ws, type, from = 0, ms = 6000) { const end = Date.now() +
   const c = connect('c'), cn = c.got.length; c.msg({ t: 'queue', format: 'pens' });
   const qe = game._social.queues.pens[0]; qe.at -= 40000; qe.wait = 30000;
   const cs = await waitFor(c, 'pen.start', cn, 2500);
-  check('single queued player gets a penalty room', cs && cs.players.some((p) => p.bot), cs && cs.players);
+  const cRoom = game._roomOf('c');
+  check('single queued player gets a penalty room', !!cs, cs && cs.players);
+  check('the empty spot was filled in', !!cRoom && cRoom.seats.some((x) => !x.human), cRoom && cRoom.seats.map((x) => x.human));
+  check('both spots are taken', !!cs && cs.players.length === 2, cs && cs.players.length);
+  // and nothing it sends says which one was filled in
+  check('you cannot tell which one is not a person', !!cs && cs.players.every((p) => p.name && p.bot === undefined && p.human === undefined), cs && cs.players);
   c.msg({ t: 'leave' }); await sleep(50);
 
   console.log('online Penalty World Cup final advances and crowns a champion');

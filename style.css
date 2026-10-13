@@ -388,6 +388,13 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 }
 .action.skill.ready .face { outline: 3px solid #fff; outline-offset: -8px; }
 
+/* A narrow screen leaves little room between the joystick and the right-hand buttons, and the
+   SLIDE label is wider than the button under it — enough to reach the joystick ring at 360px.
+   Keep this one button clear there; every other width is untouched. */
+@media (max-width: 374px) {
+  .action.skill { right: calc(var(--sr) + clamp(104px, 29vmin, 158px)); }
+}
+
 .action.sprint {
   right: calc(var(--sr) + 2vmin);
   bottom: calc(var(--sb) + clamp(140px, 41vmin, 210px));
@@ -1365,6 +1372,20 @@ body.kb .chat-menu kbd { display: inline-block; }
 #modal[data-kind="customize"] .panel h2 { font-size: clamp(18px, 5vmin, 32px); margin-bottom: 7px; }
 #modal[data-kind="customize"] .tabs button { font-size: clamp(10px, 2.1vmin, 15px); padding: 5px 9px; }
 .cust-side .note { margin: 0; }
+/* A phone cannot fit the player beside the tabs and the grid: stack it instead. The player and
+   the ground share the top, the rest gets the full width underneath. */
+@media (max-width: 560px) and (min-height: 431px) {
+  .cust { flex-direction: column; gap: 8px; width: 100%; min-width: 0; }
+  .cust-left { flex: 0 0 auto; width: 100%; max-width: 100%; min-width: 0; flex-direction: row; gap: 8px; }
+  /* Both of these are canvases, and a canvas carries the pixel size it was last drawn at as its
+     own width. Left alone, each frame would size the row from the canvas, the canvas from the
+     row, and the whole thing would walk off the side of the screen. Zero basis and zero width
+     mean the share below decides the size, not the picture inside it. */
+  .cust-view { flex: 1 1 0; width: 0; min-width: 0; min-height: 128px; }
+  .cust-ground { flex: 0 0 36%; width: 0; min-width: 0; align-self: start; }
+  .cust-top { padding-right: 0; }
+  .cust-side { flex: 1 1 auto; min-width: 0; }
+}
 @media (max-height: 430px) {
   .cust-left { flex-basis: 27%; }
   .cust-ground b { font-size: 9px; }
