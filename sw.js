@@ -12,7 +12,11 @@
 // the fallback means the game still opens while the server is getting out of bed. Only the game's
 // own files are kept. Accounts, matches and the league (/api/, the socket) are never cached: they
 // are the live parts, and a stale copy of those would be a lie.
-const CACHE = 'mini-strikers-shell';
+// The server replaces this with the build number as it serves the file. Keeping the build in
+// the name is what stops a player ending up with some files from one build and some from the
+// next: a new name means a new box, and the old one is thrown away whole on activate.
+const BUILD = '__BUILD__';
+const CACHE = 'mini-strikers-' + BUILD;
 const NET_TIMEOUT = 3500; // past this the server is asleep, so show the game and let it catch up
 
 const SHELL = [
