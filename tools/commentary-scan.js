@@ -81,13 +81,16 @@ const match = () => ({ ball: { owner: a, shot: null }, score: { blue: 0, red: 0 
   openGate(); m.ball.owner = d; C.update(m, 0.7);
   check('and the third', /PASS THREE/.test(await settled()), line());
   openGate(); m.ball.owner = r; C.update(m, 0.7);
-  check('losing it is called a turnover', /stolen|coughed|gift|changes hands|gave the ball away|donated|addressed to absolutely nobody|oopsie/i.test(await settled()), line());
+  const turnover = await settled();
+  check('losing it is called a turnover', C.banks.turnover.includes(turnover), turnover);
 
   console.log('shots, saves and goals');
   openGate(); m.ball.owner = null; m.ball.shot = { power: true }; C.update(m, 0.7);
-  check('a power shot gets a big call', /POWER|THUNDERBOLT|net|remove|family plans|escape velocity|air traffic|satellite|travelling through time/i.test(await settled()), line());
+  const powerCall = await settled();
+  check('a power shot gets a big call', C.banks.power.includes(powerCall), powerCall);
   openGate(); m.ball.shot = null; m.stats.red.saves = 1; C.update(m, 0.7);
-  check('a save gets called', /SAVE|DENIED|gloves|springs|stayed out|AUTHORITIES|robbery|appointment|frying pans/i.test(await settled()), line());
+  const saveCall = await settled();
+  check('a save gets called', C.banks.save.includes(saveCall), saveCall);
   openGate(); m.score.blue = 1; a.stats.goals = 1; m.goals.push({ team: 'blue', scorer: a, assist: b, own: false });
   C.update(m, 0.1);
   const goalCall = await settled();

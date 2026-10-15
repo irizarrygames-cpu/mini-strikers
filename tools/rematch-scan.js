@@ -1,6 +1,9 @@
 'use strict';
 const fs = require('fs');
-const src = fs.readFileSync('js/ui.js', 'utf8');
+// Windows checkouts hand this file back with CRLF line endings, and every pattern below is
+// written with plain newlines, so normalise first — otherwise the scan reports the results
+// screen as missing when the only thing that changed was how the lines end.
+const src = fs.readFileSync('js/ui.js', 'utf8').replace(/\r\n/g, '\n');
 if (!src.includes("this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';")) throw new Error('results screen can misroute a normal match to penalties');
 const hit = src.match(/  resultsAgain\(\) \{([\s\S]*?)\n  \},\n\};/);
 if (!hit) throw new Error('resultsAgain not found');
