@@ -12,23 +12,23 @@
 // which were already tuned; `sky` and `hats` are new and feed the shootout backdrop.
 const STADIUM_KINDS = {
   day: {
-    grass: [['#3fae5f', '#3aa759'], ['#359d53', '#31964e']], stands: ['#3b2f63', '#453774'],
-    apron: '#8fa0c8', tuft: '#2d8747', pattern: 'checks', weather: 'clouds',
+    grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'],
+    apron: '#8fa0c8', tuft: '#3f9f31', pattern: 'checks', weather: 'clouds',
     sky: ['#5fb8ff', '#b5e3ff'], far: '#3d6fa8', hats: 'day',
   },
   dusk: {
-    grass: [['#4fae5a', '#4aa755'], ['#429d4e', '#3e9649']], stands: ['#7a3b78', '#86427f'],
-    apron: '#e0a07a', tuft: '#36823f', pattern: 'stripes', weather: 'sunset',
+    grass: [['#6cc443', '#66bd3f'], ['#5fb43a', '#5aae36']], stands: ['#7a3b78', '#86427f'],
+    apron: '#e0a07a', tuft: '#4a9a2e', pattern: 'stripes', weather: 'sunset',
     sky: ['#ff8a4a', '#ffdf9a'], far: '#7a3357', hats: 'sunset',
   },
   night: {
-    grass: [['#2f9e63', '#2b975d'], ['#278e56', '#248751']], stands: ['#1d2552', '#232c5e'],
-    apron: '#4a5680', tuft: '#1f7a49', pattern: 'checks', weather: 'night', lights: true,
+    grass: [['#3fbf5a', '#3ab755'], ['#34ad4f', '#30a64a']], stands: ['#1d2552', '#232c5e'],
+    apron: '#4a5680', tuft: '#2a8a3e', pattern: 'checks', weather: 'night', lights: true,
     sky: ['#0d1430', '#2b3c72'], far: '#5564a8', hats: 'night', stars: true,
   },
   rain: {
-    grass: [['#2a8a55', '#268350'], ['#227b4a', '#1f7445']], stands: ['#3b4252', '#434b5c'],
-    apron: '#5b6475', tuft: '#1b6540', pattern: 'stripes', weather: 'rain',
+    grass: [['#2f9247', '#2b8b43'], ['#28833e', '#247c3a']], stands: ['#3b4252', '#434b5c'],
+    apron: '#5b6475', tuft: '#1f6b33', pattern: 'stripes', weather: 'rain',
     sky: ['#6b7484', '#b3bccc'], far: '#434c5e', hats: 'rain',
   },
   desert: {
@@ -172,7 +172,7 @@ const STADIUM_MOTIFS = {
     g.beginPath(); g.moveTo(cx - w, base); g.lineTo(cx - w * 0.6, base - h * 0.78); g.lineTo(cx + w * 0.6, base - h * 0.78); g.lineTo(cx + w, base); g.closePath();
     g.fillStyle = '#ffffff'; g.fill(); g.stroke();
     g.fillStyle = c.body; g.fillRect(cx - w * 0.8, base - h * 0.52, w * 1.6, h * 0.16);
-    g.fillStyle = '#ffc93c'; g.fillRect(cx - w * 0.7, base - h * 0.92, w * 1.4, h * 0.14); g.strokeRect(cx - w * 0.7, base - h * 0.92, w * 1.4, h * 0.14);
+    g.fillStyle = '#ffe14d'; g.fillRect(cx - w * 0.7, base - h * 0.92, w * 1.4, h * 0.14); g.strokeRect(cx - w * 0.7, base - h * 0.92, w * 1.4, h * 0.14);
   },
   skyline(g, x0, x1, base, h, c) {
     const w = x1 - x0, n = 9;
@@ -548,14 +548,14 @@ function stadiumFor(club) {
   const k = STADIUM_KINDS[ground.kind] || STADIUM_KINDS.day;
   const kit = club && club.home ? club.home : null;
   // the stands take the country's colours, dark enough that the crowd still reads on top of them
-  const seat = kit ? kit.jersey : '#3b2f63';
+  const seat = kit ? kit.jersey : '#34439a';
   const st = {
     ...k,
     id, kind: ground.kind, name: ground.city, chant: ground.chant,
     pattern: ground.pattern || k.pattern, motif: ground.motif,
     stands: [shadeHex(seat, -0.52), shadeHex(seat, -0.4)],
     roof: shadeHex(seat, -0.66),
-    trim: kit ? kit.accent : '#ffc93c',
+    trim: kit ? kit.accent : '#ffe14d',
     seat,
   };
   _grounds[id] = st;

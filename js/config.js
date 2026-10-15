@@ -78,47 +78,47 @@ const CFG = {
 };
 const GOAL_Y1 = (CFG.FIELD_H - CFG.GOAL_W) / 2;
 const GOAL_Y2 = GOAL_Y1 + CFG.GOAL_W;
-const OUTLINE = '#17132b';
+const OUTLINE = '#161a33';
 
 const TEAMS = {
-  blue: { name: 'BLUE', dir: 1, jersey: '#3a6df0', shade: '#2347b8', accent: '#ffffff', shorts: '#1a2350', socks: '#ffffff', shoes: '#17132b', fx: '#35d8d0', board: '#2c55cc', lip: '#7e9bf5' },
-  red:  { name: 'RED', dir: -1, jersey: '#f0343f', shade: '#b01d2c', accent: '#17132b', shorts: '#17132b', socks: '#f0343f', shoes: '#17132b', fx: '#ff5a3c', board: '#d62b38', lip: '#ff8f94' },
+  blue: { name: 'BLUE', dir: 1, jersey: '#2f7bff', shade: '#1b56d8', accent: '#ffffff', shorts: '#1a2350', socks: '#ffffff', shoes: '#1b1d33', fx: '#46d9ff', board: '#2464e8', lip: '#6aa2ff' },
+  red:  { name: 'RED', dir: -1, jersey: '#ff3a3f', shade: '#c81f2b', accent: '#1b1d33', shorts: '#1b1d33', socks: '#ff3a3f', shoes: '#1b1d33', fx: '#ff5a3c', board: '#e3303a', lip: '#ff8a8e' },
 };
 const KEEPER_KITS = {
-  blue: { jersey: '#a35cff', shade: '#7a3ad8', accent: '#ffffff', shorts: '#2a1f4d', socks: '#a35cff', shoes: '#17132b', gloves: '#ffffff' },
-  red:  { jersey: '#ffa81f', shade: '#c87d0d', accent: '#17132b', shorts: '#17132b', socks: '#ffa81f', shoes: '#17132b', gloves: '#ffffff' },
+  blue: { jersey: '#a35cff', shade: '#7a3ad8', accent: '#ffffff', shorts: '#2a1f4d', socks: '#a35cff', shoes: '#1b1d33', gloves: '#ffffff' },
+  red:  { jersey: '#ffc21a', shade: '#e09a00', accent: '#1b1d33', shorts: '#1b1d33', socks: '#ffc21a', shoes: '#1b1d33', gloves: '#ffffff' },
 };
 
 const SKINS = ['#f6cfa6', '#e9b489', '#c98b5e', '#a8693f', '#f2c49b', '#7a4a2a'];
-const HAIR_COLORS = ['#2b1d14', '#4a2e1c', '#6b3f22', '#191427', '#f2c230', '#b8521f'];
+const HAIR_COLORS = ['#2b1d14', '#4a2e1c', '#6b3f22', '#1b1b2a', '#f2c230', '#b8521f'];
 
 // Characters have real ratings (45–95). 70 is what the bots play at.
 // spd: run speed · sht: shot power + beating keepers · pas: pass speed · ctl: close dribbling,
 // shrugging off tackles, shorter skill cooldown · def: tackle reach, success and cooldown.
 const RARITIES = {
   starter:   { name: 'STARTER',   color: '#8a90b8' },
-  common:    { name: 'COMMON',    color: '#35c06a' },
-  rare:      { name: 'RARE',      color: '#3a6df0' },
+  common:    { name: 'COMMON',    color: '#3fcf4a' },
+  rare:      { name: 'RARE',      color: '#2f7bff' },
   epic:      { name: 'EPIC',      color: '#a35cff' },
   legendary: { name: 'LEGENDARY', color: '#ffb400' },
   mythic:    { name: 'MYTHIC',    color: '#ff3a6e' },
-  oneofone:  { name: 'ONE OF ONE', color: '#ffc93c' },
+  oneofone:  { name: 'ONE OF ONE', color: '#ffe14d' },
 };
 const CHARACTERS = [
-  { id: 'street',     name: 'Street',      rarity: 'starter',   r: { spd: 62, sht: 58, pas: 60, ctl: 60, def: 56 }, hair: 'cap',      hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#3a6df0' },
+  { id: 'street',     name: 'Street',      rarity: 'starter',   r: { spd: 62, sht: 58, pas: 60, ctl: 60, def: 56 }, hair: 'cap',      hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#2f7bff' },
   { id: 'striker',    name: 'Striker',     rarity: 'starter',   r: { spd: 58, sht: 64, pas: 56, ctl: 58, def: 54 }, hair: 'messy',    hairColor: '#2b1d14', skin: '#f6cfa6' },
   { id: 'buzz',       name: 'Buzz',        rarity: 'common',    r: { spd: 64, sht: 60, pas: 60, ctl: 62, def: 72 }, hair: 'buzz',     hairColor: '#2b1d14', skin: '#7a4a2a' },
   { id: 'curly',      name: 'Curly',       rarity: 'common',    r: { spd: 64, sht: 62, pas: 72, ctl: 68, def: 60 }, hair: 'curly',    hairColor: '#6b3f22', skin: '#c98b5e' },
   { id: 'speedster',  name: 'Speedster',   rarity: 'common',    r: { spd: 78, sht: 60, pas: 58, ctl: 66, def: 56 }, hair: 'spikes',   hairColor: '#f2c230', skin: '#e9b489' },
-  { id: 'captain',    name: 'Captain',     rarity: 'rare',      r: { spd: 70, sht: 72, pas: 76, ctl: 72, def: 74 }, hair: 'headband', hairColor: '#191427', skin: '#a8693f', band: '#ffffff' },
-  { id: 'bandit',     name: 'Bandit',      rarity: 'rare',      r: { spd: 78, sht: 70, pas: 66, ctl: 78, def: 64 }, hair: 'bandana',  hairColor: '#2b1d14', skin: '#e9b489', band: '#f0343f' },
+  { id: 'captain',    name: 'Captain',     rarity: 'rare',      r: { spd: 70, sht: 72, pas: 76, ctl: 72, def: 74 }, hair: 'headband', hairColor: '#1b1b2a', skin: '#a8693f', band: '#ffffff' },
+  { id: 'bandit',     name: 'Bandit',      rarity: 'rare',      r: { spd: 78, sht: 70, pas: 66, ctl: 78, def: 64 }, hair: 'bandana',  hairColor: '#2b1d14', skin: '#e9b489', band: '#ff3a3f' },
   { id: 'beanie',     name: 'Beanie',      rarity: 'rare',      r: { spd: 72, sht: 78, pas: 70, ctl: 72, def: 68 }, hair: 'beanie',   hairColor: '#6b3f22', skin: '#f6cfa6', cap: '#ff8a1f' },
   { id: 'turbo',      name: 'Turbo',       rarity: 'rare',      r: { spd: 84, sht: 66, pas: 70, ctl: 76, def: 60 }, hair: 'goggles',  hairColor: '#b8521f', skin: '#f6cfa6' },
-  { id: 'ninja',      name: 'Ninja',       rarity: 'epic',      r: { spd: 86, sht: 74, pas: 72, ctl: 86, def: 72 }, hair: 'ninja',    hairColor: '#191427', skin: '#f2c49b', band: '#f0343f' },
+  { id: 'ninja',      name: 'Ninja',       rarity: 'epic',      r: { spd: 86, sht: 74, pas: 72, ctl: 86, def: 72 }, hair: 'ninja',    hairColor: '#1b1b2a', skin: '#f2c49b', band: '#ff3a3f' },
   { id: 'mohawk',     name: 'Mohawk',      rarity: 'epic',      r: { spd: 80, sht: 86, pas: 70, ctl: 76, def: 78 }, hair: 'mohawk',   hairColor: '#ff3a8a', skin: '#c98b5e' },
   { id: 'robot',      name: 'Robot',       rarity: 'epic',      r: { spd: 76, sht: 80, pas: 86, ctl: 80, def: 86 }, hair: 'robot',    hairColor: '#9aa7b8', skin: '#cfd8e3' },
   { id: 'viking',     name: 'Viking',      rarity: 'epic',      r: { spd: 72, sht: 84, pas: 72, ctl: 74, def: 92 }, hair: 'viking',   hairColor: '#e07b2a', skin: '#f2c49b' },
-  { id: 'afroking',   name: 'Afro King',   rarity: 'legendary', r: { spd: 86, sht: 88, pas: 88, ctl: 90, def: 80 }, hair: 'afro',     hairColor: '#191427', skin: '#7a4a2a' },
+  { id: 'afroking',   name: 'Afro King',   rarity: 'legendary', r: { spd: 86, sht: 88, pas: 88, ctl: 90, def: 80 }, hair: 'afro',     hairColor: '#1b1b2a', skin: '#7a4a2a' },
   { id: 'phantom',    name: 'Phantom',     rarity: 'legendary', r: { spd: 94, sht: 86, pas: 82, ctl: 92, def: 76 }, hair: 'ponytail', hairColor: '#5b4bd6', skin: '#e9b489' },
   { id: 'goldenboot', name: 'Golden Boot', rarity: 'legendary', r: { spd: 90, sht: 95, pas: 90, ctl: 92, def: 84 }, hair: 'crown',    hairColor: '#2b1d14', skin: '#f2c49b' },
   // the middle of the shop: 25 players between the starters and the top shelf
@@ -128,40 +128,40 @@ const CHARACTERS = [
   { id: 'dash', name: 'Dash', rarity: 'common', r: { spd: 72, sht: 58, pas: 56, ctl: 62, def: 54 }, hair: 'spikes', hairColor: '#ff8a1f', skin: '#f6cfa6' },
   { id: 'bounce', name: 'Bounce', rarity: 'common', r: { spd: 62, sht: 60, pas: 66, ctl: 66, def: 56 }, hair: 'curly', hairColor: '#f2c230', skin: '#f2c49b' },
   { id: 'cleats', name: 'Cleats', rarity: 'common', r: { spd: 64, sht: 64, pas: 60, ctl: 58, def: 66 }, hair: 'buzz', hairColor: '#b8521f', skin: '#e9b489' },
-  { id: 'tinker', name: 'Tinker', rarity: 'common', r: { spd: 60, sht: 62, pas: 70, ctl: 64, def: 58 }, hair: 'goggles', hairColor: '#35c06a', skin: '#c98b5e' },
-  { id: 'braidz', name: 'Braidz', rarity: 'common', r: { spd: 66, sht: 58, pas: 64, ctl: 68, def: 58 }, hair: 'braids', hairColor: '#191427', skin: '#7a4a2a', band: '#ffc93c' },
+  { id: 'tinker', name: 'Tinker', rarity: 'common', r: { spd: 60, sht: 62, pas: 70, ctl: 64, def: 58 }, hair: 'goggles', hairColor: '#3fcf4a', skin: '#c98b5e' },
+  { id: 'braidz', name: 'Braidz', rarity: 'common', r: { spd: 66, sht: 58, pas: 64, ctl: 68, def: 58 }, hair: 'braids', hairColor: '#1b1b2a', skin: '#7a4a2a', band: '#ffe14d' },
   { id: 'topknot', name: 'Topknot', rarity: 'common', r: { spd: 62, sht: 66, pas: 62, ctl: 64, def: 62 }, hair: 'topknot', hairColor: '#2b1d14', skin: '#f6cfa6', band: '#ffffff' },
   { id: 'curtains', name: 'Curtains', rarity: 'common', r: { spd: 64, sht: 62, pas: 68, ctl: 66, def: 58 }, hair: 'curtains', hairColor: '#8a5a2b', skin: '#f2c49b' },
-  { id: 'fringe', name: 'Fringe', rarity: 'common', r: { spd: 66, sht: 64, pas: 62, ctl: 70, def: 56 }, hair: 'emo', hairColor: '#191427', skin: '#f6cfa6' },
+  { id: 'fringe', name: 'Fringe', rarity: 'common', r: { spd: 66, sht: 64, pas: 62, ctl: 70, def: 56 }, hair: 'emo', hairColor: '#1b1b2a', skin: '#f6cfa6' },
   { id: 'tank', name: 'Tank', rarity: 'common', r: { spd: 58, sht: 68, pas: 58, ctl: 56, def: 76 }, hair: 'flattop', hairColor: '#2b1d14', skin: '#a8693f' },
-  { id: 'sparky', name: 'Sparky', rarity: 'common', r: { spd: 68, sht: 66, pas: 58, ctl: 64, def: 60 }, hair: 'mohawk', hairColor: '#35d8d0', skin: '#e9b489' },
+  { id: 'sparky', name: 'Sparky', rarity: 'common', r: { spd: 68, sht: 66, pas: 58, ctl: 64, def: 60 }, hair: 'mohawk', hairColor: '#46d9ff', skin: '#e9b489' },
   { id: 'winger', name: 'Winger', rarity: 'rare', r: { spd: 80, sht: 66, pas: 68, ctl: 74, def: 58 }, hair: 'ponytail', hairColor: '#4a2e1c', skin: '#c98b5e' },
   { id: 'maestro', name: 'Maestro', rarity: 'rare', r: { spd: 68, sht: 72, pas: 82, ctl: 78, def: 64 }, hair: 'curtains', hairColor: '#d8dce6', skin: '#f2c49b' },
-  { id: 'volley', name: 'Volley', rarity: 'rare', r: { spd: 74, sht: 80, pas: 66, ctl: 70, def: 62 }, hair: 'spikes', hairColor: '#f0343f', skin: '#f6cfa6' },
+  { id: 'volley', name: 'Volley', rarity: 'rare', r: { spd: 74, sht: 80, pas: 66, ctl: 70, def: 62 }, hair: 'spikes', hairColor: '#ff3a3f', skin: '#f6cfa6' },
   { id: 'anchor', name: 'Anchor', rarity: 'rare', r: { spd: 66, sht: 70, pas: 72, ctl: 68, def: 84 }, hair: 'beanie', hairColor: '#2b1d14', skin: '#7a4a2a', cap: '#1b3a8a' },
   { id: 'shuffle', name: 'Shuffle', rarity: 'rare', r: { spd: 78, sht: 68, pas: 72, ctl: 80, def: 62 }, hair: 'braids', hairColor: '#f2c230', skin: '#e9b489', band: '#ff3a8a' },
-  { id: 'cannon', name: 'Cannon', rarity: 'rare', r: { spd: 70, sht: 84, pas: 66, ctl: 70, def: 70 }, hair: 'bandana', hairColor: '#191427', skin: '#a8693f', band: '#191427' },
+  { id: 'cannon', name: 'Cannon', rarity: 'rare', r: { spd: 70, sht: 84, pas: 66, ctl: 70, def: 70 }, hair: 'bandana', hairColor: '#1b1b2a', skin: '#a8693f', band: '#1b1b2a' },
   { id: 'silk', name: 'Silk', rarity: 'rare', r: { spd: 76, sht: 70, pas: 78, ctl: 82, def: 62 }, hair: 'emo', hairColor: '#a35cff', skin: '#f2c49b' },
   { id: 'wall', name: 'The Wall', rarity: 'rare', r: { spd: 64, sht: 68, pas: 70, ctl: 68, def: 88 }, hair: 'fade', hairColor: '#4a4f60', skin: '#c98b5e' },
-  { id: 'jester', name: 'Jester', rarity: 'rare', r: { spd: 76, sht: 74, pas: 76, ctl: 78, def: 66 }, hair: 'topknot', hairColor: '#ff3a8a', skin: '#f6cfa6', band: '#ffc93c' },
+  { id: 'jester', name: 'Jester', rarity: 'rare', r: { spd: 76, sht: 74, pas: 76, ctl: 78, def: 66 }, hair: 'topknot', hairColor: '#ff3a8a', skin: '#f6cfa6', band: '#ffe14d' },
   { id: 'comet', name: 'Comet', rarity: 'rare', r: { spd: 84, sht: 72, pas: 70, ctl: 76, def: 64 }, hair: 'shaggy', hairColor: '#f4f5f7', skin: '#e9b489' },
-  { id: 'tempo', name: 'Tempo', rarity: 'rare', r: { spd: 74, sht: 76, pas: 80, ctl: 76, def: 70 }, hair: 'headband', hairColor: '#2b1d14', skin: '#7a4a2a', band: '#35d8d0' },
+  { id: 'tempo', name: 'Tempo', rarity: 'rare', r: { spd: 74, sht: 76, pas: 80, ctl: 76, def: 70 }, hair: 'headband', hairColor: '#2b1d14', skin: '#7a4a2a', band: '#46d9ff' },
   { id: 'vault', name: 'Vault', rarity: 'rare', r: { spd: 72, sht: 78, pas: 74, ctl: 72, def: 80 }, hair: 'goggles', hairColor: '#7a3ad8', skin: '#f2c49b' },
   // the top shelf: every one of these outplays everything above, and costs days to weeks of play
   { id: 'dreads',     name: 'Dreadlock',   rarity: 'epic',      r: { spd: 88, sht: 84, pas: 82, ctl: 88, def: 78 }, hair: 'dreads',   hairColor: '#2b1d14', skin: '#7a4a2a' },
-  { id: 'samurai',    name: 'Samurai',     rarity: 'epic',      r: { spd: 86, sht: 86, pas: 80, ctl: 90, def: 84 }, hair: 'samurai',  hairColor: '#191427', skin: '#f2c49b', band: '#f0343f' },
+  { id: 'samurai',    name: 'Samurai',     rarity: 'epic',      r: { spd: 86, sht: 86, pas: 80, ctl: 90, def: 84 }, hair: 'samurai',  hairColor: '#1b1b2a', skin: '#f2c49b', band: '#ff3a3f' },
   { id: 'cowboy',     name: 'Cowboy',      rarity: 'epic',      r: { spd: 84, sht: 90, pas: 84, ctl: 82, def: 82 }, hair: 'cowboy',   hairColor: '#8a4b22', skin: '#e9b489', cap: '#a8652c' },
-  { id: 'pirate',     name: 'Captain Hook', rarity: 'legendary', r: { spd: 88, sht: 90, pas: 86, ctl: 88, def: 86 }, hair: 'pirate',  hairColor: '#191427', skin: '#c98b5e' },
-  { id: 'knight',     name: 'Knight',      rarity: 'legendary', r: { spd: 84, sht: 88, pas: 86, ctl: 86, def: 96 }, hair: 'knight',   hairColor: '#aab4c6', skin: '#f2c49b', band: '#f0343f' },
-  { id: 'pharaoh',    name: 'Pharaoh',     rarity: 'legendary', r: { spd: 88, sht: 90, pas: 94, ctl: 90, def: 84 }, hair: 'pharaoh',  hairColor: '#191427', skin: '#b87a4b' },
+  { id: 'pirate',     name: 'Captain Hook', rarity: 'legendary', r: { spd: 88, sht: 90, pas: 86, ctl: 88, def: 86 }, hair: 'pirate',  hairColor: '#1b1b2a', skin: '#c98b5e' },
+  { id: 'knight',     name: 'Knight',      rarity: 'legendary', r: { spd: 84, sht: 88, pas: 86, ctl: 86, def: 96 }, hair: 'knight',   hairColor: '#aab4c6', skin: '#f2c49b', band: '#ff3a3f' },
+  { id: 'pharaoh',    name: 'Pharaoh',     rarity: 'legendary', r: { spd: 88, sht: 90, pas: 94, ctl: 90, def: 84 }, hair: 'pharaoh',  hairColor: '#1b1b2a', skin: '#b87a4b' },
   { id: 'shark',      name: 'Shark',       rarity: 'legendary', r: { spd: 96, sht: 90, pas: 84, ctl: 90, def: 86 }, hair: 'shark',    hairColor: '#6f8aa6', skin: '#f6cfa6' },
   { id: 'lion',       name: 'Lion King',   rarity: 'mythic',    r: { spd: 92, sht: 94, pas: 90, ctl: 92, def: 92 }, hair: 'lion',     hairColor: '#e0901f', skin: '#c98b5e' },
   { id: 'wizard',     name: 'Wizard',      rarity: 'mythic',    r: { spd: 90, sht: 94, pas: 97, ctl: 95, def: 88 }, hair: 'wizard',   hairColor: '#e9eef5', skin: '#f2c49b', cap: '#5b3bd6' },
   { id: 'astronaut',  name: 'Astronaut',   rarity: 'mythic',    r: { spd: 95, sht: 92, pas: 92, ctl: 94, def: 90 }, hair: 'astronaut', hairColor: '#e9eef5', skin: '#e9b489' },
-  { id: 'iceking',    name: 'Ice King',    rarity: 'mythic',    r: { spd: 94, sht: 95, pas: 92, ctl: 95, def: 94 }, hair: 'ice',      hairColor: '#86e8e2', skin: '#dfeaf5' },
+  { id: 'iceking',    name: 'Ice King',    rarity: 'mythic',    r: { spd: 94, sht: 95, pas: 92, ctl: 95, def: 94 }, hair: 'ice',      hairColor: '#7fdcff', skin: '#dfeaf5' },
   { id: 'inferno',    name: 'Inferno',     rarity: 'mythic',    r: { spd: 97, sht: 97, pas: 90, ctl: 94, def: 90 }, hair: 'flame',    hairColor: '#ff7a1a', skin: '#e9b489' },
   { id: 'galaxy',     name: 'Galaxy',      rarity: 'mythic',    r: { spd: 96, sht: 96, pas: 96, ctl: 96, def: 92 }, hair: 'galaxy',   hairColor: '#4b2aa8', skin: '#a8693f' },
-  { id: 'titan',      name: 'Titan',       rarity: 'mythic',    r: { spd: 94, sht: 98, pas: 94, ctl: 96, def: 98 }, hair: 'flattop',  hairColor: '#191427', skin: '#7a4a2a' },
+  { id: 'titan',      name: 'Titan',       rarity: 'mythic',    r: { spd: 94, sht: 98, pas: 94, ctl: 96, def: 98 }, hair: 'flattop',  hairColor: '#1b1b2a', skin: '#7a4a2a' },
   { id: 'goat',       name: 'The GOAT',    rarity: 'mythic',    r: { spd: 99, sht: 99, pas: 98, ctl: 99, def: 95 }, hair: 'goat',     hairColor: '#f4f5f7', skin: '#f2c49b' },
   // ---- the crate shelf: these only come out of crates
   { id: 'blaze',    name: 'Blaze',    rarity: 'rare',      r: { spd: 84, sht: 80, pas: 74, ctl: 78, def: 68 }, hair: 'spikes',    hairColor: '#ff6a1a', skin: '#e9b489' },
@@ -172,23 +172,23 @@ const CHARACTERS = [
   { id: 'echo',     name: 'Echo',     rarity: 'epic',      r: { spd: 86, sht: 84, pas: 88, ctl: 86, def: 74 }, hair: 'curtains',  hairColor: '#6b3f22', skin: '#f6cfa6' },
   { id: 'novastar', name: 'Nova',     rarity: 'epic',      r: { spd: 90, sht: 86, pas: 82, ctl: 88, def: 72 }, hair: 'ponytail',  hairColor: '#f4f5f7', skin: '#e9b489' },
   { id: 'venomous', name: 'Venom',    rarity: 'epic',      r: { spd: 88, sht: 90, pas: 80, ctl: 84, def: 78 }, hair: 'mohawk',    hairColor: '#7dff3a', skin: '#7a4a2a' },
-  { id: 'shade',    name: 'Shade',    rarity: 'epic',      r: { spd: 90, sht: 82, pas: 86, ctl: 90, def: 76 }, hair: 'emo',       hairColor: '#191427', skin: '#f2c49b' },
-  { id: 'boltz',    name: 'Bolt',     rarity: 'epic',      r: { spd: 94, sht: 80, pas: 78, ctl: 86, def: 70 }, hair: 'spikes',    hairColor: '#ffc93c', skin: '#c98b5e' },
-  { id: 'tide',     name: 'Tide',     rarity: 'epic',      r: { spd: 84, sht: 86, pas: 92, ctl: 88, def: 80 }, hair: 'shaggy',    hairColor: '#35d8d0', skin: '#f6cfa6' },
+  { id: 'shade',    name: 'Shade',    rarity: 'epic',      r: { spd: 90, sht: 82, pas: 86, ctl: 90, def: 76 }, hair: 'emo',       hairColor: '#1b1b2a', skin: '#f2c49b' },
+  { id: 'boltz',    name: 'Bolt',     rarity: 'epic',      r: { spd: 94, sht: 80, pas: 78, ctl: 86, def: 70 }, hair: 'spikes',    hairColor: '#ffe14d', skin: '#c98b5e' },
+  { id: 'tide',     name: 'Tide',     rarity: 'epic',      r: { spd: 84, sht: 86, pas: 92, ctl: 88, def: 80 }, hair: 'shaggy',    hairColor: '#46d9ff', skin: '#f6cfa6' },
   { id: 'emberking',name: 'Ember',    rarity: 'epic',      r: { spd: 86, sht: 92, pas: 80, ctl: 86, def: 76 }, hair: 'braids',    hairColor: '#c2300a', skin: '#a8693f' },
   { id: 'bastion',  name: 'Bastion',  rarity: 'legendary', r: { spd: 86, sht: 90, pas: 90, ctl: 90, def: 96 }, hair: 'knight',    hairColor: '#c9d2de', skin: '#e9b489' },
   { id: 'corsair',  name: 'Corsair',  rarity: 'legendary', r: { spd: 92, sht: 92, pas: 88, ctl: 92, def: 82 }, hair: 'pirate',    hairColor: '#2b1d14', skin: '#c98b5e' },
-  { id: 'ronin',    name: 'Ronin',    rarity: 'legendary', r: { spd: 94, sht: 90, pas: 90, ctl: 94, def: 84 }, hair: 'samurai',   hairColor: '#191427', skin: '#f2c49b' },
-  { id: 'sphinx',   name: 'Sphinx',   rarity: 'legendary', r: { spd: 90, sht: 94, pas: 92, ctl: 92, def: 88 }, hair: 'pharaoh',   hairColor: '#ffa81f', skin: '#a8693f' },
+  { id: 'ronin',    name: 'Ronin',    rarity: 'legendary', r: { spd: 94, sht: 90, pas: 90, ctl: 94, def: 84 }, hair: 'samurai',   hairColor: '#1b1b2a', skin: '#f2c49b' },
+  { id: 'sphinx',   name: 'Sphinx',   rarity: 'legendary', r: { spd: 90, sht: 94, pas: 92, ctl: 92, def: 88 }, hair: 'pharaoh',   hairColor: '#ffc21a', skin: '#a8693f' },
   { id: 'tundra',   name: 'Tundra',   rarity: 'legendary', r: { spd: 92, sht: 92, pas: 94, ctl: 92, def: 90 }, hair: 'ice',       hairColor: '#dff6ff', skin: '#f6cfa6' },
   { id: 'magmaman', name: 'Magma',    rarity: 'legendary', r: { spd: 94, sht: 96, pas: 88, ctl: 92, def: 84 }, hair: 'flame',     hairColor: '#ff5a1a', skin: '#7a4a2a' },
   { id: 'oracle',   name: 'Oracle',   rarity: 'legendary', r: { spd: 90, sht: 92, pas: 97, ctl: 95, def: 86 }, hair: 'wizard',    hairColor: '#d8c8ff', skin: '#f2c49b' },
   { id: 'cometkid', name: 'Comet',    rarity: 'legendary', r: { spd: 97, sht: 90, pas: 90, ctl: 94, def: 82 }, hair: 'astronaut', hairColor: '#f4f5f7', skin: '#e9b489' },
-  { id: 'seraph',   name: 'Seraph',   rarity: 'mythic',    r: { spd: 96, sht: 97, pas: 98, ctl: 97, def: 92 }, hair: 'crown',     hairColor: '#ffe9b0', skin: '#f7dcc6' },
+  { id: 'seraph',   name: 'Seraph',   rarity: 'mythic',    r: { spd: 96, sht: 97, pas: 98, ctl: 97, def: 92 }, hair: 'crown',     hairColor: '#fff3a0', skin: '#f7dcc6' },
   { id: 'onyx',     name: 'Onyx',     rarity: 'mythic',    r: { spd: 97, sht: 98, pas: 95, ctl: 98, def: 94 }, hair: 'dreads',    hairColor: '#16171d', skin: '#6b4228' },
   { id: 'zenith',   name: 'Zenith',   rarity: 'mythic',    r: { spd: 98, sht: 97, pas: 97, ctl: 99, def: 93 }, hair: 'anime',     hairColor: '#c8d8ff', skin: '#f6cfa6', anime: true },
   { id: 'eclipse',  name: 'Eclipse',  rarity: 'mythic',    r: { spd: 98, sht: 99, pas: 96, ctl: 98, def: 95 }, hair: 'galaxy',    hairColor: '#b04dff', skin: '#c98b5e' },
-  { id: 'legendx',  name: 'The Legend', rarity: 'mythic',  r: { spd: 99, sht: 99, pas: 99, ctl: 99, def: 97 }, hair: 'goat',      hairColor: '#ffa81f', skin: '#e9b489' },
+  { id: 'legendx',  name: 'The Legend', rarity: 'mythic',  r: { spd: 99, sht: 99, pas: 99, ctl: 99, def: 97 }, hair: 'goat',      hairColor: '#ffc21a', skin: '#e9b489' },
   // Jacob: LILOTTER and irizarrygamez1 only. The card shows his own six stats; the three that
   // mean anything on the pitch (pace, ball control, crossing) are what he actually plays at.
   { id: 'jacob', name: 'Jacob', rarity: 'oneofone', only: ['lilotter', 'irizarrygamez1'], thin: 0.55, ovr: 98,
@@ -306,8 +306,8 @@ const FCUP_PRIZE = 500; // winning a friend cup
 const RANK_TIERS = [
   { id: 'bronze', name: 'BRONZE', at: 0, color: '#c87d3a', reward: 200 },
   { id: 'silver', name: 'SILVER', at: 60, color: '#c9d2e4', reward: 500 },
-  { id: 'gold', name: 'GOLD', at: 150, color: '#ffa81f', reward: 1200 },
-  { id: 'platinum', name: 'PLATINUM', at: 300, color: '#35d8d0', reward: 2500 },
+  { id: 'gold', name: 'GOLD', at: 150, color: '#ffc21a', reward: 1200 },
+  { id: 'platinum', name: 'PLATINUM', at: 300, color: '#46d9ff', reward: 2500 },
   { id: 'diamond', name: 'DIAMOND', at: 500, color: '#b04dff', reward: 5000 },
   { id: 'legend', name: 'LEGEND', at: 800, color: '#ff3a6e', reward: 10000 },
 ];
@@ -338,7 +338,7 @@ const PWC_PRIZE = 750;
 // quick chat: the only things anyone can say in a match (no typing, so nothing nasty gets through)
 const QUICK_CHAT = ['HI!', 'NICE ONE!', 'PASS!', 'SHOOT!', 'DEFEND!', 'WHAT A GOAL!', 'THANKS!', 'SORRY!', 'UNLUCKY', 'WOW!', "LET'S GO!", 'GG'];
 const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][n % 10 > 3 || (n % 100 > 10 && n % 100 < 14) ? 0 : n % 10]);
-const ULT_COLORS = ['#f0343f', '#ff8a1f', '#ffc93c', '#35c06a', '#35d8d0', '#b04dff', '#ff4df0'];
+const ULT_COLORS = ['#ff3a3f', '#ff8a1f', '#ffe14d', '#3fcf4a', '#46d9ff', '#b04dff', '#ff4df0'];
 const rainbow = (t, i = 0) => ULT_COLORS[(Math.floor(t * 9 + i) % ULT_COLORS.length + ULT_COLORS.length) % ULT_COLORS.length];
 
 const AI_HAIRS = ['messy', 'spikes', 'curly', 'buzz', 'headband', 'messy', 'curly', 'beanie', 'mohawk', 'afro'];
@@ -502,17 +502,17 @@ const BOT_MISTAKES = {
 };
 
 const TRAILS = [
-  { id: 'electric', name: 'Electric', a: '#35d8d0', b: '#ffffff' },
-  { id: 'fire',     name: 'Fire',     a: '#ff7a1a', b: '#ffc93c' },
+  { id: 'electric', name: 'Electric', a: '#46d9ff', b: '#ffffff' },
+  { id: 'fire',     name: 'Fire',     a: '#ff7a1a', b: '#ffe14d' },
   { id: 'plasma',   name: 'Plasma Spin', a: '#b04dff', b: '#f3d2ff' },
-  { id: 'blast',    name: 'White Blast', a: '#ffffff', b: '#c2f5f1' },
+  { id: 'blast',    name: 'White Blast', a: '#ffffff', b: '#bff3ff' },
   { id: 'frost',    name: 'Frostbite', a: '#8fe3ff', b: '#ffffff' },
   { id: 'toxic',    name: 'Toxic',     a: '#7dff3a', b: '#e8ffc2' },
   { id: 'shadow',   name: 'Shadow',    a: '#7b3bff', b: '#1b1033' },
-  { id: 'rainbow',  name: 'Rainbow',   a: '#ff5fa8', b: '#ffc93c' },
-  { id: 'golden',   name: 'Golden',    a: '#ffa81f', b: '#ffe9b0' },
+  { id: 'rainbow',  name: 'Rainbow',   a: '#ff5fa8', b: '#ffe14d' },
+  { id: 'golden',   name: 'Golden',    a: '#ffc21a', b: '#fff3a0' },
   // ---- the crate shelf. bands = [colour, width] from the outside in, spark = what spins off it
-  { id: 'sunrise', name: 'Sunrise', rarity: 'rare', a: '#ff9a3c', b: '#ffe9a8', bands: [['#ff6a1a', 2.3], ['#ffb03a', 1.4], ['#ffe9b0', 0.6]] },
+  { id: 'sunrise', name: 'Sunrise', rarity: 'rare', a: '#ff9a3c', b: '#ffe9a8', bands: [['#ff6a1a', 2.3], ['#ffb03a', 1.4], ['#fff3a0', 0.6]] },
   { id: 'mintfizz', name: 'Mint Fizz', rarity: 'rare', a: '#4fe0b0', b: '#eafff7', bands: [['#1f8f6a', 2.2], ['#4fe0b0', 1.2]], spark: 'bubble', sparkA: '#eafff7', sparkB: '#9ff5da' },
   { id: 'bubblegum', name: 'Bubblegum', rarity: 'rare', a: '#ff5fa8', b: '#ffd9ec', bands: [['#e03a84', 2.3], ['#ff8ec4', 1.3], ['#ffd9ec', 0.6]], spark: 'bubble', sparkA: '#ffd9ec', sparkB: '#ff8ec4' },
   { id: 'inkwell', name: 'Inkwell', rarity: 'rare', a: '#3b4060', b: '#aab0d0', bands: [['#15182a', 2.5], ['#3b4060', 1.4], ['#8d93b8', 0.5]] },
@@ -525,18 +525,18 @@ const TRAILS = [
   { id: 'aurora', name: 'Aurora', rarity: 'epic', a: '#5fffc4', b: '#b04dff', bands: [['#2a7fd8', 2.6], ['#5fffc4', 1.7], ['#b04dff', 0.9], ['#ffffff', 0.4]], spark: 'star', sparkA: '#eaffff', sparkB: '#b04dff' },
   { id: 'honey', name: 'Honeycomb', rarity: 'epic', a: '#ffb400', b: '#fff0b8', bands: [['#a86f00', 2.3], ['#ffb400', 1.4], ['#fff0b8', 0.6]], spark: 'cube', sparkA: '#ffd166', sparkB: '#fff0b8' },
   { id: 'nightfall', name: 'Nightfall', rarity: 'legendary', a: '#6a2ad8', b: '#1b1033', bands: [['#0d0820', 2.8], ['#4b1f9a', 1.7], ['#8a3fd8', 0.8]], spark: 'star', sparkA: '#d8c8ff', sparkB: '#8a3fd8' },
-  { id: 'firework', name: 'Firework', rarity: 'legendary', a: '#ff3a6e', b: '#ffc93c', bands: [['#ff3a6e', 2.4], ['#ffc93c', 1.5], ['#35d8d0', 0.8], ['#ffffff', 0.4]], spark: 'burstspark', sparkA: '#ffffff', sparkB: '#ffc93c' },
+  { id: 'firework', name: 'Firework', rarity: 'legendary', a: '#ff3a6e', b: '#ffe14d', bands: [['#ff3a6e', 2.4], ['#ffe14d', 1.5], ['#46d9ff', 0.8], ['#ffffff', 0.4]], spark: 'burstspark', sparkA: '#ffffff', sparkB: '#ffe14d' },
   { id: 'tsunami', name: 'Tsunami', rarity: 'legendary', a: '#1e6fd8', b: '#dff6ff', bands: [['#0a3a7a', 2.7], ['#1e6fd8', 1.7], ['#7fc8ff', 0.9], ['#ffffff', 0.4]], spark: 'bubble', sparkA: '#ffffff', sparkB: '#7fc8ff' },
   { id: 'magmatrail', name: 'Magma', rarity: 'legendary', a: '#ff5a1a', b: '#2b1a1a', bands: [['#2b1a1a', 2.7], ['#c2300a', 1.8], ['#ff7a1a', 1.0], ['#ffd166', 0.4]], spark: 'ember', sparkA: '#ff7a1a', sparkB: '#ffd166' },
-  { id: 'spectre', name: 'Spectre', rarity: 'legendary', a: '#b9bfe8', b: '#3b4060', bands: [['#272038', 2.6], ['#6a71a0', 1.6], ['#d8dcff', 0.7]], spark: 'ghost', sparkA: '#d8dcff', sparkB: '#8d93b8' },
-  { id: 'jetstream', name: 'Jetstream', rarity: 'legendary', a: '#ffffff', b: '#35d8d0', bands: [['#1f8fd8', 2.5], ['#7fe0ff', 1.5], ['#ffffff', 0.7]], spark: 'bolt', sparkA: '#ffffff', sparkB: '#35d8d0' },
-  { id: 'confetti', name: 'Confetti', rarity: 'legendary', a: '#ffc93c', b: '#ff5fa8', bands: [['#ffffff', 2.2], ['#ffc93c', 1.2]], spark: 'confetti', sparkA: '#ff5fa8', sparkB: '#35d8d0' },
-  { id: 'hologram', name: 'Hologram', rarity: 'legendary', a: '#35d8d0', b: '#ff5fa8', bands: [['#35d8d0', 2.5], ['#ff5fa8', 1.6], ['#ffffff', 0.7]], spark: 'cube', sparkA: '#35d8d0', sparkB: '#ff5fa8' },
-  { id: 'supernova', name: 'Supernova', rarity: 'mythic', a: '#ffe9b0', b: '#ff8a1f', bands: [['#ff8a1f', 3.0], ['#ffd166', 2.0], ['#ffe9b0', 1.1], ['#ffffff', 0.5]], spark: 'ring', sparkA: '#ffffff', sparkB: '#ffd166' },
+  { id: 'spectre', name: 'Spectre', rarity: 'legendary', a: '#b9bfe8', b: '#3b4060', bands: [['#2a2d45', 2.6], ['#6a71a0', 1.6], ['#d8dcff', 0.7]], spark: 'ghost', sparkA: '#d8dcff', sparkB: '#8d93b8' },
+  { id: 'jetstream', name: 'Jetstream', rarity: 'legendary', a: '#ffffff', b: '#46d9ff', bands: [['#1f8fd8', 2.5], ['#7fe0ff', 1.5], ['#ffffff', 0.7]], spark: 'bolt', sparkA: '#ffffff', sparkB: '#46d9ff' },
+  { id: 'confetti', name: 'Confetti', rarity: 'legendary', a: '#ffe14d', b: '#ff5fa8', bands: [['#ffffff', 2.2], ['#ffe14d', 1.2]], spark: 'confetti', sparkA: '#ff5fa8', sparkB: '#46d9ff' },
+  { id: 'hologram', name: 'Hologram', rarity: 'legendary', a: '#46d9ff', b: '#ff5fa8', bands: [['#46d9ff', 2.5], ['#ff5fa8', 1.6], ['#ffffff', 0.7]], spark: 'cube', sparkA: '#46d9ff', sparkB: '#ff5fa8' },
+  { id: 'supernova', name: 'Supernova', rarity: 'mythic', a: '#fff3a0', b: '#ff8a1f', bands: [['#ff8a1f', 3.0], ['#ffd166', 2.0], ['#fff3a0', 1.1], ['#ffffff', 0.5]], spark: 'ring', sparkA: '#ffffff', sparkB: '#ffd166' },
   { id: 'blackhole', name: 'Black Hole', rarity: 'mythic', a: '#8a3fd8', b: '#07060f', bands: [['#07060f', 3.2], ['#2a1a4a', 2.1], ['#6a2ad8', 1.1], ['#d8c8ff', 0.4]], spark: 'ring', sparkA: '#b04dff', sparkB: '#07060f' },
-  { id: 'dragonfire', name: 'Dragonfire', rarity: 'mythic', a: '#ff7a1a', b: '#ffa81f', bands: [['#8c1020', 3.0], ['#ff5a1a', 2.0], ['#ffb03a', 1.1], ['#ffe9b0', 0.5]], spark: 'ember', sparkA: '#ffa81f', sparkB: '#ff5a1a' },
+  { id: 'dragonfire', name: 'Dragonfire', rarity: 'mythic', a: '#ff7a1a', b: '#ffc21a', bands: [['#8c1020', 3.0], ['#ff5a1a', 2.0], ['#ffb03a', 1.1], ['#fff3a0', 0.5]], spark: 'ember', sparkA: '#ffc21a', sparkB: '#ff5a1a' },
   { id: 'celestial', name: 'Celestial', rarity: 'mythic', a: '#ffffff', b: '#ffd166', bands: [['#2a3f8a', 3.0], ['#7fb3ff', 2.0], ['#ffffff', 1.1], ['#ffd166', 0.5]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffd166' },
-  { id: 'infinitytrail', name: 'Infinity', rarity: 'mythic', a: '#ff3a6e', b: '#35d8d0', bands: [['#ff3a6e', 3.1], ['#ff8a1f', 2.4], ['#ffc93c', 1.8], ['#35c06a', 1.3], ['#35d8d0', 0.8], ['#b04dff', 0.4]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffc93c' },
+  { id: 'infinitytrail', name: 'Infinity', rarity: 'mythic', a: '#ff3a6e', b: '#46d9ff', bands: [['#ff3a6e', 3.1], ['#ff8a1f', 2.4], ['#ffe14d', 1.8], ['#3fcf4a', 1.3], ['#46d9ff', 0.8], ['#b04dff', 0.4]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffe14d' },
 ];
 
 // how many samples of ball path each trail keeps (the shop trails are the long ones)

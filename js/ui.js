@@ -594,7 +594,7 @@ const UI = {
     }
     if (document.body.classList.contains('kb')) {
       $('kl-stam').style.width = st + '%';
-      $('kl-stam').style.background = h.exhausted ? '#ff8f94' : '';
+      $('kl-stam').style.background = h.exhausted ? '#ff8a8e' : '';
       $('kl-power').style.width = p + '%';
       $('kl-skill').style.width = 100 - skillCd + '%';
       $('kl-slide').style.width = 100 - slideCd + '%';

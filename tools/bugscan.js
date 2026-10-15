@@ -565,13 +565,14 @@ window.BS = {
     Save.data.tutorialSeen = true;
     document.body.classList.toggle('kb', !touch);
     $('splash').hidden = true;
+    const clip = (where) => { const c = this.clipped(); if (c.hits.length) out.push({ where: where + ' (cut-off text)', size: c.size, hits: c.hits }); };
     const line = (what) => {
       const c = $('commentary');
       if (Game.match && Game.match.pens) { c.classList.remove('show', 'big'); return; } // a shootout says it on the pitch
       c.classList.add('show'); c.classList.toggle('big', what === 'big');
       $('commentary-line').textContent = what === 'big' ? 'WHAT A BALL THROUGH THE MIDDLE — HE IS CLEAN THROUGH ON GOAL!' : 'Clean as a whistle and twice as loud.';
     };
-    const look = async (name) => { await wait(90); out.push({ where: name, ...this.fit() }); };
+    const look = async (name) => { await wait(90); out.push({ where: name, ...this.fit() }); clip(name); };
 
     UI.closeAll(); Game.goHome(); await wait(120);
     Game.stepDemo(0.016); Render.drawHome(Game.t, Game.demo); // this pane throttles rAF: draw it by hand
@@ -601,6 +602,37 @@ window.BS = {
     Game.goHome(); Save.data.tutorialSeen = was;
     const bad = out.filter((o) => o.hits.length);
     return { sizes: out[0] && out[0].size, checked: out.length, bad, clean: out.length - bad.length };
+  },
+
+  // A word that does not fit the pill holding it.
+  //
+  // These controls are a coloured button with a single label inside. They do not clip — overflow
+  // is visible — so a label too wide for its button hangs out over the edge and into whatever is
+  // next to it. CUSTOMIZE shipped like that: the four buttons under PLAY each took a quarter of
+  // the row and were allowed to shrink below the word inside them.
+  //
+  // Only these are checked. A heavy text-shadow makes scrollHeight a little taller than the line,
+  // the SHOOT label is meant to be wider than the round face above it, and the OVR badge is meant
+  // to hang off the profile card, so asking every element on the page gives three wrong answers
+  // for every right one.
+  PILL_SEL: '.home-row .mid-btn, .panel .mid-btn, .panel .big-btn, .tog, .tabs button, .formats button, .seg button, .auth-tabs button',
+
+  clipped(slack = 1) {
+    const out = [];
+    for (const el of document.querySelectorAll(this.PILL_SEL)) {
+      const cs = getComputedStyle(el);
+      if (el.hidden || cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) continue;
+      const b = el.getBoundingClientRect();
+      if (b.width < 4 || b.height < 4) continue;
+      const txt = (el.textContent || '').trim();
+      if (!txt) continue;
+      const over = el.scrollWidth - el.clientWidth;
+      if (over > slack) {
+        const name = (el.id ? '#' + el.id : el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''));
+        out.push(`${name}[${txt.slice(0, 18)}] is ${over}px too wide for its button (needs ${el.scrollWidth}, has ${el.clientWidth})`);
+      }
+    }
+    return { size: innerWidth + 'x' + innerHeight, screen: Game.state, checked: document.querySelectorAll(this.PILL_SEL).length, hits: [...new Set(out)] };
   },
 
   overlap(slack = 2) {

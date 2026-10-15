@@ -22,7 +22,7 @@ const Trophy = {
     // your side: you in the middle, four teammates around the stage
     const rnd = mulberry32(((Math.random() * 1e9) | 0) + 7);
     const pickR = (a) => a[(rnd() * a.length) | 0];
-    const aiLook = () => ({ hair: pickR(AI_HAIRS), hairColor: pickR(HAIR_COLORS), skin: pickR(SKINS), band: '#ffffff', cap: '#17132b' });
+    const aiLook = () => ({ hair: pickR(AI_HAIRS), hairColor: pickR(HAIR_COLORS), skin: pickR(SKINS), band: '#ffffff', cap: '#1b1d33' });
     const looks = (opts.mates || []).filter(Boolean).slice(0, 4);
     while (looks.length < 4) looks.push(aiLook());
     this.me = UI.fakePlayer(Save.look(), 'blue', false, 10);
@@ -138,7 +138,7 @@ const Trophy = {
     const f = this.fx;
     if (t > f.nextRocket) {
       f.nextRocket = t + 0.35 + Math.random() * 0.5;
-      f.rockets.push({ x: W * (0.1 + Math.random() * 0.8), y: floorY, tx: H * (0.08 + Math.random() * 0.22), c: pick(['#f0343f', '#ffc93c', '#35d8d0', '#35c06a', '#ff4df0', '#ffffff', kit.jersey]) });
+      f.rockets.push({ x: W * (0.1 + Math.random() * 0.8), y: floorY, tx: H * (0.08 + Math.random() * 0.22), c: pick(['#ff3a3f', '#ffe14d', '#46d9ff', '#3fcf4a', '#ff4df0', '#ffffff', kit.jersey]) });
     }
     for (const r of f.rockets) {
       r.y -= H * 1.1 * dt;
@@ -157,7 +157,7 @@ const Trophy = {
     }
     g.globalAlpha = 1;
     f.sparks = f.sparks.filter((s) => s.life > 0);
-    if (t > 0.6 && f.confetti.length < 160) for (let i = 0; i < 3; i++) f.confetti.push({ x: Math.random() * W, y: -10, vy: 60 + Math.random() * 90, vx: (Math.random() - 0.5) * 40, a: Math.random() * 6, va: (Math.random() - 0.5) * 8, c: pick(['#ffc93c', '#f0343f', '#35d8d0', '#35c06a', '#ffffff', kit.jersey, kit.accent || '#ffffff']) });
+    if (t > 0.6 && f.confetti.length < 160) for (let i = 0; i < 3; i++) f.confetti.push({ x: Math.random() * W, y: -10, vy: 60 + Math.random() * 90, vx: (Math.random() - 0.5) * 40, a: Math.random() * 6, va: (Math.random() - 0.5) * 8, c: pick(['#ffe14d', '#ff3a3f', '#46d9ff', '#3fcf4a', '#ffffff', kit.jersey, kit.accent || '#ffffff']) });
     for (const c of f.confetti) {
       c.y += c.vy * dt; c.x += c.vx * dt + Math.sin(t * 3 + c.a) * 0.6; c.a += c.va * dt;
       g.save(); g.translate(c.x, c.y); g.rotate(c.a); g.fillStyle = c.c; g.fillRect(-4, -2.5, 8, 5); g.restore();
@@ -171,7 +171,7 @@ const Trophy = {
     g.save(); g.translate(W / 2, H * 0.12); g.rotate(-0.04); g.scale(ts, ts);
     g.font = `${size}px ${getComputedStyle(document.body).fontFamily}`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineJoin = 'round'; g.lineWidth = size * 0.22; g.strokeStyle = OUTLINE; g.strokeText(this.opts.title, 0, 0);
-    g.fillStyle = '#ffc93c'; g.fillText(this.opts.title, 0, 0);
+    g.fillStyle = '#ffe14d'; g.fillText(this.opts.title, 0, 0);
     g.restore();
     if (t > 0.5) {
       const fs = Math.min(W * 0.045, H * 0.055, 30), y = H * 0.12 + size * 0.85;
@@ -185,7 +185,7 @@ const Trophy = {
         g.textAlign = 'center'; const ss = fs * 0.72;
         g.font = `${ss}px ${getComputedStyle(document.body).fontFamily}`;
         g.lineWidth = ss * 0.22; g.strokeText(this.opts.sub, W / 2, y + fs * 1.15);
-        g.fillStyle = '#ffc93c'; g.fillText(this.opts.sub, W / 2, y + fs * 1.15);
+        g.fillStyle = '#ffe14d'; g.fillText(this.opts.sub, W / 2, y + fs * 1.15);
       }
     }
     // the flash as it starts
@@ -205,7 +205,7 @@ const Trophy = {
 
   // a jet of fire: three flat tongues (red, orange, yellow) with the game's outline
   flame(g, x, y, h, t) {
-    const layers = [['#e8341c', 1, 1], ['#ff8a1f', 0.72, 0.7], ['#ffc93c', 0.45, 0.42]];
+    const layers = [['#e8341c', 1, 1], ['#ff8a1f', 0.72, 0.7], ['#ffe14d', 0.45, 0.42]];
     for (const [c, sw, sh] of layers) {
       const w = h * 0.34 * sw, hh = h * sh;
       g.beginPath(); g.moveTo(x - w, y);
