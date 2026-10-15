@@ -7,11 +7,13 @@ const UI = {
     Commentary.init();
     $('logo').innerHTML = GAME_NAME.split(' ').map((w) => `<span>${w}</span>`).join('');
     $('splash-logo').innerHTML = $('logo').innerHTML;
+    // the splash owns the wordmark until it has gone: see .splash-on in style.css
+    document.body.classList.add('splash-on');
     const leaveSplash = () => {
       if ($('splash').classList.contains('gone')) return;
       Sound.unlock(); Sound.tap(); Sound.startMusic();
       $('splash').classList.add('gone');
-      setTimeout(() => { $('splash').hidden = true; }, 450);
+      setTimeout(() => { $('splash').hidden = true; document.body.classList.remove('splash-on'); }, 450);
       Game.enter();
     };
     $('splash').addEventListener('pointerdown', leaveSplash);
