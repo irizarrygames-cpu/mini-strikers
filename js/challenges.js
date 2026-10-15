@@ -4,7 +4,7 @@
 //   gauntlet — score past three defenders as fast as you can, on the pitch
 // Best scores and medals live in Save.data.challenges; each medal pays out once.
 const MEDALS = ['bronze', 'silver', 'gold'];
-const MEDAL_COLORS = { bronze: '#c87d3a', silver: '#c9d2e4', gold: '#ffc21a' };
+const MEDAL_COLORS = { bronze: '#c87d3a', silver: '#c9d2e4', gold: '#ffa81f' };
 const CHALLENGE_LIST = [
   { id: 'targets', name: 'TARGET PRACTICE', kind: 'pens', icon: 'target',
     blurb: 'Ten kicks. Hit the targets hanging in the goal.', unit: 'HIT', cuts: [4, 6, 8], coins: [80, 150, 300] },
@@ -119,7 +119,7 @@ const SkillRun = {
     Game.state = 'match';
     UI.show('match');
     Render.updateCamera(m, 0, true);
-    FX.showBanner('GO!', '#ffe14d', 0.9, 'BEAT THE DEFENDERS AND SCORE');
+    FX.showBanner('GO!', '#ffc93c', 0.9, 'BEAT THE DEFENDERS AND SCORE');
     Sound.startMusic(); Sound.startAmbience();
   },
 
@@ -157,7 +157,7 @@ const SkillRun = {
       const hit = (P.targets || []).find((tg) => !tg.hit && Math.hypot(tg.x - s.x, tg.z - s.z) < 0.6);
       if (hit && s.out === 'in') {
         hit.hit = true; C.score++; good = true;
-        P.say = ['TARGET!', '#3fcf4a'];
+        P.say = ['TARGET!', '#35c06a'];
         Sound.net();
         taker.celebrateT = CELE_TIME; taker.celebKind = Save.celebration(); taker.fy = -1;
       } else {
@@ -167,7 +167,7 @@ const SkillRun = {
       }
     } else {
       good = res === 'save';
-      P.say = good ? ['SAVED!', '#46d9ff'] : PEN_SAY[res] || ['GOAL!', '#ffe14d'];
+      P.say = good ? ['SAVED!', '#35d8d0'] : PEN_SAY[res] || ['GOAL!', '#ffc93c'];
       if (good) { C.score++; Sound.save(); gk.celebrateT = 1.4; }
       else if (res === 'goal' || res === 'postIn' || res === 'barIn') { Sound.net(); taker.celebrateT = CELE_TIME; taker.fy = -1; }
       else taker.sad = true;
@@ -203,7 +203,7 @@ const SkillRun = {
       p.vx = 0; p.vy = 0; p.stunT = 0; p.slideT = 0; p.slideWindT = 0;
       i++;
     }
-    if (!Game.headless) { FX.showBanner('BALL LOST  +3s', '#ff8a8e', 0.7); Sound.whistle(); }
+    if (!Game.headless) { FX.showBanner('BALL LOST  +3s', '#ff8f94', 0.7); Sound.whistle(); }
   },
 
   finishGauntlet(m, seconds) {
@@ -260,7 +260,7 @@ const SkillRun = {
         const p = Pens.gp(L, tg.x, tg.z), r = L.s * 0.42;
         if (tg.hit) {
           ctx.globalAlpha = 0.45;
-          ctx.fillStyle = '#3fcf4a'; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#35c06a'; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
           ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(3, r * 0.22); ctx.lineCap = 'round';
           ctx.beginPath(); ctx.moveTo(p.x - r * 0.45, p.y); ctx.lineTo(p.x - r * 0.1, p.y + r * 0.38); ctx.lineTo(p.x + r * 0.48, p.y - r * 0.36); ctx.stroke();
@@ -268,7 +268,7 @@ const SkillRun = {
           continue;
         }
         const pulse = 1 + Math.sin(t * 5 + tg.x) * 0.04;
-        for (const [rad, col] of [[1, '#ffffff'], [0.68, '#ff3a3f'], [0.34, '#ffffff']]) {
+        for (const [rad, col] of [[1, '#ffffff'], [0.68, '#f0343f'], [0.34, '#ffffff']]) {
           ctx.fillStyle = col;
           ctx.beginPath(); ctx.arc(p.x, p.y, r * rad * pulse, 0, Math.PI * 2); ctx.fill();
           ctx.lineWidth = 3; ctx.strokeStyle = OUTLINE; ctx.stroke();
@@ -287,7 +287,7 @@ const SkillRun = {
     ctx.fillStyle = OUTLINE; Sprites.rr(ctx, x + 3, y + 4, w, h, big * 0.6); ctx.fill();
     ctx.fillStyle = '#ffffff'; Sprites.rr(ctx, x, y, w, h, big * 0.6); ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = OUTLINE; ctx.stroke();
-    ctx.fillStyle = '#6b7299';
+    ctx.fillStyle = '#8a7a62';
     ctx.font = `900 ${small}px "Lilita One", system-ui, sans-serif`;
     ctx.fillText(ch.name, W / 2, y + small * 0.95);
     ctx.font = `900 ${big}px "Lilita One", system-ui, sans-serif`;
@@ -307,7 +307,7 @@ const SkillRun = {
     ctx.fillStyle = OUTLINE; Sprites.rr(ctx, W / 2 - w / 2 + 3, 13, w, big * 1.8, big * 0.5); ctx.fill();
     ctx.fillStyle = c.t > 30 ? '#ffd0d3' : '#ffffff'; Sprites.rr(ctx, W / 2 - w / 2, 10, w, big * 1.8, big * 0.5); ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = OUTLINE; ctx.stroke();
-    Render.chunkyText(ctx, txt, W / 2, 10 + big * 0.9, big, '#161a33', 0);
+    Render.chunkyText(ctx, txt, W / 2, 10 + big * 0.9, big, '#17132b', 0);
   },
 };
 

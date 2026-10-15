@@ -166,7 +166,7 @@ const FX = {
         ctx.beginPath(); ctx.arc(sx, sy, p.r * (1 - u * 0.6) * S, 0, Math.PI * 2); ctx.fill();
       } else if (p.k === 'stars') {
         ctx.globalAlpha = 1;
-        ctx.fillStyle = '#ffe14d'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.5 * S;
+        ctx.fillStyle = '#ffc93c'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.5 * S;
         for (let i = 0; i < 3; i++) {
           const a = p.t * 9 + (i * Math.PI * 2) / 3;
           R.star(ctx, sx + Math.cos(a) * 13 * S, sy + Math.sin(a) * 5 * S, 4.5 * S);

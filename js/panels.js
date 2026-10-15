@@ -467,7 +467,7 @@ Object.assign(UI, {
     const rivet = (x, y, r2, col) => { g.beginPath(); g.arc(x, y, r2, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.lineWidth = 1.6 * u; g.stroke(); };
 
     // the shadow it stands in
-    g.fillStyle = 'rgba(22, 26, 51, 0.22)';
+    g.fillStyle = 'rgba(23, 19, 43, 0.22)';
     g.beginPath(); g.ellipse(cx, floor + 3 * u, bw * 0.56, 5.5 * u, 0, 0, Math.PI * 2); g.fill();
 
     // what is inside, showing through the gap under the lid
@@ -669,7 +669,7 @@ Object.assign(UI, {
     return CHARACTERS.filter(charOk).sort((a, b) => charOvr(a) - charOvr(b) || Shop.price('character', a.id) - Shop.price('character', b.id));
   },
   charCard(c) {
-    const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
+    const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#35c06a' : v >= 65 ? '#3a6df0' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
     return `<button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
         <span class="rar-tag">${RARITIES[c.rarity].name}</span>
         <span class="ovr"><b>${charOvr(c)}</b><small>OVR</small></span>
@@ -1012,7 +1012,7 @@ Object.assign(UI, {
 
   trailSwatch(cv, id) {
     const g = cv.getContext('2d'), w = cv.width, h = cv.height;
-    g.fillStyle = '#4fbd3b'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#359d53'; g.fillRect(0, 0, w, h);
     const pts = [];
     for (let i = 0; i < 12; i++) pts.push({ x: w - 30 - i * 13, y: h / 2 + Math.sin(i * 0.5) * 6 });
     const R = { S: 1.6, sx: (x) => x, sy: (y) => y };
@@ -1053,8 +1053,8 @@ Object.assign(UI, {
 
   celebSwatch(cv, id, e = 1.5) {
     const g = cv.getContext('2d'), w = cv.width, h = cv.height;
-    g.fillStyle = '#55c541'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#4fbd3b'; for (let x = 0; x < w; x += 40) g.fillRect(x, 0, 20, h);
+    g.fillStyle = '#3aa759'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#359d53'; for (let x = 0; x < w; x += 40) g.fillRect(x, 0, 20, h);
     const ch = Save.character();
     this._celebFake = this._celebFake || {};
     const p = this._celebFake[id] || (this._celebFake[id] = this.fakePlayer({ hair: ch.hair, hairColor: ch.hairColor, skin: ch.skin, cap: ch.cap, band: ch.band }));
@@ -1072,8 +1072,8 @@ Object.assign(UI, {
 
   ballSwatch(cv, id) {
     const g = cv.getContext('2d'), w = cv.width, h = cv.height;
-    g.fillStyle = '#4fbd3b'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#55c541'; for (let i = 0; i < 8; i += 2) g.fillRect(i * 25, 0, 25, h);
+    g.fillStyle = '#359d53'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#3aa759'; for (let i = 0; i < 8; i += 2) g.fillRect(i * 25, 0, 25, h);
     const skin = BALLS.find((b) => b.id === id);
     g.fillStyle = 'rgba(20,60,20,0.28)'; g.beginPath(); g.ellipse(w / 2, h - 16, 26, 8, 0, 0, Math.PI * 2); g.fill();
     Sprites.ball(g, { x: 0, y: 0, z: 0, vx: 1, vy: 0.3, roll: 0.9, shot: null, owner: null, skin }, w / 2, h / 2 - 4, 3.2, Game.t);

@@ -106,8 +106,8 @@ const PEN_LEVELS = {
   hard: { read: 0.15, q: 0.34, aim: 0.375, sw: 0.325 },
 };
 const PEN_SAY = {
-  goal: ['GOAL!', '#ffe14d'], save: ['SAVED!', '#46d9ff'], wide: ['WIDE!', '#ffffff'], over: ['OVER THE BAR!', '#ffffff'],
-  post: ['OFF THE POST!', '#ffffff'], bar: ['OFF THE BAR!', '#ffffff'], postIn: ['IN OFF THE POST!', '#ffe14d'], barIn: ['IN OFF THE BAR!', '#ffe14d'],
+  goal: ['GOAL!', '#ffc93c'], save: ['SAVED!', '#35d8d0'], wide: ['WIDE!', '#ffffff'], over: ['OVER THE BAR!', '#ffffff'],
+  post: ['OFF THE POST!', '#ffffff'], bar: ['OFF THE BAR!', '#ffffff'], postIn: ['IN OFF THE POST!', '#ffc93c'], barIn: ['IN OFF THE BAR!', '#ffc93c'],
 };
 
 const Pens = {
@@ -467,7 +467,7 @@ const Pens = {
     // --- the stand, with its roof in the country's colours
     ctx.fillStyle = st.stands[0]; ctx.fillRect(0, roofY, L.W, L.gy - roofY);
     ctx.fillStyle = st.roof || st.stands[1]; ctx.fillRect(0, roofY, L.W, roofH);
-    ctx.fillStyle = st.trim || '#ffe14d'; ctx.fillRect(0, roofY + roofH - Math.max(2, roofH * 0.22), L.W, Math.max(2, roofH * 0.22));
+    ctx.fillStyle = st.trim || '#ffc93c'; ctx.fillRect(0, roofY + roofH - Math.max(2, roofH * 0.22), L.W, Math.max(2, roofH * 0.22));
     ctx.fillStyle = OUTLINE; ctx.fillRect(0, roofY - 3, L.W, 3); ctx.fillRect(0, roofY + roofH, L.W, 3);
     if (st.lights) {
       ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.5;
@@ -479,7 +479,7 @@ const Pens = {
       }
     }
     // --- the crowd, with the flag held up in the middle of them
-    const cols = [TEAMS.blue.jersey, TEAMS.red.jersey, '#ffffff', '#ffe14d', TEAMS.blue.jersey, '#ff8a1f', TEAMS.red.jersey, '#46d9ff'];
+    const cols = [TEAMS.blue.jersey, TEAMS.red.jersey, '#ffffff', '#ffc93c', TEAMS.blue.jersey, '#ff8a1f', TEAMS.red.jersey, '#35d8d0'];
     const skins = ['#f2c29b', '#d99a6c', '#a86b43', '#6b4228'];
     const jump = P.cheerT > 0 ? 1 : 0;
     const tf = this.tifo(L);
@@ -507,7 +507,7 @@ const Pens = {
     let bx = -((t * 20) % 900);
     for (let i = 0; bx < L.W + 400; i++) {
       const word = words[i % words.length], w = ctx.measureText(word).width;
-      ctx.fillStyle = i % 2 ? '#ffffff' : st.trim || '#ffe14d';
+      ctx.fillStyle = i % 2 ? '#ffffff' : st.trim || '#ffc93c';
       ctx.fillText(word, bx + w / 2, by + L.board / 2 + 1);
       bx += w + fs * 2.2;
       ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(bx - fs * 1.1, by + L.board / 2, fs * 0.18, 0, Math.PI * 2); ctx.fill();
@@ -555,6 +555,35 @@ const Pens = {
     const a = g[0][0], b = g[1][0];
     let y = L.gy, i = 0, h = L.gh * 0.12;
     while (y < L.H) { ctx.fillStyle = i % 2 ? a : b; ctx.fillRect(0, y, L.W, h + 1); y += h; h *= 1.18; i++; }
+    // the roller's pale line along the top of each band
+    y = L.gy; i = 0; h = L.gh * 0.12;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+    while (y < L.H) { ctx.fillRect(0, y, L.W, Math.max(1.5, h * 0.06)); y += h; h *= 1.18; i++; }
+    // clumps of grass, worked out once for this screen size and then just drawn
+    if (!L.tufts || L.tuftKey !== st.id) {
+      const rng = mulberry32(99);
+      const out = [];
+      for (let n = 0; n < 90; n++) {
+        const ty = L.gy + Math.pow(rng(), 1.7) * (L.H - L.gy);
+        // bigger the nearer the front, and never on the penalty spot itself
+        const near = (ty - L.gy) / Math.max(1, L.H - L.gy);
+        const tx = rng() * L.W;
+        if (Math.hypot(tx - L.spot.x, ty - L.spot.y) < L.s * 0.5) continue;
+        out.push({ x: tx, y: ty, sc: (0.5 + near * 1.5) * (0.7 + rng() * 0.6), lean: rng() * 1 - 0.5 });
+      }
+      L.tufts = out; L.tuftKey = st.id;
+    }
+    ctx.lineCap = 'round';
+    for (const tf of L.tufts) {
+      const w = 1.7 * tf.sc, hh = 4.4 * tf.sc;
+      ctx.strokeStyle = 'rgba(23, 19, 43, 0.10)'; ctx.lineWidth = w * 1.15;
+      ctx.beginPath(); ctx.moveTo(tf.x - 0.5, tf.y + 0.8); ctx.lineTo(tf.x + 0.8 + tf.lean * hh * 0.3, tf.y - hh * 0.7); ctx.stroke();
+      ctx.strokeStyle = st.tuft; ctx.lineWidth = w;
+      ctx.beginPath(); ctx.moveTo(tf.x - w * 1.5, tf.y); ctx.lineTo(tf.x - w * 0.5 + tf.lean * hh * 0.3, tf.y - hh * 0.75); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tf.x, tf.y + 0.4); ctx.lineTo(tf.x + tf.lean * hh * 0.3, tf.y - hh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tf.x + w * 1.5, tf.y); ctx.lineTo(tf.x + w * 0.6 + tf.lean * hh * 0.3, tf.y - hh * 0.7); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
     // the lines: goal line, the six-yard box, the spot
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, L.gy - 1, L.W, Math.max(3, L.s * 0.08));
@@ -569,7 +598,7 @@ const Pens = {
   drawNet(ctx, L, P, ball) {
     const x0 = L.gx - L.gw / 2, x1 = L.gx + L.gw / 2, top = L.gy - L.gh;
     const inset = L.gw * 0.05, back = { x0: x0 + inset, x1: x1 - inset, top: top + L.gh * 0.1 };
-    ctx.fillStyle = 'rgba(22, 26, 51, 0.28)';
+    ctx.fillStyle = 'rgba(23, 19, 43, 0.28)';
     ctx.fillRect(x0, top, L.gw, L.gh);
     // a goal pushes the net back around where it went in
     const hit = P.result && ball && ball.inNet ? { x: ball.hitX, y: ball.hitY, k: ball.bulge } : null;
@@ -727,7 +756,7 @@ const Pens = {
         const k = from + i, v = P.kicks[team][k], cx = px + dot * 7.6 + gap * i + dot;
         const nextUp = P.phase !== 'end' && P.team === team && k === P.kicks[team].length;
         ctx.beginPath(); ctx.arc(cx, cy, dot * (nextUp ? 1 + Math.sin(t * 8) * 0.12 : 1), 0, Math.PI * 2);
-        ctx.fillStyle = v === true ? '#3fcf4a' : v === false ? '#ff3a3f' : nextUp ? '#ffe14d' : '#e4e7f5';
+        ctx.fillStyle = v === true ? '#35c06a' : v === false ? '#f0343f' : nextUp ? '#ffc93c' : '#e4e7f5';
         ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = OUTLINE; ctx.stroke();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(2, dot * 0.28); ctx.lineCap = 'round';
         if (v === true) { ctx.beginPath(); ctx.moveTo(cx - dot * 0.45, cy); ctx.lineTo(cx - dot * 0.1, cy + dot * 0.38); ctx.lineTo(cx + dot * 0.48, cy - dot * 0.36); ctx.stroke(); }
@@ -742,18 +771,18 @@ const Pens = {
     if (P.phase === 'start' || P.phase === 'ready') {
       const u = clamp(P.t / 0.3, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.55); ctx.scale(z, z);
-      if (chal) Render.chunkyText(ctx, P.chal.id === 'targets' ? 'HIT A TARGET' : 'SAVE IT!', 0, 0, big, P.chal.id === 'targets' ? '#ffe14d' : '#46d9ff');
+      if (chal) Render.chunkyText(ctx, P.chal.id === 'targets' ? 'HIT A TARGET' : 'SAVE IT!', 0, 0, big, P.chal.id === 'targets' ? '#ffc93c' : '#35d8d0');
       else {
       const mine = P.watch ? `${P.watchName || 'THEY'} KICKS` : 'YOUR KICK';
       const shout = this.sudden(P) && P.team === P.first ? 'SUDDEN DEATH' : P.team === 'blue' ? mine : P.watch ? `${TEAMS.red.name} KICK` : 'SAVE IT!';
       if (P.phase === 'start') Render.chunkyText(ctx, P.first === 'blue' ? (P.watch ? mine + ' FIRST' : 'YOU KICK FIRST') : `${TEAMS.red.name} KICK FIRST`, 0, -big * 0.8, big * 0.55 * this.fit(mine + ' FIRST', 17), '#ffffff');
       const sh = big * this.fit(shout, 12), sw = sh * 0.56 * shout.length;
       boxes.shout = [W / 2 - sw / 2, L.gy - L.gh * 0.55 - sh * 0.6, W / 2 + sw / 2, L.gy - L.gh * 0.55 + sh * 0.6];
-      Render.chunkyText(ctx, shout, 0, 0, sh, P.team === 'blue' ? '#ffe14d' : '#46d9ff');
+      Render.chunkyText(ctx, shout, 0, 0, sh, P.team === 'blue' ? '#ffc93c' : '#35d8d0');
       }
       ctx.restore();
     } else if (P.phase !== 'after' && P.phase !== 'end' && this.sudden(P)) {
-      Render.chunkyText(ctx, 'SUDDEN DEATH', W / 2, cy, sub, '#ff8a8e');
+      Render.chunkyText(ctx, 'SUDDEN DEATH', W / 2, cy, sub, '#ff8f94');
     }
     // your aim
     if (P.phase === 'aim') {
@@ -762,7 +791,7 @@ const Pens = {
       const r = Math.max(10, L.s * 0.3) * (1 + Math.sin(t * 7) * 0.06);
       ctx.lineWidth = 7; ctx.strokeStyle = OUTLINE;
       ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.lineWidth = 4; ctx.strokeStyle = P.holding ? '#ffe14d' : '#ffffff';
+      ctx.lineWidth = 4; ctx.strokeStyle = P.holding ? '#ffc93c' : '#ffffff';
       ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(c.x - r * 1.5, c.y); ctx.lineTo(c.x - r * 0.5, c.y); ctx.moveTo(c.x + r * 0.5, c.y); ctx.lineTo(c.x + r * 1.5, c.y);
       ctx.moveTo(c.x, c.y - r * 1.5); ctx.lineTo(c.x, c.y - r * 0.5); ctx.moveTo(c.x, c.y + r * 0.5); ctx.lineTo(c.x, c.y + r * 1.5); ctx.stroke();
@@ -775,12 +804,12 @@ const Pens = {
       ctx.fillStyle = '#e4e7f5'; Sprites.rr(ctx, bx, by, bw, bh, bw / 2); ctx.fill();
       ctx.fillStyle = '#ffc9cb'; ctx.fillRect(bx + 2, by + 2, bw - 4, bh * 0.18);
       const fh = (bh - 4) * P.power;
-      ctx.fillStyle = P.power > 0.82 ? '#ff3a3f' : P.power > 0.55 ? '#ffe14d' : '#3fcf4a';
+      ctx.fillStyle = P.power > 0.82 ? '#f0343f' : P.power > 0.55 ? '#ffc93c' : '#35c06a';
       if (fh > 0) { Sprites.rr(ctx, bx + 2, by + bh - 2 - fh, bw - 4, fh, Math.min(bw / 2 - 2, fh / 2)); ctx.fill(); }
       ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; Sprites.rr(ctx, bx, by, bw, bh, bw / 2); ctx.stroke();
       boxes.power = [bx, by, bx + bw, by + bh + sub * 1.2];
       Render.chunkyText(ctx, 'POWER', bx + bw / 2, by + bh + sub * 0.8, sub * 0.6, '#ffffff', 3);
-      if (P.clock < 3.5) Render.chunkyText(ctx, String(Math.ceil(P.clock)), c.x, c.y - r * 2.4, sub * 1.1, '#ff8a8e');
+      if (P.clock < 3.5) Render.chunkyText(ctx, String(Math.ceil(P.clock)), c.x, c.y - r * 2.4, sub * 1.1, '#ff8f94');
     }
     // you in goal: where the stick points is where you'll go
     if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive && !P.watch) {
@@ -789,7 +818,7 @@ const Pens = {
         const dx = mv.x / l, dy = mv.y / l, len = L.s * 1.6;
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 9; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(hip.x + dx * L.s * 0.5, hip.y + dy * L.s * 0.5); ctx.lineTo(hip.x + dx * len, hip.y + dy * len); ctx.stroke();
-        ctx.strokeStyle = '#46d9ff'; ctx.lineWidth = 5;
+        ctx.strokeStyle = '#35d8d0'; ctx.lineWidth = 5;
         ctx.beginPath(); ctx.moveTo(hip.x + dx * L.s * 0.5, hip.y + dy * L.s * 0.5); ctx.lineTo(hip.x + dx * len, hip.y + dy * len); ctx.stroke();
         ctx.lineCap = 'butt';
       }
@@ -805,7 +834,7 @@ const Pens = {
       const u = clamp(P.t / 0.35, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.5); ctx.scale(z, z);
       const won = P.watch ? `${P.watchName || 'THEY'} WINS IT!` : 'YOU WIN THE SHOOTOUT!';
-      Render.chunkyText(ctx, P.winner === 'blue' ? won : `${TEAMS.red.name} WIN IT`, 0, 0, big * 0.8, P.winner === 'blue' ? '#ffe14d' : '#ffffff');
+      Render.chunkyText(ctx, P.winner === 'blue' ? won : `${TEAMS.red.name} WIN IT`, 0, 0, big * 0.8, P.winner === 'blue' ? '#ffc93c' : '#ffffff');
       ctx.restore();
     }
     // what to press
@@ -819,7 +848,7 @@ const Pens = {
       ctx.font = `900 ${hs}px "Lilita One", system-ui, sans-serif`;
       const w = ctx.measureText(hint).width + hs * 1.6, hy = kb ? H - hs * 2.2 : L.gy + (L.spot.y - L.gy) * 0.18;
       boxes.hint = [W / 2 - w / 2, hy - hs, W / 2 + w / 2, hy + hs];
-      ctx.fillStyle = 'rgba(22, 26, 51, 0.78)'; Sprites.rr(ctx, W / 2 - w / 2, hy - hs, w, hs * 2, hs * 0.6); ctx.fill();
+      ctx.fillStyle = 'rgba(23, 19, 43, 0.78)'; Sprites.rr(ctx, W / 2 - w / 2, hy - hs, w, hs * 2, hs * 0.6); ctx.fill();
       ctx.fillStyle = '#ffffff'; ctx.fillText(hint, W / 2, hy + 1);
     }
   },

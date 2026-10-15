@@ -151,7 +151,7 @@ const Tutorial = {
 
   // the grass, striped like the pitch
   turf(g, W, H) {
-    g.fillStyle = '#4fbd3b'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#359d53'; g.fillRect(0, 0, W, H);
     g.fillStyle = 'rgba(255,255,255,0.05)';
     const n = 7, sw = W / n;
     for (let i = 0; i < n; i += 2) g.fillRect(i * sw, 0, sw, H);
@@ -238,7 +238,7 @@ const Tutorial = {
     this.bal(g, x + 12 * k * Math.sign(dx || 1), y, 0, k, t);
     this.man(g, x, y, k, { vx: dx, vy: dy, faceX: Math.sign(dx) || 1, fx: Math.sign(dx) || 1, runPhase: t * 14 }, t);
     this.arrow(g, x + (dx / L) * W * 0.05, y + (dy / L) * W * 0.05 - H * 0.34,
-      x + (dx / L) * W * 0.15, y + (dy / L) * W * 0.15 - H * 0.34, '#ffe14d', Math.max(3, W * 0.008));
+      x + (dx / L) * W * 0.15, y + (dy / L) * W * 0.15 - H * 0.34, '#ffc93c', Math.max(3, W * 0.008));
   },
 
   sc_sprint(g, u, W, H, k, gy, t) {
@@ -253,7 +253,7 @@ const Tutorial = {
     this.bal(g, x + 12 * k, gy, 0, k, t);
     this.man(g, x, gy, k, { vx: sprinting ? 300 : 60, faceX: 1, runPhase: t * (sprinting ? 22 : 8), sprint: sprinting }, t);
     const bw = W * 0.1, bh = Math.max(6, H * 0.035);
-    this.pill(g, x - bw / 2, gy - H * 0.68, bw, bh, stam > 0.25 ? '#3fcf4a' : '#ff3a3f', stam);
+    this.pill(g, x - bw / 2, gy - H * 0.68, bw, bh, stam > 0.25 ? '#35c06a' : '#f0343f', stam);
     if (!sprinting) this.label(g, 'EMPTY', x, gy - H * 0.8, Math.max(11, H * 0.085), '#ff8a8a');
   },
 
@@ -266,7 +266,7 @@ const Tutorial = {
     const z = Math.sin(fly * Math.PI) * H * 0.14;
     const kicking = fly < 0.12;
     this.arrow(g, from[0] + (to[0] > from[0] ? 1 : -1) * W * 0.06, from[1] - H * 0.16,
-      to[0] - (to[0] > from[0] ? 1 : -1) * W * 0.06, to[1] - H * 0.16, 'rgba(255,225,77,0.85)', Math.max(3, W * 0.007));
+      to[0] - (to[0] > from[0] ? 1 : -1) * W * 0.06, to[1] - H * 0.16, 'rgba(255,201,60,0.85)', Math.max(3, W * 0.007));
     this.bal(g, x, y, z, k, t);
     this.man(g, ax, ay, k, { faceX: 1, fx: 1, kickT: !back && kicking ? 0.2 : 0 }, t);
     this.man(g, bx, by, k, { faceX: -1, fx: -1, number: 7, kickT: back && kicking ? 0.2 : 0 }, t);
@@ -281,15 +281,15 @@ const Tutorial = {
     const bx = shot ? lerp(px + 12 * k, goalX + gw * 0.55, f) : px + 12 * k;
     const by = shot ? lerp(gy, gy - gh * 0.6, f) : gy;
     if (!shot) {
-      g.strokeStyle = charge > 0.85 ? '#ff3a3f' : '#46d9ff'; g.lineWidth = 4;
+      g.strokeStyle = charge > 0.85 ? '#f0343f' : '#35d8d0'; g.lineWidth = 4;
       g.beginPath(); g.ellipse(px, gy, (10 + charge * 16) * k, (4 + charge * 6) * k, 0, 0, Math.PI * 2); g.stroke();
-      this.pill(g, px - W * 0.06, gy - H * 0.58, W * 0.12, Math.max(6, H * 0.035), charge > 0.85 ? '#ff3a3f' : '#ffe14d', charge);
+      this.pill(g, px - W * 0.06, gy - H * 0.58, W * 0.12, Math.max(6, H * 0.035), charge > 0.85 ? '#f0343f' : '#ffc93c', charge);
     }
     const dive = shot ? clamp((f - 0.15) / 0.5, 0, 1) : 0;
     this.man(g, goalX + gw * 0.12, gy - gh * 0.06 - dive * gh * 0.2, k * 0.85, { team: 'red', keeper: true, faceX: -1, fx: -1, number: 1, diveT: dive > 0 ? 0.3 : 0, diveDir: -1 }, t);
     this.bal(g, bx, by, shot ? Math.sin(f * 2.4) * H * 0.1 : 0, k, t, { shot: shot ? { level: 2, power: charge > 0.85, team: 'blue' } : null });
     this.man(g, px, gy, k, { faceX: 1, fx: 1, kickT: shot && f < 0.22 ? 0.2 : 0 }, t);
-    if (shot && f > 0.8) this.label(g, 'GOAL!', W * 0.45, H * 0.2, Math.max(16, H * 0.16), '#ffe14d');
+    if (shot && f > 0.8) this.label(g, 'GOAL!', W * 0.45, H * 0.2, Math.max(16, H * 0.16), '#ffc93c');
   },
 
   sc_curl(g, u, W, H, k, gy, t) {
@@ -298,7 +298,7 @@ const Tutorial = {
     const px = W * 0.2, shot = u > 0.25, f = clamp((u - 0.25) / 0.55, 0, 1);
     const p0 = [px + 12 * k, gy], p1 = [W * 0.5, gy - gh * 1.15], p2 = [goalX + gw * 0.6, gy - gh * 0.55];
     const bez = (a, b, c2, sv) => (1 - sv) * (1 - sv) * a + 2 * (1 - sv) * sv * b + sv * sv * c2;
-    g.setLineDash([8, 7]); g.strokeStyle = 'rgba(255,225,77,0.7)'; g.lineWidth = 3;
+    g.setLineDash([8, 7]); g.strokeStyle = 'rgba(255,201,60,0.7)'; g.lineWidth = 3;
     g.beginPath(); g.moveTo(p0[0], p0[1]);
     for (let sv = 0.05; sv <= 1.0001; sv += 0.05) g.lineTo(bez(p0[0], p1[0], p2[0], sv), bez(p0[1], p1[1], p2[1], sv));
     g.stroke(); g.setLineDash([]);
@@ -307,7 +307,7 @@ const Tutorial = {
     if (shot) this.bal(g, bez(p0[0], p1[0], p2[0], f), bez(p0[1], p1[1], p2[1], f), H * 0.08, k, t, { shot: { level: 2, power: false, team: 'blue' } });
     else this.bal(g, p0[0], p0[1], 0, k, t);
     this.man(g, px, gy, k, { faceX: 1, fx: 1, kickT: shot && f < 0.2 ? 0.2 : 0 }, t);
-    this.arrow(g, px - W * 0.03, gy - H * 0.5, px + W * 0.05, gy - H * 0.62, '#46d9ff', Math.max(3, W * 0.007));
+    this.arrow(g, px - W * 0.03, gy - H * 0.5, px + W * 0.05, gy - H * 0.62, '#35d8d0', Math.max(3, W * 0.007));
   },
 
   sc_skill(g, u, W, H, k, gy, t) {
@@ -320,7 +320,7 @@ const Tutorial = {
     this.man(g, defX, gy, k, { team: 'red', faceX: -1, fx: -1, number: 5, stunT: past ? 0.3 : 0, runPhase: t * 8, vx: past ? 0 : -40 }, t);
     this.bal(g, x + 12 * k, gy - side * 0.4, 0, k, t);
     this.man(g, x, gy - side, k, { faceX: 1, fx: 1, runPhase: t * 16, vx: 240, hopT: hop, skill: trick ? 'spin' : null }, t);
-    if (trick || past) this.label(g, 'NUTMEG!', defX, gy - H * 0.62, Math.max(12, H * 0.1), '#ffe14d');
+    if (trick || past) this.label(g, 'NUTMEG!', defX, gy - H * 0.62, Math.max(12, H * 0.1), '#ffc93c');
   },
 
   sc_tackle(g, u, W, H, k, gy, t) {
@@ -338,7 +338,7 @@ const Tutorial = {
     this.man(g, carrier, gy, k, { team: 'red', faceX: -1, fx: -1, number: 9, runPhase: t * 15, vx: -260, fallT: won ? 0.4 : 0 }, t);
     this.man(g, mx, gy, k, { faceX: 1, fx: 1, runPhase: t * 15, vx: 300, slideT: slide ? 0.3 : 0 }, t);
     if (slide) this.label(g, 'SLIDE!', mx, gy - H * 0.5, Math.max(11, H * 0.085), '#ffffff');
-    if (won) this.label(g, 'BALL WON!', W * 0.5, H * 0.14, Math.max(13, H * 0.11), '#46d9ff');
+    if (won) this.label(g, 'BALL WON!', W * 0.5, H * 0.14, Math.max(13, H * 0.11), '#35d8d0');
   },
 
   sc_ult(g, u, W, H, k, gy, t) {
@@ -350,7 +350,7 @@ const Tutorial = {
     const bh = Math.max(7, H * 0.045);
     this.pill(g, W * 0.05, H * 0.1, W * 0.24, bh, full && Math.sin(t * 18) > 0 ? '#ffffff' : rainbow(t * 0.7), fill);
     g.textAlign = 'left'; g.textBaseline = 'middle';
-    Render.chunkyText(g, full ? 'ULT READY' : 'ULT', W * 0.32, H * 0.1 + bh / 2, Math.max(10, H * 0.08), full ? '#ffe14d' : '#ffffff', 0);
+    Render.chunkyText(g, full ? 'ULT READY' : 'ULT', W * 0.32, H * 0.1 + bh / 2, Math.max(10, H * 0.08), full ? '#ffc93c' : '#ffffff', 0);
     g.textAlign = 'center';
     if (fired) {
       const bx = lerp(px + 12 * k, goalX + gw * 0.6, f), by = lerp(gy - H * 0.1, gy - gh * 0.62, f);
@@ -358,11 +358,11 @@ const Tutorial = {
       g.beginPath(); g.moveTo(px + 12 * k, gy - H * 0.1); g.lineTo(bx, by); g.stroke();
       this.bal(g, bx, by, H * 0.08, k, t, { shot: { level: 2, power: true, team: 'blue' }, trail: 'rainbow' });
       this.man(g, px, gy, k, { faceX: 1, fx: 1, ult: 'bicycle', ultT: clamp(f * 1.2, 0, 1) * 0.8 }, t);
-      if (f > 0.75) this.label(g, 'GOAL!', W * 0.5, H * 0.26, Math.max(16, H * 0.15), '#ffe14d');
+      if (f > 0.75) this.label(g, 'GOAL!', W * 0.5, H * 0.26, Math.max(16, H * 0.15), '#ffc93c');
     } else {
       this.bal(g, px + 12 * k, gy, 0, k, t);
       this.man(g, px, gy, k, { faceX: 1, fx: 1, runPhase: t * 10, vx: 80 }, t);
-      if (full) this.label(g, 'PRESS IT', px, gy - H * 0.5, Math.max(12, H * 0.095), '#ffe14d');
+      if (full) this.label(g, 'PRESS IT', px, gy - H * 0.5, Math.max(12, H * 0.095), '#ffc93c');
     }
   },
 
@@ -377,14 +377,14 @@ const Tutorial = {
     const f = clamp((u - 0.5) / 0.4, 0, 1);
     this.man(g, cx - (aiming ? 0 : f * gw * 0.34), top, k * 0.85, { team: 'red', keeper: true, faceX: 1, fx: 0, fy: 1, number: 1, diveT: u > 0.55 ? 0.3 : 0, diveDir: -1 }, t);
     const R = Math.max(9, H * 0.06);
-    g.strokeStyle = '#ffe14d'; g.lineWidth = 4;
+    g.strokeStyle = '#ffc93c'; g.lineWidth = 4;
     g.beginPath(); g.arc(aimX, aimY, R, 0, Math.PI * 2); g.stroke();
     g.beginPath(); g.moveTo(aimX - R * 1.6, aimY); g.lineTo(aimX + R * 1.6, aimY); g.moveTo(aimX, aimY - R * 1.6); g.lineTo(aimX, aimY + R * 1.6); g.stroke();
-    this.pill(g, W * 0.32, H * 0.9, W * 0.36, Math.max(6, H * 0.035), power > 0.8 ? '#ff3a3f' : '#3fcf4a', aiming ? power : 1);
+    this.pill(g, W * 0.32, H * 0.9, W * 0.36, Math.max(6, H * 0.035), power > 0.8 ? '#f0343f' : '#35c06a', aiming ? power : 1);
     if (!aiming) {
       const bx = lerp(cx, target[0], f), by = lerp(H * 0.86, target[1], f);
       this.bal(g, bx, by, 0, k * (1 - f * 0.45), t, { shot: { level: 2, power: true, team: 'blue' } });
-      if (f > 0.85) this.label(g, 'IN THE CORNER', cx, H * 0.14, Math.max(12, H * 0.1), '#ffe14d');
+      if (f > 0.85) this.label(g, 'IN THE CORNER', cx, H * 0.14, Math.max(12, H * 0.1), '#ffc93c');
     } else {
       this.bal(g, cx, H * 0.86, 0, k, t);
     }
@@ -407,7 +407,7 @@ const Tutorial = {
     } else if (saved) {
       const sv = clamp((u - 0.7) / 0.3, 0, 1);
       this.bal(g, lerp(target[0], target[0] - side * gw * 0.55, sv), lerp(target[1], top - gh * 0.08, sv), 0, k * 0.8, t);
-      this.label(g, 'SAVED!', cx, H * 0.14, Math.max(14, H * 0.12), '#46d9ff');
+      this.label(g, 'SAVED!', cx, H * 0.14, Math.max(14, H * 0.12), '#35d8d0');
     } else {
       this.bal(g, cx + W * 0.12, H * 0.88, 0, k, t);
     }
