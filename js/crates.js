@@ -24,7 +24,7 @@ const CRATES = [
 ];
 
 // Everything a crate can hold, and where to find its definition.
-const CRATE_KINDS = ['character', 'ball', 'trail', 'celebration', 'accessory'];
+const CRATE_KINDS = ['character', 'ball', 'trail', 'celebration', 'accessory', 'skill'];
 
 const Crates = {
   get(id) { return CRATES.find((c) => c.id === id) || null; },
@@ -34,6 +34,7 @@ const Crates = {
     if (kind === 'ball') return BALLS;
     if (kind === 'trail') return TRAILS;
     if (kind === 'celebration') return CELEBRATIONS;
+    if (kind === 'skill') return SKILLS;
     return ACCESSORIES;
   },
   def(kind, id) { return this.list(kind).find((x) => x.id === id) || null; },

@@ -1378,6 +1378,13 @@ body.kb .chat-menu kbd { display: inline-block; }
 .cust-side .trail-grid { flex: 1; min-height: 0; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; align-content: start; }
 .cust-side .char-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); }
 .cust-side .celeb-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+/* a signature move needs room for what it is, not just what it is called */
+.cust-side .skill-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.skill-opt .skill-blurb {
+  display: block; font-family: system-ui, sans-serif; font-weight: 600; font-size: 11px;
+  line-height: 1.25; color: #8a7a62; margin: 2px 4px 3px; text-align: center;
+}
+.skill-opt canvas { border-radius: 8px; border: 2px solid var(--ink); }
 .cust-side .char-card-sm { padding: 6px; gap: 2px; }
 .cust-side .char-card-sm canvas { width: 54px; height: 54px; }
 .cust-side .char-card-sm strong, .cust-side .trail-opt strong { font-size: 15px; }

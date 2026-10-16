@@ -31,6 +31,15 @@ const PRICES = {
     seraph: 600000, onyx: 650000, zenith: 700000, eclipse: 800000, legendx: 900000,
     lion: 85000, wizard: 100000, astronaut: 115000, iceking: 130000, inferno: 150000, galaxy: 175000, titan: 200000, goat: 250000, jacob: 0 },
   accessory: Object.fromEntries(ACCESSORIES.map((a) => [a.id, a.price])),
+  // Signature moves. Dearer than a ball or a trail, because a move changes what the skill button
+  // does rather than how it looks. Classic stays free and is what you start with.
+  skill: {
+    classic: 0,
+    rainbow: 9000, stepover: 11000, dragback: 13000, heelflick: 16000,
+    elastico: 34000, sombrero: 40000, spincycle: 46000, ghoststep: 58000, blindturn: 66000,
+    tornado: 115000, blink: 140000, afterburn: 160000, matador: 185000, shadowstep: 210000,
+    thunderstep: 300000, zerog: 340000, timeskip: 380000, phoenix: 430000, starfall: 480000, goatwalk: 650000,
+  },
   trail: { electric: 0, fire: 250, blast: 300, plasma: 350, frost: 600, toxic: 900, shadow: 1400, rainbow: 2200, golden: 3500,
     sunrise: 8000, mintfizz: 9000, bubblegum: 10000, inkwell: 11000, cherry: 12000,
     lagoon: 20000, sandstorm: 24000, bloodmoon: 28000, circuit: 32000, starlight: 36000, aurora: 42000, honey: 46000,

@@ -44,12 +44,12 @@ const Match = {
           if (s && s.human) {
             const ch = CHARACTERS.find((c) => c.id === s.character) || CHARACTERS[0];
             const p = new Player({ team, human: true, role, number: n, attr: ratingAttr(ch.r), look: lookOf(ch, s.accessory) });
-            Object.assign(p, { seat: s.seat, name: s.name, trailId: s.trail, celebId: s.celebration, rarity: ch.rarity, sig: sigKind(ch), input: s.input });
+            Object.assign(p, { seat: s.seat, name: s.name, trailId: s.trail, celebId: s.celebration, skillId: s.skill || 'classic', rarity: ch.rarity, sig: sigKind(ch), input: s.input });
             m.players.push(p); m.humans.push(p);
           } else {
             const ch = s && s.character && CHARACTERS.find((c) => c.id === s.character);
             const p = new Player({ team, role, number: n, look: ch ? lookOf(ch, s.accessory) : aiLook(), attr: ch ? ratingAttr(ch.r) : null });
-            p.speedMul = diff.redSpeed; p.seat = s ? s.seat : null; p.name = s ? s.name : null; p.celebId = s ? s.celebration : null; p.sig = sigKind(ch || CHARACTERS[0]);
+            p.speedMul = diff.redSpeed; p.seat = s ? s.seat : null; p.name = s ? s.name : null; p.celebId = s ? s.celebration : null; p.skillId = (s && s.skill) || 'classic'; p.sig = sigKind(ch || CHARACTERS[0]);
             m.players.push(p);
           }
         });
@@ -59,17 +59,27 @@ const Match = {
       const ch = Save.character();
       const human = new Player({ team: 'blue', human: true, role: 'att', number: 10, attr: m.autopilot ? null : ratingAttr(ch.r), look: lookOf(ch, m.autopilot ? null : Save.accessory()) });
       human.sig = sigKind(ch);
+      // the signature move you have equipped (autopilot plays plain, so a fuzzed run is comparable)
+      human.skillId = m.autopilot ? 'classic' : Save.skill();
       m.human = human;
       m.players.push(human); m.humans.push(human);
-      // every bot is a real character (look and ratings), rarer ones less often
+      // every bot is a real character (look and ratings), rarer ones less often. A few carry a
+      // signature move, the way a few real opponents do.
+      const botSkill = () => {
+        if (rng() > 0.22) return 'classic';
+        const pool = SKILLS.filter((k) => k.rarity === 'rare' || k.rarity === 'epic');
+        return pool.length ? pool[(rng() * pool.length) | 0].id : 'classic';
+      };
       const botChar = () => { const bc = pickBotCharacter(rng); return { look: lookOf(bc, null), attr: ratingAttr(bc.r), sig: sigKind(bc) }; };
       roster.blue.forEach(([role, n]) => {
         const p = new Player({ team: 'blue', role, number: n, ...botChar() });
+        p.skillId = botSkill();
         p.speedMul = m.mateDiff.redSpeed;
         m.players.push(p);
       });
       roster.red.forEach(([role, n]) => {
         const p = new Player({ team: 'red', role, number: n, ...botChar() });
+        p.skillId = botSkill();
         p.speedMul = diff.redSpeed;
         m.players.push(p);
       });

@@ -95,6 +95,113 @@ const HAIR_COLORS = ['#2b1d14', '#4a2e1c', '#6b3f22', '#1b1b2a', '#f2c230', '#b8
 // Characters have real ratings (45–95). 70 is what the bots play at.
 // spd: run speed · sht: shot power + beating keepers · pas: pass speed · ctl: close dribbling,
 // shrugging off tackles, shorter skill cooldown · def: tackle reach, success and cooldown.
+// ===== SIGNATURE SKILLS ==============================================
+// What the skill button does, when you are carrying a move of your own.
+//
+//   ball   how the ball leaves you. speed/lift are how hard and how high; keep means it stays
+//          at your feet; back sends it behind you; drop leaves it where it is.
+//   self   what happens to you: burst (free running speed), dodge (tackles miss), hop (off the
+//          ground), kick (the leg animation), turn (which way you end up facing).
+//   hit    what it does to defenders within radius: stun them, knock them back, put them down.
+//   fx     the picture: a ring, sparks, a burst, stars, or the ground shaking.
+//
+// Nothing here can score, pass or tackle for you — a signature move buys you a moment, and what
+// you do with the moment is still yours.
+const SKILLS = [
+  { id: 'classic', name: 'Classic', rarity: 'starter', read: true,
+    blurb: 'Reads the stick: nutmeg, flick, burst, Cruyff turn or hop, whichever the moment wants.' },
+
+  // ---- rare: a trick, cleanly done
+  { id: 'rainbow', name: 'Rainbow Flick', rarity: 'rare', say: 'RAINBOW!', color: '#ffc21a',
+    ball: { speed: 300, lift: 620, over: true }, self: { hop: 0.34, dodge: 0.4, burst: 0.5, kick: 0.2 },
+    fx: { kind: 'ring', color: '#ffc21a', r0: 8, r1: 34, life: 0.3 }, meter: 6,
+    blurb: 'Scoop it up over your own head and run onto it.' },
+  { id: 'stepover', name: 'Stepover', rarity: 'rare', say: 'STEPOVER!', color: '#ffffff',
+    ball: { keep: true }, self: { dodge: 0.52, turn: 'aim' }, hit: { radius: 46, stun: 0.3 },
+    fx: { kind: 'ring', color: '#ffffff', r0: 6, r1: 30, life: 0.26 }, meter: 4,
+    blurb: 'Feet over the ball until whoever is watching them stops believing you.' },
+  { id: 'dragback', name: 'Drag Back', rarity: 'rare', say: 'DRAG BACK!', color: '#86e8e2',
+    ball: { keep: true, back: true }, self: { dodge: 0.45, turn: 'reverse', kick: 0.2 },
+    fx: { kind: 'ring', color: '#86e8e2', r0: 4, r1: 22, life: 0.24 }, meter: 4,
+    blurb: 'Pull it back under your foot and leave them going the other way.' },
+  { id: 'heelflick', name: 'Heel Flick', rarity: 'rare', say: 'HEEL!', color: '#ff8af0',
+    ball: { speed: 420, lift: 180 }, self: { burst: 0.6, dodge: 0.3, kick: 0.18 }, hit: { radius: 40, stun: 0.25 },
+    fx: { kind: 'sparks', color: '#ff8af0', n: 10, speed: 120 }, meter: 5,
+    blurb: 'Flick it on with the back of your boot without breaking stride.' },
+
+  // ---- epic: the ones that make people stand up
+  { id: 'elastico', name: 'Elastico', rarity: 'epic', say: 'ELASTICO!', color: '#b04dff',
+    ball: { keep: true }, self: { dodge: 0.62, burst: 0.45, turn: 'aim' }, hit: { radius: 54, stun: 0.34 },
+    fx: { kind: 'ring', color: '#b04dff', r0: 6, r1: 38, life: 0.3, width: 4 }, meter: 7,
+    blurb: 'Snap it one way, take it the other, all in the same touch.' },
+  { id: 'sombrero', name: 'Sombrero', rarity: 'epic', say: 'SOMBRERO!', color: '#ffe14d',
+    ball: { speed: 360, lift: 760, over: true }, self: { burst: 0.75, dodge: 0.45, hop: 0.3 }, hit: { radius: 52, stun: 0.3 },
+    fx: { kind: 'stars' }, meter: 8,
+    blurb: 'Straight over their head, and you are past before it lands.' },
+  { id: 'spincycle', name: 'Spin Cycle', rarity: 'epic', say: 'SPIN CYCLE!', color: '#46d9ff',
+    ball: { keep: true }, self: { dodge: 0.7, spin: 2, turn: 'aim' },
+    fx: { kind: 'ring', color: '#46d9ff', r0: 10, r1: 44, life: 0.36, width: 4 }, meter: 7,
+    blurb: 'Two turns, not one. Nobody follows the second.' },
+  { id: 'ghoststep', name: 'Ghost Step', rarity: 'epic', say: 'GHOST!', color: '#c2f5f1',
+    ball: { keep: true }, self: { dodge: 0.85, burst: 0.6, ghost: true },
+    fx: { kind: 'burst', color: '#c2f5f1', size: 26 }, meter: 8,
+    blurb: 'For a moment there is nothing there to tackle.' },
+  { id: 'blindturn', name: 'Blind Turn', rarity: 'epic', say: 'BLIND TURN!', color: '#ffffff',
+    ball: { keep: true, back: true }, self: { dodge: 0.55, burst: 0.7, turn: 'reverse' }, hit: { radius: 48, stun: 0.3 },
+    fx: { kind: 'ring', color: '#ffffff', r0: 8, r1: 36, life: 0.3 }, meter: 7,
+    blurb: 'Turn without looking and go back the way you came, faster.' },
+
+  // ---- legendary: now it is a weapon
+  { id: 'tornado', name: 'Tornado', rarity: 'legendary', say: 'TORNADO!', color: '#7fdcff',
+    ball: { keep: true }, self: { dodge: 0.7, spin: 2, turn: 'aim' }, hit: { radius: 76, stun: 0.5, push: 170 },
+    fx: { kind: 'ring', color: '#7fdcff', r0: 12, r1: 76, life: 0.42, width: 5, shake: 3 }, meter: 10,
+    blurb: 'Spin hard enough and everyone near you goes with it.' },
+  { id: 'blink', name: 'Blink', rarity: 'legendary', say: 'BLINK!', color: '#b04dff',
+    ball: { keep: true }, self: { dodge: 0.5, burst: 0.8, dash: 86 },
+    fx: { kind: 'burst', color: '#b04dff', size: 30, shake: 2 }, meter: 10,
+    blurb: 'Gone from here, already there, ball and all.' },
+  { id: 'afterburn', name: 'Afterburn', rarity: 'legendary', say: 'AFTERBURN!', color: '#ff5a1f',
+    ball: { keep: true }, self: { burst: 1.25, dodge: 0.45 },
+    fx: { kind: 'sparks', color: '#ff5a1f', n: 22, speed: 200, life: 0.4 }, meter: 9,
+    blurb: 'Light it up and simply leave.' },
+  { id: 'matador', name: 'Matador', rarity: 'legendary', say: 'OLE!', color: '#f0343f',
+    ball: { keep: true }, self: { dodge: 0.95, turn: 'aim' }, hit: { radius: 66, stun: 0.4, fall: true },
+    fx: { kind: 'ring', color: '#f0343f', r0: 10, r1: 58, life: 0.36, width: 4 }, meter: 10,
+    blurb: 'Step aside and let them go past you into the floor.' },
+  { id: 'shadowstep', name: 'Shadow Step', rarity: 'legendary', say: 'SHADOW!', color: '#8b4dff',
+    ball: { keep: true }, self: { dodge: 0.8, burst: 0.8, ghost: true, decoy: true },
+    fx: { kind: 'burst', color: '#8b4dff', size: 28 }, meter: 10,
+    blurb: 'Leave something behind for them to chase.' },
+
+  // ---- mythic: the ones people talk about afterwards
+  { id: 'thunderstep', name: 'Thunder Step', rarity: 'mythic', say: 'THUNDER!', color: '#ffe14d',
+    ball: { keep: true }, self: { dodge: 0.7, burst: 0.7 }, hit: { radius: 96, stun: 0.6, push: 230, fall: true },
+    fx: { kind: 'ring', color: '#ffe14d', r0: 14, r1: 96, life: 0.44, width: 6, shake: 5, flash: 0.18 }, meter: 12,
+    blurb: 'Put your foot down and the ground answers.' },
+  { id: 'zerog', name: 'Zero Gravity', rarity: 'mythic', say: 'ZERO G!', color: '#86e8e2',
+    ball: { keep: true, float: 220 }, self: { dodge: 0.8, hop: 0.6, burst: 0.7 }, hit: { radius: 70, stun: 0.45 },
+    fx: { kind: 'ring', color: '#86e8e2', r0: 10, r1: 70, life: 0.5, width: 4 }, meter: 12,
+    blurb: 'You and the ball stop obeying the usual rules for a second.' },
+  { id: 'timeskip', name: 'Time Skip', rarity: 'mythic', say: 'TIME SKIP!', color: '#c2f5f1',
+    ball: { keep: true }, self: { dodge: 0.9, burst: 0.9, dash: 54 }, hit: { radius: 110, stun: 0.7 },
+    fx: { kind: 'ring', color: '#c2f5f1', r0: 16, r1: 110, life: 0.5, width: 5, flash: 0.14 }, meter: 13,
+    blurb: 'Everyone else takes a moment to catch up with where you went.' },
+  { id: 'phoenix', name: 'Phoenix Dash', rarity: 'mythic', say: 'PHOENIX!', color: '#ff8a1f',
+    ball: { keep: true }, self: { dodge: 0.75, burst: 1.1, dash: 60 }, hit: { radius: 86, stun: 0.5, push: 200 },
+    fx: { kind: 'sparks', color: '#ff8a1f', n: 28, speed: 240, life: 0.45, shake: 4, flash: 0.14 }, meter: 13,
+    blurb: 'Go up in flames and come out of them already running.' },
+  { id: 'starfall', name: 'Starfall', rarity: 'mythic', say: 'STARFALL!', color: '#ffffff',
+    ball: { speed: 520, lift: 900, over: true }, self: { burst: 1.0, dodge: 0.6, hop: 0.4 }, hit: { radius: 80, stun: 0.45 },
+    fx: { kind: 'stars', shake: 3 }, meter: 13,
+    blurb: 'Send it up into the lights and be waiting where it comes down.' },
+  { id: 'goatwalk', name: 'GOAT Walk', rarity: 'mythic', say: 'GOAT!', color: '#ffc21a',
+    ball: { keep: true, glue: true }, self: { dodge: 1.15, burst: 1.0, turn: 'aim' }, hit: { radius: 92, stun: 0.55, push: 150 },
+    fx: { kind: 'ring', color: '#ffc21a', r0: 12, r1: 92, life: 0.5, width: 6, shake: 4, flash: 0.2 }, meter: 14,
+    blurb: 'Walk. Nobody takes it off you. That is the whole move.' },
+];
+const SKILL_IDS = new Set(SKILLS.map((s) => s.id));
+const skillDef = (id) => SKILLS.find((s) => s.id === id) || SKILLS[0];
+
 const RARITIES = {
   starter:   { name: 'STARTER',   color: '#8a90b8' },
   common:    { name: 'COMMON',    color: '#3fcf4a' },

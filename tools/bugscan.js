@@ -5,6 +5,49 @@
 //   BS.overlap()            // nothing on screen sitting on top of anything else, at this window size
 // Findings come back grouped by kind with a few examples each.
 window.BS = {
+  // ---------- signature moves ----------
+  // Every move, fired from every edge of the pitch and from a corner. Three things must hold:
+  // it must not throw, it must leave you on the pitch, and if it is a move that keeps the ball
+  // the ball has to stay on the pitch too.
+  skills(opts = {}) {
+    const hits = [];
+    const prevHeadless = Game.headless, prevSkill = Save.data.skill, prevOwned = Save.data.owned.skill;
+    Game.headless = true;
+    Save.data.owned.skill = SKILLS.map((k) => k.id);
+    let fired = 0;
+    const spots = [
+      ['top', CFG.FIELD_W / 2, 6, 0, -1], ['bottom', CFG.FIELD_W / 2, CFG.FIELD_H - 6, 0, 1],
+      ['left', 6, CFG.FIELD_H / 2, -1, 0], ['right', CFG.FIELD_W - 6, CFG.FIELD_H / 2, 1, 0],
+      ['corner', 8, 8, -0.7, -0.7], ['middle', CFG.FIELD_W / 2, CFG.FIELD_H / 2, 1, 0],
+    ];
+    for (const k of SKILLS) {
+      try {
+        Save.data.skill = k.id;
+        Game.startMatch({ mode: 'quick', format: '1v1' });
+        const m = Game.match;
+        for (let i = 0; i < 160; i++) Match.step(m, CFG.STEP);
+        const p = m.human;
+        for (const [where, x, y, dx, dy] of spots) {
+          p.x = x; p.y = y; p.fx = dx; p.fy = dy; p.vx = 0; p.vy = 0;
+          p.skillCd = 0; p.skill = null; p.hopT = 0; p.fallT = 0; p.stunT = 0;
+          m.ball.owner = p; m.ball.x = x; m.ball.y = y; m.ball.z = 0;
+          performSkill(m, p, dx, dy);
+          fired++;
+          for (let i = 0; i < 30; i++) Match.step(m, CFG.STEP);
+          // the arena, not the painted pitch: standing outside the lines against the boards
+          // is normal here, and a player can walk there under their own steam
+          if (!insideArena(p.x, p.y)) {
+            hits.push(`${k.id} from the ${where}: ends outside the boards at ${Math.round(p.x)},${Math.round(p.y)}`);
+          }
+          if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) hits.push(`${k.id} from the ${where}: position stopped being a number`);
+        }
+      } catch (e) { hits.push(`${k.id}: threw — ${e.message}`); }
+    }
+    Game.headless = prevHeadless; Save.data.skill = prevSkill; Save.data.owned.skill = prevOwned;
+    Game.goHome();
+    return { moves: SKILLS.length, fired, hits: [...new Set(hits)] };
+  },
+
   // ---------- fuzzed matches ----------
   sim(opts = {}) {
     const matches = opts.matches || 24;

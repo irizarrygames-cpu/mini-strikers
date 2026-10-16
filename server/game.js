@@ -296,6 +296,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       character: charFor(save.character, id),
       trail: has(sim.TRAILS, save.trail) && save.trail ? save.trail : 'electric',
       celebration: has(sim.CELEBRATIONS, save.celebration) && save.celebration ? save.celebration : 'jump',
+      // a signature move the save actually owns, or the free one
+      skill: save.skill && sim.SKILLS.some((k) => k.id === save.skill)
+        && (save.skill === 'classic' || (save.owned && Array.isArray(save.owned.skill) && save.owned.skill.includes(save.skill)))
+        ? save.skill : 'classic',
       // only an accessory the save actually owns
       accessory: save.accessory && sim.ACCESSORIES.some((a) => a.id === save.accessory) && save.owned && Array.isArray(save.owned.accessory) && save.owned.accessory.includes(save.accessory) ? save.accessory : null,
     };
@@ -500,6 +504,16 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
   // the standard of a room is the people actually in it
   const roomSkill = (ids) => (ids.length ? Math.round(ids.reduce((n, id) => n + skillOf(id), 0) / ids.length) : 0);
+
+  // A filled-in player carries a signature move of roughly the standard of the room, and often
+  // none at all — most real players at the bottom of the ladder have not got one yet either.
+  function botSkillFor(skill) {
+    const t = Math.max(0, Math.min(1, (skill || 0) / 800));
+    if (Math.random() > 0.15 + t * 0.6) return 'classic';
+    const grades = t > 0.72 ? ['mythic', 'legendary', 'epic'] : t > 0.42 ? ['legendary', 'epic', 'rare'] : ['epic', 'rare'];
+    const pool = sim.SKILLS.filter((k) => grades.includes(k.rarity));
+    return pool.length ? pool[(Math.random() * pool.length) | 0].id : 'classic';
+  }
 
   // How far from the waiting player we are willing to look. Starts close and opens up, so a
   // quiet night still gets you a game rather than leaving you in the queue for ever.
@@ -860,7 +874,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
           seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0, wc: wcRound === null ? null : wcRoundOf(e.id) });
         } else {
           // filled spots dress like people do: some with an accessory, mostly the cheaper ones
-          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, botShare).id, celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
+          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, botShare).id, celebration: pickOne(BOT_CELEBS), skill: botSkillFor(roomSkill(entries.map((e) => e.id))), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
         }
       }
     }

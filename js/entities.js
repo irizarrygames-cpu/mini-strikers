@@ -941,10 +941,111 @@ function skillKind(m, p, ix, iy) {
   return { kind, front, mag };
 }
 
+// A signature move, run off its own numbers. Returns false if this player has not got one on,
+// in which case the old read-the-stick skills take over.
+function performSignature(m, p, ix, iy) {
+  const def = typeof skillDef === 'function' ? skillDef(p.skillId || 'classic') : null;
+  if (!def || def.read) return false;              // CLASSIC: let the old behaviour handle it
+  const b = m.ball;
+
+  // where you are pointing, or where you are already facing if you are not
+  const mag = Math.hypot(ix, iy);
+  const dx = mag > 0.25 ? ix / mag : p.fx;
+  const dy = mag > 0.25 ? iy / mag : p.fy;
+
+  const ballDef = def.ball || {}, selfDef = def.self || {}, hitDef = def.hit, fx = def.fx || {};
+
+  // ---- which way you end up facing
+  if (selfDef.turn === 'aim') { p.fx = dx; p.fy = dy; }
+  else if (selfDef.turn === 'reverse') { p.fx = -p.fx; p.fy = -p.fy; }
+  if (Math.abs(p.fx) > 0.1) p.faceX = Math.sign(p.fx);
+
+  // ---- the ball
+  if (ballDef.keep) {
+    // it stays with you: a move that beats somebody without giving it away
+    if (ballDef.back) { b.x = p.x - p.fx * (p.r + CFG.BALL_R + 1); b.y = p.y - p.fy * (p.r + CFG.BALL_R + 1); }
+    if (ballDef.float) { b.vz = Math.max(b.vz, ballDef.float); b.z = Math.max(b.z, 2); }
+    if (ballDef.glue) p.protectT = Math.max(p.protectT || 0, 0.9);
+  } else if (ballDef.speed) {
+    b.owner = null;
+    const sx = ballDef.over ? p.fx : dx, sy = ballDef.over ? p.fy : dy;
+    b.vx = sx * ballDef.speed; b.vy = sy * ballDef.speed; b.vz = ballDef.lift || 0;
+    if (ballDef.lift) b.z = Math.max(b.z, 2);
+    b.lastTouchTeam = p.team; b.lastPass = null;
+    p.noPickupT = 0.12;
+  }
+
+  // ---- you
+  if (selfDef.dash) {
+    // A dash jumps rather than travels, so the wall collision that stops everything else never
+    // gets a look at it: landing on the far side of a board takes one frame. Walk the landing
+    // spot back along the dash until it is inside the arena again. (The arena, not the painted
+    // pitch — standing outside the lines against the boards is perfectly normal here.)
+    const fromX = p.x, fromY = p.y;
+    let nx = fromX + p.fx * selfDef.dash, ny = fromY + p.fy * selfDef.dash;
+    if (typeof insideArena === 'function' && !insideArena(nx, ny)) {
+      let found = false;
+      for (let step = 0.85; step >= 0.1; step -= 0.15) {
+        const tx = fromX + (nx - fromX) * step, ty = fromY + (ny - fromY) * step;
+        if (insideArena(tx, ty)) { nx = tx; ny = ty; found = true; break; }
+      }
+      if (!found) { nx = fromX; ny = fromY; }   // nowhere to go: stay put rather than leave
+    }
+    p.x = nx; p.y = ny;
+    if (ballDef.keep) {
+      const bx = p.x + p.fx * (p.r + CFG.BALL_R + 1), by = p.y + p.fy * (p.r + CFG.BALL_R + 1);
+      const ok = typeof insideArena !== 'function' || insideArena(bx, by);
+      b.x = ok ? bx : p.x; b.y = ok ? by : p.y;
+    }
+  }
+  if (selfDef.burst) p.burstT = selfDef.burst;
+  if (selfDef.dodge) p.dodgeT = selfDef.dodge;
+  if (selfDef.hop) p.hopT = selfDef.hop;
+  if (selfDef.kick) { p.kickT = selfDef.kick; p.kickDur = selfDef.kick; }
+  if (selfDef.ghost) p.noPickupT = Math.max(p.noPickupT, 0.05);
+  if (selfDef.spin) p.skill = { kind: 'spin', t: 0, dur: 0.42 * selfDef.spin, dx, dy, a0: Math.atan2(p.fy, p.fx), turn: (p.fx * dy - p.fy * dx) >= 0 ? 1 : -1 };
+
+  // ---- whoever is standing too close
+  if (hitDef) {
+    for (const o of m.players) {
+      if (o.team === p.team || o === p) continue;
+      const ox = o.x - p.x, oy = o.y - p.y, d = Math.hypot(ox, oy) || 1;
+      if (d > hitDef.radius) continue;
+      if (hitDef.stun) o.stunT = Math.max(o.stunT, hitDef.stun);
+      if (hitDef.stun) o.noPickupT = Math.max(o.noPickupT, hitDef.stun);
+      if (hitDef.push) { o.vx += (ox / d) * hitDef.push; o.vy += (oy / d) * hitDef.push; }
+      if (hitDef.fall && !o.isKeeper) o.fallT = Math.max(o.fallT, 0.5);
+    }
+  }
+
+  // ---- the picture
+  if (fx.kind === 'ring') FX.ring(p.x, p.y, fx.color || '#ffffff', fx.r0 || 8, fx.r1 || 40, fx.life || 0.3, fx.width || 3);
+  else if (fx.kind === 'sparks') FX.sparks(p.x, p.y, p.z || 0, fx.color || '#ffffff', fx.n || 12, fx.speed || 140, fx.life || 0.3);
+  else if (fx.kind === 'burst') FX.burst(p.x, p.y, p.z || 0, fx.color || '#ffffff', fx.size || 24, 0.3);
+  else if (fx.kind === 'stars') FX.stars(p.x, p.y, p.z || 0);
+  if (fx.shake) FX.doShake(fx.shake, 0.18);
+  if (fx.flash) FX.doFlash(fx.color || '#ffffff', fx.flash);
+  if (p.isHuman || Math.random() < 0.5) FX.text(p.x, p.y, def.say || '!', def.color || '#ffffff', 16);
+
+  addMeter(m, p, def.meter || 4);
+  return true;
+}
+
 function performSkill(m, p, ix, iy) {
   const b = m.ball;
   if (b.owner !== p || p.isKeeper || p.skillCd > 0 || !canAct(p) || p.skill || p.hopT > 0) return false;
   if (p.charging) { p.charging = false; Sound.chargeStop(); }
+  // a slide coming in always gets the hop, whatever you have equipped: being unable to save
+  // yourself because of a cosmetic choice would be a rotten trade
+  const ducking = p.isHuman && slideIncoming(m, p);
+  if (!ducking && performSignature(m, p, ix, iy)) {
+    p.skillCd = skillCooldown(p);
+    p.stats.skills++;
+    m.stats[p.team].skills = (m.stats[p.team].skills || 0) + 1;
+    addUlt(m, p, CFG.ULT_SKILL);
+    Sound.skill();
+    return true;
+  }
   const { kind, front, mag } = skillKind(m, p, ix, iy);
 
   const fx = p.fx, fy = p.fy;

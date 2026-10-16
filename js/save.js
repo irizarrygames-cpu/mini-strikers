@@ -12,11 +12,12 @@ const Save = {
       character: 'street',
       trail: 'electric',
       celebration: 'jump',
+      skill: 'classic',
       accessory: null,
       stadium: 'day',
       ball: 'classic',
       format: '4v4',
-      owned: { character: [], trail: [], celebration: [], stadium: [], ball: [], accessory: [] },
+      owned: { character: [], trail: [], celebration: [], stadium: [], ball: [], accessory: [], skill: [] },
       matches: 0,
       wins: 0,
       draws: 0,
@@ -111,6 +112,11 @@ const Save = {
   ball() {
     const b = BALLS.find((x) => x.id === this.data.ball);
     return b && Shop.owns('ball', b.id) ? b : BALLS[0];
+  },
+  // the signature move on your skill button, or Classic if you have not got one on
+  skill() {
+    const id = this.data.skill;
+    return (typeof SKILL_IDS !== 'undefined' && SKILL_IDS.has(id)) && Shop.owns('skill', id) ? id : 'classic';
   },
   celebration() {
     const id = this.data.celebration;

@@ -48,7 +48,7 @@ function createSim() {
     vm.runInContext(code, sandbox, { filename: 'js/' + f });
   }
   // lexical globals (const/let) aren't properties of the sandbox; pull out what we need
-  const api = vm.runInContext(`({ Match, CLUBS, countryFor, CHARACTERS, pickBotCharacter, BOT_RARITY_ONLINE, BOT_RARITY_SHARE, ONLINE_BOTS, TRAILS, CELEBRATIONS, ACCESSORIES, ULT_KINDS, QUICK_CHAT, DIFFICULTY, playerRamp, Levels, CFG, FORMATS, SIDES, Clubs, TEAMS, RANK_TIERS, rankTier, rankNext, rankDelta, seasonNow, seasonEndsAt, NET_CHALLENGES, RANK_CHALLENGE })`, sandbox);
+  const api = vm.runInContext(`({ Match, CLUBS, countryFor, CHARACTERS, pickBotCharacter, BOT_RARITY_ONLINE, BOT_RARITY_SHARE, SKILLS, ONLINE_BOTS, TRAILS, CELEBRATIONS, ACCESSORIES, ULT_KINDS, QUICK_CHAT, DIFFICULTY, playerRamp, Levels, CFG, FORMATS, SIDES, Clubs, TEAMS, RANK_TIERS, rankTier, rankNext, rankDelta, seasonNow, seasonEndsAt, NET_CHALLENGES, RANK_CHALLENGE })`, sandbox);
 
   return {
     ...api,

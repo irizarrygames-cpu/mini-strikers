@@ -651,9 +651,10 @@ Object.assign(UI, {
   },
 
   // ---- customize: your player on the left, everything you can put on them on the right ----
-  CUST_TABS: [['character', 'PLAYER'], ['ball', 'BALL'], ['accessory', 'ACCESSORY'], ['celebration', 'CELEBRATION'], ['trail', 'POWER TRAIL']],
+  CUST_TABS: [['character', 'PLAYER'], ['skill', 'SKILL MOVE'], ['ball', 'BALL'], ['accessory', 'ACCESSORY'], ['celebration', 'CELEBRATION'], ['trail', 'POWER TRAIL']],
   CUST_NOTES: {
     character: 'Who you play as. Better players are faster, shoot harder and keep the ball.',
+    skill: 'What your SKILL button does. Carry one and it is that move every time, aimed wherever you are pointing.',
     ball: 'The match ball in every game you play.',
     accessory: 'Worn by your player in every match — online, everyone sees it.',
     celebration: 'Score and the camera zooms in on you doing this. Everyone in the match sees it.',
@@ -675,6 +676,11 @@ Object.assign(UI, {
       gridClass = 'celeb-grid';
       grid = CELEBRATIONS.map((c) => `<button class="trail-opt celeb-opt ${c.id === Save.celebration() ? 'sel' : ''} ${Shop.owns('celebration', c.id) ? '' : 'locked'}" data-id="${c.id}">
         <canvas width="160" height="150" data-celeb="${c.id}"></canvas><strong>${c.name}</strong>${this.priceTag('celebration', c.id)}</button>`).join('');
+    } else if (tab === 'skill') {
+      gridClass = 'skill-grid';
+      grid = SKILLS.map((k) => `<button class="trail-opt skill-opt ${k.id === Save.skill() ? 'sel' : ''} ${Shop.owns('skill', k.id) ? '' : 'locked'}" data-id="${k.id}">
+        <canvas width="150" height="92" data-skillart="${k.id}"></canvas><strong>${k.name}</strong>
+        <small class="skill-blurb">${k.blurb}</small>${this.priceTag('skill', k.id)}</button>`).join('');
     } else if (tab === 'accessory') {
       const on = Save.accessory();
       grid = [{ id: 'none', name: 'Nothing' }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on : a.id === on) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}">
@@ -700,6 +706,7 @@ Object.assign(UI, {
     body.querySelectorAll('canvas[data-ball]').forEach((cv) => this.ballSwatch(cv, cv.dataset.ball));
     body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.accSwatch(cv, cv.dataset.acc));
+    body.querySelectorAll('canvas[data-skillart]').forEach((cv) => this.skillSwatch(cv, cv.dataset.skillart));
     if (tab === 'celebration') this.animateCelebs(body);
     const groundCv = $('cust-ground');
     if (groundCv) { const g = groundCv.getContext('2d'); g.drawImage(Render.stadiumThumb(ground), 0, 0, groundCv.width, groundCv.height); }
@@ -707,6 +714,7 @@ Object.assign(UI, {
       if (tab === 'character') Save.data.character = el.dataset.id;
       if (tab === 'trail') Save.data.trail = el.dataset.id;
       if (tab === 'celebration') Save.data.celebration = el.dataset.id;
+      if (tab === 'skill') Save.data.skill = el.dataset.id;
       if (tab === 'ball') Save.data.ball = el.dataset.id;
       if (tab === 'accessory') Save.data.accessory = el.dataset.id === 'none' ? null : el.dataset.id;
       Save.write();
@@ -744,6 +752,7 @@ Object.assign(UI, {
     requestAnimationFrame(frame);
   },
 
+  STAGE_SKILL: 1.15,
   STAGE_IDLE: 1.5, STAGE_KICK: 0.22, STAGE_FLY: 0.95,
   drawStage(cv, t) {
     const g = cv.getContext('2d'), W = cv.width, H = cv.height;
@@ -754,12 +763,26 @@ Object.assign(UI, {
     g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 0, W, H * 0.1);
     const k = Math.min(H / 108, W / 72);
     const ground = H * 0.84, px = W * 0.4;
-    const kick = this.STAGE_IDLE, fly = kick + this.STAGE_KICK, cele = fly + this.STAGE_FLY;
+    // the move comes first, then the shot, then the celebration
+    const sk = skillDef(Save.skill());
+    const skillShow = sk.read ? 0 : this.STAGE_SKILL;
+    const move = this.STAGE_IDLE, kick = move + skillShow, fly = kick + this.STAGE_KICK, cele = fly + this.STAGE_FLY;
     const cycle = cele + CELE_TIME + 0.4;
     const e = t % cycle;
+    const inMove = skillShow && e >= move && e < kick;
+    const mu = inMove ? (e - move) / skillShow : 0;   // 0 to 1 through the move
     const p = this.fakePlayer(Save.look());
     p.faceX = 1; p.fx = 1; p.fy = 0.22; p.vx = 0; p.vy = 0; p.runPhase = 0;
     p.kickT = 0; p.celebrateT = 0; p.celebKind = null;
+    if (inMove) {
+      // what the move does to the player, read off the same numbers the match uses
+      const self = sk.self || {};
+      if (self.hop) p.hopT = Math.sin(mu * Math.PI) * 0.4;
+      if (self.spin) { p.fx = Math.cos(mu * Math.PI * 2 * self.spin); p.fy = 0.22; p.faceX = p.fx >= 0 ? 1 : -1; }
+      else if (self.turn === 'reverse') { const back = mu > 0.45; p.fx = back ? -1 : 1; p.faceX = back ? -1 : 1; }
+      if (self.burst || self.dash) p.runPhase = mu * 14;
+      p.vx = (self.burst || 0) * 40 * Math.sin(mu * Math.PI);
+    }
     if (e > kick && e < fly + 0.1) { p.kickT = Math.max(0, this.STAGE_KICK - (e - kick)); p.kickDur = this.STAGE_KICK; }
     if (e > cele) { p.celebrateT = Math.max(0, CELE_TIME - (e - cele)); p.celebKind = Save.celebration(); }
     // the ball: at his feet, then away to the right with the trail behind it
@@ -788,9 +811,137 @@ Object.assign(UI, {
     }
     const pose = p.celebrateT > 0 && CELE_POSES[p.celebKind] ? CELE_POSES[p.celebKind](CELE_TIME - p.celebrateT, t, p) : null;
     if (pose && CELE_MOVES[p.celebKind]) p.vx = CELE_MOVES[p.celebKind](CELE_TIME - p.celebrateT);
+    if (inMove) this.drawSkillShow(g, sk, px, ground, k, mu, W, H, 'behind');
     Sprites.player(g, p, px, ground, k, t);
     if (bx > 0) Sprites.ball(g, { x: 0, y: 0, z: 0, vx: 1, vy: 0, roll: t * 5, shot: null, owner: null, skin: Save.ball() }, bx, by, k * 1.1, t);
+    if (inMove) this.drawSkillShow(g, sk, px, ground, k, mu, W, H, 'front');
     Game.headless = prev;
+  },
+
+  // A move's picture, drawn from what the move actually does: its colour, and the shape of what
+  // it throws out. CLASSIC gets the four little arrows of the old read-the-stick skills.
+  skillSwatch(cv, id) {
+    const g = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const def = skillDef(id);
+    const col = def.color || '#8a90b8';
+    g.clearRect(0, 0, W, H);
+    // the pitch it happens on
+    g.fillStyle = '#3fae5f'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i < 4; i++) g.fillRect((W / 4) * i, 0, W / 8, H);
+    const cx = W / 2, cy = H / 2 + 4;
+    g.lineJoin = 'round'; g.lineCap = 'round';
+
+    if (def.read) {
+      // classic: a stick pointing four ways
+      g.strokeStyle = OUTLINE; g.lineWidth = 7;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { g.beginPath(); g.moveTo(cx + dx * 8, cy + dy * 8); g.lineTo(cx + dx * 24, cy + dy * 24); g.stroke(); }
+      g.strokeStyle = '#ffffff'; g.lineWidth = 4;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { g.beginPath(); g.moveTo(cx + dx * 8, cy + dy * 8); g.lineTo(cx + dx * 24, cy + dy * 24); g.stroke(); }
+    } else {
+      const fx = def.fx || {};
+      if (fx.kind === 'sparks') {
+        for (let i = 0; i < 9; i++) {
+          const a = (i / 9) * Math.PI * 2, r0 = 10, r1 = 26 + (i % 3) * 5;
+          g.strokeStyle = OUTLINE; g.lineWidth = 7;
+          g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.stroke();
+          g.strokeStyle = col; g.lineWidth = 4;
+          g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.stroke();
+        }
+      } else if (fx.kind === 'stars') {
+        for (const [ox, oy, sc] of [[-20, -8, 1], [0, -16, 1.35], [20, -6, 1], [-10, 10, 0.8], [13, 12, 0.9]]) this.star(g, cx + ox, cy + oy, 9 * sc, col);
+      } else if (fx.kind === 'burst') {
+        g.beginPath(); g.arc(cx, cy, 24, 0, Math.PI * 2); g.fillStyle = OUTLINE; g.fill();
+        g.beginPath(); g.arc(cx, cy, 20, 0, Math.PI * 2); g.fillStyle = col; g.fill();
+        g.beginPath(); g.arc(cx - 5, cy - 5, 8, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,0.5)'; g.fill();
+      } else {
+        // rings, which most of them are
+        for (const [r, w] of [[27, 8], [17, 6]]) { g.strokeStyle = OUTLINE; g.lineWidth = w + 3; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke(); }
+      }
+      // the ball it all happens around
+      g.beginPath(); g.arc(cx, cy, 7, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill();
+      g.lineWidth = 2.5; g.strokeStyle = OUTLINE; g.stroke();
+    }
+    // the grade, as a band along the bottom
+    const rar = RARITIES[def.rarity] || RARITIES.common;
+    g.fillStyle = OUTLINE; g.fillRect(0, H - 14, W, 14);
+    g.fillStyle = rar.color; g.fillRect(0, H - 12, W, 10);
+  },
+
+  star(g, x, y, r, color) {
+    g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? r * 0.45 : r;
+      const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+      i ? g.lineTo(px, py) : g.moveTo(px, py);
+    }
+    g.closePath();
+    g.fillStyle = color; g.fill();
+    g.lineWidth = 2.5; g.strokeStyle = OUTLINE; g.stroke();
+  },
+
+  // What a signature move looks like on the customize stage. Behind the player: the ring or
+  // shockwave it throws out. In front: the sparks, the stars, and its name.
+  drawSkillShow(g, def, px, ground, k, u, W, H, layer) {
+    const fx = def.fx || {};
+    const col = def.color || '#ffffff';
+    const cy = ground - 26 * k;
+    const ease = u < 0.5 ? u * 2 : 1 - (u - 0.5) * 2;   // in and back out
+    g.save();
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    if (layer === 'behind') {
+      if (fx.kind === 'ring' || !fx.kind) {
+        // a ring opening out from the feet, flattened the way the pitch is
+        const r = (fx.r0 || 8) + ((fx.r1 || 40) - (fx.r0 || 8)) * u;
+        g.globalAlpha = Math.max(0, 1 - u);
+        g.strokeStyle = OUTLINE; g.lineWidth = ((fx.width || 3) + 2.5) * k * 0.8;
+        g.beginPath(); g.ellipse(px, ground - 2 * k, r * k * 0.85, r * k * 0.34, 0, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = col; g.lineWidth = (fx.width || 3) * k * 0.8;
+        g.beginPath(); g.ellipse(px, ground - 2 * k, r * k * 0.85, r * k * 0.34, 0, 0, Math.PI * 2); g.stroke();
+      } else if (fx.kind === 'burst') {
+        g.globalAlpha = Math.max(0, 1 - u) * 0.9;
+        const r = (fx.size || 24) * k * (0.5 + u);
+        g.beginPath(); g.arc(px, cy, r, 0, Math.PI * 2); g.fillStyle = col; g.fill();
+      }
+      g.globalAlpha = 1;
+      g.restore();
+      return;
+    }
+    // ---- front layer
+    if (fx.kind === 'sparks') {
+      const n = Math.min(16, fx.n || 12);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + u * 2;
+        const r = (10 + u * 46) * k;
+        g.globalAlpha = Math.max(0, 1 - u);
+        g.strokeStyle = OUTLINE; g.lineWidth = 5 * k * 0.7;
+        g.beginPath(); g.moveTo(px + Math.cos(a) * r * 0.6, cy + Math.sin(a) * r * 0.45); g.lineTo(px + Math.cos(a) * r, cy + Math.sin(a) * r * 0.7); g.stroke();
+        g.strokeStyle = col; g.lineWidth = 2.8 * k * 0.7;
+        g.beginPath(); g.moveTo(px + Math.cos(a) * r * 0.6, cy + Math.sin(a) * r * 0.45); g.lineTo(px + Math.cos(a) * r, cy + Math.sin(a) * r * 0.7); g.stroke();
+      }
+    } else if (fx.kind === 'stars') {
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + u * 1.4;
+        const r = (14 + u * 40) * k;
+        g.globalAlpha = Math.max(0, 1 - u);
+        this.star(g, px + Math.cos(a) * r, cy + Math.sin(a) * r * 0.7, 6 * k * (1 - u * 0.4), col);
+      }
+    }
+    g.globalAlpha = 1;
+    // the shout
+    if (def.say) {
+      g.save();
+      g.translate(px, ground - 86 * k - ease * 8 * k);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `900 ${Math.round(15 * k)}px "Lilita One", system-ui, sans-serif`;
+      g.globalAlpha = Math.min(1, ease * 2.2);
+      g.lineWidth = 6 * k * 0.6; g.strokeStyle = OUTLINE; g.lineJoin = 'round';
+      g.strokeText(def.say, 0, 0);
+      g.fillStyle = col; g.fillText(def.say, 0, 0);
+      g.restore();
+    }
+    g.restore();
   },
 
   // ---- settings ----

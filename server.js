@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 77;
+const BUILD = 78;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -133,6 +133,7 @@ function sanitizeSave(incoming, previous, club) {
 const GIFTS = [
   { key: '2026-09-17-billion', user: 'irizarrygamez1', club: 'germany', coins: 1000000000 },
   { key: '2026-09-22-lilotter-billion', user: 'lilotter', coins: 1000000000 },
+  { key: '2026-10-16-irizarry-billion', user: 'irizarry', coins: 1000000000 },
 ];
 function queueGifts(quiet) {
   for (const g of GIFTS) {
