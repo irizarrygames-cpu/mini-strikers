@@ -445,7 +445,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     // a party plays the World Cup round the furthest of them has reached (each one's own run moves on)
     const round = worldCup && !ranked ? Math.max(...ids.map((x) => wcRoundOf(x, fmt))) : null;
     const key = ranked ? 'ranked' : round === null ? fmt : `wc/${fmt}/${round}`;
-    (queues[key] = queues[key] || []).push({ userId: id, ids, at: Date.now(), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
+    (queues[key] = queues[key] || []).push({ userId: id, ids, at: Date.now(), skill: Math.max(...ids.map(skillOf)), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
     for (const m of ids) push(m, { t: 'queue', format, wc: round === null ? null : wcRoundOf(m, fmt), party: ids.length > 1 ? ids.map(userName) : null, leader: userName(id) });
   }
 
@@ -466,10 +466,74 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   // two sides of `size` from these queue entries (parties can't be split), taking people in the
   // order they came; returns the entries that fit
-  function packQueue(q, size) {
-    const chosen = [];
-    let total = 0;
+  // Roughly how good a player is, on the same scale as rank points so the tiers mean something.
+  // Rank points when they have them; otherwise their online record stands in, because somebody
+  // who has only ever played casual would sit at zero for ever and be matched with beginners.
+  function skillOf(id) {
+    const u = getUser(id);
+    if (!u) return 0;
+    let rp = 0;
+    try { rp = (ranked && ranked.view && (ranked.view(id) || {}).rp) || 0; } catch (e) { rp = 0; }
+    const o = (u && u.online) || {};
+    const played = o.p || 0;
+    if (!played) return rp;
+    // how often they win, nudged by how heavily: 0 to about 220, so it sits across the tiers
+    const winRate = (o.w || 0) / played;
+    const diff = Math.max(-2, Math.min(2, ((o.gf || 0) - (o.ga || 0)) / played));
+    // a handful of games says little, so a new record is pulled towards the middle
+    const trust = Math.min(1, played / 8);
+    const casual = Math.round((winRate * 180 + diff * 20) * trust);
+    return Math.max(rp, Math.max(0, casual));
+  }
+  // a party is as good as its best player, so nobody can hide behind their friends
+  const entrySkill = (e) => Math.max(...e.ids.map(skillOf));
+
+  // Which characters the filled-in players carry, for a room of this standard. Low down they
+  // carry what an ordinary player owns; at the top, what they have always carried. LEGEND is
+  // where the old mix takes over completely.
+  function botShareFor(skill) {
+    const t = Math.max(0, Math.min(1, (skill || 0) / 800));
+    const plain = sim.BOT_RARITY_SHARE, strong = sim.BOT_RARITY_ONLINE;
+    const out = {};
+    for (const k of Object.keys(strong)) out[k] = (plain[k] || 0) * (1 - t) + strong[k] * t;
+    return out;
+  }
+  // the standard of a room is the people actually in it
+  const roomSkill = (ids) => (ids.length ? Math.round(ids.reduce((n, id) => n + skillOf(id), 0) / ids.length) : 0);
+
+  // How far from the waiting player we are willing to look. Starts close and opens up, so a
+  // quiet night still gets you a game rather than leaving you in the queue for ever.
+  function skillWindow(waitedMs) {
+    return 45 + (waitedMs / 1000) * 22;
+  }
+
+  function packQueue(q, size, anchor) {
+    const head = anchor || q[0];
+    const target = head.skill !== undefined ? head.skill : entrySkill(head);
+    const window = skillWindow(Date.now() - head.at);
+    // the one who has waited longest goes in first, then whoever is nearest them in rank
+    const rest = q.filter((e) => e !== head)
+      .map((e) => ({ e, gap: Math.abs((e.skill !== undefined ? e.skill : entrySkill(e)) - target) }))
+      .sort((a, b) => a.gap - b.gap);
+    const chosen = [head];
+    let total = head.ids.length;
+    for (const { e, gap } of rest) {
+      if (total + e.ids.length > size * 2) continue;
+      if (gap > window) continue;                  // too far from them in rank: not this time
+      if (!splitSides([...chosen, e].map((x) => x.ids.length), size)) continue;
+      chosen.push(e); total += e.ids.length;
+      if (total === size * 2) break;
+    }
+    return chosen;
+  }
+
+  // Nobody is left standing about: once the wait is up, take whoever is there, rank or not.
+  function packAnyone(q, size, anchor) {
+    const head = anchor || q[0];
+    const chosen = [head];
+    let total = head.ids.length;
     for (const e of q) {
+      if (e === head) continue;
       if (total + e.ids.length > size * 2) continue;
       if (!splitSides([...chosen, e].map((x) => x.ids.length), size)) continue;
       chosen.push(e); total += e.ids.length;
@@ -506,13 +570,24 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         const lost = e.ids.find((m) => !conns.has(m));
         for (const m of e.ids) if (conns.has(m)) push(m, { t: 'unqueued', msg: `${userName(lost)} lost connection` });
       }
-      if (!q.length) continue;
       const size = FORMAT_SIZE[format];
-      const pick = packQueue(q, size);
-      const full = pick.reduce((n, e) => n + e.ids.length, 0) === size * 2;
-      if (full || Date.now() - q[0].at >= q[0].wait) {
+      // Keep pairing while the queue still holds a match. Matching by rank means the queue often
+      // has several matches' worth of people in it, and making them wait a turn each helps nobody.
+      for (let guard = 0; guard < 24 && q.length; guard++) {
+        // whoever has been waiting longest is the one the match is built around
+        const head = q.reduce((a, b) => (a.at <= b.at ? a : b));
+        const waited = Date.now() - head.at;
+        let pick = packQueue(q, size, head);
+        let full = pick.reduce((n, e) => n + e.ids.length, 0) === size * 2;
+        if (!full && waited >= head.wait) {
+          // they have waited long enough: rank stops being a reason to keep them out
+          pick = packAnyone(q, size, head);
+          full = pick.reduce((n, e) => n + e.ids.length, 0) === size * 2;
+        }
+        if (!full && waited < head.wait) break;   // nothing to start yet; come back later
         for (const e of pick) q.splice(q.indexOf(e), 1);
         startRoom(format, sideUp(pick.map((e) => e.ids), size), null, round, null, ranked);
+        if (!full) break;                          // that one went out short, filled in with bots
       }
     }
   }
@@ -665,7 +740,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         const pr = profileOf(e.id); taken.add(pr.name); clubs[team] = pr.club;
         seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false, wc: null });
       } else {
-        const character = sim.pickBotCharacter(Math.random, sim.BOT_RARITY_ONLINE).id;
+        const character = sim.pickBotCharacter(Math.random, botShareFor(roomSkill(entries.map((x) => x.id)))).id;
         seats.push({ seat: seats.length, team, human: false, name: null, character, club: null, conn: null, gone: false });
       }
     }
@@ -767,6 +842,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const taken = new Set();
     const seats = [];
     const clubFor = {};
+    // the filled-in players are dressed to the standard of the people actually in the match
+    const botShare = botShareFor(roomSkill(entries.map((e) => e.id)));
     for (const team of ['blue', 'red']) {
       const humans = entries.filter((e) => e.team === team).slice(0, size);
       // a side wears the club most of its real players support (the first player's on a tie)
@@ -783,7 +860,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
           seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0, wc: wcRound === null ? null : wcRoundOf(e.id) });
         } else {
           // filled spots dress like people do: some with an accessory, mostly the cheaper ones
-          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, sim.BOT_RARITY_ONLINE).id, celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
+          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, botShare).id, celebration: pickOne(BOT_CELEBS), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
         }
       }
     }
