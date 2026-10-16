@@ -16,8 +16,35 @@ const LEET = {
   '@': 'a', '$': 's', '!': 'i', '|': 'i', '+': 't', '*': '', '.': '', '-': '', '_': '',
 };
 
+// Letters other alphabets draw the same way ours are drawn. Without these a name written with
+// the Cyrillic a, e, o, p, c, y, x (identical on screen to the Latin ones) was boiled down to
+// nothing and sailed past every list.
+const LOOKALIKE = {
+  '\u0430': 'a', '\u0435': 'e', '\u043e': 'o', '\u0440': 'p', '\u0441': 'c', '\u0443': 'y', '\u0445': 'x',
+  '\u0432': 'b', '\u043a': 'k', '\u043c': 'm', '\u043d': 'h', '\u0442': 't', '\u0456': 'i', '\u0458': 'j',
+  '\u03b1': 'a', '\u03b5': 'e', '\u03b9': 'i', '\u03bf': 'o', '\u03c1': 'p', '\u03c4': 't', '\u03c5': 'u', '\u03c7': 'x',
+  '\u0455': 's', '\u04bb': 'h', '\u0501': 'd', '\u051b': 'q', '\u051d': 'w', '\u0475': 'v', '\u0461': 'w',
+  '\u0433': 'r', '\u043b': 'n', '\u043f': 'n', '\u0437': 'z', '\u0261': 'g', '\u0282': 's', '\u0493': 'f',
+  '\u03bd': 'v', '\u03ba': 'k', '\u03c3': 's', '\u03bc': 'm', '\u03b7': 'n', '\u03b2': 'b', '\u03b3': 'y',
+  '\u0131': 'i', '\u0142': 'l', '\u00f8': 'o', '\u00e6': 'ae', '\u00df': 'ss', '\u0153': 'oe',
+};
+
+// Boil a name down to plain letters before anything looks at it. The order matters: pull the
+// accents off first, bring the lookalikes across, and only then drop whatever is left over —
+// otherwise an accented or Cyrillic letter is deleted rather than becoming the letter it was
+// pretending to be, and the word comes out a letter short and matches nothing.
+function fold(name) {
+  let s = String(name || '');
+  try { s = s.normalize('NFKD'); } catch (e) { /* an engine without it: carry on unfolded */ }
+  s = s.replace(/[\u0300-\u036f]/g, ''); // the accents themselves, now detached
+  s = s.toLowerCase();
+  let out = '';
+  for (const ch of s) out += (ch in LOOKALIKE) ? LOOKALIKE[ch] : ch;
+  return out;
+}
+
 function normalize(name) {
-  const lower = String(name || '').toLowerCase();
+  const lower = fold(name);
   let out = '';
   for (const ch of lower) out += (ch in LEET) ? LEET[ch] : ch;
   return out.replace(/[^a-z]/g, '');
@@ -86,6 +113,9 @@ const SWAPS = [
 // time anything looked at it.
 function variants(flat) {
   const out = new Set([flat, squash(flat)]);
+  // 'ph' read as 'f'. An extra reading, not a replacement, so an ordinary name is only caught
+  // if it genuinely spells something out that way.
+  if (flat.includes('ph')) { const f = flat.split('ph').join('f'); out.add(f); out.add(squash(f)); }
   let cur = flat;
   for (const swap of SWAPS) {
     cur = swap(cur);

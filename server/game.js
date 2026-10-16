@@ -59,9 +59,8 @@ const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 
 // worldCup: { round(id) -> 0..3, result(id, won) -> { round, champion, titles } } (the run lives on the account)
 // league: { move(club, +1 up | -1 down), result([[club, ±1]...]) for a whole match, pos(club) -> 1.. } (server.js)
-function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, penaltyWorldCup, ranked, league }) {
+function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, ranked, league }) {
   const wc = worldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
-  const pwc = penaltyWorldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
   const ladder = league || { move: () => {}, result: () => {}, pos: () => 0 };
   // ranked seasons: read AFTER the result is banked, so the view carries the new points
   const rankOf = (ranked && ranked.view) || (() => null);
@@ -414,7 +413,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   /* ---------------- queue ---------------- */
 
-  const wcRoundOf = (id, format) => Math.max(0, Math.min(WC_ROUNDS.length - 1, (format === 'pens' ? pwc : wc).round(id) | 0));
+  const wcRoundOf = (id) => Math.max(0, Math.min(WC_ROUNDS.length - 1, wc.round(id) | 0));
 
   // In a party, the leader's PLAY brings everyone: they all go into one match on the same side.
   function joinQueue(conn, format, worldCup) {
@@ -664,7 +663,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const e = entries.find((x) => x.team === team);
       if (e) {
         const pr = profileOf(e.id); taken.add(pr.name); clubs[team] = pr.club;
-        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false, wc: wcRound === null ? null : wcRoundOf(e.id, 'pens') });
+        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false, wc: null });
       } else {
         const character = sim.pickBotCharacter(Math.random, sim.BOT_RARITY_ONLINE).id;
         seats.push({ seat: seats.length, team, human: false, name: null, character, club: null, conn: null, gone: false });
@@ -740,7 +739,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const outcome = seat.team === winner ? 'win' : 'loss', mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
       onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: other, goals: mine, ranked: false, challenges: 0 });
       if (seat.club) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : -1));
-      const cup = room.wc === null || room.wc === undefined ? null : pwc.result(seat.userId, outcome === 'win');
+      const cup = null; // shootouts are not a knockout any more
       results.push({ seat, outcome, cup, mine, other });
     }
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
@@ -1166,7 +1165,6 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const mine = room.pen.model.score[seat.team], other = room.pen.model.score[seat.team === 'blue' ? 'red' : 'blue'];
       if (!room.coop) onlineRecord(seat.userId, { outcome: 'loss', goalsFor: mine, goalsAgainst: other, goals: mine });
       if (seat.club) ladder.move(seat.club, -1);
-      if (room.wc !== null && room.wc !== undefined && room.state !== 'over') pwc.result(seat.userId, false);
       seat.gone = true; seat.conn = null; finishPens(room, seat.team); saveDB(); return;
     }
     if (!room.coop) onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0, ranked: !!room.ranked, challenges: 0 });

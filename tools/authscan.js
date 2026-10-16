@@ -66,7 +66,8 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
   check('with a token to play with', !!(su.json && su.json.token));
   check('the account carries a rank straight away', !!(su.json && su.json.rank && su.json.rank.tier === 'bronze'), su.json && su.json.rank);
   check('a season with an end date', !!(su.json && su.json.rank && su.json.rank.ends > Date.now()), su.json && su.json.rank && new Date(su.json.rank.ends).toISOString().slice(0, 10));
-  check('and the World Cup run it needs', !!(su.json && su.json.wc && su.json.pwc));
+  // the penalty world cup was removed, so a new account carries the one World Cup run only
+  check('and the World Cup run it needs', !!(su.json && su.json.wc) && su.json.pwc === undefined, su.json && { wc: su.json.wc, pwc: su.json.pwc });
   let token = su.json && su.json.token;
 
   console.log('the rules on the way in');

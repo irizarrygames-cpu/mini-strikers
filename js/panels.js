@@ -21,20 +21,20 @@ Object.assign(UI, {
     body.innerHTML = `
       <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
       <div class="online-row">
-        <button class="mode online" data-mode="online">
+        <button class="mode online" data-needs-net data-mode="online">
           <strong>PLAY ONLINE</strong>
           <p>Play real people from every country.</p>
           <span class="tag">WIN = ${club.name} MOVES UP THE LEAGUE</span>
         </button>
         <div class="room-box">
           <small>PLAY WITH FRIENDS</small>
-          <button class="mid-btn" data-room="create">CREATE ROOM</button>
-          <div class="join"><input id="join-code" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="mid-btn" data-room="join">JOIN</button></div>
+          <button class="mid-btn" data-needs-net data-room="create">CREATE ROOM</button>
+          <div class="join"><input id="join-code" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="mid-btn" data-needs-net data-room="join">JOIN</button></div>
         </div>
       </div>
       <p class="note vs-bots">MORE WAYS TO PLAY</p>
       <div class="modes">
-        <button class="mode ranked" data-mode="ranked">
+        <button class="mode ranked" data-needs-net data-mode="ranked">
           <strong>RANKED</strong>
           <p>1v1 for rank points — the only place they are won. Win +10, draw +5, and every one of your three challenges is +1 more when you win. Lose and you drop nothing.</p>
           <span class="tag">ONLINE · 1V1</span>
@@ -54,7 +54,7 @@ Object.assign(UI, {
           <p>Five kicks each, then sudden death. Pick your corner, then save theirs.</p>
           <span class="tag">VS ${pensClub.name}</span>
         </button>
-        <button class="mode friendcup" data-mode="friendcup">
+        <button class="mode friendcup" data-needs-net data-mode="friendcup">
           <strong>FRIEND CUP</strong>
           <p>A knockout between 4 or 8 friends. Win your 1v1 and you go through. No draws.</p>
           <span class="tag">ONLINE · WITH FRIENDS</span>
@@ -108,42 +108,11 @@ Object.assign(UI, {
           <p>Kick for kick against a real opponent, live.</p>
           <span class="tag">ONLINE PENALTIES</span>
         </button>
-        <button class="mode cup" data-pens="worldcup">
-          <strong>PENALTY WORLD CUP</strong>
-          <p>Four knockout shootouts, a final, and the full trophy lift.</p>
-          <span class="tag">ONLINE OR OFFLINE</span>
-        </button>
       </div>`;
     body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
     body.querySelector('[data-pens="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens'); });
-    body.querySelector('[data-pens="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('pensworldcup'); });
   },
 
-  panel_pensworldcup(body) {
-    $('modal-title').textContent = 'PENALTY WORLD CUP';
-    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="28" data-flag="${c.id}"></canvas>${c.short}</span>`; };
-    const round = Online.wcRound('pens'), titles = (Net.user && Net.user.pwc && Net.user.pwc.titles) || 0;
-    const runAll = Array.isArray(Save.data.pwcRun) ? Save.data.pwcRun : [];
-    const run = runAll.length === round ? runAll : [];
-    const online = PWC_ROUNDS.map((name, i) => {
-      const r = run[i], cls = i < round ? 'won' : i === round ? 'next' : '';
-      return `<li class="${cls}"><small>${name}</small>${r ? flagCell(r.club) : `<span>${i === round ? 'NEXT' : '—'}</span>`}<em>${r ? `${r.mine}-${r.theirs}` : ''}</em></li>`;
-    }).join('');
-    const cup = PenCup.state();
-    const bots = PenCup.ROUNDS.map((name, i) => {
-      const res = cup && cup.results[i], cls = !cup ? '' : res ? (res.won ? 'won' : 'lost') : i === cup.round ? 'next' : '';
-      return `<li class="${cls}"><small>${name}</small>${cup ? flagCell(cup.opponents[i]) : '<span>?</span>'}<em>${res ? `${res.blue}-${res.red}` : ''}</em></li>`;
-    }).join('');
-    body.innerHTML = `<div class="wc-panels">
-      <section class="wc-panel online"><header><strong>ONLINE</strong><small>Four shootouts online, round of 16 to the final.</small></header>
-        <ol class="wc-bracket">${online}</ol><div class="wc-foot"><span class="tag">WIN IT: +${PWC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-pwc="online">PLAY ${PWC_ROUNDS[round]}</button></div></section>
-      <section class="wc-panel bots"><header><strong>VS BOTS</strong><small>Four shootouts offline, with tougher keepers every round.</small></header>
-        <ol class="wc-bracket">${bots}</ol><div class="wc-foot"><span class="tag">WIN IT: +300 COINS${Save.data.pensTrophies ? ` · WON ${Save.data.pensTrophies}` : ''}</span><button class="mid-btn" data-pwc="bots">${cup ? `PLAY ${PenCup.ROUNDS[cup.round]}` : 'START CUP'}</button></div></section>
-      </div><p class="note" style="margin-top:12px">Five kicks each, sudden death if level. Lose once and the run ends. Win the final and lift the trophy.</p>`;
-    body.querySelectorAll('canvas[data-flag]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.flag)));
-    body.querySelector('[data-pwc="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens', true); });
-    body.querySelector('[data-pwc="bots"]').addEventListener('click', () => { this.tap(); if (!PenCup.state()) PenCup.start(); Game.startMatch({ mode: 'penscup' }); });
-  },
   // ---- FRIEND CUP: a knockout between four or eight friends ----
   panel_cup(body) {
     $('modal-title').textContent = 'FRIEND CUP';
@@ -283,7 +252,7 @@ Object.assign(UI, {
         <section class="wc-panel online">
           <header><strong>ONLINE</strong><small>Against real players from every country, round of 16 to the final.</small></header>
           <ol class="wc-bracket">${online}</ol>
-          <div class="wc-foot"><span class="tag">WIN IT: +${WC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-cup="online">PLAY ${WC_ROUNDS[round]}</button></div>
+          <div class="wc-foot"><span class="tag">WIN IT: +${WC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-needs-net data-cup="online">PLAY ${WC_ROUNDS[round]}</button></div>
         </section>
         <section class="wc-panel bots">
           <header><strong>VS BOTS</strong><small>Three knockout matches offline, each one tougher.</small></header>

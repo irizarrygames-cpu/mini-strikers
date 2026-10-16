@@ -1,6 +1,9 @@
 // Talking to the server: accounts (sign up / log in), saving progress, the league
 // table, and the live socket used for online matches.
 const TOKEN_KEY = 'mini-strikers.token';
+// Who was last signed in on this device. The token alone does not say, and with no connection
+// there is nobody to ask — without this the game cannot find your cached save to play offline.
+const USER_KEY = 'mini-strikers.user';
 
 const Net = {
   token: null,
@@ -13,9 +16,45 @@ const Net = {
   _pingT: 0,
   _wantSocket: false,
   _retry: 0,
+  offline: false,      // the server could not be reached: solo play only, saving to this device
+  offlineOffer: false, // show the way past the sign-in screen (set once the server has not answered)
 
   init() {
     try { this.token = localStorage.getItem(TOKEN_KEY); } catch (e) { this.token = null; }
+    try { this.lastUser = localStorage.getItem(USER_KEY); } catch (e) { this.lastUser = null; }
+  },
+
+  // While offline, look up now and then to see whether the connection is back. Cheap, and only
+  // while the game is in front of you — there is no point knocking at a door nobody is near.
+  watchForConnection() {
+    clearInterval(this._watch);
+    this._watch = setInterval(async () => {
+      if (!this.offline || document.hidden) return;
+      if (!(await this.reachable(3000))) return;
+      const r = await this.resume();
+      if (!r) return;                       // reachable but not signed in: leave it alone
+      clearInterval(this._watch);
+      this.goOnline();
+      if (typeof UI !== 'undefined') { UI.signedIn(); UI.toast('BACK ONLINE — PROGRESS SAVED'); }
+    }, 20000);
+  },
+
+  // no connection: play on with what this device already knows
+  goOffline() {
+    this.offline = true;
+    this.offlineOffer = true;
+    this.closeSocket();
+    document.body.classList.add('offline');
+    if (this.lastUser) this.watchForConnection();
+  },
+  goOnline() {
+    this.offlineOffer = false;
+    clearInterval(this._watch);
+    if (!this.offline) return;
+    this.offline = false;
+    document.body.classList.remove('offline');
+    // anything won while there was no connection goes up now
+    if (Save.playedOffline || Save.account) { Save.playedOffline = false; this.queueSave(); }
   },
 
   async api(path, body = {}) {
@@ -24,6 +63,19 @@ const Net = {
     try { data = await res.json(); } catch (e) { data = { ok: false, msg: 'Bad response from the server' }; }
     if (res.status === 401) data.auth = false;
     return data;
+  },
+
+  // Can the server be reached at all, right now? One quick knock with a short deadline — used
+  // before showing a sign-in screen, so somebody with no connection is offered a game instead of
+  // a box they cannot type their way out of.
+  async reachable(ms = 4000) {
+    try {
+      const stop = new AbortController();
+      const timer = setTimeout(() => stop.abort(), ms);
+      const res = await fetch('/api/health', { cache: 'no-store', signal: stop.signal });
+      clearTimeout(timer);
+      return !!(res && res.ok);
+    } catch (e) { return false; }
   },
 
   // The free instance sleeps after about fifteen idle minutes and takes the best part of a
@@ -60,7 +112,7 @@ const Net = {
     try {
       const r = await this.api('/api/me');
       if (r.ok) { this.signedIn(r, false); return r; }
-      if (r.auth === false) { this.forget(); return null; }
+      if (r.auth === false) { this.forget(true); return null; }
       return false;
     } catch (e) { return false; }
   },
@@ -68,15 +120,21 @@ const Net = {
     // a different account: the live connection still belongs to the old one, so drop it
     if (r.token && r.token !== this.token) { this.closeSocket(); if (typeof Social !== 'undefined') Social.reset(); }
     if (r.token) { this.token = r.token; try { localStorage.setItem(TOKEN_KEY, r.token); } catch (e) {} }
+    if (r.name) { this.lastUser = r.name; try { localStorage.setItem(USER_KEY, r.name); } catch (e) {} }
     this.openSocket(); // have it ready before the first thing they press
     this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 } };
     Save.useAccount(r.name, r.save, r.club, fresh);
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
   },
   giftToast(n) { setTimeout(() => { UI.refreshHome(); UI.toast(`GIFT  +${fmtCoins(n)} COINS`); }, 900); },
-  forget() {
+  // forNow: the sign-in expired, but this is still the same player on the same device, so the
+  // name stays and they can keep playing offline. Only a real log out clears it.
+  forget(forNow) {
     this.token = null; this.user = null;
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    if (forNow) return;
+    this.lastUser = null;
+    try { localStorage.removeItem(USER_KEY); } catch (e) {}
   },
   async logout() {
     try { await this.api('/api/logout'); } catch (e) {}
@@ -96,7 +154,12 @@ const Net = {
     if (!this.token) return;
     try {
       const r = await this.api('/api/save', { save: Save.data, gifts: true });
-      if (r.auth === false) { this.forget(); UI.showAuth('You were signed out. Log in again.'); }
+      if (r.auth === false) {
+        this.forget(true);
+        // mid-game is no moment to be thrown out: carry on offline and say so
+        if (Game.state === 'match' || !$('home').hidden) { UI.playOffline(); UI.toast('SIGNED OUT — PLAYING ON THIS DEVICE'); }
+        else UI.showAuth('You were signed out. Log in again.');
+      }
       if (r.ok && r.gift > 0) { Save.data.coins += r.gift; Save.write(); this.giftToast(r.gift); }
     } catch (e) { this.saveTimer = setTimeout(() => this.pushSave(), 8000); }
   },

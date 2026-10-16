@@ -77,12 +77,11 @@ const Game = {
     this.lastOpts = opts;
     let club = opts.club;
     if (opts.mode === 'cup') { if (!Cup.state()) Cup.start(); club = Cup.opponent(); }
-    if (opts.mode === 'penscup') { if (!PenCup.state()) PenCup.start(); club = PenCup.opponent(); }
     if (!club) club = Clubs.random(Clubs.mine());
     FX.clear();
     Input.reset();
     UI.closeAll();
-    const pens = opts.mode === 'pens' || opts.mode === 'penscup';
+    const pens = opts.mode === 'pens';
     this.match = Match.create({ mode: opts.mode, club, format: pens ? '1v1' : opts.format || Save.data.format });
     if (pens) Pens.init(this.match);
     $('hud').classList.toggle('pens', pens);
@@ -111,15 +110,33 @@ const Game = {
   // after the splash: signed in already? straight home. Otherwise the sign-in page.
   async enter() {
     const r = await Net.resume();
-    if (r) { UI.signedIn(); return; }
-    if (r !== false) { UI.showAuth(''); return; }
-    // it did not answer: almost always the host getting out of bed
+    if (r) { Net.goOnline(); UI.signedIn(); return; }
+    if (r !== false) {
+      // nobody signed in on this device yet. Before putting up a sign-in screen, make sure there
+      // is something to sign in to.
+      if (await Net.reachable()) { UI.showAuth(''); return; }
+      Net.offlineOffer = true;
+      UI.showAuth('No connection. You can still play on your own.');
+      return;
+    }
+    // It did not answer: usually the host getting out of bed, sometimes no connection at all.
+    // Knock briefly if this device can carry on without it, properly if it cannot.
+    const canFallBack = !!Net.lastUser;
     UI.showAuth('Waking the server up…', true);
-    const up = await Net.wake((n, of) => UI.showAuth(`Waking the server up… (${n}/${of})`, true));
-    if (!up) { UI.showAuth("The server is not answering. Try again in a minute."); return; }
-    const again = await Net.resume();
-    if (again) { UI.signedIn(); return; }
-    UI.showAuth('');
+    const up = canFallBack
+      ? await Net.wake(null, 3, 1200)
+      : await Net.wake((n, of) => UI.showAuth(`Waking the server up… (${n}/${of})`, true));
+    if (up) {
+      const again = await Net.resume();
+      if (again) { Net.goOnline(); UI.signedIn(); return; }
+      UI.showAuth('');
+      return;
+    }
+    // Still nothing. If this device has played as somebody before, carry on as them with the
+    // progress kept here rather than sitting on a sign-in screen that cannot work.
+    Net.offlineOffer = true;
+    if (UI.playOffline()) return;
+    UI.showAuth('No connection. You can still play on your own.');
   },
 
   goHome() {

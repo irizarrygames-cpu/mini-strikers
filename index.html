@@ -103,8 +103,8 @@
         </div>
       </button>
       <div class="home-top">
-        <button id="home-club" class="pill club-pill" data-open="league" title="League table"><canvas id="home-club-badge" width="72" height="48"></canvas><span id="home-club-name">CLUB</span><em id="home-club-pos"></em><span class="table-ico"></span></button>
-        <button id="home-rank" class="pill rank-pill" data-open="ranked" title="Ranked" hidden></button>
+        <button id="home-club" class="pill club-pill" data-needs-net data-open="league" title="League table"><canvas id="home-club-badge" width="72" height="48"></canvas><span id="home-club-name">CLUB</span><em id="home-club-pos"></em><span class="table-ico"></span></button>
+        <button id="home-rank" class="pill rank-pill" data-needs-net data-open="ranked" title="Ranked" hidden></button>
         <div class="pill trophies" title="Cups won"><span class="cup-ico"></span><span id="trophies">0</span></div>
         <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
       </div>
@@ -113,7 +113,7 @@
     <div id="home-record" class="home-record">0W · 0D · 0L</div>
     <div class="home-bl">
       <button id="btn-howto" class="howto-btn">? HOW TO PLAY</button>
-      <button id="btn-friends" class="howto-btn friends-btn"><span class="ppl-ico"></span>FRIENDS<em id="friends-on" class="on-count" hidden>0</em><i id="friends-badge" class="badge" hidden>0</i></button>
+      <button id="btn-friends" class="howto-btn friends-btn" data-needs-net><span class="ppl-ico"></span>FRIENDS<em id="friends-on" class="on-count" hidden>0</em><i id="friends-badge" class="badge" hidden>0</i></button>
       <button id="btn-profile" class="howto-btn prof-btn"><span class="star-ico"></span>PROFILE<i id="prof-badge" class="badge" hidden>0</i></button>
       <button id="btn-install" class="howto-btn get-btn" hidden>GET THE APP</button>
     </div>
@@ -139,6 +139,7 @@
     <div class="auth-card">
       <div class="auth-left">
         <h1 class="logo auth-logo" id="auth-logo">Mini Strikers</h1>
+        <button id="auth-offline" class="mid-btn auth-offline" hidden>PLAY OFFLINE</button>
         <div class="auth-tabs"><button data-auth="login" class="sel">LOG IN</button><button data-auth="signup">SIGN UP</button></div>
         <form id="auth-form" class="auth-fields" autocomplete="on">
           <label>USERNAME<input id="auth-user" name="username" maxlength="14" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false"></label>

@@ -333,8 +333,6 @@ function rankDelta(outcome, challenges = 0) {
   if (outcome === 'win') return 10 + Math.max(0, challenges | 0) * RANK_CHALLENGE;
   return outcome === 'draw' ? 5 : 0;
 }
-const PWC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
-const PWC_PRIZE = 750;
 // quick chat: the only things anyone can say in a match (no typing, so nothing nasty gets through)
 const QUICK_CHAT = ['HI!', 'NICE ONE!', 'PASS!', 'SHOOT!', 'DEFEND!', 'WHAT A GOAL!', 'THANKS!', 'SORRY!', 'UNLUCKY', 'WOW!', "LET'S GO!", 'GG'];
 const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][n % 10 > 3 || (n % 100 > 10 && n % 100 < 14) ? 0 : n % 10]);

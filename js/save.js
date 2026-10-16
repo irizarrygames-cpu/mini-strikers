@@ -24,9 +24,6 @@ const Save = {
       goals: 0,
       trophies: 0,
       cup: null,
-      pensTrophies: 0,
-      pensCup: null,
-      pwcRun: [],
       tutorialSeen: false,
       career: { assists: 0, tackles: 0, skills: 0, dodges: 0, passes: 0, shots: 0, powerGoals: 0, hattricks: 0, cleanSheets: 0, streak: 0, bestStreak: 0, formats: {}, online: 0, onlineWins: 0 },
       achievements: {},
@@ -55,13 +52,11 @@ const Save = {
         if (!obj(d.missions.weekly)) d.missions.week = null;
       }
       if (!obj(d.challenges)) d.challenges = {};
-      if (!Array.isArray(d.pwcRun)) d.pwcRun = [];
       d.coins = Math.max(0, Math.floor(Number(d.coins) || 0));
       d.xp = Math.max(0, Math.floor(Number(d.xp) || 0));
     }
     d.club = countryFor(d.club);
     if (d.cup && d.cup.opponents && !d.cup.opponents.every((id) => CLUBS.some((c) => c.id === id))) d.cup = null;
-    if (d.pensCup && d.pensCup.opponents && !d.pensCup.opponents.every((id) => CLUBS.some((c) => c.id === id))) d.pensCup = null;
     // older saves defaulted to HIGH; move them to AUTO once so slow screens get the safety net
     if (!d.gfxAuto) { if (d.settings.graphics === 'high') d.settings.graphics = 'auto'; d.gfxAuto = true; }
     return d;
@@ -73,6 +68,8 @@ const Save = {
     return this.data;
   },
   write() {
+    // when this was written, so the newer of two copies can be told from the older
+    this.data.savedAt = Date.now();
     try { localStorage.setItem(this.key(), JSON.stringify(this.data)); } catch (e) { /* ignore */ }
     if (this.account && typeof Net !== 'undefined') Net.queueSave();
   },
@@ -80,7 +77,14 @@ const Save = {
   useAccount(name, serverSave, club, fresh) {
     const keepSettings = this.data && this.data.settings;
     this.account = name;
-    this.data = this.merge(serverSave);
+    // What this device has for this account. If it was written after the server's copy, it is
+    // the one to keep: that is someone who has been playing with no connection, and the server
+    // is the one that is out of date.
+    let mine = null;
+    try { const raw = localStorage.getItem(STORAGE_KEY + '.' + String(name).toLowerCase()); if (raw) mine = JSON.parse(raw); } catch (e) {}
+    const ahead = mine && Number(mine.savedAt || 0) > Number((serverSave && serverSave.savedAt) || 0);
+    this.data = this.merge(ahead ? mine : serverSave);
+    this.playedOffline = !!ahead; // net.js pushes it up once it can
     if (!serverSave && keepSettings) this.data.settings = keepSettings;
     this.data.club = club;
     if (fresh) { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} } // the guest save moved into the account

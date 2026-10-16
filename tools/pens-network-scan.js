@@ -61,24 +61,6 @@ async function waitFor(ws, type, from = 0, ms = 6000) { const end = Date.now() +
   check('you cannot tell which one is not a person', !!cs && cs.players.every((p) => p.name && p.bot === undefined && p.human === undefined), cs && cs.players);
   c.msg({ t: 'leave' }); await sleep(50);
 
-  console.log('online Penalty World Cup final advances and crowns a champion');
-  const f = connect('f'), g = connect('g'), fn = f.got.length, gn = g.got.length;
-  f.msg({ t: 'queue', format: 'pens', wc: true }); g.msg({ t: 'queue', format: 'pens', wc: true });
-  const fs = await waitFor(f, 'pen.start', fn, 2500), gs = await waitFor(g, 'pen.start', gn, 2500);
-  check('same-round finalists enter a penalty World Cup room', fs && gs && fs.wc === 3 && gs.wc === 3, fs && { f: fs.wc, g: gs.wc });
-  let fi = f.got.length, gi = g.got.length, cupKicks = 0;
-  while (!f.last('pen.end') && !g.last('pen.end') && cupKicks++ < 80) {
-    const ft = await waitFor(f, 'pen.turn', fi, 6000), gt = await waitFor(g, 'pen.turn', gi, 6000);
-    if (!ft || !gt) break; fi = f.got.length; gi = g.got.length;
-    const shooter = ft.team === fs.side ? f : g, keeper = shooter === f ? g : f;
-    shooter.msg({ t: 'pen.shot', ax: cupKicks % 3 ? 0.8 : -0.8, az: 0.45, power: 0.75 });
-    keeper.msg({ t: 'pen.dive', dx: cupKicks % 2 ? -1 : 1, dz: 0.1 });
-    await waitFor(f, 'pen.result', fi, 1500); await waitFor(g, 'pen.result', gi, 1500); fi = f.got.length; gi = g.got.length;
-  }
-  const fe = await waitFor(f, 'pen.end', 0, 5000), ge = await waitFor(g, 'pen.end', 0, 5000);
-  const champ = [fe, ge].find((x) => x && x.wc && x.wc.champion), runner = [fe, ge].find((x) => x && x.wc && !x.wc.won);
-  check('winner is champion and both next runs reset', champ && champ.wc.next === 0 && champ.wc.titles === 1 && runner && runner.wc.next === 0, { champion: champ && champ.wc, runner: runner && runner.wc });
-  f.close(); g.close();
   console.log('private penalty room reconnects and forfeits cleanly');
   const d = connect('d'), e = connect('e'); d.msg({ t: 'room.create', format: 'pens' }); const code2 = d.last('room').code;
   e.msg({ t: 'room.join', code: code2 }); e.msg({ t: 'room.team', team: 'red' }); d.msg({ t: 'room.start' });

@@ -37,7 +37,8 @@ const Online = {
     Net.on('left', () => {});
     Net.on('error', (m) => { UI.toast((m.msg || 'Something went wrong').toUpperCase()); if (this.status === 'queue') { this.status = 'idle'; UI.hideQueue(); } });
     Net.on('kicked', () => { this.abandon(); UI.toast('SIGNED IN ON ANOTHER DEVICE'); });
-    Net.on('authLost', () => { this.abandon(); Net.forget(); UI.showAuth('Your session ended. Log in again.'); });
+    // the sign-in ran out, not a log out: keep the name so this device can still play offline
+    Net.on('authLost', () => { this.abandon(); Net.forget(true); UI.showAuth('Your session ended. Log in again.'); });
     Net.on('disconnected', () => { if (this.status === 'match') UI.toast('CONNECTION LOST · RECONNECTING…'); });
     // the host naps when it is quiet: say so rather than looking broken
     Net.on('waking', () => UI.toast('WAKING THE SERVER UP…'));
@@ -61,7 +62,7 @@ const Online = {
     UI.showQueue({ format, wc: this.worldCup ? this.wcRound(format) : null });
     Net.whenReady({ t: 'queue', format, wc: this.worldCup });
   },
-  wcRound(format = this.format) { const key = format === 'pens' ? 'pwc' : 'wc'; return (Net.user && Net.user[key] && Net.user[key].round) || 0; },
+  wcRound() { return (Net.user && Net.user.wc && Net.user.wc.round) || 0; },
   cancelQueue() { Net.send({ t: 'unqueue' }); this.status = 'idle'; UI.hideQueue(); },
   // the queue as the server has it; in a party this is how everyone else learns the leader pressed PLAY
   onQueue(msg) {

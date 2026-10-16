@@ -44,11 +44,27 @@ self.addEventListener('activate', (e) => {
 });
 
 const live = (url) => url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws');
+// The lettering the game is set in comes from Google. It is not ours, so it is kept separately
+// and taken from the copy first: a font does not change, and without it the game falls back to
+// whatever the device has and stops looking like itself.
+const FONT_HOSTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com$/;
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== self.location.origin || live(url)) return; // straight to the network
+  if (req.method !== 'GET' || live(url)) return; // straight to the network
+  if (url.origin !== self.location.origin) {
+    if (!FONT_HOSTS.test(url.origin)) return;   // anything else from elsewhere: not our business
+    // the font: the copy first, and refresh it behind you
+    e.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const kept = await cache.match(req);
+      const net = fetch(req).then((res) => { if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone()).catch(() => {}); return res; });
+      if (kept) { net.catch(() => {}); return kept; }
+      try { return await net; } catch (err) { return new Response('', { status: 504 }); }
+    })());
+    return;
+  }
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     // the request keeps going even if we stop waiting for it, so a slow answer still refreshes

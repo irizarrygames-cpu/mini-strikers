@@ -17,6 +17,17 @@ const UI = {
       Game.enter();
     };
     $('splash').addEventListener('pointerdown', leaveSplash);
+    // Nothing that needs other people is allowed to start while there is no connection. Caught
+    // here, before the button's own handler, so every one of them behaves the same way.
+    document.addEventListener('click', (e) => {
+      if (!Net.offline) return;
+      const hit = e.target && e.target.closest && e.target.closest('[data-needs-net]');
+      if (!hit) return;
+      e.preventDefault(); e.stopPropagation();
+      this.toast('THAT ONE NEEDS INTERNET');
+    }, true);
+    const offBtn = $('auth-offline');
+    if (offBtn) offBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
     window.addEventListener('keydown', leaveSplash, { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
@@ -333,6 +344,29 @@ const UI = {
   },
 
   // calm: a message that is not the player's fault (the server waking up), so it is not red
+  // No connection, but this device has been signed in before: open the game as that player,
+  // from the copy of their progress kept here. Returns false if there is nothing to go on, in
+  // which case the sign-in screen is the only honest thing to show.
+  playOffline(asGuest) {
+    const name = asGuest ? null : Net.lastUser;
+    if (name) {
+      Save.account = name;
+      Save.load();                      // this account's own copy on this device
+      Net.user = { name, club: Save.data.club, online: null, rank: null, wc: { round: 0, titles: 0 } };
+    } else {
+      if (!asGuest) return false;
+      Save.useGuest();
+      Net.user = null;
+    }
+    Net.goOffline();
+    $('auth').hidden = true;
+    Game.state = 'home';
+    Render.buildLayer();   // Clubs.mine() reads the country straight out of the save
+    this.show('home');
+    this.toast(name ? 'NO CONNECTION — PLAYING ON THIS DEVICE' : 'PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE');
+    return true;
+  },
+
   showAuth(msg, calm) {
     Game.state = 'home';
     this.closeAll();
@@ -341,6 +375,10 @@ const UI = {
     if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.toggle('bad', !calm); }
     else { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); }
     $('auth-logo').innerHTML = $('logo').innerHTML;
+    // offered only when the server is not answering: with a connection, signing in is better,
+    // because progress made as a guest stays on this device
+    const off = $('auth-offline');
+    if (off) off.hidden = !Net.offlineOffer;
   },
 
   async submitAuth() {
@@ -374,6 +412,9 @@ const UI = {
   },
 
   signedIn(fresh) {
+    // whichever way we got here — resumed, logged in, signed up — we are online again, so the
+    // offline marks come off and anything won while offline goes up
+    Net.goOnline();
     $('auth').hidden = true;
     Game.state = 'home';
     Render.buildLayer();
@@ -494,7 +535,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.wc !== null && m.wc !== undefined ? `PENALTY WORLD CUP · ${PWC_ROUNDS[m.wc]}` : m.mode === 'penscup' && PenCup.state() ? `PENALTY WORLD CUP · ${PenCup.ROUNDS[PenCup.state().round]}` : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.ranked ? 'RANKED · 1v1' : m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? 'PENALTY SHOOTOUT · 5 KICKS EACH' : m.net ? (m.ranked ? 'RANKED · 1v1' : m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -690,16 +731,7 @@ const UI = {
     d.coins += streakBonus;
     Missions.record(m, r.outcome);
     const cupResult = m.mode === 'cup' ? Cup.record(m) : null;
-    const penCupResult = m.mode === 'penscup' ? PenCup.record(m) : null;
-    const onlinePenCup = m.net && m.onlinePenEnd ? m.onlinePenEnd.wc : null;
-    if (onlinePenCup) {
-      if (onlinePenCup.round === 0 || !Array.isArray(d.pwcRun)) d.pwcRun = [];
-      const other = Online.penSide === 'blue' ? 'red' : 'blue';
-      d.pwcRun[onlinePenCup.round] = { club: m.onlinePenEnd.clubs[other], mine: m.score.blue, theirs: m.score.red, won: onlinePenCup.won };
-      d.pwcRun.length = onlinePenCup.round + 1;
-      if (Net.user) Net.user.pwc = { round: onlinePenCup.next, titles: onlinePenCup.titles };
-    }
-    const cupPrize = cupResult === 'champion' || penCupResult === 'champion' ? 300 : onlinePenCup && onlinePenCup.champion ? PWC_PRIZE : 0;
+    const cupPrize = cupResult === 'champion' ? 300 : 0;
     if (cupPrize) d.coins += cupPrize;
     Save.write();
     const levelAfter = Levels.info(d.xp).level;
@@ -770,28 +802,6 @@ const UI = {
       this._againMode = cupResult === 'next' ? 'cup' : 'newcup';
       $('r-again').textContent = cupResult === 'next' ? `PLAY ${Cup.ROUNDS[c.round]}` : cupResult === 'champion' ? 'NEW CUP' : 'TRY AGAIN';
       if (cupResult === 'champion') Trophy.show({ title: 'CUP WINNERS!', sub: 'BOT WORLD CUP · +300 COINS', club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
-    } else if (m.mode === 'penscup') {
-      const c = Save.data.pensCup;
-      cupBox.hidden = false;
-      cupBox.innerHTML = PenCup.ROUNDS.map((name, i) => {
-        const res = c.results[i], club = Clubs.get(c.opponents[i]);
-        const cls = res ? (res.won ? 'won' : 'lost') : i === c.round && c.active ? 'next' : '';
-        return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${clubUi(club)}">${club.name}</b><em>${res ? `${res.blue}-${res.red}` : '—'}</em></div>`;
-      }).join('');
-      this._againMode = penCupResult === 'next' ? 'penscup' : 'newpenscup';
-      $('r-again').textContent = penCupResult === 'next' ? `PLAY ${PenCup.ROUNDS[c.round]}` : penCupResult === 'champion' ? 'NEW PENALTY CUP' : 'TRY AGAIN';
-      if (penCupResult === 'champion') Trophy.show({ title: 'WORLD CHAMPIONS!', sub: 'PENALTY WORLD CUP · +300 COINS', club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
-    } else if (onlinePenCup) {
-      const run = d.pwcRun || [];
-      cupBox.hidden = false;
-      cupBox.innerHTML = PWC_ROUNDS.map((name, i) => {
-        const q = run[i], cls = q ? (q.won ? 'won' : 'lost') : i === onlinePenCup.next && onlinePenCup.won && !onlinePenCup.champion ? 'next' : '';
-        const club = q ? Clubs.get(q.club) : null;
-        return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${club ? clubUi(club) : '#8a90b8'}">${club ? club.short : '?'}</b><em>${q ? `${q.mine}-${q.theirs}` : '—'}</em></div>`;
-      }).join('');
-      this._againMode = 'onlinepenscup';
-      $('r-again').textContent = onlinePenCup.champion ? 'NEW PENALTY CUP' : onlinePenCup.won ? `PLAY ${PWC_ROUNDS[onlinePenCup.next]}` : 'TRY AGAIN';
-      if (onlinePenCup.champion) Trophy.show({ title: 'WORLD CHAMPIONS!', sub: `ONLINE PENALTY WORLD CUP · +${PWC_PRIZE} COINS`, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
       this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';
@@ -925,9 +935,6 @@ const UI = {
   resultsAgain() {
     const previous = Game.match && Game.match.club;
     if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
-    else if (this._againMode === 'penscup') Game.startMatch({ mode: 'penscup' });
-    else if (this._againMode === 'newpenscup') { PenCup.start(); Game.startMatch({ mode: 'penscup' }); }
-    else if (this._againMode === 'onlinepenscup') { Game.goHome(); Online.m = null; Online.findMatch('pens', true); }
     else if (this._againMode === 'newcup') { Cup.start(); Game.startMatch({ mode: 'cup' }); }
     else if (this._againMode === 'pens') Game.startMatch({ mode: 'pens', club: Clubs.random(Clubs.mine(), previous) });
     else if (this._againMode === 'onlinepens') { Game.goHome(); Online.m = null; Online.findMatch('pens'); }
