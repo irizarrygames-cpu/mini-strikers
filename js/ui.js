@@ -1019,8 +1019,63 @@ const Install = {
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
+    if (location.protocol !== 'file:') this.watchForNewBuild();
     this.refresh();
   },
+  // Making sure a deploy actually reaches the person playing.
+  //
+  // The offline copy falls back to what it kept whenever the network is slow, and this game
+  // sleeps on a free server that takes the best part of a minute to wake. So the first visit
+  // after a quiet spell can come entirely out of the old copy — the game runs, it just runs
+  // last week's code. That is how a fixed bug comes back.
+  //
+  // /api/health never goes near the cache, so it can always be trusted for the real answer.
+  watchForNewBuild() {
+    // Only the real server stamps the build into the page. The little static server used while
+    // building the game does not, so the placeholder is still sitting there — and a page that
+    // does not know its own build has no business deciding it is out of date.
+    const known = /^[0-9]+$/.test(String(window.BUILD || ''));
+
+    // A new worker has taken over a page that already had one: what is on screen is the old
+    // version, so load it again. Only where there is a worker at all — the build check below
+    // is worth doing either way.
+    const sw = ('serviceWorker' in navigator) ? navigator.serviceWorker : null;
+    let had = !!(sw && sw.controller);
+    if (sw) sw.addEventListener('controllerchange', () => {
+      if (!had) { had = true; return; }           // the first worker ever: nothing to replace
+      this.freshen('a new version took over');
+    });
+
+    // and the belt to that pair of braces: ask the server what the build should be
+    const check = async () => {
+      if (document.hidden || !navigator.onLine) return;
+      try {
+        const r = await fetch('api/health', { cache: 'no-store' });
+        const j = await r.json();
+        if (!j || !j.build) return;
+        if (known && String(j.build) !== String(window.BUILD)) this.freshen('build ' + j.build + ' is out');
+      } catch (e) { /* asleep, or no line: try again later */ }
+    };
+    check();
+    setInterval(check, 5 * 60000);
+    window.addEventListener('focus', check);
+  },
+
+  // Throw the kept copy away and load again — but only once for any one build, so a server that
+  // is still waking up can never put the game in a loop.
+  async freshen(why) {
+    const key = 'ms-freshened';
+    const stamp = String(window.BUILD || '?') + ':' + why.replace(/[^0-9]/g, '');
+    try { if (sessionStorage.getItem(key) === stamp) return; sessionStorage.setItem(key, stamp); } catch (e) { return; }
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+    } catch (e) { /* nothing kept to throw away */ }
+    location.reload();
+  },
+
   installed() {
     return ['standalone', 'fullscreen', 'minimal-ui'].some((m) => matchMedia('(display-mode: ' + m + ')').matches)
       || navigator.standalone === true; // the iOS way of saying it

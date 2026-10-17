@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mini Strikers — trailer</title>
+<!-- Not part of the game. This page loads the game's own code and films it.
+     Open tools/trailer.html on the dev server and press RENDER. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body { margin: 0; background: #11142b; color: #fff; font-family: 'Lilita One', system-ui, sans-serif; }
+  #game { display: block; width: 960px; height: 540px; background: #000; border: 4px solid #161a33; }
+  .bar { display: flex; gap: 12px; align-items: center; padding: 10px 14px; }
+  .bar button { font-family: inherit; font-size: 20px; padding: 8px 18px; border: 3px solid #161a33; border-radius: 12px; background: #ffe14d; color: #161a33; cursor: pointer; }
+  #status { font-size: 18px; }
+  #out { padding: 0 14px 14px; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <button id="go">RENDER</button>
+    <button id="short">RENDER 6s TEST</button>
+    <span id="status">idle</span>
+  </div>
+  <canvas id="game"></canvas>
+  <div id="out"></div>
+
+  <!-- the hidden furniture the game expects to find -->
+  <div id="shell" hidden>
+    <div id="home"></div><div id="hud"></div><div id="modal" hidden><div class="panel"><div id="modal-title"></div><div id="modal-body"></div></div></div>
+    <div id="results" hidden></div><div id="pause" hidden></div><div id="intro" hidden></div><div id="howto" hidden></div>
+    <div id="daily" hidden></div><div id="queue" hidden></div><div id="lobby" hidden></div><div id="auth" hidden></div><div id="splash" hidden></div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/clubs.js"></script>
+  <script src="../js/stadiums.js"></script>
+  <script src="../js/celebs.js"></script>
+  <script src="../js/save.js"></script>
+  <script src="../js/meta.js"></script>
+  <script src="../js/crates.js"></script>
+  <script src="../js/missions.js"></script>
+  <script src="../js/audio.js"></script>
+  <script src="../js/input.js"></script>
+  <script src="../js/fx.js"></script>
+  <script src="../js/commentary.js"></script>
+  <script src="../js/entities.js"></script>
+  <script src="../js/ai.js"></script>
+  <script src="../js/match.js"></script>
+  <script src="../js/replay.js"></script>
+  <script src="../js/net.js"></script>
+  <script src="../js/online.js"></script>
+  <script src="../js/sprites.js"></script>
+  <script src="../js/render.js"></script>
+  <script src="../js/pop.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/panels.js"></script>
+  <script src="../js/social.js"></script>
+  <script src="../js/trophy.js"></script>
+  <script src="../js/penalty.js"></script>
+  <script src="../js/challenges.js"></script>
+  <script src="../js/ultcut.js"></script>
+  <script src="../js/tutorial.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="trailer/mp4.js"></script>
+  <script src="trailer/director.js"></script>
+  <script>
+  // main.js boots the whole game on load, rAF loop and all. The trailer drives everything
+  // itself a frame at a time, so the loop is retired the moment it starts: the pending callback
+  // calls Game.loop, finds this, and does not queue another.
+  const ready = (async () => {
+    await new Promise((r) => (document.readyState === 'complete' ? r() : window.addEventListener('load', r)));
+    await new Promise((r) => setTimeout(r, 400));
+    Game.loop = () => {};
+    Sound.enabled = false;                       // nothing to hear and nothing to unlock
+    Save.data.settings.graphics = 'high';
+    Save.data.settings.difficulty = 'hard';      // sharper football to look at
+    Save.data.owned.skill = SKILLS.map((k) => k.id);
+    await (document.fonts ? document.fonts.load("190px 'Lilita One'").catch(() => {}) : null);
+    if (document.fonts) await document.fonts.ready;
+  })();
+
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+
+  async function render(seconds) {
+    await ready;
+    status.textContent = 'rendering…';
+    const started = performance.now();
+    const tick = setInterval(() => {
+      const s = window.__tr;
+      if (s) status.textContent = `${s.frame}/${s.total} frames · ${s.scene} · ${Math.round((performance.now() - started) / 1000)}s`;
+    }, 500);
+    const state = await Trailer.run(seconds ? { seconds } : {});
+    clearInterval(tick);
+    if (state.error) { status.textContent = 'ERROR: ' + state.error; return; }
+    const url = URL.createObjectURL(state.blob);
+    status.textContent = `done · ${(state.blob.size / 1048576).toFixed(1)} MB · ${Math.round((performance.now() - started) / 1000)}s`;
+    out.innerHTML = `<video src="${url}" controls style="width:960px"></video>
+      <p><a id="dl" href="${url}" download="mini-strikers-trailer.mp4">download the mp4</a></p>`;
+    window.__trailerURL = url;
+  }
+
+  document.getElementById('go').addEventListener('click', () => render(0));
+  document.getElementById('short').addEventListener('click', () => render(6));
+  </script>
+</body>
+</html>

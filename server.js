@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 81;
+const BUILD = 82;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -425,7 +425,10 @@ function serveStatic(req, res, urlPath) {
     if (err) { res.writeHead(404).end('Not found'); return; }
     // the offline copy is named after the build, so a deploy replaces it as a set rather than
     // letting files from two builds sit side by side
-    if (path.basename(full) === 'sw.js') buf = Buffer.from(buf.toString('utf8').replace('__BUILD__', String(BUILD)), 'utf8');
+    // Both the offline copy and the page itself are stamped with the build. The copy is named
+    // after it; the page uses it to notice when it is running something the server has replaced.
+    const base = path.basename(full);
+    if (base === 'sw.js' || base === 'index.html') buf = Buffer.from(buf.toString('utf8').replace('__BUILD__', String(BUILD)), 'utf8');
     res.writeHead(200, { 'Content-Type': MIME[path.extname(full).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(buf);
   });
