@@ -489,6 +489,33 @@ const Match = {
     else if (m.trailed && m.trailed[team] && nowLeads && !m.comeback) { hype = 'COMEBACK!'; m.comeback = true; }
     else if (how === 'dribble') hype = 'WALKED IT IN!';
     FX.showBanner(hype && scorer && scorer.isHuman ? hype : 'GOAL!', team === 'blue' ? '#ffe14d' : shadeHex(TEAMS.red.jersey, 0.15), 2.0, hype && !(scorer && scorer.isHuman) ? sub + ' · ' + hype : sub);
+    // A goal should feel like one. Confetti out of the net, rings off the goal line, the ground
+    // shaking, and a flash in the scoring side's colour — more of all of it when it is yours.
+    {
+      const mine = team === 'blue';
+      const col = mine ? '#ffe14d' : TEAMS.red.jersey;
+      const gx = attackGoalX(team), gy = CFG.FIELD_H / 2;
+      const kit = TEAMS[team];
+      // the dust of the last minute does not get to eat the goal
+      FX.makeRoom(mine ? 150 : 90);
+      FX.confetti(gx, gy, [col, '#ffffff', kit.jersey, kit.accent === OUTLINE ? '#ffffff' : kit.accent], mine ? 54 : 30);
+      FX.ring(gx, gy, '#ffffff', 10, 150, 0.55, 6);
+      FX.ring(gx, gy, col, 10, 110, 0.42, 4);
+      FX.burst(gx, gy, 0, col, 46, 0.4);
+      FX.doShake(mine ? 7 : 4, 0.4);
+      FX.doFlash(col, mine ? 0.3 : 0.18);
+      FX.stars(gx, gy, 0);
+      if (scorer) {
+        FX.confetti(scorer.x, scorer.y, [col, '#ffffff'], mine ? 30 : 16);
+        FX.ring(scorer.x, scorer.y, col, 8, 86, 0.45, 4);
+      }
+      // a hat-trick, a screamer or a golden goal gets a second helping
+      if (hype && mine) {
+        FX.doFlash('#ffffff', 0.22);
+        FX.confetti(gx, gy, ['#ffffff', col, '#ff8a1f'], 44);
+        FX.doShake(9, 0.5);
+      }
+    }
     Sound.net(); Sound.cheer(true); Sound.goalJingle(team === 'blue');
     vibrate([30, 40, 30]);
   },

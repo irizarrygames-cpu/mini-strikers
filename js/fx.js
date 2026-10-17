@@ -23,6 +23,26 @@ const FX = {
     list.push(p);
   },
 
+  // Clear space for something worth seeing. The cap stays the same; what changes is which
+  // particles get to use it — a goal should not be swallowed by the dust of the last minute.
+  // Dust goes first, then whatever is oldest, and rings and banners are left alone.
+  makeRoom(n = 60) {
+    if (Game.headless) return;
+    n = Math.min(n, Math.round(this.max() * 0.7));   // never clear the whole pitch
+    const spare = this.max() - (this.ground.length + this.air.length);
+    let need = n - spare;
+    if (need <= 0) return;
+    for (const list of [this.ground, this.air]) {
+      for (let i = list.length - 1; i >= 0 && need > 0; i--) {
+        if (list[i].k === 'dust') { list.splice(i, 1); need--; }
+      }
+    }
+    // still tight: drop the oldest of whatever is left, from the front
+    for (const list of [this.air, this.ground]) {
+      while (need > 0 && list.length) { list.shift(); need--; }
+    }
+  },
+
   // ---- spawners (world coordinates) ----
   dust(x, y) {
     if (this.low() && Math.random() < 0.5) return;

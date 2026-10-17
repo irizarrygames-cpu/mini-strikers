@@ -178,7 +178,15 @@ const UI = {
   refreshHome() {
     this.measureHome();
     const d = Save.data;
-    $('coins').textContent = fmtCoins(d.coins);
+    // the number climbs to where it is going, and the coin gives a kick when it changes
+    const was = this._coinsShown;
+    this._coinsShown = d.coins;
+    if (was === undefined || was === d.coins) $('coins').textContent = fmtCoins(d.coins);
+    else {
+      Pop.count($('coins'), was, d.coins, 700);
+      const c = document.querySelector('.coins .coin');
+      if (c) { c.classList.remove('kick'); void c.offsetWidth; c.classList.add('kick'); }
+    }
     $('trophies').textContent = d.trophies || 0;
     const ch = Save.character();
     $('home-char-name').textContent = ch.name;
@@ -705,6 +713,40 @@ const UI = {
     Save.write(); Sound.applyVolumes(); this.syncToggles(); this.tap();
   },
 
+  // The noise full time makes. How much of it depends on what happened: a win throws confetti
+  // from the top of the card, a trophy throws a lot more, and a defeat gets none of it.
+  resultsFanfare(outcome, { coins = 0, levelUp = false, champion = false, rankUp = false } = {}) {
+    const card = document.querySelector('#results .panel') || $('results');
+    if (!card) return;
+    card.classList.remove('landed'); void card.offsetWidth; card.classList.add('landed');
+    const b = card.getBoundingClientRect();
+    const top = { x: b.left + b.width / 2, y: b.top + 40 };
+    const won = outcome === 'win';
+    if (!won && !champion) return;                 // a defeat lands quietly
+    const gold = ['#ffe14d', '#ffc21a', '#ffffff', '#35c06a'];
+    setTimeout(() => {
+      Pop.confetti(top.x, top.y, gold, champion ? 70 : 40, 1.2);
+      Pop.ring(top.x, top.y, '#ffe14d', champion ? 320 : 220, 520);
+      if (champion) Pop.flash('#ffe14d', 0.3, 280);
+    }, 220);
+    // the coins arrive after the card has settled, so you can watch them land on the counter
+    if (coins > 0) setTimeout(() => Pop.coins(card, coins >= 300 ? 16 : 10), 700);
+    if (levelUp) setTimeout(() => {
+      const el = $('r-xp');
+      const at = Pop.at(el);
+      Pop.shout(at.x, at.y - 30, 'LEVEL UP!', '#6fd3ff', 1100);
+      Pop.ring(at.x, at.y, '#6fd3ff', 200, 460);
+      Pop.confetti(at.x, at.y, ['#6fd3ff', '#ffffff'], 24);
+    }, 1100);
+    if (rankUp) setTimeout(() => {
+      const el = $('r-rank') || card;
+      const at = Pop.at(el);
+      Pop.shout(at.x, at.y - 30, 'RANK UP!', '#ff8a1f', 1100);
+      Pop.confetti(at.x, at.y, ['#ff8a1f', '#ffe14d', '#ffffff'], 30);
+    }, levelUp ? 1900 : 1100);
+    if (champion) setTimeout(() => Pop.confetti(top.x, top.y, gold, 50, 1.4), 900);
+  },
+
   // ---- results ----
   showResults(m) {
     const r = m.result, d = Save.data;
@@ -810,6 +852,11 @@ const UI = {
     $('results').hidden = false;
     $('hud').hidden = true;
     Input.reset();
+    this.resultsFanfare(r.outcome, {
+      coins: r.coins + streakBonus + levelCoins + cupPrize,
+      levelUp: lv.level > levelBefore,
+      champion: cupResult === 'champion',
+    });
   },
 
   // ---- online results: the server's numbers, your rewards ----
@@ -891,6 +938,8 @@ const UI = {
     rankBox.hidden = !rk;
     if (rk) {
       const tier = RANK_TIERS.find((x) => x.id === rk.tier) || RANK_TIERS[0], rd = msg.rankD || 0;
+      const tierBefore = (Net.user && Net.user.rank && Net.user.rank.tier) || null;
+      this._rankedUp = !!(tierBefore && tierBefore !== rk.tier && rd > 0);
       rankBox.style.setProperty('--t', tier.color);
       rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${rk.rp} RP</b><em class="${rd > 0 ? 'up' : rd < 0 ? 'down' : 'flat'}">${rd > 0 ? '+' + rd : rd < 0 ? rd : 'NO CHANGE'}</em>`;
       if (Net.user) Net.user.rank = rk;
@@ -928,6 +977,13 @@ const UI = {
     $('results').hidden = false;
     $('hud').hidden = true;
     Input.reset();
+    this.resultsFanfare(outcome, {
+      coins: coins + streakBonus + levelCoins + wcPrize + fcupPrize,
+      levelUp: lv.level > levelBefore,
+      champion: !!((cup && cup.champion) || (fcup && fcup.champion)),
+      rankUp: !!this._rankedUp,
+    });
+    this._rankedUp = false;
     this._leaguePos = 0;
     this.fetchLeaguePos();
   },

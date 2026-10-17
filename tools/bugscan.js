@@ -349,7 +349,8 @@ window.BS = {
       if (cells[at].id !== win.id) throw new Error('the prize is not where the marker lands');
     });
     await step('a crate with nothing left charges nothing', async () => {
-      Save.data.owned = { character: CHARACTERS.map((c) => c.id), ball: BALLS.map((b) => b.id), trail: TRAILS.map((t) => t.id), celebration: CELEBRATIONS.map((c) => c.id), accessory: ACCESSORIES.map((a) => a.id) };
+      // every kind a crate deals in, skills included — miss one and the crate is not empty
+      Save.data.owned = { character: CHARACTERS.map((c) => c.id), ball: BALLS.map((b) => b.id), trail: TRAILS.map((t) => t.id), celebration: CELEBRATIONS.map((c) => c.id), accessory: ACCESSORIES.map((a) => a.id), skill: SKILLS.map((k) => k.id) };
       Save.data.coins = 999999;
       const r = Crates.open('bronze');
       if (!r || !r.empty) throw new Error('it gave something out of an empty crate');

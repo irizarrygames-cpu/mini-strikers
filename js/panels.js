@@ -333,6 +333,12 @@ Object.assign(UI, {
       const got = Missions.claim(b.dataset.claim);
       if (!got) return;
       Sound.powerReady();
+      // the coins actually go somewhere, rather than a number quietly changing
+      const at = Pop.at(b);
+      Pop.coins(b, got >= 5000 ? 16 : 10);
+      Pop.ring(at.x, at.y, '#ffc21a', 180, 420);
+      Pop.shout(at.x, at.y - 24, '+' + fmtCoins(got), '#ffc21a', 900);
+      Pop.confetti(at.x, at.y, ['#ffc21a', '#ffffff', '#35c06a'], got >= 5000 ? 34 : 18);
       this.toast('+' + fmtCoins(got) + ' COINS');
       this.panel_missions(body);
       this.refreshHome();
@@ -408,9 +414,18 @@ Object.assign(UI, {
     body.querySelectorAll('canvas[data-crateart]').forEach((cv) => this.crateArt(cv, Crates.get(cv.dataset.crateart)));
     body.querySelectorAll('.crate-card').forEach((el) => el.addEventListener('click', () => {
       const crate = Crates.get(el.dataset.crate);
-      if (Save.data.coins < crate.price) { Sound.steal(); el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400); return; }
+      if (Save.data.coins < crate.price) {
+        Sound.steal(); el.classList.add('nope'); Pop.shake(el, 1.4);
+        setTimeout(() => el.classList.remove('nope'), 400);
+        return;
+      }
       if (!Crates.left(crate)) { Sound.steal(); this.toast('THAT CRATE IS EMPTY — TRY A BIGGER ONE'); return; }
       this.tap();
+      // you can see what you paid: the coins come off the counter and go into the crate
+      const at = Pop.at(el);
+      Pop.spend(el, crate.price >= 100000 ? 18 : crate.price >= 20000 ? 12 : 8);
+      Pop.ring(at.x, at.y, crate.color, 190, 420);
+      Pop.shake(el, 0.8);
       this.openCrate(body, crate);
     }));
   },
@@ -583,15 +598,23 @@ Object.assign(UI, {
     this._crateT = setTimeout(() => {
       if (!$('crate-result')) return;
       const rar = Crates.rarity(win.kind, win.id);
-      const kindName = { character: 'PLAYER', ball: 'BALL', trail: 'POWER TRAIL', celebration: 'CELEBRATION', accessory: 'ACCESSORY' }[win.kind];
+      const kindName = { character: 'PLAYER', ball: 'BALL', trail: 'POWER TRAIL', celebration: 'CELEBRATION', accessory: 'ACCESSORY', skill: 'SKILL MOVE' }[win.kind] || 'ITEM';
       $('crate-result').innerHTML = `<span class="got" style="--r:${RARITIES[rar].color}">${RARITIES[rar].name}</span>
         <b>${Crates.name(win.kind, win.id)}</b><em>${kindName} · NEW</em>`;
       $('crate-result').hidden = false;
+      $('crate-result').classList.remove('landed'); void $('crate-result').offsetWidth;
       $('crate-buttons').hidden = false;
       $('crate-again').textContent = Save.data.coins >= crate.price ? 'OPEN ANOTHER' : 'NOT ENOUGH COINS';
       $('crate-again').classList.toggle('off', Save.data.coins < crate.price);
       Sound.powerReady();
-      if (rar === 'legendary' || rar === 'mythic') { Sound.cheer(true); FX.flash && FX.flash; }
+      // the fuss is made over the card itself, and scaled to what came out of the crate
+      Pop.prize($('crate-result'), rar);
+      if (rar === 'legendary' || rar === 'mythic') {
+        Sound.cheer(true);
+        // No floating word for the grade: the card already says it, and there is nowhere to put
+        // one that is not on top of the reel or the name. The card makes the entrance instead.
+        $('crate-result').classList.add('landed');
+      }
       $('crate-back').addEventListener('click', () => { this.tap(); this.panel_crates(body); });
       $('crate-again').addEventListener('click', () => {
         if (Save.data.coins < crate.price) { Sound.steal(); return; }
@@ -718,6 +741,9 @@ Object.assign(UI, {
       if (tab === 'ball') Save.data.ball = el.dataset.id;
       if (tab === 'accessory') Save.data.accessory = el.dataset.id === 'none' ? null : el.dataset.id;
       Save.write();
+      // a small nod that it took
+      const card = el.getBoundingClientRect ? el : null;
+      if (card) { const at = Pop.at(card); Pop.ring(at.x, at.y, '#ffffff', 140, 360); Pop.confetti(at.x, at.y, ['#ffffff', '#ffc21a'], 10, 0.6); }
       this.panel_customize(body);
       this.refreshHome();
     }));
@@ -1102,6 +1128,11 @@ Object.assign(UI, {
       const coins = Achievements.claim(btn.dataset.id);
       if (!coins) return;
       Sound.goalJingle(true); vibrate(25);
+      const at = Pop.at(btn);
+      Pop.coins(btn, coins >= 500 ? 16 : 10);
+      Pop.ring(at.x, at.y, '#ffc21a', 200, 440);
+      Pop.shout(at.x, at.y - 26, '+' + fmtCoins(coins), '#ffc21a', 900);
+      Pop.confetti(at.x, at.y, ['#ffc21a', '#ffffff', '#6fd3ff'], 26);
       this.toast(`+${coins} COINS`);
       const scroll = body.parentElement.scrollTop;
       this.panel_profile(body);

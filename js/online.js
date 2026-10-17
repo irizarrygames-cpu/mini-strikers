@@ -13,7 +13,8 @@ const NET_TRAILS = [null, 'pass', 'weak', 'shot', 'strong', ...TRAILS.map((t) =>
 const NET_ULTS = ULT_KINDS;
 const NET_TICK_MS = 1000 / 120;
 const NET_LEAD_SMOOTH = 12;          // smooth acknowledgement/ping changes without making controls laggy
-const NET_POS_FX = new Set(['text', 'burst', 'sparks', 'ring', 'stars']);
+// effects whose first argument is a position, so they flip for the player on the other side
+const NET_POS_FX = new Set(['text', 'burst', 'sparks', 'ring', 'stars', 'confetti']);
 
 const Online = {
   m: null, mirror: false, you: -1, format: '2v2', status: 'idle', // idle | queue | room | match

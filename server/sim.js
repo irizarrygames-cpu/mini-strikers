@@ -12,7 +12,7 @@ const FILES = ['config.js', 'clubs.js', 'stadiums.js', 'celebs.js', 'save.js', '
 // sounds everyone should hear; the charge hum is local to whoever is charging
 const SOUND_SKIP = new Set(['chargeStart', 'chargeStop', 'unlock', 'startMusic', 'stopMusic', 'startAmbience', 'stopAmbience', 'applyVolumes', 'tap', 'ok', 'setExcitement']);
 // particles worth sending; dust, speed lines and embers each client makes for itself
-const FX_SEND = new Set(['text', 'showBanner', 'burst', 'sparks', 'ring', 'stars', 'doShake', 'doFlash']);
+const FX_SEND = new Set(['text', 'showBanner', 'burst', 'sparks', 'ring', 'stars', 'doShake', 'doFlash', 'confetti']);
 
 function createSim() {
   let target = null; // the event list of the room being stepped right now

@@ -183,10 +183,36 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
   background: #232a55; color: #fff; border: 3px solid var(--ink); border-radius: 999px;
   padding: 4px 16px 4px 6px; font-size: clamp(13px, min(5vmin, 2.7vw), 26px); box-shadow: 0 4px 0 var(--ink);
 }
+/* The coin. Struck rather than drawn: rim, face, inner ring, a star in the middle, a hard
+   highlight top-left and a shadow bottom-right, and a band of light that crosses it now and
+   then. Everything is a hard-edged shape — the sweep moves, it does not fade. */
 .coin {
-  width: 1.15em; height: 1.15em; border-radius: 50%; background: var(--yellow); border: 3px solid var(--ink);
-  box-shadow: inset -3px -3px 0 #e0a800; display: inline-block; flex: none;
+  width: 1.15em; height: 1.15em; border-radius: 50%;
+  background: var(--yellow); border: 3px solid var(--ink);
+  box-shadow: inset -0.14em -0.14em 0 #d99a10, inset 0.1em 0.1em 0 #ffe9a8;
+  display: inline-block; flex: none; position: relative; overflow: hidden;
+  vertical-align: -0.16em;
 }
+/* the ring pressed into the face, and the star inside it */
+.coin::before {
+  content: ''; position: absolute; inset: 0.14em; border-radius: 50%;
+  border: 0.085em solid #e8a81a;
+  background:
+    conic-gradient(from 0deg, transparent 0) ,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 3.4l1.9 4.1 4.4.5-3.3 3 .9 4.4-3.9-2.3-3.9 2.3.9-4.4-3.3-3 4.4-.5z' fill='%23fff0bd' stroke='%23c98c0a' stroke-width='0.9' stroke-linejoin='round'/%3E%3C/svg%3E") center / 84% no-repeat;
+}
+/* the band of light crossing the face */
+.coin::after {
+  content: ''; position: absolute; top: -40%; bottom: -40%; width: 38%;
+  background: rgba(255, 255, 255, 0.75);
+  transform: rotate(18deg) translateX(-260%);
+  animation: coinShine 3.6s steps(22, end) infinite;
+}
+@keyframes coinShine {
+  0%, 62% { transform: rotate(18deg) translateX(-260%); }
+  78%, 100% { transform: rotate(18deg) translateX(320%); }
+}
+@media (prefers-reduced-motion: reduce) { .coin::after { animation: none; opacity: 0; } }
 .logo {
   position: absolute; left: 50%; top: calc(var(--head-b, calc(var(--st) + max(14vmin, clamp(34px, min(13vmin, 6.5vw), 64px) + 30px))) + 12px); transform: translateX(-50%) rotate(-4deg);
   margin: 0; display: flex; gap: 0.25em; white-space: nowrap;
@@ -300,7 +326,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .set > span { width: 120px; font-size: 18px; }
 .set input[type=range] { flex: 1; accent-color: var(--blue); height: 28px; }
 .seg { display: flex; flex: 1; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; }
-.seg button { flex: 1; border: none; border-right: 3px solid var(--ink); background: #eef2ff; padding: 8px 4px; font-size: 15px; }
+.seg button { flex: 1; border: none; border-right: 3px solid var(--ink); background: #eef2ff; padding: 8px 4px; font-size: 15px; min-height: 36px; }
 .seg button:last-child { border-right: none; }
 .seg button.sel { background: var(--blue); color: #fff; }
 
@@ -886,6 +912,120 @@ body.offline [data-needs-net]:active { transform: none; }
 }
 @keyframes tapPulse { from { opacity: 1; } to { opacity: 0.35; } }
 
+/* what you won, arriving */
+.crate-result.landed { animation: cratePrize 0.5s cubic-bezier(.2, 1.7, .4, 1) both; }
+@keyframes cratePrize {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  55% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.mini-danger { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* ================= SOMETHING TO AIM AT =================
+   Measured on a 375px-wide phone: the home row came out 25px tall, the customize tabs 27px and
+   the bottom-row pills 26px. That is smaller than a child's thumb and it showed. Everything you
+   can tap now has a floor of 36px (34px for the thin status pills along the top, which are
+   read more than they are pressed), and the text is centred in whatever height it ends up at. */
+.mid-btn,
+.howto-btn,
+.tabs button,
+.m-claim,
+.claim,
+.crate-head .mid-btn {
+  min-height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pill, .coins, .trophies { min-height: 34px; }
+/* a badge hangs off the corner of its button, so the button has to be the thing it hangs from */
+.mid-btn, .howto-btn { position: relative; }
+.home-bl .howto-btn { position: relative; left: auto; bottom: auto; }
+
+/* full time: the card drops in rather than blinking into place */
+.panel.results.landed { animation: resultsLand 0.42s cubic-bezier(.2, 1.5, .4, 1); }
+@keyframes resultsLand {
+  0% { transform: scale(0.82) translateY(-26px); opacity: 0; }
+  60% { transform: scale(1.03) translateY(0); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .panel.results.landed { animation: none; } }
+
+/* the coin kicks when the number behind it changes, and the number leans while it rolls */
+.coin.kick { animation: coinKick 0.42s cubic-bezier(.2, 1.7, .4, 1); }
+@keyframes coinKick {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.35) rotate(-14deg); }
+  70% { transform: scale(0.94) rotate(6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.counting { color: var(--yellow); }
+
+/* ================= POP: effects over the top of the page =================
+   Confetti, flashes, rings and flying coins for everything that is not the pitch. The layer
+   never takes a click — it sits over the game purely to be looked at. */
+#pop-layer { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+#pop-layer * { pointer-events: none; }
+
+.pop-flash {
+  position: absolute; inset: 0; opacity: 0;
+  animation: popFlash var(--ms, 220ms) ease-out forwards;
+}
+@keyframes popFlash { 0% { opacity: 0; } 18% { opacity: var(--a, 0.35); } 100% { opacity: 0; } }
+
+.pop-ring {
+  position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+  border: 5px solid #fff; border-radius: 50%; opacity: 0.9;
+  animation: popRing var(--ms, 460ms) cubic-bezier(.2, .8, .3, 1) forwards;
+}
+@keyframes popRing {
+  0% { width: 10px; height: 10px; margin: -5px 0 0 -5px; opacity: 0.95; }
+  100% { width: var(--size, 220px); height: var(--size, 220px);
+         margin: calc(var(--size, 220px) / -2) 0 0 calc(var(--size, 220px) / -2); opacity: 0; }
+}
+
+.pop-bit {
+  position: absolute; width: 8px; height: 11px; border: 2px solid var(--ink);
+  animation: popBit var(--ms, 900ms) cubic-bezier(.2, .6, .4, 1) forwards;
+}
+@keyframes popBit {
+  0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--spin)); opacity: 0; }
+}
+
+.pop-coin {
+  position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  border-radius: 50%; background: var(--yellow); border: 3px solid var(--ink);
+  box-shadow: inset -3px -3px 0 #d99a10;
+  animation: popCoin var(--ms, 520ms) cubic-bezier(.3, .1, .2, 1) forwards;
+}
+@keyframes popCoin {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; transform: translate(calc(var(--sx) * 0.4), -40px) scale(1.1); }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.45); opacity: 0; }
+}
+
+.pop-shout {
+  position: absolute; transform: translate(-50%, -50%);
+  font-size: clamp(22px, 6vmin, 44px); white-space: nowrap;
+  -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill;
+  animation: popShout var(--ms, 900ms) cubic-bezier(.2, 1.6, .4, 1) forwards;
+}
+@keyframes popShout {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  22% { transform: translate(-50%, -62%) scale(1.12); opacity: 1; }
+  70% { transform: translate(-50%, -78%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -110%) scale(0.95); opacity: 0; }
+}
+
+.pop-shaking { animation: popShake 0.4s cubic-bezier(.36, .07, .19, .97) both; }
+@keyframes popShake {
+  10%, 90% { transform: translate(calc(-1px * var(--shake, 1)), 0); }
+  20%, 80% { transform: translate(calc(2px * var(--shake, 1)), calc(-1px * var(--shake, 1))); }
+  30%, 50%, 70% { transform: translate(calc(-4px * var(--shake, 1)), calc(1px * var(--shake, 1))); }
+  40%, 60% { transform: translate(calc(4px * var(--shake, 1)), calc(-1px * var(--shake, 1))); }
+}
+@media (prefers-reduced-motion: reduce) { #pop-layer { display: none; } .pop-shaking { animation: none; } }
+
 /* format picker */
 .formats { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 10px; }
 .formats span { font-size: 16px; margin-right: 4px; }
@@ -1074,7 +1214,7 @@ body.offline [data-needs-net]:active { transform: none; }
   .set { flex-wrap: wrap; gap: 8px 10px; }
   .set > span { width: auto; flex: 1 0 auto; font-size: 16px; }
   .set .seg, .set input[type=range] { flex: 1 1 100%; }
-  .set .seg button { font-size: 14px; padding: 7px 2px; }
+  .set .seg button { font-size: 14px; padding: 7px 2px; min-height: 36px; }
 }
 
 /* ---- Phones held sideways ---------------------------------------------------------
@@ -1603,3 +1743,30 @@ body.kb .chat-menu kbd { display: inline-block; }
 .pw-form input:focus { outline: 3px solid var(--blue); }
 .pw-form .note { margin: 0; text-align: center; }
 .pw-form .note.bad { color: var(--ui-red); }
+
+/* ================= ROOM TO SHRINK =================
+   Measured on a 320px-wide phone. A flex or grid child will not shrink below the width of its
+   own content unless it is told it may, so when the room ran out these did not squeeze — they
+   hung out of the panel, and in one case off the screen. Letting them shrink, and letting the
+   rows wrap when even that is not enough, costs nothing at a normal size.
+
+   This sits at the end of the file because it corrects rules further up (.mode.pens at 708,
+   .formats at 1036, .mode.chal at 1566) and has to come after them to win. */
+
+/* FORMAT 1v1 2v2 3v3 4v4 — centred and told not to wrap, it hung out of both sides at once */
+.formats { flex-wrap: wrap; }
+.formats span { margin-right: 0; }
+
+/* The paragraph in a wide mode card is what has to give, so the tag beside it stays inside.
+   It is allowed to shrink, but only so far: below 150px it takes its own line instead, because
+   a sentence squeezed into 9px is not a fix. */
+.mode.pens, .mode.chal, .mode.training { flex-wrap: wrap; }
+.mode.pens p, .mode.chal p, .mode.training p { min-width: 0; flex: 1 1 150px; }
+.mode .tag { max-width: 100%; }
+@media (max-width: 400px) {
+  .mode.pens .tag, .mode.chal .tag { align-self: flex-start; }
+}
+
+/* the PC / skills columns: the grid was being held open by its longest line */
+.controls-ref > div { min-width: 0; }
+.controls-ref li { flex-wrap: wrap; }
