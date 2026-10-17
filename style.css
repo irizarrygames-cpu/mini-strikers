@@ -752,7 +752,12 @@ body:not(.kb) #kb-legend { display: none; }
 .cup-step.won { background: #c9f7cf; }
 .cup-step.lost { background: #ffd0d3; }
 .cup-step.next { background: var(--yellow); }
-@media (max-width: 440px) { .cup-step { padding: 0 3px; } .cup-step small { font-size: 8px; letter-spacing: -0.2px; } }
+/* QUARTER-FINAL is 95px of lettering and the box it goes in is 77px. Told never to wrap, it
+   simply ran out of the side of the card on a 320px phone. It takes two lines there instead. */
+@media (max-width: 440px) {
+  .cup-step { padding: 0 3px; }
+  .cup-step small { font-size: 8px; letter-spacing: -0.2px; white-space: normal; line-height: 1.05; text-align: center; }
+}
 
 /* mode select */
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -1770,3 +1775,21 @@ body.kb .chat-menu kbd { display: inline-block; }
 /* the PC / skills columns: the grid was being held open by its longest line */
 .controls-ref > div { min-width: 0; }
 .controls-ref li { flex-wrap: wrap; }
+
+/* ================= THE ROUND YOU ARE IN =================
+   The World Cup bracket cut its round names off with an ellipsis: QUARTER-FIN… on a 320px
+   phone, 95px of lettering in a 77px box. Which round you are in matters more than the label
+   staying on one line, so on a narrow screen it takes two.
+
+   This is at the end of the file because the rule it corrects lives at .wc-bracket li small
+   further up, and at equal specificity the last one wins. An override placed above it does
+   nothing at all, which is exactly what happened the first time I wrote this. */
+@media (max-width: 440px) {
+  .wc-bracket li small {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 10px;
+    line-height: 1.05;
+  }
+}

@@ -583,7 +583,10 @@ const MATE_BASE = { redSpeed: 0.984, slideOnHuman: 0.95, aiSlide: 0.34, aiDodge:
 // coin counts for display: 999999 stays exact, then 1.25M, 1B
 function fmtCoins(n) {
   n = Math.floor(Number(n) || 0);
-  if (n < 1e6) return String(n);
+  // Below a million, group the digits: 125,000 reads at a glance where 125000 has to be counted.
+  // Above it the short form is already clearer than any amount of grouping — 2.5M beats
+  // 2,500,000 — which is what it is for.
+  if (n < 1e6) return (n < 0 ? '-' : '') + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const [v, unit] = n >= 1e9 ? [n / 1e9, 'B'] : [n / 1e6, 'M'];
   return (v >= 100 ? Math.floor(v) : Math.floor(v * 100) / 100) + unit;
 }

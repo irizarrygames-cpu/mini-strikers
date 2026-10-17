@@ -8,7 +8,11 @@
 // Both are needed — the CUSTOMIZE button that spilled out of its pill was invisible to overlap
 // checks, and the 25px-tall home row overlapped nothing at all.
 window.US = {
-  PANELS: ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile'],
+  PANELS: ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings',
+    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode'],
+
+  // the full-screen ones, which the panel sweep never touched
+  OVERLAYS: ['daily', 'howto', 'results', 'pause', 'queue', 'lobby'],
 
   // the smallest a thing you tap is allowed to be. Not the 44px of the phone guidelines — this
   // is a dense arcade menu and 44 would not fit — but nothing below this is honestly tappable.
@@ -27,6 +31,16 @@ window.US = {
     return base + (t ? '[' + t.slice(0, 16) + ']' : '');
   },
 
+  // Is this element's width somebody else's problem? A thing inside a box that scrolls sideways
+  // is not hanging out of the screen — it is waiting its turn, and the box is what gets checked.
+  insideAScroller(el, root) {
+    for (let p = el.parentElement; p && p !== root.parentElement; p = p.parentElement) {
+      const o = getComputedStyle(p).overflowX;
+      if (o === 'auto' || o === 'scroll' || o === 'hidden') return true;
+    }
+    return false;
+  },
+
   // `scrolls` says whether being below the fold is allowed: a panel scrolls, the home screen does not.
   scan(root, where, scrolls) {
     const hits = [], rb = root.getBoundingClientRect();
@@ -36,14 +50,20 @@ window.US = {
       const leaf = !e.children.length;
       // decoration (a coin's shine, an icon) clips itself on purpose — only judge things with words in them
       const hasText = !!(e.textContent && e.textContent.trim());
-      if (leaf && hasText && e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1 && !/auto|scroll/.test(cs.overflowX))
-        hits.push(`${where} OVERFLOW-X ${this.name(e)} ${e.scrollWidth} in ${e.clientWidth}`);
+      if (leaf && hasText && e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1 && !/auto|scroll/.test(cs.overflowX)) {
+        // an ellipsis means somebody decided to cut this off; a plain overflow means nobody did
+        const onPurpose = cs.textOverflow === 'ellipsis' && /hidden|clip/.test(cs.overflowX);
+        hits.push(`${where} ${onPurpose ? 'ELLIPSIS' : 'OVERFLOW-X'} ${this.name(e)} ${e.scrollWidth} in ${e.clientWidth}`);
+      }
       if (leaf && hasText && e.clientHeight > 0 && e.scrollHeight > e.clientHeight + 2 && cs.overflowY === 'hidden')
         hits.push(`${where} CLIPPED-Y ${this.name(e)} ${e.scrollHeight} in ${e.clientHeight}`);
-      if (b.right > rb.right + 2 || b.left < rb.left - 2)
-        hits.push(`${where} OUTSIDE ${this.name(e)} ${Math.round(b.left)}-${Math.round(b.right)} vs ${Math.round(rb.left)}-${Math.round(rb.right)}`);
-      if (b.right > innerWidth + 2 || b.left < -2)
-        hits.push(`${where} OFFSCREEN-X ${this.name(e)} ${Math.round(b.left)}-${Math.round(b.right)} in ${innerWidth}`);
+      // these two only mean something if nothing above it is already handling the width
+      if (!this.insideAScroller(e, root)) {
+        if (b.right > rb.right + 2 || b.left < rb.left - 2)
+          hits.push(`${where} OUTSIDE ${this.name(e)} ${Math.round(b.left)}-${Math.round(b.right)} vs ${Math.round(rb.left)}-${Math.round(rb.right)}`);
+        if (b.right > innerWidth + 2 || b.left < -2)
+          hits.push(`${where} OFFSCREEN-X ${this.name(e)} ${Math.round(b.left)}-${Math.round(b.right)} in ${innerWidth}`);
+      }
       if (!scrolls && (b.bottom > innerHeight + 2 || b.top < -2))
         hits.push(`${where} OFFSCREEN-Y ${this.name(e)} ${Math.round(b.top)}-${Math.round(b.bottom)} in ${innerHeight}`);
       if (e.tagName === 'BUTTON' && (b.height < this.TAP || b.width < 30))
@@ -73,6 +93,20 @@ window.US = {
       UI.closeModal();
       await wait(60);
     }
+    // and the overlays: the results card, how to play, the daily reward, the pause menu, and
+    // the two waiting rooms. Each is shown as it is, looked at, and put back.
+    for (const id of this.OVERLAYS) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      const was2 = el.hidden;
+      el.hidden = false;
+      await wait(160);
+      const panel = el.querySelector('.panel') || el;
+      out.hits.push(...this.scan(panel, id, true));
+      el.hidden = was2;
+      await wait(40);
+    }
+
     Save.data.tutorialSeen = was;
     out.hits = [...new Set(out.hits)];
     out.count = out.hits.length;
