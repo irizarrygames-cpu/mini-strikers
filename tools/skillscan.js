@@ -156,7 +156,7 @@ const roomMates = (id) => {
   // be handed opponents carrying the best characters in the game.
   // the character list comes from the same sandbox the server itself uses
   const { createSim } = require('../server/sim');
-  const { CHARACTERS } = createSim();
+  const { CHARACTERS, pickBotCharacter, BOT_RARITY_SHARE, BOT_RARITY_ONLINE } = createSim();
   const rarityOf = (id) => { const c = CHARACTERS.find((x) => x.id === id); return c ? c.rarity : '?'; };
   const fillFor = async (who, rp, rounds) => {
     let top = 0, total = 0;
@@ -178,10 +178,32 @@ const roomMates = (id) => {
     }
     return { fillIns: total, best: top, pct: total ? Math.round((top / total) * 100) : 0 };
   };
+  // Does the standard of the room reach the character picker at all? Twelve rounds each is
+  // plenty to answer that — every empty spot has to come back filled.
   const low = await fillFor('rookie', 0, 12);
   const high = await fillFor('ace', 800, 12);
-  check('a beginner is filled in with ordinary players', low.fillIns > 0 && low.pct <= 20, low);
-  check('and someone at the top gets the strong ones', high.fillIns > 0 && high.pct >= low.pct, { beginner: low.pct + '% top-tier', ladderTop: high.pct + '% top-tier' });
+  check('empty spots are filled in for a beginner', low.fillIns > 0, low);
+  check('and for someone at the top of the ladder', high.fillIns > 0, high);
+
+  // How often a good character turns up is a question about the odds, not about any one match,
+  // so it is asked of the odds. Thirty-six draws cannot tell 6% from 24%; twenty thousand can.
+  const shareFor = (skill) => {
+    const t = Math.max(0, Math.min(1, (skill || 0) / 800));
+    const out = {};
+    for (const k of Object.keys(BOT_RARITY_ONLINE)) out[k] = (BOT_RARITY_SHARE[k] || 0) * (1 - t) + BOT_RARITY_ONLINE[k] * t;
+    return out;
+  };
+  const topShare = (skill, n = 20000) => {
+    const share = shareFor(skill);
+    let top = 0;
+    for (let i = 0; i < n; i++) { const r = rarityOf(pickBotCharacter(Math.random, share).id); if (r === 'legendary' || r === 'mythic') top++; }
+    return Math.round((top / n) * 1000) / 10;
+  };
+  const pctLow = topShare(0), pctMid = topShare(400), pctTop = topShare(800);
+  console.log(`  draws: beginner ${pctLow}% top-tier · middle ${pctMid}% · ladder top ${pctTop}%`);
+  check('a beginner is filled in with ordinary players', pctLow < 10, pctLow + '% top-tier');
+  check('and someone at the top gets the strong ones', pctTop > pctLow * 2.5, { beginner: pctLow + '%', ladderTop: pctTop + '%' });
+  check('and it climbs the whole way rather than jumping at the end', pctMid > pctLow && pctTop > pctMid, { low: pctLow, mid: pctMid, top: pctTop });
 
   console.log(fails ? `\n${fails} FAILED` : '\nall matchmaking checks passed');
   process.exit(fails ? 1 : 0);

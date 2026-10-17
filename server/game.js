@@ -857,7 +857,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const seats = [];
     const clubFor = {};
     // the filled-in players are dressed to the standard of the people actually in the match
-    const botShare = botShareFor(roomSkill(entries.map((e) => e.id)));
+    // the standard of this match: what the fill-ins carry, and how good a stand-in is if
+    // somebody walks out of it
+    const standard = roomSkill(entries.map((e) => e.id));
+    const botShare = botShareFor(standard);
     for (const team of ['blue', 'red']) {
       const humans = entries.filter((e) => e.team === team).slice(0, size);
       // a side wears the club most of its real players support (the first player's on a tie)
@@ -874,7 +877,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
           seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0, wc: wcRound === null ? null : wcRoundOf(e.id) });
         } else {
           // filled spots dress like people do: some with an accessory, mostly the cheaper ones
-          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, botShare).id, celebration: pickOne(BOT_CELEBS), skill: botSkillFor(roomSkill(entries.map((e) => e.id))), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
+          seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, botShare).id, celebration: pickOne(BOT_CELEBS), skill: botSkillFor(standard), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
         }
       }
     }
@@ -883,7 +886,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!clubFor.blue) clubFor.blue = pickOne(clubIds.filter((c) => c !== clubFor.red));
     if (!clubFor.red) clubFor.red = pickOne(clubIds.filter((c) => c !== clubFor.blue));
 
-    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cup, ranked: !!ranked, coop: !!coop };
+    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cup, ranked: !!ranked, coop: !!coop, standard };
     room.m = sim.create({
       // World Cup rounds: no draws, and each round a notch tougher than the last
       online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null || !!cup,
@@ -1234,15 +1237,31 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     while (q && q.length && q[0].at <= now) { const c = q.shift(); if (c.n >= 0) roomChat(room, c.player, c.n, null); }
   }
 
-  // A player who leaves is replaced by a deliberately poor bot: slow, late to everything,
-  // sloppy on the ball. Nobody gets a better teammate out of someone walking off.
+  // The two ends of the stand-in that a walk-off leaves behind. LOW is the sandbag it has always
+  // been — slow, two seconds late to everything, three times the mistakes — and it is what a
+  // match at the bottom of the ladder still gets. HIGH can hold a position, make a tackle and
+  // finish a chance, which is what a game at the top needs if it is to stay a game.
+  //
+  // HIGH is deliberately short of ONLINE_BOTS, the fill-ins a match starts with: slower to react,
+  // noisier in front of goal, more mistakes. Losing someone always costs your side something.
+  const WALKOFF_LOW = { redSpeed: 0.8, aiSlide: 0.06, aiDodge: 0.05, aiSkill: 0.04, aiShotNoise: 95, react: 2.2, mistakes: 3 };
+  const WALKOFF_HIGH = { redSpeed: 0.99, aiSlide: 0.3, aiDodge: 0.5, aiSkill: 0.34, aiShotNoise: 30, react: 0.85, mistakes: 0.75 };
+  const WALKOFF_ATTR_LOW = { speed: 0.96, shot: 0.9, pass: 0.9, finish: 0.05, ctl: -0.6, def: -0.6 };
+  const WALKOFF_ATTR_HIGH = { speed: 1, shot: 0.99, pass: 0.99, finish: 0.6, ctl: -0.05, def: -0.05 };
+
+  // A player who leaves is replaced by a bot of roughly the standard of the match they walked
+  // out of, never better than the fill-ins it started with. Nobody gets a better teammate out of
+  // someone walking off, and nobody at the top gets handed a walkover either.
   function becomeBot(room, seat) {
     const m = room.m, p = seat.player;
     if (!p || !p.isHuman) return;
+    // the same 0-to-800 measure of a player that matchmaking and the fill-in characters use
+    const t = Math.max(0, Math.min(1, (room.standard || 0) / 800));
+    const mix = (lo, hi) => { const o = {}; for (const k in lo) o[k] = lo[k] + (hi[k] - lo[k]) * t; return o; };
     p.isHuman = false; p.input = null; p.charging = false; p.passCharging = false;
-    p.botDiff = { ...m.diff, redSpeed: 0.8, aiSlide: 0.06, aiDodge: 0.05, aiSkill: 0.04, aiShotNoise: 95, react: 2.2, mistakes: 3 };
+    p.botDiff = { ...m.diff, ...mix(WALKOFF_LOW, WALKOFF_HIGH) };
     p.speedMul = p.botDiff.redSpeed;
-    p.attr = { speed: 0.96, shot: 0.9, pass: 0.9, finish: 0.05, ctl: -0.6, def: -0.6 };
+    p.attr = mix(WALKOFF_ATTR_LOW, WALKOFF_ATTR_HIGH);
     m.humans = m.humans.filter((h) => h !== p);
     m.teamHuman = { blue: m.humans.some((h) => h.team === 'blue'), red: m.humans.some((h) => h.team === 'red') };
     if (m.human === p) m.human = m.humans[0] || m.players[0];
