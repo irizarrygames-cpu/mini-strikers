@@ -34,45 +34,58 @@ const MP4 = {
     return out;
   },
 
+  // ---- one track's sample tables, shared by both kinds of track
+  tables(samples, firstSampleAt) {
+    const runs = [];
+    for (const smp of samples) {
+      const last = runs[runs.length - 1];
+      if (last && last.d === smp.duration) last.n++;
+      else runs.push({ n: 1, d: smp.duration });
+    }
+    const stts = this.fullBox('stts', 0, 0, this.u32(runs.length), ...runs.flatMap((r) => [this.u32(r.n), this.u32(r.d)]));
+
+    const keys = [];
+    samples.forEach((smp, i) => { if (smp.isKey) keys.push(i + 1); });
+    // every audio frame can be jumped to, so the table would just list all of them: leave it out
+    const stss = keys.length === samples.length ? null
+      : this.fullBox('stss', 0, 0, this.u32(keys.length), ...keys.map((k) => this.u32(k)));
+
+    const stsz = this.fullBox('stsz', 0, 0, this.u32(0), this.u32(samples.length), ...samples.map((smp) => this.u32(smp.data.length)));
+    const offsets = [];
+    let at = firstSampleAt;
+    for (const smp of samples) { offsets.push(at); at += smp.data.length; }
+    const stsc = this.fullBox('stsc', 0, 0, this.u32(1), this.u32(1), this.u32(1), this.u32(1));
+    const stco = this.fullBox('stco', 0, 0, this.u32(offsets.length), ...offsets.map((o) => this.u32(o)));
+    const duration = samples.reduce((n2, smp) => n2 + smp.duration, 0);
+    return { stts, stss, stsz, stsc, stco, duration };
+  },
+
   // ---- the file
-  // samples: [{ data: Uint8Array, duration, isKey }]  (duration in `timescale` units)
-  // avcC: the decoder description WebCodecs hands back on the first chunk
-  build({ samples, width, height, timescale, avcC }) {
-    const total = samples.reduce((n, s) => n + s.data.length, 0);
+  // video: { samples, width, height, timescale, avcC }
+  // audio: { samples, sampleRate, channels, timescale, esds } or nothing at all
+  build({ samples, width, height, timescale, avcC, audio }) {
+    const asamples = (audio && audio.samples && audio.samples.length) ? audio.samples : null;
+    const vtotal = samples.reduce((n, s) => n + s.data.length, 0);
+    const atotal = asamples ? asamples.reduce((n, s) => n + s.data.length, 0) : 0;
     const duration = samples.reduce((n, s) => n + s.duration, 0);
 
     const ftyp = this.box('ftyp', this.str('isom'), this.u32(0x200), this.str('isom'), this.str('iso2'), this.str('avc1'), this.str('mp41'));
 
-    // mdat holds every frame back to back. Its header is 8 bytes, so the first sample starts
-    // 8 bytes after the box begins — which is what the chunk offsets below have to point at.
-    const mdat = this.cat([this.u32(total + 8), this.str('mdat'), ...samples.map((s) => s.data)]);
+    // One mdat holds everything: the pictures first, then the sound. Its header is 8 bytes, so
+    // the first sample starts 8 bytes in — and the sound starts after all the pictures.
+    const mdat = this.cat([
+      this.u32(vtotal + atotal + 8), this.str('mdat'),
+      ...samples.map((s) => s.data),
+      ...(asamples ? asamples.map((s) => s.data) : []),
+    ]);
     const mdatStart = ftyp.length;
     const firstSampleAt = mdatStart + 8;
+    const firstAudioAt = firstSampleAt + vtotal;
 
-    // stts: how long each sample lasts, run-length encoded
-    const runs = [];
-    for (const s of samples) {
-      const last = runs[runs.length - 1];
-      if (last && last.d === s.duration) last.n++;
-      else runs.push({ n: 1, d: s.duration });
-    }
-    const stts = this.fullBox('stts', 0, 0, this.u32(runs.length), ...runs.flatMap((r) => [this.u32(r.n), this.u32(r.d)]));
-
-    // stss: which samples a player may jump straight to
-    const keys = [];
-    samples.forEach((s, i) => { if (s.isKey) keys.push(i + 1); });
-    const stss = this.fullBox('stss', 0, 0, this.u32(keys.length), ...keys.map((k) => this.u32(k)));
-
-    // stsz: the size of every sample
-    const stsz = this.fullBox('stsz', 0, 0, this.u32(0), this.u32(samples.length), ...samples.map((s) => this.u32(s.data.length)));
-
-    // Every sample is its own chunk. That makes stco long but keeps stsc trivial, and a trailer
-    // is a couple of thousand frames, not a feature film.
-    const offsets = [];
-    let at = firstSampleAt;
-    for (const s of samples) { offsets.push(at); at += s.data.length; }
-    const stsc = this.fullBox('stsc', 0, 0, this.u32(1), this.u32(1), this.u32(1), this.u32(1));
-    const stco = this.fullBox('stco', 0, 0, this.u32(offsets.length), ...offsets.map((o) => this.u32(o)));
+    // Every sample is its own chunk. That makes the offset table long but keeps the
+    // sample-to-chunk table trivial, and a trailer is a few thousand frames, not a feature film.
+    const V = this.tables(samples, firstSampleAt);
+    const { stts, stss, stsz, stsc, stco } = V;
 
     const avc1 = this.box('avc1',
       new Uint8Array(6), this.u16(1),                 // reserved, data reference index
@@ -85,7 +98,7 @@ const MP4 = {
       this.box('avcC', avcC));
     const stsd = this.fullBox('stsd', 0, 0, this.u32(1), avc1);
 
-    const stbl = this.box('stbl', stsd, stts, stss, stsc, stsz, stco);
+    const stbl = this.box('stbl', ...[stsd, stts, stss, stsc, stsz, stco].filter(Boolean));
     const dinf = this.box('dinf', this.fullBox('dref', 0, 0, this.u32(1), this.fullBox('url ', 0, 1)));
     const minf = this.box('minf', this.box('vmhd', this.u8(0), new Uint8Array([0, 0, 1]), new Uint8Array(8)), dinf, stbl);
     const mdhd = this.fullBox('mdhd', 0, 0, this.u32(0), this.u32(0), this.u32(timescale), this.u32(duration), this.u16(0x55c4), this.u16(0));
@@ -99,10 +112,38 @@ const MP4 = {
       this.u32(width << 16), this.u32(height << 16));
     const trak = this.box('trak', tkhd, mdia);
 
+    // ---- the sound, as a second track
+    let atrak = null;
+    if (asamples) {
+      const A = this.tables(asamples, firstAudioAt);
+      const mp4a = this.box('mp4a',
+        new Uint8Array(6), this.u16(1),                       // reserved, data reference index
+        this.u32(0), this.u32(0),                             // version/revision/vendor
+        this.u16(audio.channels), this.u16(16),               // channel count, sample size
+        this.u16(0), this.u16(0),                             // pre_defined, reserved
+        this.u32(audio.sampleRate << 16),                     // the rate, 16.16
+        this.box('esds', audio.esds));
+      const astsd = this.fullBox('stsd', 0, 0, this.u32(1), mp4a);
+      const astbl = this.box('stbl', ...[astsd, A.stts, A.stss, A.stsc, A.stsz, A.stco].filter(Boolean));
+      const asmhd = this.fullBox('smhd', 0, 0, this.u16(0), this.u16(0));
+      const adinf = this.box('dinf', this.fullBox('dref', 0, 0, this.u32(1), this.fullBox('url ', 0, 1)));
+      const aminf = this.box('minf', asmhd, adinf, astbl);
+      const amdhd = this.fullBox('mdhd', 0, 0, this.u32(0), this.u32(0), this.u32(audio.timescale), this.u32(A.duration), this.u16(0x55c4), this.u16(0));
+      const ahdlr = this.fullBox('hdlr', 0, 0, this.u32(0), this.str('soun'), new Uint8Array(12), this.str('SoundHandler\0'));
+      const amdia = this.box('mdia', amdhd, ahdlr, aminf);
+      // the track's own length has to be in the movie's timescale, not the sound's
+      const aMovieDur = Math.round((A.duration / audio.timescale) * timescale);
+      const atkhd = this.fullBox('tkhd', 0, 3, this.u32(0), this.u32(0), this.u32(2), this.u32(0), this.u32(aMovieDur),
+        new Uint8Array(8), this.u16(0), this.u16(0), this.u16(0x0100), this.u16(0),   // full volume
+        ...unity.map((v) => this.u32(v)),
+        this.u32(0), this.u32(0));
+      atrak = this.box('trak', atkhd, amdia);
+    }
+
     const mvhd = this.fullBox('mvhd', 0, 0, this.u32(0), this.u32(0), this.u32(timescale), this.u32(duration),
       this.u32(0x00010000), this.u16(0x0100), this.u16(0), this.u32(0), this.u32(0),
-      ...unity.map((v) => this.u32(v)), new Uint8Array(24), this.u32(2));
-    const moov = this.box('moov', mvhd, trak);
+      ...unity.map((v) => this.u32(v)), new Uint8Array(24), this.u32(3));
+    const moov = this.box('moov', ...[mvhd, trak, atrak].filter(Boolean));
 
     return new Blob([ftyp, mdat, moov], { type: 'video/mp4' });
   },
