@@ -124,9 +124,85 @@ const Trailer = {
     g.restore();
   },
 
+  // ---------------------------------------------------------------- a repeatable match
+  // The game leans on Math.random everywhere. Swap in a generator with a seed and the same seed
+  // plays the same match, which is what lets a goal be found before it is filmed.
+  seed(n) {
+    if (!this._realRandom) this._realRandom = Math.random;
+    let s = n >>> 0;
+    Math.random = () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  },
+  unseed() { if (this._realRandom) Math.random = this._realRandom; },
+
+  // The stands and the crowd are built the first time a club is drawn, out of a few hundred
+  // random numbers. That build has to happen BEFORE the seed goes in — otherwise the first
+  // filmed frame spends randoms that the silent run-through never did, every player ends up a
+  // fraction out of place from then on, and the goal that was found becomes a save. It did.
+  prime(club) {
+    const m = Match.create({ autopilot: true, minutes: 30, club, format: '4v4' });
+    Render.updateCamera(m, 0, true);
+    Render.drawMatch(m, 0);
+  },
+
+  // Play matches through, unwatched, until one of them gives us a goal at our end. Returns the
+  // seed that did it and the exact step the ball crossed the line.
+  //
+  // headless stays OFF through the search on purpose: the effects consume random numbers as
+  // they are created, so a search that skipped them would drift out of step with the filmed run.
+  // Counted in frames of film, through the film's own stepping, so there is nothing left for the
+  // two runs to disagree about.
+  findGoal(clubId, { frames = 2700, tries = 70 } = {}) {    // 45 seconds of play per attempt
+    const club = Clubs.get(clubId) || Clubs.random(Clubs.mine());
+    Clubs.setMatch(Clubs.mine(), club);                     // before the seed, in both runs
+    this.prime(club);
+    const dt = 1 / this.FPS;
+    for (let n = 1; n <= tries; n++) {
+      const seed = n * 48271 + 7919;
+      this.seed(seed);
+      Game.headless = false;
+      this.acc = 0;
+      FX.clear();
+      const m = Match.create({ autopilot: true, minutes: 30, club, format: '4v4' });
+      m.demo = true;
+      m.phase = 'play';
+      for (let f = 0; f < frames; f++) {
+        const before = m.score.blue;
+        this.step(m, dt);
+        if (m.score.blue > before) return { seed, frame: f };
+      }
+    }
+    return null;
+  },
+
+  // The same match again, wound forward to `lead` seconds before the goal, with the camera
+  // snapped on and the effects wiped clean. Nothing from the run-through is left behind.
+  goalRun(clubId, lead) {
+    const found = this.findGoal(clubId);
+    if (!found) return this.kickOff(clubId);          // no goal to be had: ordinary football
+    const club = Clubs.get(clubId) || Clubs.random(Clubs.mine());
+    Clubs.setMatch(Clubs.mine(), club);               // before the seed, exactly as the search did
+    this.prime(club);
+    this.seed(found.seed);
+    Game.headless = false;
+    this.acc = 0;
+    FX.clear();
+    const m = Match.create({ autopilot: true, minutes: 30, club, format: '4v4' });
+    m.demo = true;
+    m.phase = 'play';
+    // wound forward, unwatched, to `lead` seconds before the ball crosses the line
+    const dt = 1 / this.FPS;
+    const preRoll = Math.max(0, found.frame - Math.round(lead * this.FPS));
+    for (let f = 0; f < preRoll; f++) this.step(m, dt);
+    FX.clear();                                       // the dust of the wind-forward is not ours
+    Render.updateCamera(m, 0, true);
+    m.goalAt = (found.frame - preRoll) / this.FPS;    // when it is going to happen, for the caption
+    return m;
+  },
+
   // ---------------------------------------------------------------- the football
   kickOff(clubId) {
     Game.headless = false;
+    this.acc = 0;
     FX.clear();
     const club = Clubs.get(clubId) || Clubs.random(Clubs.mine());
     Clubs.setMatch(Clubs.mine(), club);
@@ -137,25 +213,13 @@ const Trailer = {
     return m;
   },
 
-  // Put the ball on a blue striker in front of goal and let them hit it. performShot is the same
-  // call the shoot button makes, so what follows is a real goal with the real effects.
-  scoreOne(m) {
-    const gx = attackGoalX('blue'), dir = TEAMS.blue.dir;
-    const mates = m.players.filter((p) => p.team === 'blue' && !p.isKeeper);
-    const p = mates[0];
-    if (!p) return;
-    p.x = gx - dir * 150; p.y = CFG.FIELD_H / 2 + 26;
-    p.vx = 0; p.vy = 0; p.fx = dir; p.fy = -0.1;
-    p.stunT = 0; p.fallT = 0; p.slideT = 0; p.kickT = 0;
-    m.ball.owner = p; m.ball.x = p.x; m.ball.y = p.y; m.ball.z = 0; m.ball.vx = 0; m.ball.vy = 0; m.ball.vz = 0;
-    // the keeper is where a keeper would be, not glued to the post
-    const k = m.players.find((q) => q.team === 'red' && q.isKeeper);
-    if (k) { k.y = CFG.FIELD_H / 2 - 30; k.diveT = 0; }
-    performShot(m, p, 1, -0.22, 0);
-  },
-
+  // The engine wants fixed steps of CFG.STEP (1/120 of a second) and nothing else. A frame of
+  // film is 1/60, so each one is two of them. Handing it 1/60 as a single step ran the game at
+  // double speed, which is how a goal the search had found turned into a save.
   step(m, dt) {
-    Match.step(m, dt);
+    this.acc += dt;
+    let n = 0;
+    while (this.acc >= CFG.STEP && n < 8) { Match.step(m, CFG.STEP); this.acc -= CFG.STEP; n++; }
     FX.update(dt * (m.timeScale || 1), dt);
     Render.updateCamera(m, dt);
   },
@@ -199,14 +263,13 @@ const Trailer = {
     });
 
     // --- 2. a goal, with everything that now comes with one
-    add(19, function () { this.m = T.kickOff('argentina'); this.shot = false; }, function (k, dt) {
-      // the shot goes in with five seconds left to run, so the celebration is not cut off
-      if (!this.shot && k >= this.lenMinus(5)) { T.scoreOne(this.m); this.shot = true; }
+    add(19, function () { this.m = T.goalRun('argentina', 13); }, function (k, dt) {
       T.step(this.m, dt);
       Render.drawMatch(this.m, k);
       T.ui();
+      const goal = this.m.goalAt !== undefined ? this.m.goalAt : 13;
       if (k < 4) T.caption('REAL FOOTBALL', 'FOUR A SIDE, NO FOULS, NO OFFSIDE', k, 4);
-      else if (k > this.lenMinus(5.2) && k < this.lenMinus(0.4)) T.caption('EVERY GOAL IS AN EVENT', 'CONFETTI, RINGS AND A SHAKE OF THE GROUND', k - this.lenMinus(5.2), 4.8);
+      else if (k > goal - 0.3 && k < this.len - 0.4) T.caption('EVERY GOAL IS AN EVENT', 'CONFETTI, RINGS AND A SHAKE OF THE GROUND', k - (goal - 0.3), 5);
     });
 
     // --- 3. the moves
@@ -314,7 +377,8 @@ const Trailer = {
     add(14, function () {
       this.m = T.kickOff('germany');
       const picks = CHARACTERS.filter((c) => !c.only).slice(-10);
-      this.faces = picks.map((c) => T.chip(300, (cv) => UI.portrait(cv, { ...Save.look(), character: c.id })));
+      // the character definition is the look, the same way the characters panel draws them
+      this.faces = picks.map((c) => T.chip(300, (cv) => UI.portrait(cv, c)));
       this.names = picks.map((c) => c.name);
     }, function (k, dt) {
       T.step(this.m, dt);
@@ -323,10 +387,10 @@ const Trailer = {
       T.scrim(0.66);
       const g = Render.ctx;
       g.save();
-      const cols = 5, cw = 330, rh = 360;
+      const cols = 5, cw = 330, rh = 340;
       for (let i = 0; i < this.faces.length; i++) {
         const cx = T.W / 2 + ((i % cols) - (cols - 1) / 2) * cw;
-        const cy = 360 + Math.floor(i / cols) * rh;
+        const cy = 325 + Math.floor(i / cols) * rh;
         const pop = Math.min(1, Math.max(0, (k - 0.4 - i * 0.09) / 0.45));
         if (pop <= 0) continue;
         const e = 1 - Math.pow(1 - pop, 3);
@@ -351,7 +415,7 @@ const Trailer = {
       const g = Render.ctx;
       g.save();
       const tiers = RANK_TIERS;
-      const w = Math.min(300, (T.W - 160) / tiers.length);
+      const w = (T.W - 260) / tiers.length;        // a margin each side, so LEGEND stays on screen
       for (let i = 0; i < tiers.length; i++) {
         const cx = T.W / 2 + (i - (tiers.length - 1) / 2) * w;
         const pop = Math.min(1, Math.max(0, (k - 0.5 - i * 0.13) / 0.4));
@@ -360,7 +424,7 @@ const Trailer = {
         const h = 60 + i * 44;
         g.save();
         g.globalAlpha = e;
-        T.plate(cx - w * 0.36, 620 - h, w * 0.72, h, tiers[i].color, 16);
+        T.plate(cx - w * 0.34, 620 - h, w * 0.68, h, tiers[i].color, 16);
         g.restore();
         T.say(tiers[i].name, cx, 680, 34, T.WHITE);
       }
@@ -370,8 +434,7 @@ const Trailer = {
     });
 
     // --- 8. one more goal, and where to find it
-    add(12, function () { this.m = T.kickOff('italy'); this.shot = false; }, function (k, dt) {
-      if (!this.shot && k >= 1.2) { T.scoreOne(this.m); this.shot = true; }
+    add(12, function () { this.m = T.goalRun('italy', 2.5); }, function (k, dt) {
       T.step(this.m, dt);
       Render.drawMatch(this.m, k);
       T.ui();
@@ -406,6 +469,7 @@ const Trailer = {
     const TS = 90000, dur = TS / this.FPS;
 
     this.fit();
+    this.seed(opts.seed || 20261017);     // the same two minutes every time it is rendered
     const scenes = this.build();
     const state = window.__tr = { frame: 0, total, done: false, blob: null, scene: '', error: null };
 
@@ -452,6 +516,7 @@ const Trailer = {
 
     await enc.flush();
     enc.close();
+    this.unseed();
     state.blob = MP4.build({ samples, width: this.W, height: this.H, timescale: TS, avcC });
     state.done = true;
     state.bytes = state.blob.size;
