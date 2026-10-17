@@ -274,6 +274,33 @@ Object.assign(UI, {
     });
   },
 
+  // Redraw a panel without losing your place in it.
+  //
+  // Panels redraw themselves after you equip something, so the card you picked shows as the one
+  // you are wearing. The redraw replaces the element you were scrolling with a brand new one,
+  // and a brand new one starts at the top — so equipping a skill near the bottom of forty-one
+  // threw you back up to Classic every time.
+  //
+  // The positions are remembered by selector, not by element: the elements themselves do not
+  // survive the redraw, but a '.trail-grid' before is a '.trail-grid' after.
+  redraw(body, render) {
+    const key = (el) => {
+      if (el === body) return ':body';
+      if (el === body.parentElement) return ':parent';
+      const cls = String(el.className || '').trim().split(/\s+/)[0];
+      return cls ? '.' + cls : el.tagName.toLowerCase();
+    };
+    const marks = [];
+    for (const el of [body, body.parentElement, ...body.querySelectorAll('*')]) {
+      if (el && el.scrollTop > 0) marks.push([key(el), el.scrollTop]);
+    }
+    render();
+    for (const [sel, top] of marks) {
+      const el = sel === ':body' ? body : sel === ':parent' ? body.parentElement : body.querySelector(sel);
+      if (el) el.scrollTop = top;
+    }
+  },
+
   // shared buy/equip card behaviour: first tap on a locked item arms "BUY", second tap buys
   shopCard(el, kind, id, onEquip) {
     el.addEventListener('click', () => {
@@ -302,7 +329,7 @@ Object.assign(UI, {
     body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('.char-card-sm').forEach((el) => this.shopCard(el, 'character', el.dataset.id, () => {
       Save.data.character = el.dataset.id; Save.write();
-      this.panel_characters(body);
+      this.redraw(body, () => this.panel_characters(body));
       this.refreshHome();
     }));
   },
@@ -340,7 +367,7 @@ Object.assign(UI, {
       Pop.shout(at.x, at.y - 24, '+' + fmtCoins(got), '#ffc21a', 900);
       Pop.confetti(at.x, at.y, ['#ffc21a', '#ffffff', '#35c06a'], got >= 5000 ? 34 : 18);
       this.toast('+' + fmtCoins(got) + ' COINS');
-      this.panel_missions(body);
+      this.redraw(body, () => this.panel_missions(body));
       this.refreshHome();
     }));
   },
@@ -744,7 +771,7 @@ Object.assign(UI, {
       // a small nod that it took
       const card = el.getBoundingClientRect ? el : null;
       if (card) { const at = Pop.at(card); Pop.ring(at.x, at.y, '#ffffff', 140, 360); Pop.confetti(at.x, at.y, ['#ffffff', '#ffc21a'], 10, 0.6); }
-      this.panel_customize(body);
+      this.redraw(body, () => this.panel_customize(body));
       this.refreshHome();
     }));
     this.custStage();
@@ -1134,9 +1161,7 @@ Object.assign(UI, {
       Pop.shout(at.x, at.y - 26, '+' + fmtCoins(coins), '#ffc21a', 900);
       Pop.confetti(at.x, at.y, ['#ffc21a', '#ffffff', '#6fd3ff'], 26);
       this.toast(`+${coins} COINS`);
-      const scroll = body.parentElement.scrollTop;
-      this.panel_profile(body);
-      body.parentElement.scrollTop = scroll;
+      this.redraw(body, () => this.panel_profile(body));
       this.refreshHome();
     }));
   },
