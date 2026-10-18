@@ -189,7 +189,12 @@ const Input = {
     this.knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     let mx = dx / max, my = dy / max;
     const m = Math.hypot(mx, my);
-    if (m < 0.18) { mx = 0; my = 0; } else { const s = Math.min(1, (m - 0.18) / 0.72) / m; mx *= s; my *= s; }
+    // Full pace by about two thirds of the way over, which is where a thumb sits. The old curve
+    // wanted 90% of the travel before it gave you everything, and two thirds got you 60% — the
+    // player felt heavy and there was no way to see why. A small deadzone so a resting thumb
+    // does not steer, and nothing wasted above it.
+    const DEAD = 0.12, FULL = 0.62;
+    if (m < DEAD) { mx = 0; my = 0; } else { const s = Math.min(1, (m - DEAD) / (FULL - DEAD)) / m; mx *= s; my *= s; }
     this.stick.x = mx; this.stick.y = my;
   },
 

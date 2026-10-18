@@ -413,9 +413,10 @@ function keeperContact(m, k, b, sp) {
     if (!shot.save) return; // beaten — let it through
   }
   if (shot && Math.random() < BOT_MISTAKES.keeperSpill * botSlip(m, k)) {
-    // spilled: it squirts back out in front of goal for anyone to pounce on
-    const out = TEAMS[k.team].dir, line = ownGoalX(k.team);
-    if ((b.x - line) * out < CFG.BALL_R + 10) b.x = line + out * (CFG.BALL_R + 10);
+    // Spilled: it squirts out in front of goal for anyone to pounce on. The ball is not moved —
+    // picking it up and setting it down in front of the line is what made a goal look like it
+    // bounced back out of the net.
+    const out = TEAMS[k.team].dir;
     b.vx = out * rand(170, 320); b.vy = rand(-240, 240); b.vz = rand(60, 140);
     b.spinT = 0; b.shot = null; b.lastTouchTeam = k.team;
     k.noPickupT = 0.55;
@@ -437,9 +438,8 @@ function keeperContact(m, k, b, sp) {
     }
     return;
   }
-  // parry wide
-  const out = TEAMS[k.team].dir, line = ownGoalX(k.team);
-  if ((b.x - line) * out < CFG.BALL_R + 6) b.x = line + out * (CFG.BALL_R + 6);
+  // Parry wide, from wherever it was caught. No repositioning: see the note on the spill above.
+  const out = TEAMS[k.team].dir;
   b.vx = out * rand(380, 540);
   b.vy = (b.y < CFG.FIELD_H / 2 ? -1 : 1) * rand(180, 380);
   b.vz = rand(180, 300);

@@ -414,13 +414,10 @@ const Match = {
     if (b.x < -CFG.BALL_R) team = 'red';
     else if (b.x > CFG.FIELD_W + CFG.BALL_R) team = 'blue';
     else return;
-    // a keeper who "decided" to save gets the save even if the dive math was a hair off
-    const k = m.keepers[otherTeam(team)];
-    if (b.shot && b.shot.team === team && b.shot.decided && b.shot.save && dist(k.x, k.y, b.x, b.y) < 170) {
-      b.x = team === 'red' ? 2 : CFG.FIELD_W - 2;
-      keeperContact(m, k, b, Math.hypot(b.vx, b.vy));
-      return;
-    }
+    // Over the line is over the line. There used to be a let-off here: a keeper who had decided
+    // to save got it anyway, the ball was dragged back onto the pitch and the game shouted
+    // SAVE! at a ball that was already in. A save has to happen in front of the line or not at
+    // all — which is the rule ballOverLine states and ballContacts has always obeyed.
     this.goalScored(m, team);
   },
 

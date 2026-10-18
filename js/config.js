@@ -566,12 +566,17 @@ const DIFFICULTY = {
   // where lower is better), and the speed gap to a full-speed player closed by a quarter.
   // 2026-09-27 "make bots better 2x for normal matches": the same again at x2 — they lunge twice
   // as often, dodge twice as much, skill twice as much, decide twice as fast, shoot half as wide
+  // 2026-10-17 "the bots are too good, make them 2x worse": measured at 3.9-4.7 against a
+  // scripted average player, so the opposition were winning. The 2x is undone and then some —
+  // every knob halved (or doubled where lower is better) and the speed gap opened back up.
+  // Only the opposition: your teammates run on MATE_BASE and keep what they had, because
+  // making them worse too would leave the game exactly as hard as it was.
   // and make half the mistakes, with the speed gap halved. The caps are the level ramp's own
   // (dodge 0.8, skill 0.6, react 0.5, noise 14) so a high level cannot push it past playable,
   // and a lunge chance over 0.8 per check just gets you dribbled round.
-  easy:   { redSpeed: 0.952, slideOnHuman: 1, aiSlide: 0.4,  aiDodge: 0.42, aiSkill: 0.32, keeperBonus: -0.025, aiShotNoise: 26, react: 0.58, mistakes: 0.68 },
-  normal: { redSpeed: 0.98,  slideOnHuman: 1, aiSlide: 0.54, aiDodge: 0.75, aiSkill: 0.52, keeperBonus: 0.1,    aiShotNoise: 20, react: 0.5,  mistakes: 0.52 },
-  hard:   { redSpeed: 1.04,  slideOnHuman: 1, aiSlide: 0.8,  aiDodge: 0.8,  aiSkill: 0.6,  keeperBonus: 0.26,   aiShotNoise: 14, react: 0.5,  mistakes: 0.375 },
+  easy:   { redSpeed: 0.912, slideOnHuman: 1, aiSlide: 0.2,  aiDodge: 0.21, aiSkill: 0.16, keeperBonus: -0.05,  aiShotNoise: 52, react: 1.16, mistakes: 1.36 },
+  normal: { redSpeed: 0.94,  slideOnHuman: 1, aiSlide: 0.27, aiDodge: 0.375, aiSkill: 0.26, keeperBonus: 0.05,  aiShotNoise: 40, react: 1.0,  mistakes: 1.04 },
+  hard:   { redSpeed: 1.0,   slideOnHuman: 1, aiSlide: 0.4,  aiDodge: 0.4,  aiSkill: 0.3,  keeperBonus: 0.13,   aiShotNoise: 28, react: 1.0,  mistakes: 0.75 },
 };
 // online fill-ins (2026-09-19 "bots that are actually good"): quicker, sharper and cleaner than hard,
 // on both sides of an online match. Your level and the World Cup round still add to this.
