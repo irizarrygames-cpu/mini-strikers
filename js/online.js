@@ -290,7 +290,7 @@ const Online = {
     const latest = this.snaps[this.snaps.length - 1];
     const now = performance.now(), since = Math.max(0, (now - latest.at) / 1000);
     this.lead = (this.leadBase || 0) + (now - (this.leadAt || now)) / 1000;
-    const leadTarget = Math.min(0.3, this.lead);
+    const leadTarget = Math.min(0.18, this.lead);
     this.visualLead += (leadTarget - this.visualLead) * (1 - Math.exp(-NET_LEAD_SMOOTH * dt));
     const ahead = this.ahead = this.visualLead * (latest.ts || 1);
     for (const snap of this.snaps) {
@@ -418,7 +418,28 @@ const Online = {
   // a loose ball `t` seconds on, moved exactly the way the server moves it (gravity, bounces, grass,
   // air, boards). Curl and ult homing aren't sent, so those bend a little late and get smoothed.
   advanceBall(s, t) {
-    return this.stepBall({ x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz }, t);
+    return this.holdAtTheLine(this.stepBall({ x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz }, t));
+  },
+
+  // Your screen is not allowed to score.
+  //
+  // Whether a shot beat the keeper is the server's call — keepers only exist there — so running
+  // the ball on into the net is a guess, and the wrong guess is the one that gets taken back:
+  // the ball sits in the goal, the snapshot arrives saying it was saved on the line, and the ball
+  // comes back out. That is the "it went in and was still saved" everyone sees.
+  //
+  // So prediction stops at the line. If the ball really did go in, the server says so a moment
+  // later and the goal is shown then. A ball held on the line for a hundred milliseconds is a
+  // much smaller lie than a goal that is taken away.
+  holdAtTheLine(b) {
+    if (b.y <= GOAL_Y1 || b.y >= GOAL_Y2) return b;        // wide of the mouth: not our problem
+    const edge = CFG.BALL_R + 1;
+    // On position, not on direction. A predicted shot that reaches the net bounces off the back
+    // of it and comes back with its velocity reversed — so testing vx let through exactly the
+    // case this exists for, and left the ball sitting in the goal. 190 shots in 300 got past.
+    if (b.x < edge) { b.x = edge; if (b.vx < 0) b.vx = 0; b.held = true; }
+    else if (b.x > CFG.FIELD_W - edge) { b.x = CFG.FIELD_W - edge; if (b.vx > 0) b.vx = 0; b.held = true; }
+    return b;
   },
   stepBall(b, t) {
     for (let left = t; left > 1e-4;) {
@@ -635,8 +656,11 @@ const Online = {
     if (this.pred && this.predOk) {
       this.busyCorr = null;
       me.fx = shown.fx; me.fy = shown.fy; me.faceX = shown.faceX; // facing follows your stick, not the server's lagging copy
-      const fade = Math.exp(-(Math.hypot(this.corr.x, this.corr.y) > 60 ? 16 : 9) * dt); // big corrections settle faster
-      this.corr.x *= fade; this.corr.y *= fade;
+      // The same catch-up everyone else gets. This used to fade exponentially with no speed
+      // cap, which on a wide correction moved you about 70 units in a single frame — measured
+      // at up to 84. A correction you can see happen is worse than one that takes an extra
+      // tenth of a second.
+      this.settle(this.corr, dt, Math.hypot(this.corr.x, this.corr.y) > 60 ? 16 : 9, 420);
       // coming out of a server-driven move: start the prediction from where you are drawn and let the
       // gap fade like any other correction (a timed glide used to snap the last bit when it ran out)
       if (!this._wasPred) {
