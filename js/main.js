@@ -112,8 +112,11 @@ const Game = {
     const r = await Net.resume();
     if (r) { Net.goOnline(); UI.signedIn(); return; }
     if (r !== false) {
-      // nobody signed in on this device yet. Before putting up a sign-in screen, make sure there
-      // is something to sign in to.
+      // Nobody signed in on this device yet. Before putting up a sign-in screen, make sure there
+      // is something to sign in to — but put the screen up FIRST, saying so. That check can take
+      // four seconds against a server that is still getting out of bed, and it used to spend
+      // them showing an empty screen: the title went, and nothing replaced it.
+      UI.showAuth('Connecting\u2026', true);
       if (await Net.reachable()) { UI.showAuth(''); return; }
       Net.offlineOffer = true;
       UI.showAuth('No connection. You can still play on your own.');

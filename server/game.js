@@ -1245,9 +1245,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   // HIGH is deliberately short of ONLINE_BOTS, the fill-ins a match starts with: slower to react,
   // noisier in front of goal, more mistakes. Losing someone always costs your side something.
   const WALKOFF_LOW = { redSpeed: 0.8, aiSlide: 0.06, aiDodge: 0.05, aiSkill: 0.04, aiShotNoise: 95, react: 2.2, mistakes: 3 };
-  const WALKOFF_HIGH = { redSpeed: 0.99, aiSlide: 0.3, aiDodge: 0.5, aiSkill: 0.34, aiShotNoise: 30, react: 0.85, mistakes: 0.75 };
+  // Worse than ONLINE_BOTS on every axis, deliberately and checked by standinscan. When the
+  // fill-ins were halved in build 86 this was left behind and briefly became the better player,
+  // which would have made walking off an upgrade.
+  const WALKOFF_HIGH = { redSpeed: 0.93, aiSlide: 0.14, aiDodge: 0.22, aiSkill: 0.15, aiShotNoise: 58, react: 1.6, mistakes: 1.4 };
   const WALKOFF_ATTR_LOW = { speed: 0.96, shot: 0.9, pass: 0.9, finish: 0.05, ctl: -0.6, def: -0.6 };
-  const WALKOFF_ATTR_HIGH = { speed: 1, shot: 0.99, pass: 0.99, finish: 0.6, ctl: -0.05, def: -0.05 };
+  const WALKOFF_ATTR_HIGH = { speed: 0.99, shot: 0.95, pass: 0.95, finish: 0.45, ctl: -0.08, def: -0.08 };
 
   // A player who leaves is replaced by a bot of roughly the standard of the match they walked
   // out of, never better than the fill-ins it started with. Nobody gets a better teammate out of

@@ -16,7 +16,7 @@ const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 85;
+const BUILD = 86;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -136,6 +136,51 @@ const GIFTS = [
   { key: '2026-10-16-irizarry-billion', user: 'irizarry', coins: 1000000000 },
   { key: '2026-10-16-irizarrygamegh-billion', user: 'irizarrygamegh', coins: 1000000000 },
 ];
+// A one-time clean slate, spent the first time it runs.
+//
+// The key lives in the league record, which is the only id here no username can take and which
+// every user listing already skips. Once that record carries this key, nothing happens again.
+// Change the key to do it again; leave it alone and it stays spent.
+const WIPE_KEY = '2026-10-18-prelaunch';
+
+async function wipeEverything() {
+  // Only the real database. Every scan that seeds accounts and then boots the server would
+  // otherwise have them deleted out from under it — lbscan seeds eight and checks the
+  // leaderboard, and the wipe emptied it before the first question was asked. The live accounts
+  // are the ones this is for, and they are the ones in Postgres.
+  if (store.kind !== 'postgres') return;
+  const league = DB.users[LEAGUE_ID];
+  if (league && league.wiped === WIPE_KEY) return;            // already spent
+
+  const ids = Object.keys(DB.users);
+  // Write the marker FIRST and make sure it stuck. If saving it fails, nothing is deleted —
+  // better to not wipe at all than to wipe on every restart for ever.
+  const marker = { order: [], last: {}, wiped: WIPE_KEY, at: Date.now() };
+  DB.users[LEAGUE_ID] = marker;
+  try {
+    await store.write(DB.users, [LEAGUE_ID]);
+  } catch (e) {
+    console.error('wipe: could not save the marker, so nothing was deleted:', e.message);
+    return;
+  }
+  persisted.set(LEAGUE_ID, JSON.stringify(marker));
+
+  let gone = 0;
+  for (const id of ids) {
+    if (id === LEAGUE_ID) continue;
+    // Out of memory first, then out of the store. The file store rewrites the whole file
+    // from DB.users, so removing before deleting writes the record straight back — the last
+    // account survived the wipe when it was the other way round.
+    delete DB.users[id];
+    persisted.delete(id);
+    try { await store.remove(id); gone++; } catch (e) { console.error('wipe: could not remove ' + id + ':', e.message); }
+  }
+  tokens.clear();
+  leagueCache = null;
+  boardCache = null;
+  console.log('wipe ' + WIPE_KEY + ': removed ' + gone + ' accounts');
+}
+
 function queueGifts(quiet) {
   for (const g of GIFTS) {
     const u = getUser(g.user);
@@ -629,6 +674,8 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
     const country = game.countryFor(u.club);
     if (u.club !== country) { u.club = country; if (u.save) { u.save.club = country; u.save.cup = null; } leagueCache = null; saveDB(); }
   }
+  // the clean slate, if its key has not been spent yet
+  await wipeEverything();
   restoreSessions();
   queueGifts();
   // an account that signs up later still gets what was meant for it

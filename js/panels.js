@@ -1023,7 +1023,14 @@ Object.assign(UI, {
         <button type="submit" class="mid-btn green">SAVE IT</button>
         <p id="pw-msg" class="note"></p>
       </form>` : ''}
-      <div class="set danger"><span>PROGRESS</span><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>`;
+      <div class="set"><span>PRIVACY</span><em>What the game keeps, and what it does not</em><a class="mid-btn set-link" href="privacy.html" target="_blank" rel="noopener">READ IT</a></div>
+      <div class="set danger"><span>PROGRESS</span><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>
+      ${Net.user ? `<div class="set danger"><span>DELETE ACCOUNT</span><em>Your coins, everything you have won, and your record. Gone for good, everywhere.</em><button id="del-acct" class="mini-danger">DELETE</button></div>
+      <form id="del-form" class="pw-form" hidden autocomplete="off">
+        <input type="password" id="del-pw" placeholder="YOUR PASSWORD" autocomplete="current-password" maxlength="200">
+        <button type="submit" class="mini-danger">DELETE IT FOR GOOD</button>
+        <p id="del-msg" class="note"></p>
+      </form>` : ''}`;
     $('logout').addEventListener('click', async () => { this.tap(); await Net.logout(); UI.showAuth('Logged out.'); $('auth-msg').classList.remove('bad'); });
     if ($('chpw')) {
       $('chpw').addEventListener('click', () => { this.tap(); const f = $('pw-form'); f.hidden = !f.hidden; $('pw-msg').textContent = ''; if (!f.hidden) $('pw-old').focus(); });
@@ -1055,6 +1062,33 @@ Object.assign(UI, {
       if (key === 'controls') this.applyControls();
       if (key === 'vibration' && v) vibrate(20);
     })));
+    // Deleting the account. The form is hidden until you ask for it, and asks for the password
+    // — the server wants it, and a button that erases everything should take more than one tap.
+    const del = $('del-acct');
+    if (del) {
+      del.addEventListener('click', () => {
+        this.tap();
+        const f = $('del-form');
+        f.hidden = !f.hidden;
+        if (!f.hidden) $('del-pw').focus();
+      });
+      $('del-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = $('del-msg'), pw = $('del-pw').value;
+        if (!pw) { msg.textContent = 'Type your password first.'; return; }
+        msg.textContent = 'Deleting\u2026';
+        let r = null;
+        try { r = await Net.api('/api/account/delete', { password: pw }); } catch (err) { r = null; }
+        if (!r || !r.ok) { msg.textContent = (r && r.msg) || 'That did not work. Try again.'; return; }
+        // gone from the server; now gone from this device too, so nothing of it is left behind
+        Net.forget();
+        Save.data = Save.defaults();
+        Save.write();
+        UI.closeModal();
+        UI.showAuth('Your account has been deleted.');
+      });
+    }
+
     const reset = $('reset-progress');
     reset.addEventListener('click', () => {
       if (!reset.classList.contains('armed')) { reset.classList.add('armed'); reset.textContent = 'TAP AGAIN TO WIPE'; return; }

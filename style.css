@@ -926,6 +926,8 @@ body.offline [data-needs-net]:active { transform: none; }
 }
 
 .mini-danger { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+/* a link that has to sit in a row of buttons without looking like the odd one out */
+.set-link { text-decoration: none; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
 
 /* ================= SOMETHING TO AIM AT =================
    Measured on a 375px-wide phone: the home row came out 25px tall, the customize tabs 27px and

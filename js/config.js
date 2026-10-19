@@ -580,7 +580,11 @@ const DIFFICULTY = {
 };
 // online fill-ins (2026-09-19 "bots that are actually good"): quicker, sharper and cleaner than hard,
 // on both sides of an online match. Your level and the World Cup round still add to this.
-const ONLINE_BOTS = { redSpeed: 1.0, slideOnHuman: 0.95, aiSlide: 0.36, aiDodge: 0.6, aiSkill: 0.4, keeperBonus: 0.14, aiShotNoise: 24, react: 0.7, mistakes: 0.6 };
+// 2026-10-18: halved too, the same as the offline presets. These are the players who fill an
+// online match when there are not enough people, so they are meant to pass for one — and a
+// weaker bot is an easier bot to spot. Asked for anyway, and the offline ones were measured at
+// 3.9-4.7 against an average player, so these were almost certainly too good as well.
+const ONLINE_BOTS = { redSpeed: 0.96, slideOnHuman: 0.95, aiSlide: 0.18, aiDodge: 0.3, aiSkill: 0.2, keeperBonus: 0.07, aiShotNoise: 48, react: 1.4, mistakes: 1.2 };
 // your bot teammates offline: what "normal" was before the bots were made worse, so the
 // players on your side did not get worse too
 const MATE_BASE = { redSpeed: 0.984, slideOnHuman: 0.95, aiSlide: 0.34, aiDodge: 0.48, aiSkill: 0.33, keeperBonus: 0.1, aiShotNoise: 30, react: 0.77, mistakes: 0.75 };

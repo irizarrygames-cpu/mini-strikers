@@ -61,7 +61,8 @@ async function finishWith(id, mine, theirs) {
     check('nobody else coming: the empty spots fill after 30s (30-34s)', waited >= 30 && waited <= 34.5, +waited.toFixed(1));
     check('the match is a World Cup round of 16', st && st.wc === 0, st && st.wc);
     const fr = game._roomOf('p1');
-    check('the fill-ins play at the strong online level', fr && fr.m.diff.aiDodge >= 0.6 && fr.m.diff.mistakes <= 0.6 && fr.m.diff.aiShotNoise <= 24, fr && { dodge: fr.m.diff.aiDodge, mistakes: fr.m.diff.mistakes, noise: fr.m.diff.aiShotNoise });
+    // the online fill-in settings, halved in build 86 along with every other bot
+    check('the fill-ins play at the online level', fr && fr.m.diff.aiDodge >= 0.3 && fr.m.diff.mistakes <= 1.2 && fr.m.diff.aiShotNoise <= 48, fr && { dodge: fr.m.diff.aiDodge, mistakes: fr.m.diff.mistakes, noise: fr.m.diff.aiShotNoise });
     const room = await finishWith('p1', 2, 1);
     check('no draws in a World Cup match', room.m.noDraw === true);
     const end = await waitFor(ws, 'end', n);
