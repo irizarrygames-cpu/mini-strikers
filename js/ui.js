@@ -1018,10 +1018,12 @@ const Install = {
       this.event = null; this.refresh();
       UI.toast('INSTALLED! LOOK FOR MINI STRIKERS ON YOUR HOME SCREEN');
     });
-    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    // Inside a store app the game's files are the app's own: there is no offline copy to keep and
+    // no newer build to reload for (a new version arrives as an app update).
+    if (!NATIVE && 'serviceWorker' in navigator && location.protocol !== 'file:') {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
-    if (location.protocol !== 'file:') this.watchForNewBuild();
+    if (!NATIVE && location.protocol !== 'file:') this.watchForNewBuild();
     this.refresh();
   },
   // Making sure a deploy actually reaches the person playing.
@@ -1052,7 +1054,7 @@ const Install = {
     const check = async () => {
       if (document.hidden || !navigator.onLine) return;
       try {
-        const r = await fetch('api/health', { cache: 'no-store' });
+        const r = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
         const j = await r.json();
         if (!j || !j.build) return;
         if (known && String(j.build) !== String(window.BUILD)) this.freshen('build ' + j.build + ' is out');
@@ -1091,7 +1093,7 @@ const Install = {
     // the browser had handed over an install event, which meant it was invisible on the
     // phone it was built for — Chrome only fires that event once it feels like it, and
     // Safari never does. Tapping it either installs or shows how.
-    $('btn-install').hidden = this.installed();
+    $('btn-install').hidden = NATIVE || this.installed(); // no "get the app" inside the app
     if (typeof Render !== 'undefined') Render._homeSpot = null;
   },
   go() {

@@ -1079,7 +1079,7 @@ Object.assign(UI, {
         <button type="submit" class="mid-btn green">SAVE IT</button>
         <p id="pw-msg" class="note"></p>
       </form>` : ''}
-      <div class="set"><span>PRIVACY</span><em>What the game keeps, and what it does not</em><a class="mid-btn set-link" href="privacy.html" target="_blank" rel="noopener">READ IT</a></div>
+      <div class="set"><span>PRIVACY</span><em>What the game keeps, and what it does not</em><a class="mid-btn set-link" href="${API_BASE}/privacy.html" target="_blank" rel="noopener">READ IT</a></div>
       <div class="set danger"><span>PROGRESS</span><em>Start again from zero.${Net.user ? ' Your account stays.' : ''}</em><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>
       ${Net.user ? `<div class="set danger"><span>DELETE ACCOUNT</span><em>Your coins, everything you have won, and your record. Gone for good, everywhere.</em><button id="del-acct" class="mini-danger">DELETE</button></div>
       <form id="del-form" class="pw-form" hidden autocomplete="off">

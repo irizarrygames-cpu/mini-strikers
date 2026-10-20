@@ -1,5 +1,20 @@
 // Talking to the server: accounts (sign up / log in), saving progress, the league
 // table, and the live socket used for online matches.
+// Where the server is. On the web the page is served BY the server, so every address is relative
+// and API_BASE is ''. Inside a store app the game's files are on the phone and the server is far
+// away, so every address needs its name in front. (On a developer's own computer, a page can be
+// pointed at another local server with ?api=http://localhost:PORT and made to act like the app
+// with ?native=1, to try the app set-up without a phone. That only works on localhost, so a link
+// somewhere else cannot point the game at a server of its own.)
+const LIVE_SERVER = 'https://mini-strikers.onrender.com';
+const ON_LOCALHOST = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+  || (ON_LOCALHOST && /[?&]native=1\b/.test(location.search));
+const API_BASE = (() => {
+  const dev = ON_LOCALHOST ? new URLSearchParams(location.search).get('api') : null;
+  if (dev && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(dev)) return dev;
+  return NATIVE ? LIVE_SERVER : '';
+})();
 const TOKEN_KEY = 'mini-strikers.token';
 // Who was last signed in on this device. The token alone does not say, and with no connection
 // there is nobody to ask — without this the game cannot find your cached save to play offline.
@@ -59,7 +74,7 @@ const Net = {
   },
 
   async api(path, body = {}) {
-    const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, token: this.token }) });
+    const res = await fetch(API_BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, token: this.token }) });
     let data = null;
     try { data = await res.json(); } catch (e) { data = { ok: false, msg: 'Bad response from the server' }; }
     if (res.status === 401) data.auth = false;
@@ -73,7 +88,7 @@ const Net = {
     try {
       const stop = new AbortController();
       const timer = setTimeout(() => stop.abort(), ms);
-      const res = await fetch('/api/health', { cache: 'no-store', signal: stop.signal });
+      const res = await fetch(API_BASE + '/api/health', { cache: 'no-store', signal: stop.signal });
       clearTimeout(timer);
       return !!(res && res.ok);
     } catch (e) { return false; }
@@ -85,7 +100,7 @@ const Net = {
   async wake(onTry, tries = 14, gap = 4000) {
     for (let i = 0; i < tries; i++) {
       try {
-        const res = await fetch('/api/health', { cache: 'no-store' });
+        const res = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
         if (res.ok) return true;
       } catch (e) { /* still asleep */ }
       if (onTry) onTry(i + 1, tries);
@@ -185,7 +200,7 @@ const Net = {
   openSocket() {
     this._wantSocket = true;
     if (this.ws && (this.ws.readyState === 0 || this.ws.readyState === 1)) return;
-    const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+    const url = API_BASE ? API_BASE.replace(/^http/, 'ws') + '/ws' : (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
     let ws;
     try { ws = new WebSocket(url); } catch (e) { this._scheduleRetry(); return; }
     this.ws = ws; this.wsReady = false;

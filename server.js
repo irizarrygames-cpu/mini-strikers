@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 89;
+const BUILD = 90;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -473,7 +473,7 @@ function readBody(req) {
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
-const DENY_FILES = new Set(['data.json', 'data.json.tmp', 'server.js', 'package.json', 'package-lock.json', 'serve.py', 'readme.md', 'render.yaml']);
+const DENY_FILES = new Set(['data.json', 'data.json.tmp', 'server.js', 'package.json', 'package-lock.json', 'serve.py', 'readme.md', 'publishing.md', 'render.yaml']);
 const DENY_DIRS = new Set(['server', 'node_modules']);
 // the test tools are for this computer only
 const LOCAL_ONLY_DIRS = new Set(['tools']);
@@ -499,6 +499,20 @@ function serveStatic(req, res, urlPath) {
     res.writeHead(200, { 'Content-Type': MIME[path.extname(full).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(buf);
   });
+}
+
+// The game inside a store app is not served by this server, so its requests come from another
+// origin and the browser engine inside the app asks first. Only the app's own origins are let in
+// (plus a developer's localhost, and only when the real database is not in use). The game sends
+// its sign-in token in the request body, never in a cookie, so there is nothing for another site
+// to ride on either way.
+const APP_ORIGINS = new Set(['capacitor://localhost', 'ionic://localhost', 'https://localhost']);
+function corsHeaders(req) {
+  const o = req.headers.origin;
+  if (!o) return null;
+  const dev = store.kind !== 'postgres' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(o);
+  if (!APP_ORIGINS.has(o) && !dev) return null;
+  return { 'Access-Control-Allow-Origin': o, Vary: 'Origin', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '600' };
 }
 
 const hits = new Map();
@@ -561,6 +575,9 @@ async function handleRequest(req, res) {
   const route = url.pathname;
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
   if (!route.startsWith('/api/')) return serveStatic(req, res, route);
+  const cors = corsHeaders(req);
+  if (cors) for (const [k, v] of Object.entries(cors)) res.setHeader(k, v);
+  if (req.method === 'OPTIONS') { res.writeHead(cors ? 204 : 403).end(); return; }
   // the host's health check is a plain GET, so this one route answers both
   if (route === '/api/health' && req.method === 'GET') return sendJSON(res, 200, { ok: true, build: BUILD, storage: store.kind });
   if (req.method !== 'POST') return sendJSON(res, 405, { ok: false, msg: 'Use POST' });

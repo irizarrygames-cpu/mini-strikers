@@ -102,6 +102,7 @@ the server is **not** using the real database, so it can never be on for the liv
 
 ## Tools
 
+- `node tools/appscan.js` — the server as seen from inside a store app (CORS: the app's origins in, everyone else out).
 - `node tools/iapscan.js` — in-app purchases against a fake App Store and Google Play.
 - `node tools/netscan.js 40` — fuzzed online matches on the server engine, invariant checks.
 - In the browser console: `tools/bugscan.js` (`BS.sim()`, `BS.render()`, `await BS.ui()`),
