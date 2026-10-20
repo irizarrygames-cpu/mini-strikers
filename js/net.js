@@ -55,6 +55,7 @@ const Net = {
     document.body.classList.remove('offline');
     // anything won while there was no connection goes up now
     if (Save.playedOffline || Save.account) { Save.playedOffline = false; this.queueSave(); }
+    Store.onSignedIn();
   },
 
   async api(path, body = {}) {
@@ -124,6 +125,7 @@ const Net = {
     this.openSocket(); // have it ready before the first thing they press
     this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 } };
     Save.useAccount(r.name, r.save, r.club, fresh);
+    Store.onSignedIn();
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
   },
   giftToast(n) { setTimeout(() => { UI.refreshHome(); UI.toast(`GIFT  +${fmtCoins(n)} COINS`); }, 900); },
@@ -141,6 +143,7 @@ const Net = {
     this.closeSocket();
     this.forget();
     Social.reset();
+    Store.reset();
     Save.useGuest();
   },
 

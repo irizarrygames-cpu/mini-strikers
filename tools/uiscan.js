@@ -8,7 +8,7 @@
 // Both are needed — the CUSTOMIZE button that spilled out of its pill was invisible to overlap
 // checks, and the 25px-tall home row overlapped nothing at all.
 window.US = {
-  PANELS: ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings',
+  PANELS: ['play', 'characters', 'customize', 'crates', 'coins', 'collection', 'missions', 'settings',
     'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode'],
 
   // the full-screen ones, which the panel sweep never touched
@@ -81,16 +81,26 @@ window.US = {
     if (home && !home.hidden) out.hits.push(...this.scan(home, 'home', false));
     const was = Save.data.tutorialSeen;
     Save.data.tutorialSeen = true;
-    for (const kind of this.PANELS) {
+    // The shop only exists inside the app, so on a plain page its panels would show the empty
+    // "sold in the app" line and nothing worth scanning. Play the part of the app for them.
+    const real = { kind: Store.kind, status: Store.status, token: Net.token, offline: Net.offline, sel: Store.sel, gate: Store.gate };
+    const asApp = () => { Store.kind = 'test'; Store.status = { ok: true, enabled: true, canBuy: true, bought: 0, limit: 4 }; Net.token = Net.token || 'scan'; Net.offline = false; };
+    const asWeb = () => { Store.kind = real.kind; Store.status = real.status; Net.token = real.token; Net.offline = real.offline; Store.sel = real.sel; Store.gate = real.gate; };
+    // each screen once, and the shop a second time with the grown-up check showing
+    const visits = this.PANELS.map((k) => [k, k]).concat([['coins', 'coins (grown-up check)']]);
+    for (const [kind, label] of visits) {
+      if (kind === 'coins' || kind === 'crates') asApp();
+      if (label.includes('check')) { Store.sel = PRODUCTS[1].id; Store.newGate(); } else Store.sel = null;
       UI.openModal(kind);
       await wait(240);
       const p = document.querySelector('#modal .panel');
       if (p) {
-        out.hits.push(...this.scan(p, kind, true));
+        out.hits.push(...this.scan(p, label, true));
         // and whatever bugscan's overlap check says about the same panel, if it is loaded
-        if (window.BS) { const f = BS.panelFit(); if (f.hits.length) out.hits.push(...f.hits.map((h) => kind + ' STACK ' + h)); }
+        if (window.BS) { const f = BS.panelFit(); if (f.hits.length) out.hits.push(...f.hits.map((h) => label + ' STACK ' + h)); }
       }
       UI.closeModal();
+      asWeb();
       await wait(60);
     }
     // and the overlays: the results card, how to play, the daily reward, the pause menu, and

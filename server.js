@@ -14,9 +14,10 @@ const { screenUsername } = require('./server/moderation');
 const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
+const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 88;
+const BUILD = 89;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -29,15 +30,23 @@ let DB = { users: {} };
 const LEAGUE_ID = '#league';
 
 function makeFileStore() {
+  // every write goes through one temp file, so two at once (the lazy batch and a purchase being
+  // written for certain) would trample each other: they take turns instead
+  let turn = Promise.resolve();
   return {
     kind: 'file',
     async load() {
       try { return JSON.parse(await fs.promises.readFile(DATA_FILE, 'utf8')).users || {}; }
       catch (e) { if (e.code === 'ENOENT') return {}; throw e; }
     },
-    async write(users) {
-      await fs.promises.writeFile(DATA_FILE + '.tmp', JSON.stringify({ users }));
-      await fs.promises.rename(DATA_FILE + '.tmp', DATA_FILE);
+    write(users) {
+      const run = async () => {
+        await fs.promises.writeFile(DATA_FILE + '.tmp', JSON.stringify({ users }));
+        await fs.promises.rename(DATA_FILE + '.tmp', DATA_FILE);
+      };
+      const p = turn.then(run, run);
+      turn = p.catch(() => {});
+      return p;
     },
     // the whole map is rewritten, so a deleted account has to trigger a write of its own
     async remove() { await this.write(DB.users); },
@@ -73,7 +82,20 @@ const store = DATABASE_URL ? makePostgresStore(DATABASE_URL) : makeFileStore();
 const persisted = new Map();
 let saveTimer = null, saving = false, saveQueued = false;
 
+// In-app purchases (server/iap.js). A store transaction can be cashed in once, by one account:
+// txOwner remembers which, rebuilt from the accounts' own ledgers when the server starts.
+const iap = iapLib.create({ isProduction: store.kind === 'postgres' });
+const txOwner = new Map();
+
 function saveDB() { clearTimeout(saveTimer); saveTimer = setTimeout(flushDB, 300); }
+
+// Writes one account to the store right now and says whether it stuck. saveDB() is a lazy batch
+// that may be seconds away; money does not wait for it. A purchase is only acknowledged to the
+// game once it has been written here.
+async function saveUserNow(id) {
+  try { await store.write(DB.users, [id]); persisted.set(id, JSON.stringify(DB.users[id])); return true; }
+  catch (e) { console.error('Could not save ' + id + ':', e.message); return false; }
+}
 setInterval(() => flushDB(), 5000).unref();
 
 async function flushDB() {
@@ -607,6 +629,42 @@ async function handleRequest(req, res) {
 
   if (route === '/api/logout') { forgetSession(str(body.token)); return sendJSON(res, 200, { ok: true }); }
 
+  // What the shop may offer this account right now. Nothing is offered unless a store is set up.
+  if (route === '/api/iap/status') {
+    const s = iap.status();
+    const bought = iapLib.boughtToday(meUser);
+    return sendJSON(res, 200, { ok: true, enabled: s.enabled, test: s.test, bought, limit: iapLib.IAP_DAILY_PACKS, canBuy: s.enabled && bought < iapLib.IAP_DAILY_PACKS });
+  }
+
+  // Cash in a purchase. The store is asked whether it is real; only then are coins credited, once.
+  if (route === '/api/iap/redeem') {
+    if (throttled(ip, 'iap', 40, 60000) || throttled(me, 'iap-user', 25, 60000)) return sendJSON(res, 429, { ok: false, msg: 'Slow down', retry: true });
+    const v = await iap.verify(body);
+    if (!v.ok) return sendJSON(res, 200, { ok: false, msg: v.msg, retry: !!v.retry });
+    // the account may have been deleted while the store was being asked
+    if (getUser(me) !== meUser) return sendJSON(res, 401, { ok: false, msg: 'Not signed in' });
+    // From here to the ledger write there is no await, so two copies of one request cannot both pass.
+    const owner = txOwner.get(v.txid);
+    if (owner && owner !== me) return sendJSON(res, 200, { ok: false, msg: 'That purchase already belongs to another account', final: true });
+    if (owner === me) return sendJSON(res, 200, { ok: true, again: true, coins: 0, delivered: 0 });
+    const product = iap.product(v.productId);
+    meUser.purchases = meUser.purchases || {};
+    meUser.purchases[v.txid] = { product: product.id, coins: product.coins, at: Date.now(), day: iapLib.dayKey(), env: v.env };
+    txOwner.set(v.txid, me);
+    meUser.pendingCoins = (Number(meUser.pendingCoins) || 0) + product.coins;
+    // Written for certain before the game is told: once it is, the store is told the purchase is
+    // delivered and will not offer it again. If the write fails, undo it all and let the game retry.
+    if (!(await saveUserNow(me))) {
+      delete meUser.purchases[v.txid]; txOwner.delete(v.txid);
+      meUser.pendingCoins = Math.max(0, (Number(meUser.pendingCoins) || 0) - product.coins);
+      return sendJSON(res, 200, { ok: false, msg: 'Could not save that just now', retry: true });
+    }
+    const delivered = deliverGifts(meUser);
+    saveDB();
+    console.log(`iap ${v.env} ${v.txid} ${product.id} -> ${me}`);
+    return sendJSON(res, 200, { ok: true, coins: product.coins, delivered });
+  }
+
   // Change your own password. You are signed in already and you still have to know the current
   // one, so a borrowed phone cannot lock the owner out. Nothing here can read the old password:
   // it is only ever checked by hashing what was typed and comparing.
@@ -634,6 +692,7 @@ async function handleRequest(req, res) {
   if (route === '/api/account/delete') {
     if (await hashPassword(str(body.password), meUser.salt, meUser.iterations) !== meUser.hash) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
     game.removeUser(me);
+    for (const t of Object.keys(meUser.purchases || {})) txOwner.delete(t);
     for (const [tok, id] of tokens) if (id === me) tokens.delete(tok);
     delete DB.users[me]; persisted.delete(me); leagueCache = null;
     forgetEverywhere(DB.users, me, LEAGUE_ID); // off everyone's friends lists
@@ -668,6 +727,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
   try { DB.users = await store.load(); }
   catch (e) { console.error(`Could not load accounts from ${store.kind}: ${e.message}`); process.exit(1); }
   for (const id of Object.keys(DB.users)) persisted.set(id, JSON.stringify(DB.users[id]));
+  for (const [id, u] of Object.entries(DB.users)) for (const t of Object.keys((u && u.purchases) || {})) txOwner.set(t, id);
   // the league used to be clubs: anyone still on a club plays for that club's country
   for (const [id, u] of Object.entries(DB.users)) {
     if (id === LEAGUE_ID) continue;

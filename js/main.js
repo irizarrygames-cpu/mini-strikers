@@ -22,6 +22,7 @@ const Game = {
     Render.init($('game'));
     Input.init();
     Net.init();
+    Store.init();
     Online.init();
     UI.init();
     Social.init();

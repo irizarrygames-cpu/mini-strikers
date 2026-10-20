@@ -32,6 +32,7 @@ const UI = {
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
     $('home-char').addEventListener('click', () => { this.tap(); this.openModal('characters'); });
+    $('coins-plus').addEventListener('click', () => { this.tap(); this.openModal('coins'); });
     $('btn-howto').addEventListener('click', () => { this.tap(); this.showHowTo(); });
     $('btn-profile').addEventListener('click', () => { this.tap(); this.openModal('profile'); });
     $('btn-install').addEventListener('click', () => { this.tap(); Install.go(); });
@@ -188,6 +189,7 @@ const UI = {
       if (c) { c.classList.remove('kick'); void c.offsetWidth; c.classList.add('kick'); }
     }
     $('trophies').textContent = d.trophies || 0;
+    $('coins-plus').hidden = !Store.canShow();
     const ch = Save.character();
     $('home-char-name').textContent = ch.name;
     const lv = Levels.info(d.xp || 0);

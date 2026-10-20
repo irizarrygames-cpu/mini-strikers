@@ -62,8 +62,47 @@ screen needs the server, and a stale cache is how players get stuck on an old ve
 button shows the Share > Add to Home Screen steps instead. The button hides itself when the
 game is already running installed, or when neither route is available.
 
+## Selling coins (in-app purchases)
+
+Coin packs are sold **only inside the store apps** (App Store, Google Play). The plain web game
+never shows a shop. The five packs live in `js/products.js`; that one file is read by the game
+(to draw the shop) and by the server (to decide what a verified purchase is worth), so a player
+cannot change a pack's value.
+
+How a purchase goes: the game asks a grown-up to pass a small number check, starts the store's
+purchase sheet, and sends the store's record of the purchase to `POST /api/iap/redeem`. The server
+asks Apple or Google whether it is real, paid, for this app and this pack, credits the coins once
+(a store transaction can be cashed in once, by one account), writes the account to the database,
+and only then does the game tell the store the purchase was delivered. Anything the server could
+not confirm is never marked finished, so the store offers it again at the next launch. Buying needs
+a signed-in account.
+
+**Nothing is sold until the server is given the store credentials.** With none set, every purchase
+is refused and the shop stays hidden. They are set as environment variables in the Render dashboard
+(never put the values in the repo):
+
+| Store | Variables |
+| --- | --- |
+| Apple | `APPLE_BUNDLE_ID`, `APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (the `.p8` file's text; write newlines as `\n`) |
+| Google | `GOOGLE_PACKAGE_NAME`, `GOOGLE_SERVICE_ACCOUNT_JSON` (the whole key file, on one line) |
+
+Create the five products in each store as **consumables** with exactly the ids in
+`js/products.js` (`coins_pack_1` … `coins_pack_5`). The prices there are only a fallback: the
+store's own price is what the player sees. Apple's key needs the App Store Connect "In-App
+Purchase" role; Google's service account needs "View financial data" and "Manage orders" in Play
+Console. Both stores hand out free test purchases (Apple sandbox, Google licence testers), and App
+Review uses them, so they are accepted; set `IAP_REJECT_TEST=1` once the game is out to turn them away.
+
+The app wrapper must include `cordova-plugin-purchase` (Capacitor: `capacitor-plugin-cdv-purchase`),
+which provides `window.CdvPurchase`; `js/store.js` does the rest when it finds it.
+
+To try the shop on a computer with no store at all: `IAP_TEST_MODE=1 node server.js` (only works when
+the server is **not** using the real database, so it can never be on for the live game).
+`node tools/iapscan.js` tests the whole thing against a fake Apple and a fake Google.
+
 ## Tools
 
+- `node tools/iapscan.js` — in-app purchases against a fake App Store and Google Play.
 - `node tools/netscan.js 40` — fuzzed online matches on the server engine, invariant checks.
 - In the browser console: `tools/bugscan.js` (`BS.sim()`, `BS.render()`, `await BS.ui()`),
   `tools/balance.js` (`HT.report()`), `tools/nettest.js` (`await NT.drive(10)` during an online match).

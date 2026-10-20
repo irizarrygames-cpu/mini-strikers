@@ -423,6 +423,57 @@ Object.assign(UI, {
   },
 
   // ---- crates: the only way to get anything new ----
+  // ---- coins: packs bought with real money, in the app only (js/store.js does the buying) ----
+  panel_coins(body) {
+    $('modal-title').textContent = 'GET COINS';
+    // the shop redraws itself when the store answers, but only while it is the thing on screen
+    Store.onChange = () => { if (!$('modal').hidden && $('modal').dataset.kind === 'coins') this.panel_coins($('modal-body')); };
+    const note = (t) => `<p class="note">${t}</p>`;
+    const st = Store.status;
+    let inner;
+    if (!Store.kind) inner = note('Coin packs are sold in the Mini Strikers app, from the App Store or Google Play.');
+    else if (!Net.token) inner = note('Sign in to buy coins, so they follow your account to any device.') + '<div class="coins-go"><button class="mid-btn" id="coins-signin">SIGN IN</button></div>';
+    else if (Net.offline) inner = note('Buying needs a connection. Come back when you are online.');
+    else if (Store.sel) {
+      const p = PRODUCTS.find((x) => x.id === Store.sel);
+      inner = `<div class="gate">
+        <strong>ASK A GROWN-UP</strong>
+        <p class="gate-pack">${p.name} · <span class="coin"></span>${fmtCoins(p.coins)} · ${Store.priceOf(p)}</p>
+        <p>This costs real money. To go on, a grown-up types these numbers, with no spaces:</p>
+        <div class="gate-words">${Store.gate.words}</div>
+        <input id="gate-in" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="THE NUMBERS">
+        <p id="gate-msg" class="note"></p>
+        <div class="gate-btns"><button class="mid-btn" id="gate-no">CANCEL</button><button class="mid-btn green" id="gate-ok">CONTINUE</button></div>
+      </div>`;
+    } else {
+      const off = !!Store.busy || !st || !st.canBuy;
+      const packs = PRODUCTS.map((p) => `<button class="pack ${p.id === Store.busy ? 'busy' : ''}" data-pack="${p.id}" ${off ? 'disabled' : ''}>
+          <strong>${p.name}</strong>
+          <span class="pack-coins"><span class="coin"></span>${fmtCoins(p.coins)}</span>
+          <em class="pack-bonus">${p.bonus ? '+' + p.bonus + '% EXTRA' : '&nbsp;'}</em>
+          <span class="pack-price">${p.id === Store.busy ? 'WAITING…' : Store.priceOf(p)}</span>
+        </button>`).join('');
+      inner = `${st && !st.canBuy && st.enabled ? note('That is enough packs for today. Come back tomorrow.') : ''}
+        <div class="pack-grid">${packs}</div>
+        ${Store.msg ? note(Store.msg) : ''}
+        <p class="note fine">These cost real money, so ask a grown-up first. Coins cannot be turned back into money. Crates cost coins, and every crate shows its odds on the crate shelf. Refunds are handled by Apple or Google.</p>`;
+    }
+    body.innerHTML = `${this.coinsLine()}${inner}`;
+
+    const signin = $('coins-signin'); if (signin) signin.addEventListener('click', () => { this.tap(); this.closeModal(); this.showAuth(); });
+    body.querySelectorAll('[data-pack]').forEach((b) => b.addEventListener('click', () => { this.tap(); Store.sel = b.dataset.pack; Store.newGate(); this.panel_coins(body); const f = $('gate-in'); if (f) f.focus(); }));
+    const no = $('gate-no'); if (no) no.addEventListener('click', () => { this.tap(); Store.sel = null; Store.gate = null; this.panel_coins(body); });
+    const ok = $('gate-ok');
+    if (ok) {
+      const go = () => {
+        if (Store.gatePassed($('gate-in').value)) { const id = Store.sel; Store.sel = null; Store.gate = null; this.panel_coins(body); Store.buy(id); return; }
+        Store.newGate(); this.panel_coins(body); $('gate-msg').textContent = 'Not quite. Here are some new numbers.';
+      };
+      ok.addEventListener('click', () => { this.tap(); go(); });
+      $('gate-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    }
+  },
+
   panel_crates(body) {
     $('modal-title').textContent = 'CRATES';
     const cards = CRATES.map((c) => {
@@ -438,10 +489,11 @@ Object.assign(UI, {
       </button>`;
     }).join('');
     const left = Crates.anyMissing();
-    body.innerHTML = `<div class="crate-head">${this.coinsLine()}<button class="mid-btn" id="to-collection">COLLECTION</button></div>
+    body.innerHTML = `<div class="crate-head">${this.coinsLine()}<span class="crate-btns">${Store.canShow() ? '<button class="mid-btn gold" id="to-coins">GET COINS</button>' : ''}<button class="mid-btn" id="to-collection">COLLECTION</button></span></div>
       <p class="note">${left ? 'Every crate gives you something you have not got yet. The dearer the crate, the better the chances.' : 'You own everything. There is nothing left in any crate.'}</p>
       <div class="crate-grid">${cards}</div>`;
     $('to-collection').addEventListener('click', () => { this.tap(); this.openModal('collection'); });
+    const toCoins = $('to-coins'); if (toCoins) toCoins.addEventListener('click', () => { this.tap(); this.openModal('coins'); });
     body.querySelectorAll('canvas[data-crateart]').forEach((cv) => this.crateArt(cv, Crates.get(cv.dataset.crateart)));
     body.querySelectorAll('.crate-card').forEach((el) => el.addEventListener('click', () => {
       const crate = Crates.get(el.dataset.crate);
