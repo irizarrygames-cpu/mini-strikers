@@ -279,18 +279,18 @@ const SkillRun = {
     const big = clamp(Math.min(L.W, L.H) * 0.05, 14, 26), small = big * 0.62;
     const score = `${P.chal.score} ${ch.unit}`, kick = `KICK ${Math.min(P.chal.total, P.chal.kicks + 1)}/${P.chal.total}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `900 ${big}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${big}px "Lilita One", system-ui, sans-serif`;
     const wScore = ctx.measureText(score + '   ' + kick).width;
-    ctx.font = `900 ${small}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${small}px "Lilita One", system-ui, sans-serif`;
     const w = Math.max(wScore, ctx.measureText(ch.name).width) + big * 1.6;
     const h = small + big * 2.1, x = W / 2 - w / 2, y = 10;
     ctx.fillStyle = OUTLINE; Sprites.rr(ctx, x + 3, y + 4, w, h, big * 0.6); ctx.fill();
     ctx.fillStyle = '#ffffff'; Sprites.rr(ctx, x, y, w, h, big * 0.6); ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = OUTLINE; ctx.stroke();
     ctx.fillStyle = '#6b7299';
-    ctx.font = `900 ${small}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${small}px "Lilita One", system-ui, sans-serif`;
     ctx.fillText(ch.name, W / 2, y + small * 0.95);
-    ctx.font = `900 ${big}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${big}px "Lilita One", system-ui, sans-serif`;
     ctx.fillStyle = OUTLINE;
     ctx.fillText(score + '   ' + kick, W / 2, y + small + big * 0.95);
   },
@@ -302,7 +302,7 @@ const SkillRun = {
     ctx.setTransform(Render.dpr, 0, 0, Render.dpr, 0, 0);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const txt = `${c.t.toFixed(1)}s`;
-    ctx.font = `900 ${big}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${big}px "Lilita One", system-ui, sans-serif`;
     const w = ctx.measureText(txt).width + big * 1.2;
     ctx.fillStyle = OUTLINE; Sprites.rr(ctx, W / 2 - w / 2 + 3, 13, w, big * 1.8, big * 0.5); ctx.fill();
     ctx.fillStyle = c.t > 30 ? '#ffd0d3' : '#ffffff'; Sprites.rr(ctx, W / 2 - w / 2, 10, w, big * 1.8, big * 0.5); ctx.fill();

@@ -613,7 +613,7 @@ const Render = {
 
   // ---------------- helpers ----------------
   chunkyText(ctx, str, x, y, size, color, stroke) {
-    ctx.font = `900 ${size}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
     ctx.lineJoin = 'round';
     ctx.lineWidth = stroke || Math.max(3, size * 0.2);
     ctx.strokeStyle = OUTLINE;
@@ -774,7 +774,7 @@ const Render = {
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     this.chunkyText(ctx, 'GOAL!', x0, y, size, '#ffe14d');
-    ctx.font = `900 ${size}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
     const gw = ctx.measureText('GOAL! ').width;
     this.chunkyText(ctx, who, x0 + gw, y, size * 0.8, s.team === 'blue' ? '#ffffff' : '#ffd0d3');
     if (def) {
@@ -862,7 +862,7 @@ const Render = {
     const pop = age < 0.16 ? easeOut(age / 0.16) : 1, fade = age > 2.8 ? (3.2 - age) / 0.4 : 1;
     const fs = size * 1.08, pad = fs * 0.55, h = fs * 1.55, tail = fs * 0.45;
     ctx.save();
-    ctx.font = `900 ${fs}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${fs}px "Lilita One", system-ui, sans-serif`;
     const w = ctx.measureText(chat.text).width + pad * 2;
     ctx.globalAlpha = Math.max(0, fade);
     ctx.translate(x, y);

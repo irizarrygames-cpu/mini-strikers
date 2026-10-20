@@ -218,12 +218,21 @@ const AI = {
   },
 
   bestPass(m, p) {
-    const dir = TEAMS[p.team].dir, gx = attackGoalX(p.team);
+    const dir = TEAMS[p.team].dir, gx = attackGoalX(p.team), ownX = ownGoalX(p.team);
     let best = null, bestS = -1e9;
     for (const q of m.players) {
       if (q.team !== p.team || q === p) continue;
       const d = dist(p.x, p.y, q.x, q.y);
       if (d < 90 || d > 1100) continue;
+      // Never pass along a line that runs into your own goal. Found by the fuzzer: a keeper picked a
+      // teammate standing behind the goal line, and the pass that was meant for him went into the net
+      // (a ball that is missed or fumbled in front of the goal does the same). A receiver is ruled out
+      // when the pass heads for the own goal line, would cross the mouth, and he is near or past it.
+      const toGoal = ownX - p.x, dxq = q.x - p.x;
+      if (dxq * toGoal > 0 && Math.abs(toGoal) > 1) {
+        const yAtLine = p.y + (q.y - p.y) * (toGoal / dxq);
+        if (yAtLine > GOAL_Y1 - 30 && yAtLine < GOAL_Y2 + 30 && (ownX - q.x) * Math.sign(toGoal) < 260) continue;
+      }
       const open = this.minOppDist(m, p.team, q.x, q.y);
       let s = clamp(open / 240, 0, 1);
       if (open < 45) s -= 0.8; // someone is standing on the receiver

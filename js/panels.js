@@ -349,10 +349,14 @@ Object.assign(UI, {
         ${job.done ? '<span class="m-paid">CLAIMED</span>' : done ? `<button class="m-claim" data-claim="${job.id}">CLAIM</button>` : ''}</div>
       </div>`;
     };
-    const streak = (Save.data.daily && Save.data.daily.streak) || 0;
+    // "day N of your run" only while the run is alive: a new player has no day 0, and after a
+    // missed day the saved number is stale (the next claim starts again at day 1)
+    const dl = Save.data.daily || {};
+    const runAlive = dl.last && dl.streak > 0 && Daily.dayNum(Daily.key()) - Daily.dayNum(dl.last) <= 1;
+    const streak = runAlive ? dl.streak : 0;
     body.innerHTML = `${this.coinsLine()}
       <p class="note">Jobs pay coins, and coins open crates. They swap over at midnight; the big one lasts the week.</p>
-      <div class="m-head">TODAY<small>day ${streak} of your run</small></div>
+      <div class="m-head">TODAY${streak ? `<small>day ${streak} of your run</small>` : ''}</div>
       <div class="mission-list">${m.daily.map((j) => row(j, false)).join('')}</div>
       <div class="m-head">THIS WEEK</div>
       <div class="mission-list">${m.weekly ? row(m.weekly, true) : ''}</div>`;
@@ -987,7 +991,7 @@ Object.assign(UI, {
       g.save();
       g.translate(px, ground - 86 * k - ease * 8 * k);
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = `900 ${Math.round(15 * k)}px "Lilita One", system-ui, sans-serif`;
+      g.font = `400 ${Math.round(15 * k)}px "Lilita One", system-ui, sans-serif`;
       g.globalAlpha = Math.min(1, ease * 2.2);
       g.lineWidth = 6 * k * 0.6; g.strokeStyle = OUTLINE; g.lineJoin = 'round';
       g.strokeText(def.say, 0, 0);
@@ -1024,7 +1028,7 @@ Object.assign(UI, {
         <p id="pw-msg" class="note"></p>
       </form>` : ''}
       <div class="set"><span>PRIVACY</span><em>What the game keeps, and what it does not</em><a class="mid-btn set-link" href="privacy.html" target="_blank" rel="noopener">READ IT</a></div>
-      <div class="set danger"><span>PROGRESS</span><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>
+      <div class="set danger"><span>PROGRESS</span><em>Start again from zero.${Net.user ? ' Your account stays.' : ''}</em><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>
       ${Net.user ? `<div class="set danger"><span>DELETE ACCOUNT</span><em>Your coins, everything you have won, and your record. Gone for good, everywhere.</em><button id="del-acct" class="mini-danger">DELETE</button></div>
       <form id="del-form" class="pw-form" hidden autocomplete="off">
         <input type="password" id="del-pw" placeholder="YOUR PASSWORD" autocomplete="current-password" maxlength="200">
@@ -1261,6 +1265,23 @@ Object.assign(UI, {
     requestAnimationFrame(frame);
   },
 
+  // How big a celebration may be drawn so what the player is wearing stays inside its card.
+  // Wide wings on a flat body run out sideways, and a tall head item on a flipping body goes over
+  // the top - both clipped, measured by tools/bugscan.js. Poses that fling the player at the edge
+  // on purpose (a rocket launching, an archer drawing a bow) are left alone: shrinking them would
+  // only make the animation smaller. The scan calls this too, so it tests what the game does.
+  // The neon halo cannot be shrunk out of trouble: mid-flip it hangs below the head at a size that
+  // does not scale with the sprite, and touched the bottom edge at every scale tried. So it is
+  // lifted instead, and the other tall head items are drawn a little smaller.
+  TALL_HEAD: { neonhalo: { k: 1, up: 10 }, antlers: { k: 0.85, up: 0 }, firecrown: { k: 0.85, up: 0 }, stormcloud: { k: 0.85, up: 0 } },
+  celebFit(scale, pose, acc) {
+    if (pose && pose.lie && /wings/.test(acc || '')) return { s: Math.min(scale, 0.65), up: 0 };
+    const moving = pose && (pose.jump > 25 || Math.abs(pose.rot || 0) > 1);
+    const t = moving && this.TALL_HEAD[acc];
+    if (t) return { s: scale * t.k, up: t.up };
+    return { s: scale, up: 0 };
+  },
+
   celebSwatch(cv, id, e = 1.5) {
     const g = cv.getContext('2d'), w = cv.width, h = cv.height;
     g.fillStyle = '#55c541'; g.fillRect(0, 0, w, h);
@@ -1275,9 +1296,10 @@ Object.assign(UI, {
     const pose = CELE_POSES[id] ? CELE_POSES[id](e, e, p) : null;
     const lying = pose && pose.lie;
     const ground = h - 14 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && (pose.jump > 25 || id === 'snowangel') ? 0.72 : pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
+    const fit = this.celebFit(scale, pose, p.look && p.look.acc);
     g.fillStyle = 'rgba(20,60,20,0.28)'; g.beginPath(); g.ellipse(w / 2, ground, lying ? 38 : 25, 8, 0, 0, Math.PI * 2); g.fill();
     // Wider framing keeps every flip, floor pose, prop and equipped accessory inside its card.
-    Sprites.player(g, p, w / 2 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground, scale, e);
+    Sprites.player(g, p, w / 2 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground - fit.up, fit.s, e);
   },
 
   ballSwatch(cv, id) {

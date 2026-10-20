@@ -259,7 +259,9 @@ window.BS = {
           diveT: 0, stunT: 0, recoverT: 0, seed: 0, runPhase: e * 9, sad: false, slideT: 0, fallT: 0, hopT: 0 };
         const pose = CELE_POSES[c.id](e, e, p), lying = pose && pose.lie, ground = 136 - (lying ? 10 : pose && pose.kneel ? 12 : 0), scale = pose && (pose.jump > 25 || c.id === 'snowangel') ? 0.72 : pose && Math.abs(pose.rot || 0) > 1 ? 0.82 : 0.9;
         g.clearRect(0, 0, cv.width, cv.height);
-        try { Sprites.player(g, p, 80 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground, scale, e); }
+        // the very rule the game applies, not a copy of it
+        const fit = UI.celebFit(scale, pose, acc);
+        try { Sprites.player(g, p, 80 + (lying === 'back' ? 23 : lying === 'front' ? -20 : 0), ground - fit.up, fit.s, e); }
         catch (err) { issues.push(`${c.id}/${acc || 'none'} @${e}: ${err.message}`); continue; }
         const d = g.getImageData(0, 0, cv.width, cv.height).data;
         let edge = false;

@@ -25,6 +25,10 @@ html, body {
   margin: 0; height: 100%; overflow: hidden;
   background: #34439a; color: var(--ink);
   font-family: var(--font);
+  /* Lilita One has one weight. Asked for a heavier one the browser smears the regular face to
+     fake it, which is what made the commentary and a few labels look fat and blurry. Never do
+     that: system-ui text still gets its real bold faces, this only stops the faking. */
+  font-synthesis: none;
   /* pan-x pan-y, not none: "none" here and on every button meant a swipe that started on
      a shop card (they are all buttons) could never scroll the panel. Pinch and double-tap
      zoom stay off; only the pitch and the match controls below take touches raw. */
@@ -110,7 +114,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
   width: clamp(110px, 32vmin, 160px); padding: 4px 0 3px;
   display: flex; align-items: center; justify-content: center;
   border: 3px solid var(--ink); border-radius: 999px; background: #2a2d45; color: #fff;
-  font: 900 clamp(13px, 4vmin, 19px)/1 "Lilita One", system-ui, sans-serif; letter-spacing: 0.06em;
+  font: 400 clamp(13px, 4vmin, 19px)/1 "Lilita One", system-ui, sans-serif; letter-spacing: 0.06em;
   box-shadow: 0 4px 0 var(--ink); overflow: hidden; touch-action: none;
 }
 .ult-btn b { position: relative; z-index: 2; }
@@ -353,7 +357,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .r-mvp canvas { width: 56px; height: 56px; }
 .r-mvp small { display: block; font-size: 12px; }
 .r-mvp strong { display: block; font-weight: 400; font-size: 20px; }
-.r-mvp em { font-style: normal; font-size: 13px; font-family: system-ui, sans-serif; font-weight: 700; }
+.r-mvp em { font-style: normal; font-size: 13px; font-family: system-ui, sans-serif; font-weight: 600; }
 .r-you-wrap small { font-size: 12px; color: #6b7299; }
 .r-you { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; }
 .r-you b { font-family: var(--font); font-weight: 400; font-size: 18px; }
@@ -502,9 +506,9 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .auth-tabs button.sel { background: var(--blue); color: #fff; }
 .auth-fields { display: flex; flex-direction: column; gap: 8px; }
 .auth-fields label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: #6b7299; }
-.auth-fields input { font-family: system-ui, sans-serif; font-size: 18px; font-weight: 700; padding: 9px 12px; border: 3px solid var(--ink); border-radius: 12px; color: var(--ink); background: #f7f8ff; outline: none; }
+.auth-fields input { font-family: system-ui, sans-serif; font-size: 18px; font-weight: 600; padding: 9px 12px; border: 3px solid var(--ink); border-radius: 12px; color: var(--ink); background: #f7f8ff; outline: none; }
 .auth-fields input:focus { background: #fff; box-shadow: 0 0 0 3px var(--yellow); }
-.auth-msg { margin: 0; min-height: 18px; font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; color: #6b7299; }
+.auth-msg { margin: 0; min-height: 18px; font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; color: #6b7299; }
 .auth-msg.bad { color: var(--ui-red); }
 #auth-go { font-size: clamp(24px, 6.5vmin, 34px); }
 #auth-go:disabled { filter: grayscale(0.6); }
@@ -689,7 +693,7 @@ body:not(.kb) #kb-legend { display: none; }
 .intro-ch ul, .p-ch ul, .r-challenges { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 4px; }
 .intro-ch li, .p-ch li, .r-challenges li {
   display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 10px;
-  font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px;
+  font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px;
 }
 .intro-ch li span, .p-ch li span, .r-challenges li span { flex: 1; }
 .intro-ch li b, .p-ch li b, .r-challenges li b { display: flex; align-items: center; gap: 4px; font-family: var(--font); font-weight: 400; font-size: 15px; }
@@ -767,7 +771,7 @@ body:not(.kb) #kb-legend { display: none; }
   display: flex; flex-direction: column; gap: 6px; min-height: 150px;
 }
 .mode strong { font-weight: 400; font-size: clamp(22px, 6vmin, 32px); -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; }
-.mode p { margin: 0; font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; flex: 1; }
+.mode p { margin: 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; flex: 1; }
 .mode .tag { align-self: flex-start; background: var(--ink); border-radius: 8px; padding: 2px 8px; font-size: 12px; color: var(--yellow); }
 .mode.quick { background: var(--blue); }
 .mode.cup { background: #e0a100; }
@@ -835,7 +839,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .wc-panel.online { background: #8a3ffc; }
 .wc-panel.bots { background: #e0a100; }
 .wc-panel header strong { display: block; font-weight: 400; font-size: clamp(22px, 5.5vmin, 30px); -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; }
-.wc-panel header small { font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; }
+.wc-panel header small { font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; }
 .wc-bracket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .wc-bracket li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; background: rgba(255,255,255,0.18); border: 3px solid var(--ink); border-radius: 10px; padding: 3px 8px; min-height: 34px; }
 .wc-bracket li small { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
@@ -1084,7 +1088,7 @@ body.offline [data-needs-net]:active { transform: none; }
 .prof-id strong { font-weight: 400; font-size: 26px; line-height: 1; }
 .prof-id small { font-size: 14px; color: #6b7299; }
 .prof-id small em { font-style: normal; }
-.prof-id span { font-family: system-ui, sans-serif; font-weight: 700; font-size: 13px; }
+.prof-id span { font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; }
 .prof-top .panel-coins { margin: 0; }
 .prof-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .prof-stats div { background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 3px 2px; }
@@ -1387,15 +1391,54 @@ body.kb .chat-menu kbd { display: inline-block; }
 .chat-menu .mute { grid-column: 1 / -1; justify-content: center; background: #dfe2f0; color: #6b7299; font-size: clamp(11px, 3.2vmin, 14px); min-height: 28px; }
 .chat-menu.cool button[data-i] { opacity: 0.55; }
 #hud.replaying #btn-chat, #hud.replaying #chat-menu { z-index: 3; }
+/* Beside the chat button, level with it, in the same spot the menu opens. It used to be centred
+   at the top, a few pixels from the commentary, and the two landed on each other.
+
+   The two numbers below are shared on purpose: the commentary is bounded by the same --feed-w,
+   so a long commentary line can never grow into the chat zone. */
+#hud { --hud-btn: clamp(40px, 11vmin, 54px); --feed-w: clamp(120px, 24vw, 200px); }
 .chat-feed {
-  position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--st) + clamp(46px, 13vmin, 66px));
-  display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none !important;
+  position: absolute;
+  left: calc(var(--sl) + var(--hud-btn) + 10px);
+  top: calc(var(--st) + var(--hud-btn) + 10px);
+  max-width: var(--feed-w);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; pointer-events: none !important;
 }
-.chat-feed div { background: rgba(22, 26, 51, 0.78); color: #fff; border-radius: 8px; padding: 1px 9px; font-size: clamp(12px, 3.4vmin, 15px); white-space: nowrap; animation: feedIn 0.2s ease-out; }
+/* the open menu sits where the lines would be, so they step aside instead of showing through it */
+.chat-menu:not([hidden]) ~ .chat-feed { visibility: hidden; }
+.chat-feed div { background: rgba(22, 26, 51, 0.78); color: #fff; border-radius: 8px; padding: 1px 9px; font-size: clamp(12px, 3.4vmin, 15px); white-space: normal; overflow-wrap: anywhere; line-height: 1.2; animation: feedIn 0.2s ease-out; }
 .chat-feed b { font-weight: 400; color: #bfefff; }
 .chat-feed .me b { color: var(--yellow); }
 .chat-feed .them b { color: #ffd0d3; }
 @keyframes feedIn { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* With chat on (online only), the commentary leaves room for it on both sides, so it stays
+   centred: the button, a gap, the chat lines, a gap - and the same again on the right. */
+#btn-chat:not([hidden]) ~ #commentary {
+  width: min(560px, 72vw,
+    calc(100vw - 2 * (var(--sl) + var(--hud-btn) + 10px + var(--feed-w) + 8px)),
+    calc(100vw - 2 * var(--mini-w, 0px)));
+}
+
+/* Upright there is no room to put them side by side. The lines go under the chat button instead,
+   still in the left column, and stop short of the middle where the commentary is. */
+@media (orientation: portrait) {
+  .chat-feed {
+    left: var(--sl);
+    top: calc(var(--st) + var(--hud-btn) * 2 + 44px);
+    max-width: max(90px, calc(50vw - var(--sl) - 70px));
+  }
+  #btn-chat:not([hidden]) ~ #commentary {
+    width: min(560px, 72vw, calc(100vw - 2 * (var(--sl) + 54px)), calc(100vw - 2 * var(--mini-w, 0px)));
+  }
+}
+
+/* A short phone held sideways has only ~85px between the chat button and the ULT button, and long
+   names wrap to two rows each, so three lines reached down onto ULT. Two newest lines fit. */
+@media (orientation: landscape) and (max-height: 360px) {
+  .chat-feed div:nth-last-child(n+3) { display: none; }
+  .chat-feed b { display: inline-block; max-width: 7ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+}
 
 /* penalty shootout: just the stick (aim / pick a side) and one button (shoot / dive) */
 #hud.pens #btn-pass, #hud.pens #btn-skill, #hud.pens #btn-sprint, #hud.pens #btn-ult, #hud.pens #scoreboard, #hud.pens #kb-legend, #hud.pens #net-ping, #hud.pens #tip { display: none !important; }
@@ -1795,3 +1838,56 @@ body.kb .chat-menu kbd { display: inline-block; }
     line-height: 1.05;
   }
 }
+
+/* ================= ONE WEIGHT FOR THE GAME'S LETTERING =================
+   font-synthesis-weight on html already stops the browser faking bold; these say the same thing
+   outright for browsers that ignore that property. They are at the end of the file so no later
+   rule can put a weight back. */
+.commentary strong,
+.cust-ground b,
+.kc,
+.ult-btn b { font-weight: 400; }
+
+/* ================= TIDYING THAT NEEDED LOOKING AT, NOT SCANNING =================
+   Each of these was visible on screen and invisible to the overflow checks. */
+
+/* customize tabs: an even grid, so POWER TRAIL is never left on a line of its own */
+.cust-top .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.cust-top .tabs button { white-space: nowrap; }
+
+/* character cards: the portrait starts below a header row of tag and OVR, instead of the tag
+   running underneath it; a locked card already says its grade lower down, so it drops the top one */
+.char-card-sm canvas { margin-top: 26px; }
+.char-card-sm.locked .rar-tag { display: none; }
+
+/* settings: one layout for every row. Label, description, and the button on the right. */
+.set > em { flex: 1; min-width: 0; font-style: normal; font-size: 15px; line-height: 1.25; }
+.set > button, .set > a.set-link { flex: none; min-width: 104px; }
+.set .mid-btn, .set .mini-danger { font-size: 15px; padding: 6px 14px; }
+.set .mid-btn { box-shadow: inset 0 -4px 0 var(--blue-d), 0 4px 0 var(--ink); }
+
+/* short landscape phones: SKILL CHALLENGES and TRAINING share a row instead of one spanning it
+   and the other sitting alone beside three empty columns */
+@media (max-height: 430px) {
+  .mode.chal, .mode.training { grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; }
+}
+
+/* a live tie: the lines on the left and the LIVE badge in a column of its own on the right, so
+   it can never sit on top of the scores the way it did when it was pinned to the corner */
+.cup-tie.live { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: center; }
+.cup-tie.live > span { grid-column: 1; }
+.cup-tie.live > .tag-live { position: static; transform: none; grid-column: 2; grid-row: 1 / span 2; }
+
+/* short screens: room between the "more ways to play" line and the card under it */
+@media (max-height: 430px) { .note.vs-bots { margin: 6px 0 8px; } }
+
+/* portrait settings rows wrap: the label and its button share the first line and the description
+   takes a line of its own below, instead of being squeezed to a sliver beside them */
+@media (orientation: portrait) {
+  .set > button, .set > a.set-link { order: 1; }
+  .set > em, .set.account > em { order: 2; flex: 1 1 100%; }
+}
+
+/* the narrowest phones: the tabs get a row to themselves rather than being squeezed to 170px
+   beside the coins pill, where CELEBRATION and POWER TRAIL ran out of their cells */
+@media (max-width: 380px) { .cust-top .tabs { flex: 1 1 100%; } }

@@ -503,7 +503,7 @@ const Pens = {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const fs = L.board * 0.5;
     const words = [st.name || 'MINI STRIKERS', st.chant || "LET'S GO!"];
-    ctx.font = `900 ${fs}px "Lilita One", system-ui, sans-serif`;
+    ctx.font = `400 ${fs}px "Lilita One", system-ui, sans-serif`;
     let bx = -((t * 20) % 900);
     for (let i = 0; bx < L.W + 400; i++) {
       const word = words[i % words.length], w = ctx.measureText(word).width;
@@ -816,7 +816,7 @@ const Pens = {
     else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? 'WATCH THE KICK  ·  WASD + SPACE TO DIVE' : 'WATCH THE KICK  ·  STICK + DIVE';
     if (hint) {
       const hs = clamp(Math.min(W, H) * 0.034, 12, 18);
-      ctx.font = `900 ${hs}px "Lilita One", system-ui, sans-serif`;
+      ctx.font = `400 ${hs}px "Lilita One", system-ui, sans-serif`;
       const w = ctx.measureText(hint).width + hs * 1.6, hy = kb ? H - hs * 2.2 : L.gy + (L.spot.y - L.gy) * 0.18;
       boxes.hint = [W / 2 - w / 2, hy - hs, W / 2 + w / 2, hy + hs];
       ctx.fillStyle = 'rgba(22, 26, 51, 0.78)'; Sprites.rr(ctx, W / 2 - w / 2, hy - hs, w, hs * 2, hs * 0.6); ctx.fill();
