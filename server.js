@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 90;
+const BUILD = 91;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -474,7 +474,7 @@ function readBody(req) {
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 const DENY_FILES = new Set(['data.json', 'data.json.tmp', 'server.js', 'package.json', 'package-lock.json', 'serve.py', 'readme.md', 'publishing.md', 'render.yaml']);
-const DENY_DIRS = new Set(['server', 'node_modules']);
+const DENY_DIRS = new Set(['server', 'node_modules', 'app', 'signing']);
 // the test tools are for this computer only
 const LOCAL_ONLY_DIRS = new Set(['tools']);
 const isLoopback = (req) => /^(::1|127\.|::ffff:127\.)/.test(req.socket.remoteAddress || '') && !req.headers['x-forwarded-for'];

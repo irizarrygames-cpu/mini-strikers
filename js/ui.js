@@ -24,10 +24,15 @@ const UI = {
       const hit = e.target && e.target.closest && e.target.closest('[data-needs-net]');
       if (!hit) return;
       e.preventDefault(); e.stopPropagation();
+      // A guest is not short of internet, they are short of an account: take them to the sign-in
+      // screen, where everything they have won so far comes along if they make one.
+      if (!Save.account) { this.showAuth('Make an account to play online. Everything you have won as a guest comes with you.', true); return; }
       this.toast('THAT ONE NEEDS INTERNET');
     }, true);
     const offBtn = $('auth-offline');
     if (offBtn) offBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
+    const guestBtn = $('auth-guest');
+    if (guestBtn) guestBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
     window.addEventListener('keydown', leaveSplash, { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
@@ -137,6 +142,9 @@ const UI = {
     t.textContent = text;
     t.hidden = false;
     t.classList.toggle('low', !$('results').hidden);
+    // With a menu or overlay open, the top of the screen is its title and its buttons. The
+    // toast goes to the bottom there, where only the dimmed game is behind it.
+    t.classList.toggle('down', $('results').hidden && !!document.querySelector('#modal:not([hidden]), .overlay:not([hidden])'));
     t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
     this._toastT = 2.4;
   },
@@ -368,12 +376,14 @@ const UI = {
       Save.useGuest();
       Net.user = null;
     }
+    const wasReachable = !Net.offlineOffer; // a guest who chose to play without an account, not one who has no signal
     Net.goOffline();
     $('auth').hidden = true;
     Game.state = 'home';
     Render.buildLayer();   // Clubs.mine() reads the country straight out of the save
     this.show('home');
-    this.toast(name ? 'NO CONNECTION — PLAYING ON THIS DEVICE' : 'PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE');
+    this.toast(name ? 'NO CONNECTION — PLAYING ON THIS DEVICE'
+      : wasReachable ? 'PLAYING AS A GUEST. SIGN IN ANY TIME TO PLAY ONLINE' : 'PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE');
     return true;
   },
 
@@ -389,6 +399,10 @@ const UI = {
     // because progress made as a guest stays on this device
     const off = $('auth-offline');
     if (off) off.hidden = !Net.offlineOffer;
+    // with a connection the guest way in is offered in the foot of the card; with none, the
+    // "play offline" button up top says the same thing in the words that fit
+    const guest = $('auth-guest');
+    if (guest) guest.hidden = !!Net.offlineOffer;
   },
 
   async submitAuth() {

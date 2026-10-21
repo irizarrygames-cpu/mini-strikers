@@ -1924,3 +1924,60 @@ body.kb .chat-menu kbd { display: inline-block; }
 .gate input:focus { box-shadow: 0 0 0 3px var(--yellow); }
 .gate .note { min-height: 1.2em; margin: 0; }
 .gate-btns { display: flex; gap: 10px; justify-content: center; }
+
+/* ===== A TIDIER FIRST IMPRESSION ===== */
+
+/* A toast is a message, not a lid. With a menu open, the top of the screen is the menu's title and
+   buttons, so the toast drops to the bottom of the screen, where only the dimmed game is behind it. */
+.toast.down { top: auto; bottom: calc(var(--sb) + 14px); transform: translate(-50%, 20px); }
+.toast.down.show { transform: translate(-50%, 0); }
+
+/* a way in with no account: quiet, under the main button, but a real button with room to press */
+.auth-guest { align-self: center; min-height: 34px; padding: 4px 10px; border: 0; background: none; color: #6b7299; font-family: var(--font); font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.auth-guest[hidden] { display: none; }
+.auth-guest:active { color: var(--ink); }
+
+/* PLAY: the three things most people want sit together at the top (a match with no connection, a
+   match online, a room with friends); everything else is a short grid underneath. It used to be a
+   single column that ran three screens deep on a phone, with Quick Match third from the bottom. */
+.play-top { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.play-more { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px; }
+.play-top .mode, .play-more .mode {
+  grid-column: auto; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 3px;
+  min-height: 0; padding: 9px 12px 10px; border-width: 3px; border-radius: 14px; box-shadow: 0 4px 0 var(--ink);
+}
+.play-top .mode, .play-top .room-box { min-height: 104px; }
+.play-top .mode strong, .play-more .mode strong { font-size: clamp(17px, 4.6vmin, 24px); }
+.play-top .mode p, .play-more .mode p {
+  flex: 0 1 auto; min-width: 0; font-size: 12.5px; line-height: 1.25;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+}
+.play-more .mode p { -webkit-line-clamp: 2; }
+.play-top .mode .tag, .play-more .mode .tag { margin-top: auto; align-self: flex-start; font-size: 11px; padding: 1px 7px; white-space: normal; }
+@media (max-width: 640px) {
+  .play-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .play-top .room-box { grid-column: 1 / -1; min-height: 0; }
+}
+.pick-btn { display: flex; margin: 12px auto 2px; }
+.clubs-row[hidden] { display: none; }
+
+/* sign-in tabs: the same thumb-sized floor as every other button, even on the shortest phones */
+.auth-tabs button { min-height: 34px; }
+
+/* On a short phone the log-in card is two columns, the fields on the left and the buttons beside
+   them, so nothing (least of all "play as a guest") is below the fold. Sign-up already works this way. */
+@media (max-height: 430px) {
+  .auth:not(.signup) .auth-card { grid-template-columns: auto auto; grid-template-areas: "left foot"; align-items: center; }
+  .auth:not(.signup) .auth-left { width: min(300px, 50vw); }
+  .auth:not(.signup) .auth-foot { width: min(220px, 34vw); justify-content: center; }
+}
+
+/* narrow screens (a phone held upright, or a small window): the cards are narrow, so let the
+   descriptions run to as many lines as they need rather than cutting them off */
+@media (max-width: 420px) {
+  .play-top .mode p, .play-more .mode p { display: block; -webkit-line-clamp: unset; overflow: visible; }
+}
+
+/* No line limit on the mode descriptions at any width: a card grows to fit its words, and the
+   other cards in its row grow with it, instead of the end of a sentence being cut off. */
+.play-top .mode p, .play-more .mode p { display: block; -webkit-line-clamp: unset; overflow: visible; }

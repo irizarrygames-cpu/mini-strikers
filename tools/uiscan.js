@@ -117,6 +117,31 @@ window.US = {
       await wait(40);
     }
 
+    // the sign-in screen: log in, sign up (with the country picker) and the way in with no account
+    {
+      const home = document.getElementById('home'), auth = document.getElementById('auth');
+      const homeWas = home.hidden, authWas = auth.hidden, offered = Net.offlineOffer;
+      for (const [label, mode, offer] of [['auth (log in)', 'login', false], ['auth (sign up)', 'signup', false], ['auth (log in, no connection)', 'login', true]]) {
+        Net.offlineOffer = offer;
+        UI.showAuth();
+        const tab = document.querySelector(`[data-auth="${mode}"]`);
+        if (tab) tab.click();
+        await wait(250);
+        const card = document.querySelector('.auth-card');
+        if (card) out.hits.push(...this.scan(card, label, true));
+      }
+      Net.offlineOffer = offered;
+      auth.hidden = authWas; home.hidden = homeWas;
+    }
+    // the grown-up check, which goes in front of a purchase or a link out of the game
+    {
+      UI.grownUpCheck('This opens a web page outside the game.');
+      await wait(200);
+      const el = document.querySelector('.grownup .panel');
+      if (el) out.hits.push(...this.scan(el, 'grown-up check', true));
+      const g = document.querySelector('.grownup'); if (g) g.remove();
+    }
+
     Save.data.tutorialSeen = was;
     out.hits = [...new Set(out.hits)];
     out.count = out.hits.length;

@@ -5,3 +5,13 @@ data.json.tmp
 node_modules/
 *.log
 .DS_Store
+
+# the Android app wrapper: what it generates and anything that signs it
+app/www/
+app/node_modules/
+app/android/
+app/ios/
+signing/
+*.jks
+*.keystore
+keystore.properties

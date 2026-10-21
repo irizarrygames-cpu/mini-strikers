@@ -1,0 +1,12 @@
+{
+  "appId": "com.irizarrygames.ministrikers",
+  "appName": "Mini Strikers",
+  "webDir": "www",
+  "backgroundColor": "#2f7bff",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

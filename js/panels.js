@@ -20,11 +20,16 @@ Object.assign(UI, {
     const wcRound = Online.wcRound();
     body.innerHTML = `
       <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
-      <div class="online-row">
+      <div class="play-top">
+        <button class="mode quick" data-mode="quick">
+          <strong>QUICK MATCH</strong>
+          <p>One match against a random country. Works with no connection.</p>
+          <span class="tag">COINS · XP · 3 CHALLENGES</span>
+        </button>
         <button class="mode online" data-needs-net data-mode="online">
           <strong>PLAY ONLINE</strong>
-          <p>Play real people from every country.</p>
-          <span class="tag">WIN = ${club.name} MOVES UP THE LEAGUE</span>
+          <p>Real people from every country. A win moves ${club.name} up the league.</p>
+          <span class="tag">ONLINE</span>
         </button>
         <div class="room-box">
           <small>PLAY WITH FRIENDS</small>
@@ -33,20 +38,15 @@ Object.assign(UI, {
         </div>
       </div>
       <p class="note vs-bots">MORE WAYS TO PLAY</p>
-      <div class="modes">
+      <div class="play-more">
         <button class="mode ranked" data-needs-net data-mode="ranked">
           <strong>RANKED</strong>
-          <p>1v1 for rank points — the only place they are won. Win +10, draw +5, and every one of your three challenges is +1 more when you win. Lose and you drop nothing.</p>
+          <p>1v1 for rank points. Win +10, draw +5, and losing costs nothing.</p>
           <span class="tag">ONLINE · 1V1</span>
-        </button>
-        <button class="mode quick" data-mode="quick">
-          <strong>QUICK MATCH</strong>
-          <p>One match vs a random country. Fast, loose, fun.</p>
-          <span class="tag">3 CHALLENGES · COINS · XP</span>
         </button>
         <button class="mode cup" data-mode="worldcup">
           <strong>WORLD CUP</strong>
-          <p>Two cups: online against real players, or against bots. No draws. Lose once and you're out.</p>
+          <p>Real players online, or bots. Lose once and you are out.</p>
           <span class="tag">ONLINE: ${WC_ROUNDS[wcRound]} · BOTS: ${cup ? Cup.ROUNDS[cup.round] : 'NEW CUP'}</span>
         </button>
         <button class="mode pens" data-mode="pens">
@@ -56,21 +56,31 @@ Object.assign(UI, {
         </button>
         <button class="mode friendcup" data-needs-net data-mode="friendcup">
           <strong>FRIEND CUP</strong>
-          <p>A knockout between 4 or 8 friends. Win your 1v1 and you go through. No draws.</p>
+          <p>A knockout between 4 or 8 friends. No draws.</p>
           <span class="tag">ONLINE · WITH FRIENDS</span>
         </button>
         <button class="mode chal" data-mode="challenges">
           <strong>SKILL CHALLENGES</strong>
-          <p>Target practice, keeper mode and the dribble gauntlet. Medals and coins.</p>
+          <p>Target practice, keeper mode and a dribble gauntlet.</p>
           <span class="tag">3 TESTS</span>
         </button>
         <button class="mode training" data-mode="training">
           <strong>TRAINING</strong>
-          <p>No clock, no pressure: beat a defender and practice shots, skills and tackles.</p>
+          <p>No clock, no pressure. Practise shots, skills and tackles.</p>
+          <span class="tag">NO CLOCK</span>
         </button>
       </div>
-      <p class="note clubs-note">OR PICK YOUR OPPONENT</p>
-      <div class="clubs-row">${CLUBS.filter((c) => c.id !== Clubs.mine().id).map((c) => `<button class="club-chip" data-club="${c.id}" style="--c:${clubUi(c)}" title="Quick match vs ${c.name}"><canvas width="42" height="28" data-flag="${c.id}"></canvas><b>${c.short}</b><i>${'★'.repeat(c.level + 1)}</i></button>`).join('')}</div>`;
+      <button class="mid-btn pick-btn" id="pick-opp" aria-expanded="false">PICK YOUR OPPONENT</button>
+      <div class="clubs-row" id="clubs-row" hidden>${CLUBS.filter((c) => c.id !== Clubs.mine().id).map((c) => `<button class="club-chip" data-club="${c.id}" style="--c:${clubUi(c)}" title="Quick match vs ${c.name}"><canvas width="42" height="28" data-flag="${c.id}"></canvas><b>${c.short}</b><i>${'★'.repeat(c.level + 1)}</i></button>`).join('')}</div>`;
+    // ninety-odd flags are a lot to scroll past, so they wait behind a button
+    $('pick-opp').addEventListener('click', () => {
+      this.tap();
+      const row = $('clubs-row'), open = row.hidden;
+      row.hidden = !open;
+      $('pick-opp').setAttribute('aria-expanded', String(open));
+      $('pick-opp').textContent = open ? 'HIDE OPPONENTS' : 'PICK YOUR OPPONENT';
+      if (open) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
     body.querySelectorAll('canvas[data-flag]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.flag)));
     body.querySelectorAll('[data-club]').forEach((b) => b.addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'quick', club: Clubs.get(b.dataset.club) }); }));
     body.querySelectorAll('[data-format]').forEach((b) => b.addEventListener('click', () => {
@@ -423,6 +433,41 @@ Object.assign(UI, {
   },
 
   // ---- crates: the only way to get anything new ----
+  // A grown-up check for anything that takes the player out of the game (a web link) or spends
+  // real money. A few numbers written out in words: easy for a grown-up, not something a young
+  // player gets past by tapping. Resolves true if they typed them right, false if they backed out.
+  grownUpCheck(why) {
+    return new Promise((resolve) => {
+      Store.newGate();
+      const el = document.createElement('div');
+      el.className = 'overlay grownup';
+      el.style.zIndex = 25;
+      el.innerHTML = `<div class="panel small"><div class="gate">
+        <strong>ASK A GROWN-UP</strong>
+        <p>${why}</p>
+        <p>To go on, a grown-up types these numbers, with no spaces:</p>
+        <div class="gate-words">${Store.gate.words}</div>
+        <input inputmode="numeric" autocomplete="off" maxlength="12" placeholder="THE NUMBERS">
+        <p class="note gate-msg"></p>
+        <div class="gate-btns"><button class="mid-btn" data-no>CANCEL</button><button class="mid-btn green" data-ok>CONTINUE</button></div>
+      </div></div>`;
+      document.body.appendChild(el);
+      const input = el.querySelector('input');
+      const done = (v) => { el.remove(); resolve(v); };
+      const go = () => {
+        if (Store.gatePassed(input.value)) { done(true); return; }
+        Store.newGate();
+        el.querySelector('.gate-words').textContent = Store.gate.words;
+        el.querySelector('.gate-msg').textContent = 'Not quite. Here are some new numbers.';
+        input.value = ''; input.focus();
+      };
+      el.querySelector('[data-ok]').addEventListener('click', () => { this.tap(); go(); });
+      el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); done(false); });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+      input.focus();
+    });
+  },
+
   // ---- coins: packs bought with real money, in the app only (js/store.js does the buying) ----
   panel_coins(body) {
     $('modal-title').textContent = 'GET COINS';
@@ -1070,7 +1115,7 @@ Object.assign(UI, {
       <div class="set"><span>GRAPHICS</span>${seg('graphics', [['auto', 'AUTO'], ['high', 'HIGH'], ['low', 'LOW']])}</div>
       <div class="set"><span>CONTROLS</span>${seg('controls', [['auto', 'AUTO'], ['touch', 'TOUCH'], ['keyboard', 'KEYBOARD']])}</div>
       ${this.controlsRef()}
-      <div class="set account"><span>ACCOUNT</span><em>${Save.account || 'GUEST'} · ${Clubs.mine().name}</em><button id="logout" class="mini-danger">LOG OUT</button></div>
+      <div class="set account"><span>ACCOUNT</span><em>${Save.account || 'GUEST'} · ${Clubs.mine().name}</em><button id="logout" class="${Save.account ? 'mini-danger' : 'mid-btn'}">${Save.account ? 'LOG OUT' : 'SIGN IN'}</button></div>
       ${Net.user ? `<div class="set"><span>PASSWORD</span><em>Only you can change it, and only from here</em><button id="chpw" class="mid-btn">CHANGE</button></div>
       <form id="pw-form" class="pw-form" hidden autocomplete="off">
         <input type="password" id="pw-old" placeholder="CURRENT PASSWORD" autocomplete="current-password" maxlength="200">
@@ -1087,7 +1132,19 @@ Object.assign(UI, {
         <button type="submit" class="mini-danger">DELETE IT FOR GOOD</button>
         <p id="del-msg" class="note"></p>
       </form>` : ''}`;
-    $('logout').addEventListener('click', async () => { this.tap(); await Net.logout(); UI.showAuth('Logged out.'); $('auth-msg').classList.remove('bad'); });
+    // inside the app a link to the web is behind the grown-up check; on the web it is just a link
+    const priv = body.querySelector('a.set-link');
+    if (priv && NATIVE) priv.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (await this.grownUpCheck('This opens a web page outside the game.')) window.open(priv.href, '_blank', 'noopener');
+    });
+    $('logout').addEventListener('click', async () => {
+      this.tap();
+      const guest = !Save.account;
+      await Net.logout();
+      UI.showAuth(guest ? 'Make an account to play online. Everything you have won as a guest comes with you.' : 'Logged out.');
+      $('auth-msg').classList.remove('bad');
+    });
     if ($('chpw')) {
       $('chpw').addEventListener('click', () => { this.tap(); const f = $('pw-form'); f.hidden = !f.hidden; $('pw-msg').textContent = ''; if (!f.hidden) $('pw-old').focus(); });
       $('pw-form').addEventListener('submit', async (e) => {

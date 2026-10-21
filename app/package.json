@@ -1,0 +1,19 @@
+{
+  "name": "mini-strikers-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "The Android (and later iPhone) wrapper around the Mini Strikers web game. See ../PUBLISHING.md.",
+  "scripts": {
+    "web": "node scripts/build-web.js",
+    "sync": "node scripts/build-web.js && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "capacitor-plugin-cdv-purchase": "^13.19.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3"
+  }
+}
