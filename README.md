@@ -100,8 +100,38 @@ To try the shop on a computer with no store at all: `IAP_TEST_MODE=1 node server
 the server is **not** using the real database, so it can never be on for the live game).
 `node tools/iapscan.js` tests the whole thing against a fake Apple and a fake Google.
 
+## Online lag: what it is made of, and how to measure it
+
+Lag in an online match is three different things, and only some of them can be fixed in code.
+
+1. **Distance.** Every action goes to the server and back. From Miami to the live server a ping takes
+   about 125 ms (`node tools/wsping.js`), very steady. A server in the same part of the country would
+   be about 40-50 ms. Nothing in the game can shorten this: the server has to move. A Render service's
+   region is chosen when it is created (Oregon is the default) and cannot be changed afterwards, so it
+   means creating the service again in the nearest region (Virginia or Ohio for players in the eastern
+   US) with the same environment variables. To keep the address the apps use
+   (`https://mini-strikers.onrender.com`), delete the old service first and give the new one the same name.
+   Do this before the Android app goes to Google Play, because the address is built into the app.
+   Run `node tools/wsping.js` again afterwards to see the difference.
+2. **A connection that cannot keep up.** On a slow or choppy link (weak signal, shared Wi-Fi) the
+   server used to keep sending 30 pictures a second into a queue that grew without limit, so the screen
+   fell seconds behind and stayed there: a median 4.6 s behind after 25 s on a 14 KB/s link, still
+   growing. Since build 93 the game tells the server what it has received and the server stops piling
+   pictures up (`server/game.js`, "Flow control"): the same link is a median 0.1 s behind. `node tools/flowscan.js`
+   tests it, and `tools/netproxy.js` + `tools/snapprobe.js` build and time a bad connection by hand.
+3. **The server running out of CPU.** It does not: one match costs about 1% of a CPU core
+   (`node tools/cpubench.js`), so the free plan's small slice holds several matches. What does grow
+   with the number of accounts is the periodic check of every account for changes in `server.js`
+   (`flushDB`): about 5 ms at 1,000 accounts and 53 ms at 10,000. It is worth making incremental before
+   the game has thousands of players.
+
+The free plan also sleeps after 15 minutes without a visitor and takes up to a minute to wake. That is
+not lag in a match but it is the first thing a new player feels. A paid instance stays awake.
+
 ## Tools
 
+- `node tools/flowscan.js` — online flow control: a player who falls behind is not buried in stale pictures (about 2 minutes).
+- `node tools/wsping.js [url]` — the real round trip to a server, over a WebSocket. `node tools/cpubench.js` — CPU cost of one match.
 - `node tools/appscan.js` — the server as seen from inside a store app (CORS: the app's origins in, everyone else out).
 - `node tools/iapscan.js` — in-app purchases against a fake App Store and Google Play.
 - `node tools/netscan.js 40` — fuzzed online matches on the server engine, invariant checks.

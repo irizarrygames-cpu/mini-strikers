@@ -2,9 +2,53 @@
 //   await new Promise((r) => { const s = document.createElement('script'); s.src = 'tools/bugscan.js'; s.onload = r; document.head.appendChild(s); });
 //   BS.sim({ matches: 40 })   // fuzzed headless matches with invariant checks
 //   await BS.ui()             // clicks through every screen / panel / flow and watches for errors
+//   await BS.restart()      // RESTART in the pause menu runs the same challenge or match again
 //   BS.overlap()            // nothing on screen sitting on top of anything else, at this window size
 // Findings come back grouped by kind with a few examples each.
 window.BS = {
+  // ---------- restart ----------
+  // Start each skill challenge, spend some of it, pause, press RESTART, and check it is the same
+  // challenge again and not a match. Then the same for an ordinary quick match.
+  // (needs a fronted tab only for the pause menu; run it from a page that is signed out or in)
+  async restart() {
+    const hits = [], wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const wasSeen = Save.data.tutorialSeen; Save.data.tutorialSeen = true;
+    // A match is paused on purpose when the page is hidden, and a pane or a phone can flip that at any
+    // moment, so an attempt during which the page was hidden proves nothing: it is tried again.
+    let flips = 0; const onVis = () => { flips++; }; document.addEventListener('visibilitychange', onVis);
+    try {
+      for (const id of ['gauntlet', 'targets', 'keeper']) {
+      let fair = false;
+      for (let attempt = 0; attempt < 5 && !fair; attempt++) {
+        const seen = flips, before = hits.length;
+        SkillRun.start(id); await wait(300);
+        if (SkillRun.run) SkillRun.run.score = 7;
+        if (Game.match.challenge) Game.match.challenge.t = 12;
+        UI.togglePause(); await wait(150);
+        document.getElementById('p-restart').click(); await wait(400);
+        const m = Game.match, run = SkillRun.run;
+        if (!run || run.id !== id) hits.push(id + ': restart is not running the same challenge (' + (run && run.id) + ')');
+        else if (run.score !== 0) hits.push(id + ': the score was not cleared (' + run.score + ')');
+        if (id === 'gauntlet' && !(m.challenge && m.challenge.id === 'gauntlet' && m.challenge.t < 6)) hits.push('gauntlet: restart did not start a fresh gauntlet');
+        if (id !== 'gauntlet' && !(m.pens && m.pens.chal && m.pens.chal.id === id)) hits.push(id + ': restart did not rebuild the shootout challenge');
+        if (!m.pens && !m.challenge) hits.push(id + ': restart built an ordinary match');
+        if (Game.state !== 'match') hits.push(id + ': state is ' + Game.state + ' after restart');
+        if (!document.getElementById('pause').hidden) hits.push(id + ': the pause menu is still open');
+        // a hidden page can only cause a failure (the auto-pause), never a pass: so a pass always counts
+        if (hits.length > before && (flips !== seen || document.hidden)) { hits.length = before; continue; } // not a fair attempt
+        fair = true;
+      }
+      if (!fair) hits.push(id + ': INCONCLUSIVE, the page kept being hidden (run this in a tab that is in front)');
+      }
+      Game.startMatch({ mode: 'quick', format: '2v2' }); await wait(300);
+      document.getElementById('intro').hidden = true; Game.state = 'match';
+      UI.togglePause(); await wait(150);
+      document.getElementById('p-restart').click(); await wait(300);
+      if (!(Game.match.mode === 'quick' && !Game.match.challenge && !Game.match.pens)) hits.push('quick match: restart is not a quick match');
+    } finally { Save.data.tutorialSeen = wasSeen; document.removeEventListener('visibilitychange', onVis); }
+    return { hits, count: hits.length };
+  },
+
   // ---------- signature moves ----------
   // Every move, fired from every edge of the pitch and from a corner. Three things must hold:
   // it must not throw, it must leave you on the pitch, and if it is a move that keeps the ball

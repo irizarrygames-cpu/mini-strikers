@@ -7,7 +7,7 @@
 - Coin packs (in-app purchases): built and tested, switched off until the stores are set up.
 - The game runs from inside an app (`API_BASE` in `js/net.js`, CORS in `server.js`) and carries its own
   copy of its font, so it makes no request to anyone but its own server.
-- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.0-code1.aab`**, signed with
+- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.1-code2.aab`**, signed with
   the upload key, ready to upload to Google Play. Built from `app/`.
 
 ## Not done
@@ -53,7 +53,11 @@ if the account holder wants a different one.
 ## Steps, in order
 1. **An adult makes the accounts.** Apple Developer Program (about $99 a year) and Google Play Console
    (about $25 once). The adult is the account holder and signs the agreements.
-2. **Move the server off the free plan before review.** The free instance sleeps and takes up to a
+2. **Choose the server's region and plan before review.** Pings to the live server are about 125 ms from
+   Miami (`node tools/wsping.js`); a server in Virginia or Ohio would be about 45 ms. A Render service's region
+   cannot be changed, so it means a new service in the right region, created after deleting the old one and
+   given the same name so the address the app uses does not change (see README, "Online lag"). Do this BEFORE
+   uploading the app. **Also move off the free plan.** The free instance sleeps and takes up to a
    minute to wake. A reviewer opening the app to a "waking up" screen can reject it as unresponsive.
    Render's paid plan stays awake.
 3. **Upload the `.aab`** to a Closed testing track, add 12 or more testers (their Google accounts),

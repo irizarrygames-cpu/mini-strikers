@@ -8,6 +8,13 @@ const PenModel = require('./pens');
 
 const STEP = 1 / 120;
 const SNAPSHOT_EVERY = 4;           // 120 / 4 = 30 snapshots a second
+// Flow control (see snapshot()): a player whose newest known picture is older than the round trip
+// to them explains (1.3x the best round trip seen, plus 150 ms, never under FLOW_MIN_MS) is behind.
+// A behind player is sent one snapshot every FLOW_PROBE_MS instead of one every 33 ms, until they
+// catch up. Players who send no acknowledgements are only guarded by FLOW_BACKLOG.
+const FLOW_MIN_MS = 250;
+const FLOW_PROBE_MS = 250;
+const FLOW_BACKLOG = 96 * 1024;     // bytes waiting in the socket (it used to be 512 KB, about 13 s of snapshots)
 const INTRO_MS = 3500;              // the VS card before kickoff
 // Look for real players for a while, then fill the open spots. The wait is different every
 // time so a quiet queue doesn't always start on the same beat.
@@ -936,6 +943,21 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (a) { p.input.q |= a & 127; p.input.aim = { x, y }; }
     const s = Number(msg.s);
     if (Number.isFinite(s)) seat.ack = s;
+    // the newest snapshot the player holds: from here the player is flow-controlled, and the reply
+    // also times the trip (the best of them is what "far away" means for this player)
+    const k = Number(msg.k);
+    if (Number.isFinite(k) && k > 0 && k <= room.tick) {
+      seat.ackSeen = true;
+      if (k > (seat.ackK || 0)) {
+        seat.ackK = k;
+        const t0 = seat.sent && seat.sent.get(k);
+        if (t0) {
+          const trip = Date.now() - t0;
+          if (!seat.rttMin || trip < seat.rttMin) seat.rttMin = trip;
+          else seat.rttMin += Math.min(trip - seat.rttMin, 4) * 0.02; // creeps up if the connection got slower for good
+        }
+      }
+    }
   }
 
   /* ---------------- friend tournaments ----------------
@@ -1318,12 +1340,31 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       sc: [m.score.blue, m.score.red], mt: [Math.round(m.meter.blue), Math.round(m.meter.red)], ts: r100(m.timeScale), p: P, b: B, ev: room.events.splice(0),
     };
     const body = JSON.stringify(common).slice(1);
+    const nowMs = Date.now();
     for (const seat of room.seats) {
       if (!seat.human || !seat.conn || !seat.conn.ws.open || seat.gone) continue;
-      if (seat.conn.ws.backlog > 512 * 1024) continue; // a stalled client skips snapshots rather than queueing them
+      // Behind, so skip this one and keep the news for the next (see FLOW_* above). Two ways to be behind:
+      // the player says so (it reports the newest snapshot it holds), or the socket's own queue is deep.
+      let behind = seat.conn.ws.backlog > FLOW_BACKLOG;
+      if (!behind && seat.ackSeen) {
+        const stale = (room.tick - (seat.ackK || 0)) * (1000 / 120); // how old the newest picture the player holds is
+        behind = stale > Math.max(FLOW_MIN_MS, (seat.rttMin || 120) * 1.3 + 150);
+      }
+      if (behind && nowMs - (seat.lastSendAt || 0) < FLOW_PROBE_MS) {
+        if (common.ev.length) seat.evCarry = (seat.evCarry || []).concat(common.ev).slice(-200);
+        continue;
+      }
+      seat.lastSendAt = nowMs;
+      if (seat.ackSeen) { // remember when each went out, to time the replies
+        const sent = seat.sent || (seat.sent = new Map());
+        sent.set(room.tick, nowMs);
+        if (sent.size > 90) sent.delete(sent.keys().next().value);
+      }
+      let text = body;
+      if (seat.evCarry && seat.evCarry.length) { text = JSON.stringify({ ...common, ev: seat.evCarry.concat(common.ev) }).slice(1); seat.evCarry = null; }
       const p = seat.player;
       const me = p ? [seat.ack, r100(p.skillCd), r100(p.slideCd), r100(p.stamina), p.exhausted ? 1 : 0, p.charging ? 1 : 0, r100(p.chargeT), p.bufferT > 0 ? 1 : 0, r100(p.burstT), Math.round(p.ult || 0), chalMask(room, seat)] : null;
-      seat.conn.ws.send(`{"t":"s","me":${JSON.stringify(me)},${body}`);
+      seat.conn.ws.send(`{"t":"s","me":${JSON.stringify(me)},${text}`);
     }
     // anyone watching sees exactly what the players see, minus the "that's you" bits
     if (room.viewers && room.viewers.size) {

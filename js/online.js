@@ -142,7 +142,7 @@ const Online = {
     this.mirror = msg.side === 'red';
     this.you = msg.you;
     this.format = msg.format;
-    this.snaps = []; this.offset = null; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
+    this.snaps = []; this.offset = null; this.lastK = undefined; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
     this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
     this.lead = 0; this.visualLead = 0; this.leadBase = 0; this.leadAt = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
     const flipTeam = (t) => (this.mirror ? (t === 'blue' ? 'red' : 'blue') : t);
@@ -218,6 +218,7 @@ const Online = {
     const W = CFG.FIELD_W, s = this.mirror ? -1 : 1;
     const X = (x) => (this.mirror ? W - x : x);
     const now = performance.now();
+    this.lastK = msg.k; // told to the server with every input, so it can see when we are falling behind
     const snap = {
       k: msg.k, at: now, phase: NET_PHASES[msg.ph] || 'play', phaseT: msg.pt / 100, time: msg.tm / 10, ot: msg.ot,
       score: this.mirror ? { blue: msg.sc[1], red: msg.sc[0] } : { blue: msg.sc[0], red: msg.sc[1] },
@@ -590,7 +591,7 @@ const Online = {
     if (this.bits || (changed && this.sendT <= 1 / 60) || this.sendT <= 0) {
       if (this.bits & (1 | 16)) { this.kickBlock = 0.45; this.localOwn = null; }
       this.seq = seqNow;
-      Net.send({ t: 'i', s: this.seq, x, y, sp, a: this.bits });
+      Net.send({ t: 'i', s: this.seq, x, y, sp, a: this.bits, k: this.lastK });
       this.bits = 0; this.sendT = 1 / 30; this.lastSent = { x, y, sp };
     }
   },

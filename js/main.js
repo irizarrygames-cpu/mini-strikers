@@ -74,6 +74,19 @@ const Game = {
   startMatch(opts = this.lastOpts) {
     Sound.unlock();
     this.goFullscreen();
+    // A skill challenge is remembered here as { mode: 'challenge', id } so that RESTART can run it
+    // again, but it is not a match: asking for one as a match built a real quick match, which is
+    // what pressing RESTART in the middle of skill training used to do. Hand it back to the
+    // challenges, after clearing out what the last attempt left behind.
+    if (opts && opts.mode === 'challenge') {
+      FX.clear();
+      Input.reset();
+      this.acc = 0;
+      UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
+      $('hud').classList.remove('replaying', 'pens');
+      SkillRun.start(opts.id);
+      return;
+    }
     if (!Save.data.tutorialSeen) { UI.showHowTo(() => this.startMatch(opts)); return; }
     this.lastOpts = opts;
     let club = opts.club;
