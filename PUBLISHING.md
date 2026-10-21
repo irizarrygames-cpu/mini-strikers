@@ -1,17 +1,44 @@
 # Publishing Mini Strikers: what is done, what is left
 
-## Done (live in build 90)
+## Done (live in build 92)
 - The game, the server, accounts, online play, and a privacy page at `/privacy.html`.
-- Account deletion inside the game (Settings → Delete Account), which both stores require.
+- Play as a guest (no account needed), and account deletion inside the game (Settings → Delete
+  Account), which both stores require.
 - Coin packs (in-app purchases): built and tested, switched off until the stores are set up.
-- The game now works from inside an app: it can be bundled on the phone and still reach the server
-  (`API_BASE` in `js/net.js`, CORS in `server.js`, no service worker or "get the app" button inside
-  the app). `node tools/appscan.js` tests the server side of that.
+- The game runs from inside an app (`API_BASE` in `js/net.js`, CORS in `server.js`) and carries its own
+  copy of its font, so it makes no request to anyone but its own server.
+- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.0-code1.aab`**, signed with
+  the upload key, ready to upload to Google Play. Built from `app/`.
 
 ## Not done
-1. The two app wrappers (Android, iPhone). Nothing has been built or run on a phone yet.
-2. The store accounts, and the listing (screenshots, descriptions, age rating).
+1. The iPhone app (needs a Mac with Xcode).
+2. The store accounts, and the listing graphics (feature graphic 1024x500, phone screenshots).
+   The listing words are written: `app/store-listing.md`.
 3. Store credentials for purchases (see README, "Selling coins").
+4. The Android app has been built and checked (signature, contents, manifest, and the bundled game
+   run in a browser against a test server) but **never run on a real phone or emulator**. Install it on
+   a real Android phone (Play Console "Internal testing" is the easy way) before anyone else does.
+
+## The signing key. Read this.
+The `.aab` is signed with an *upload key*, kept in `C:\Users\NoahL\AndroidBuild\signing\`
+(`mini-strikers-upload.jks` and `keystore.properties`, which holds its password). It is outside
+OneDrive and outside the project on purpose, and it is never committed.
+- **Back that folder up** somewhere safe (a USB stick, not email). Every update you upload must be
+  signed with the same key.
+- If it is ever lost, Google can reset the upload key for an account that uses Play App Signing (the
+  default), but it takes a few days.
+- Whoever holds the key still needs the Play Console login to publish, so it is not a master key.
+
+## Building the Android file again
+Tools live in `C:\Users\NoahL\AndroidBuild` (JDK 21, the Android SDK, the work folder). To make a new
+`.aab` after changing the game:
+1. Raise `versionCode` (and `versionName`) in `app/version.json`. Google refuses a versionCode it has
+   already seen.
+2. `powershell -ExecutionPolicy Bypass -File app\build-android.ps1`
+3. The new file appears in `Desktop\Mini Strikers - Play Store`.
+The app id is `com.irizarrygames.ministrikers`. **It cannot be changed after the first upload**, and the
+in-app purchase products are tied to it. Change it in `app/capacitor.config.json` before the first upload
+if the account holder wants a different one.
 
 ## How long it really takes
 - **Google Play:** a *new personal* developer account must first run a closed test with at least 12
@@ -20,8 +47,8 @@
   Android cannot go live this weekend on a new personal account. Start the test as early as possible.
   (Organisation accounts are said to be exempt; check Google's page.)
 - **Apple:** an iPhone build needs a Mac with Xcode. Review usually takes a day or two.
-- This weekend is realistic for: accounts created, apps built, test builds on real phones, and the
-  listings filled in. Not for being live.
+- This weekend is realistic for: accounts created, the file uploaded to a closed test, listing filled in.
+  Not for being live.
 
 ## Steps, in order
 1. **An adult makes the accounts.** Apple Developer Program (about $99 a year) and Google Play Console
@@ -29,28 +56,19 @@
 2. **Move the server off the free plan before review.** The free instance sleeps and takes up to a
    minute to wake. A reviewer opening the app to a "waking up" screen can reject it as unresponsive.
    Render's paid plan stays awake.
-3. **Wrap the game with Capacitor** (needs downloads: Node packages, a JDK and the Android SDK on the
-   PC; Xcode on a Mac for iPhone):
-   - `npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios capacitor-plugin-cdv-purchase`
-   - the app's files are `index.html`, `style.css`, `js/`, the icons, `manifest.webmanifest` and
-     `privacy.html`. Not `server.js`, `server/`, `tools/` or `data.json`.
-   - Android scheme `https` (the server allows `https://localhost` and `capacitor://localhost`),
-     landscape only, fullscreen, app icon and splash.
-   - `npx cap sync`, then build and run on a real phone.
-4. **Listing:** name, short and long description, screenshots (landscape phone; iPad if supported),
-   1024px icon, Google's 1024x500 feature graphic, the age-rating questionnaire, the privacy page
-   `https://mini-strikers.onrender.com/privacy.html`, and the data forms (Google "Data safety", Apple
-   "App Privacy"): collected = username, password (hashed), game progress, purchase references; not
-   shared; not used for tracking; deletable in the app.
+3. **Upload the `.aab`** to a Closed testing track, add 12 or more testers (their Google accounts),
+   and keep them opted in for 14 days. Then apply for production access.
+4. **Listing:** use `app/store-listing.md`. Still needed: a 1024x500 feature graphic and at least two
+   landscape phone screenshots. Fill in the age-rating questionnaire and the Data safety form (answers
+   are in the listing file).
 5. **Kids.** The game is for children. The adult decides whether to list it as made for kids (Apple
    Kids Category, Google Families). That means no ads or third-party tracking (there are none), a
-   parental gate before purchases (built) and before any link that leaves the game (the privacy link
-   and the contact address do not have one yet). Read both stores' rules for it first.
+   parental gate before purchases and before any link that leaves the game (both built: the grown-up
+   check, numbers written out in words). Read both stores' rules for it first.
 6. **Purchases:** create five consumables with the ids in `js/products.js`, finish the tax and banking
-   forms, set the server's credentials, and test with a sandbox account (Apple) and a licence tester
-   (Google). Apple reviews the in-app purchases together with the first version of the app.
+   forms, set the server's credentials, and test with a licence tester (Google) or sandbox account
+   (Apple). Apple reviews the in-app purchases together with the first version of the app.
 7. **A reviewer account.** Reviewers need to try the online parts. The adult makes a demo account on
    the live game and puts its username and password in the review notes.
 8. **After it is out**, an old app version keeps talking to the server for months. Keep the server
-   compatible with it, and keep the server's pass-through for sandbox purchases until review is over
-   (then set `IAP_REJECT_TEST=1`).
+   compatible with it, and set `IAP_REJECT_TEST=1` once review is over.

@@ -8,7 +8,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', '..');
+// the game's folder: the project this lives in, or wherever GAME_ROOT says (the app is built in a
+// folder outside OneDrive, so the scripts are copied there and told where the game is)
+const ROOT = process.env.GAME_ROOT ? path.resolve(process.env.GAME_ROOT) : path.join(__dirname, '..', '..');
 const OUT = path.join(__dirname, '..', 'www');
 
 const FILES = ['index.html', 'style.css', 'manifest.webmanifest', 'privacy.html', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];

@@ -1,0 +1,11 @@
+Lilita One
+https://fonts.google.com/specimen/Lilita+One
+
+Lilita One is licensed under the SIL Open Font License, Version 1.1.
+The licence text is at https://openfontlicense.org (and in full at
+https://scripts.sil.org/OFL). It allows the font to be used, studied, copied and
+redistributed, including inside an app, as long as it is not sold on its own.
+
+The two .woff2 files here are the unmodified files served by Google Fonts for
+Lilita One (the latin set and the latin-ext set), kept so the game makes no
+request to Google when it runs.

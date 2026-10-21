@@ -27,6 +27,7 @@ const SHELL = [
   './js/pop.js', './js/replay.js', './js/net.js', './js/online.js', './js/sprites.js', './js/render.js', './js/ui.js',
   './js/panels.js', './js/social.js', './js/trophy.js', './js/penalty.js', './js/challenges.js',
   './js/ultcut.js', './js/tutorial.js', './js/main.js',
+  './fonts/LilitaOne-latin.woff2', './fonts/LilitaOne-latin-ext.woff2',
   './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
 ];
 
