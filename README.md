@@ -125,11 +125,22 @@ Lag in an online match is three different things, and only some of them can be f
    (`flushDB`): about 5 ms at 1,000 accounts and 53 ms at 10,000. It is worth making incremental before
    the game has thousands of players.
 
+4. **Your own actions waiting for the server.** The game already moved you, passed, shot and used skills
+   the instant you pressed, by running the server's own code on a scratch copy of you. Two things still waited a
+   full round trip: the tackle itself (a median 172 ms from press to lunge on a 110 ms round trip, 284 ms on a
+   200 ms one) and the sound of a pass, shot, skill or tackle (172-189 ms). Since build 94 the tackle is
+   predicted the same way and those four sounds play on the press, with the server's copy of the sound dropped
+   when it arrives so nothing sounds twice: 16 ms, one frame, for all of them
+   (`node tools/slidescan.js`, which also checks that a tackle the server turns down stops cleanly and never
+   makes you jump). What still takes a round trip is the other player: seeing what an opponent does, and the
+   outcome of a tackle or a pickup the server has to decide. That part is the distance in (1).
+
 The free plan also sleeps after 15 minutes without a visitor and takes up to a minute to wake. That is
 not lag in a match but it is the first thing a new player feels. A paid instance stays awake.
 
 ## Tools
 
+- `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).
 - `node tools/flowscan.js` — online flow control: a player who falls behind is not buried in stale pictures (about 2 minutes).
 - `node tools/wsping.js [url]` — the real round trip to a server, over a WebSocket. `node tools/cpubench.js` — CPU cost of one match.
 - `node tools/appscan.js` — the server as seen from inside a store app (CORS: the app's origins in, everyone else out).

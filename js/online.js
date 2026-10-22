@@ -142,7 +142,7 @@ const Online = {
     this.mirror = msg.side === 'red';
     this.you = msg.you;
     this.format = msg.format;
-    this.snaps = []; this.offset = null; this.lastK = undefined; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
+    this.snaps = []; this.offset = null; this.lastK = undefined; this.slide = null; this.slideLock = 0; this.heard = []; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
     this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
     this.lead = 0; this.visualLead = 0; this.leadBase = 0; this.leadAt = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
     const flipTeam = (t) => (this.mirror ? (t === 'blue' ? 'red' : 'blue') : t);
@@ -482,10 +482,12 @@ const Online = {
     // everyone else as copies too: a nutmeg stuns the one you go through
     const sm = { ...m, players: m.players.map((q) => (q === me ? p : clone(q))), ball: sb, meter: { ...m.meter }, stats: { blue: {}, red: {} }, shotId: 0, flags: {} };
     const mag = Math.hypot(mv.x, mv.y);
+    const heard = [];
     const ok = this.quietly(() => (kind === 'shot' ? performShot(sm, p, charge, mv.y)
       : kind === 'pass' ? performPass(sm, p, mag > 0.1 ? mv.x : p.fx, mag > 0.1 ? mv.y : p.fy, null, charge)
-      : performSkill(sm, p, mv.x, mv.y)));
+      : performSkill(sm, p, mv.x, mv.y)), heard);
     if (!ok) return;
+    this.sayNow(heard);
     // a burst (skill) starts now on your screen: the next inputs carry it until the server has it
     if (kind === 'skill' && p.burstT > 0) { this.pendingBurst = p.burstT; if (this.pred) this.pred.burstT = p.burstT; }
     if (sb.owner) return; // hop, spin, cruyff: the ball stays with you
@@ -496,11 +498,65 @@ const Online = {
       trailType: sb.trailType, level: sb.shot ? sb.shot.level : -1, power: !!(sb.shot && sb.shot.power) };
     if (this.dbg) this.dbg.kick_start = (this.dbg.kick_start || 0) + 1; // (tools/ballscan.js counts these)
   },
-  // run game code without its sounds and particles
-  quietly(fn) {
+  // Your tackle starts the moment you press, like your kicks: the server's own lunge code on a scratch copy
+  // of you (so a cooldown or a stun says no, exactly as it will on the server), stepped here until the
+  // server's copy of the lunge arrives and takes over. Sounds and dust still come from the server.
+  predictSlide() {
+    const m = this.m, me = m.human, mv = Input.move;
+    if (this.slide || this.slideLock > 0 || !this.predOk || me.ultOn || m.phase !== 'play') return;
+    if (m.ball.owner === me || this.localOwn || this.kick) return; // with the ball you cannot tackle
+    const clone = (q) => { const c = Object.assign(Object.create(Object.getPrototypeOf(q)), q); c.stats = { ...q.stats }; return c; };
+    const p = clone(me);
+    p.charging = false; p.passCharging = false; p.skill = null;
+    p.slideCd = Math.max(0, me.slideCd - this.lead); // (the cooldown you last heard of has run on since)
+    const sb = new Ball();
+    sb.x = m.ball.x; sb.y = m.ball.y; sb.owner = m.ball.owner;
+    const sm = { ...m, players: m.players.map((q) => (q === me ? p : q)), ball: sb, meter: { ...m.meter }, stats: { blue: {}, red: {} }, shotId: 0, flags: {} };
+    const heard = [];
+    const ok = this.quietly(() => performSlide(sm, p, mv.x, mv.y), heard);
+    if (!ok || !(p.slideT > 0)) return;
+    this.sayNow(heard);
+    this.slide = { t: 0, seq: this.seq + 1, lp: p };
+    this.slideLock = 0.5; // a second press inside the cooldown is not another lunge
+    this.kickBlock = Math.max(this.kickBlock, 0.3); // and you do not pick the ball up mid-lunge on your screen
+    if (this.dbg) this.dbg.slide_start = (this.dbg.slide_start || 0) + 1;
+  },
+  // the lunge's own physics, as the server steps it (js/entities.js, the slide branch of movePlayers)
+  stepSlide(p, dt) {
+    const b = this.m.ball;
+    if (p.slideT > 0) {
+      p.slideT -= dt;
+      const hx = b.x - p.x, hy = b.y - p.y, hl = Math.hypot(hx, hy) || 1;
+      if (!p.slideHit && hl < 220 && !(b.owner && b.owner.team === p.team)) {
+        const turn = clamp(15 * dt, 0, 1);
+        p.slideDirX = lerp(p.slideDirX, hx / hl, turn); p.slideDirY = lerp(p.slideDirY, hy / hl, turn);
+        const dl = Math.hypot(p.slideDirX, p.slideDirY) || 1; p.slideDirX /= dl; p.slideDirY /= dl;
+      }
+      const sp = Math.hypot(p.vx, p.vy) * Math.exp(-1.5 * dt);
+      p.vx = p.slideDirX * sp; p.vy = p.slideDirY * sp;
+      p.fx = p.slideDirX; p.fy = p.slideDirY;
+      if (p.slideT <= 0) { p.recoverT = 0.16; p.vx *= 0.4; p.vy *= 0.4; }
+    } else p.recoverT = Math.max(0, p.recoverT - dt);
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    collideWalls(p, p.r, 0);
+  },
+  // run game code without its sounds and particles. With `heard`, the sounds of your own actions are
+  // collected into it ([name, args] pairs) instead of thrown away, to be played now (sayNow).
+  quietly(fn, heard) {
     const saved = [];
-    for (const o of [Sound, FX]) for (const k of Object.keys(o)) if (typeof o[k] === 'function') { saved.push([o, k, o[k]]); o[k] = () => {}; }
+    for (const o of [Sound, FX]) for (const k of Object.keys(o)) if (typeof o[k] === 'function') {
+      saved.push([o, k, o[k]]);
+      o[k] = heard && o === Sound && SELF_SOUNDS.has(k) ? (...a) => { heard.push([k, a.filter((x) => typeof x !== 'object')]); } : () => {};
+    }
     try { return fn(); } catch (e) { return false; } finally { for (const [o, k, v] of saved) o[k] = v; }
+  },
+  // play what an action of yours sounds like right now, and note it so the server's copy is dropped
+  sayNow(heard) {
+    const now = performance.now();
+    for (const [n, a] of heard) {
+      const fn = Sound[n];
+      if (typeof fn === 'function') { fn.apply(Sound, a); (this.heard || (this.heard = [])).push({ n, until: now + 1500 }); }
+    }
   },
 
   // a player drawn in your time: the newest snapshot moved on by `ahead` seconds, its timers run on by the
@@ -574,7 +630,7 @@ const Online = {
     if (m.human.passCharging) m.human.passChargeT = Math.min(CFG.PASS_CHARGE_FULL, m.human.passChargeT + dt);
     if (Input.consumeUlt && Input.consumeUlt()) this.bits |= 64;
     if (Input.consumeSkill()) { this.bits |= 2; this.predictKick('skill'); }
-    if (Input.consumeSlide()) this.bits |= 4;
+    if (Input.consumeSlide()) { this.bits |= 4; this.predictSlide(); }
     if (Input.consumeShootPress()) { this.bits |= 8; m.human.charging = true; m.human.chargeT = 0; Sound.chargeStart(); }
     if (Input.consumeShootRelease()) { this.bits |= 16; if (m.human.charging) { m.human.charging = false; Sound.chargeStop(); this.predictKick('shot', m.human.chargeT); } }
     if (m.human.charging) {
@@ -647,6 +703,28 @@ const Online = {
   updateMe(latest, since, ahead, dt, phaseChanged) {
     const m = this.m, me = m.human, S = latest.p[this.you];
     if (!S) return;
+    if (this.slideLock > 0) this.slideLock -= dt;
+    const sl = this.slide;
+    if (sl) {
+      const serverSliding = S.slideT > 0 || S.slideWindT > 0;
+      const answered = !!(latest.me && latest.me[0] >= sl.seq);
+      // the server's copy of the lunge has arrived (it takes over from where you are drawn), or the
+      // server heard the press and did not lunge (turned down), or ours ran out with no word: stop
+      if (serverSliding || (answered && sl.t > 0.05) || sl.lp.slideT <= 0) {
+        this.slide = null;
+        if (!serverSliding) { this._wasPred = false; this.pred = null; } // closes the gap like any other correction
+      } else {
+        sl.t += dt;
+        this.stepSlide(sl.lp, dt);
+        this.applyNow(me, S, since, ahead, dt, phaseChanged); // everything but the lunge itself is the server's word
+        const lp = sl.lp;
+        me.x = lp.x; me.y = lp.y; me.vx = lp.vx; me.vy = lp.vy; me.fx = lp.fx; me.fy = lp.fy;
+        if (Math.abs(lp.fx) > 0.12) me.faceX = Math.sign(lp.fx);
+        me.slideT = lp.slideT; me.slideWindT = 0; me.slideDirX = lp.slideDirX; me.slideDirY = lp.slideDirY; me.slideHit = false; me.recoverT = lp.recoverT;
+        this.corr.x = 0; this.corr.y = 0; this.busyCorr = null;
+        return;
+      }
+    }
     // keep the prediction rolling forward between snapshots with the stick you're holding now
     if (this.pred && this.predOk) {
       this.predictStep(this.pred, { x: Input.move.x, y: Input.move.y, sp: Input.sprintHeld ? 1 : 0 }, dt, (latest.b.owner === this.you && !this.kick) || !!this.localOwn, S);
@@ -727,7 +805,15 @@ const Online = {
   },
 
   playEvent(e) {
-    if (e.e === 's') { const fn = Sound[e.n]; if (typeof fn === 'function') fn.apply(Sound, e.a || []); return; }
+    if (e.e === 's') {
+      if (this.heard && this.heard.length) {
+        const now = performance.now();
+        this.heard = this.heard.filter((h) => h.until > now);
+        const i = this.heard.findIndex((h) => h.n === e.n);
+        if (i >= 0) { this.heard.splice(i, 1); return; } // you heard this one the moment you pressed
+      }
+      const fn = Sound[e.n]; if (typeof fn === 'function') fn.apply(Sound, e.a || []); return;
+    }
     if (e.e === 'f') { const fn = FX[e.n]; if (typeof fn === 'function') fn.apply(FX, e.a || []); return; }
     if (e.e === 'goal') this.goalFX(e);
     if (e.e === 'cele' && this.m) {
@@ -786,4 +872,6 @@ const Online = {
   },
 };
 
+// the sounds the server makes for a player's own pass, shot, skill and tackle (the only ones played early)
+const SELF_SOUNDS = new Set(['pass', 'kick', 'skill', 'slide']);
 const FORMAT_SIZE_NET = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
