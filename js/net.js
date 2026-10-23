@@ -32,7 +32,6 @@ const Net = {
   _wantSocket: false,
   _retry: 0,
   offline: false,      // the server could not be reached: solo play only, saving to this device
-  offlineOffer: false, // show the way past the sign-in screen (set once the server has not answered)
 
   init() {
     try { this.token = localStorage.getItem(TOKEN_KEY); } catch (e) { this.token = null; }
@@ -57,13 +56,11 @@ const Net = {
   // no connection: play on with what this device already knows
   goOffline() {
     this.offline = true;
-    this.offlineOffer = true;
     this.closeSocket();
     document.body.classList.add('offline');
     if (this.lastUser) this.watchForConnection();
   },
   goOnline() {
-    this.offlineOffer = false;
     clearInterval(this._watch);
     if (!this.offline) return;
     this.offline = false;
@@ -111,9 +108,9 @@ const Net = {
 
   // ---- accounts ----
   async signup(username, password, club) {
-    // a guest's progress on this device comes with them
-    const guest = Save.data && (Save.data.matches > 0 || Save.data.coins > 0) ? Save.data : null;
-    const r = await this.api('/api/auth/signup', { username, password, club, save: guest });
+    // progress already on this device (from before the game needed an account) comes with them
+    const carried = Save.data && (Save.data.matches > 0 || Save.data.coins > 0) ? Save.data : null;
+    const r = await this.api('/api/auth/signup', { username, password, club, save: carried });
     if (r.ok) this.signedIn(r, true);
     return r;
   },
@@ -159,7 +156,7 @@ const Net = {
     this.forget();
     Social.reset();
     Store.reset();
-    Save.useGuest();
+    Save.signedOut();
   },
 
   // progress goes up a moment after it changes, batched

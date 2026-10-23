@@ -919,7 +919,6 @@ body.splash-on #logo, body.splash-on #auth-logo { visibility: hidden; }
    missing, but they are plainly not available. Pressing one says so. */
 body.offline [data-needs-net] { opacity: 0.4; filter: grayscale(1); }
 body.offline [data-needs-net]:active { transform: none; }
-.auth-offline { align-self: center; margin-top: 2px; }
 .splash .splash-logo { position: static; transform: rotate(-4deg); animation: logoDrop 0.7s cubic-bezier(.2, 1.6, .5, 1) both; font-size: clamp(48px, 17vmin, 130px); }
 @keyframes logoDrop { from { transform: translateY(-60vmin) rotate(-4deg); } to { transform: translateY(0) rotate(-4deg); } }
 .splash-ball {
@@ -1946,11 +1945,6 @@ body.kb .chat-menu kbd { display: inline-block; }
 .toast.down { top: auto; bottom: calc(var(--sb) + 14px); transform: translate(-50%, 20px); }
 .toast.down.show { transform: translate(-50%, 0); }
 
-/* a way in with no account: quiet, under the main button, but a real button with room to press */
-.auth-guest { align-self: center; min-height: 34px; padding: 4px 10px; border: 0; background: none; color: #6b7299; font-family: var(--font); font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.auth-guest[hidden] { display: none; }
-.auth-guest:active { color: var(--ink); }
-
 /* PLAY: the three things most people want sit together at the top (a match with no connection, a
    match online, a room with friends); everything else is a short grid underneath. It used to be a
    single column that ran three screens deep on a phone, with Quick Match third from the bottom. */
@@ -1979,7 +1973,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 .auth-tabs button { min-height: 34px; }
 
 /* On a short phone the log-in card is two columns, the fields on the left and the buttons beside
-   them, so nothing (least of all "play as a guest") is below the fold. Sign-up already works this way. */
+   them, so nothing is below the fold. Sign-up already works this way. */
 @media (max-height: 430px) {
   .auth:not(.signup) .auth-card { grid-template-columns: auto auto; grid-template-areas: "left foot"; align-items: center; }
   .auth:not(.signup) .auth-left { width: min(300px, 50vw); }

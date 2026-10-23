@@ -39,6 +39,7 @@ const Sprites = {
     const flip = faceX < 0 ? -1 : 1;
     const squash = Math.abs(faceX) < 0.35 ? 0.86 + Math.abs(faceX) * 0.4 : 1;
     const slim = look.thin ? (look.thin === true ? 0.7 : look.thin) : 1; // a skinny build: the body only
+    const buff = look.buff || 0; // a muscular build: broad chest, thick arms, legs and neck
 
     let legSwing = 0, armSwing = 0, bob = 0, jump = 0, lean = 0, rot = 0, kick = 0;
     let armsUp = 0, slide = 0, upperLean = 0, tuck = 0, dive = 0, fall = 0;
@@ -110,32 +111,34 @@ const Sprites = {
     // ---- legs + boots ----
     const hipY = -18;
     for (let i = 0; i < 2; i++) {
-      const hx = i ? 4.5 : -4.5, sw = i ? legSwing : -legSwing;
+      const hx = (i ? 4.5 : -4.5) * (1 + 0.25 * buff), sw = i ? legSwing : -legSwing;
       let fx = hx + sw * 7, fy = -3 + Math.max(0, -sw) * -2.5;
       if (kick && i === 1) { fx = hx + 13 * kick; fy = -7 - 6 * kick; }
       if (slide) { if (i === 1) { fx = hx + 20; fy = -11; } else { fx = hx + 7; fy = -4; } }
       if (tuck) { fy = -9; fx = hx + (i ? 4 : -2); }
       if (dive) { fx = hx * 1.3; fy = -1; }
       if (cp && cp.feet) { fx = cp.feet[i][0]; fy = cp.feet[i][1]; }
-      this.leg(ctx, hx, hipY, fx, fy, look.skin, kit.socks);
+      this.leg(ctx, hx, hipY, fx, fy, look.skin, kit.socks, buff);
       const premiumBoot = acc === 'galaxyboots' ? '#7b4dff' : acc === 'flameboots' ? '#ff5a1f' : acc === 'goldboots' ? '#ffc21a'
         : acc === 'neonboots' ? '#39ff88' : acc === 'frostboots' ? '#9fe8ff' : null;
       this.boot(ctx, fx, fy, premiumBoot && !p.isKeeper ? premiumBoot : kit.shoes, i === 1 && kick > 0.3);
     }
 
     // ---- shorts ----
+    ctx.save(); if (buff) ctx.scale(1 + 0.17 * buff, 1);
     this.rr(ctx, -10.5, -27, 21, 11.5, 4.5); this.blob(ctx, kit.shorts);
     ctx.fillStyle = shadeHex(kit.shorts, kit.shorts === '#ffffff' ? -0.12 : -0.3);
     ctx.fillRect(-9.2, -19.5, 18.4, 2.8);
     ctx.fillStyle = kit.accent === OUTLINE ? '#3a3f66' : kit.accent;
     ctx.fillRect(7.2, -25.5, 2.2, 8.5);
+    ctx.restore();
 
     if (upperLean) { ctx.translate(0, -22); ctx.rotate(upperLean); ctx.translate(0, 22); }
 
     // ---- arms (back arm first) ----
-    const shY = -41;
+    const shY = -41, shX = 10 + 4 * buff;
     const arm = (side, swing) => {
-      let hx = side * 13 + swing * 6, hy = -28 + Math.abs(swing) * -2;
+      let hx = side * (13 + 3 * buff) + swing * 6, hy = -28 + Math.abs(swing) * -2;
       if (armsUp === 0.7) { hx = side * 21; hy = -52 + Math.sin(t * 6) * 2; }
       else if (armsUp) {
         const wave = p.celebrateT > 0 ? Math.sin(t * 14 + side) * 3 : 0;
@@ -144,39 +147,46 @@ const Sprites = {
       if (kick) { hx = side * 16; hy = -34; }
       if (slide && side < 0) { hx = -16; hy = -22; }
       if (cp && cp.hands) { const hand = cp.hands[side < 0 ? 0 : 1]; hx = hand[0]; hy = hand[1]; }
-      this.limb(ctx, side * 10, shY, hx, hy, 5.6, look.skin);
-      const armLen = Math.hypot(hx - side * 10, hy - shY) || 1;
+      this.limb(ctx, side * shX, shY, hx, hy, 5.6 + 3 * buff, look.skin);
+      if (buff) {
+        // the bicep: a flat bulge a little way down the arm, with a pale flat highlight on it
+        const bx = lerp(side * shX, hx, 0.5) + side * 1.4, by = lerp(shY, hy, 0.5);
+        ctx.beginPath(); ctx.arc(bx, by, 5.4 + 1.2 * buff, 0, Math.PI * 2); this.blob(ctx, look.skin);
+        ctx.fillStyle = look.hi || (look.hi = shadeHex(look.skin, 0.22));
+        ctx.beginPath(); ctx.ellipse(bx - side * 1.2, by - 2.2, 1.6, 2.6, 0.25 * side, 0, Math.PI * 2); ctx.fill();
+      }
+      const armLen = Math.hypot(hx - side * shX, hy - shY) || 1;
       if (acc === 'robotarm' && side > 0 && !p.isKeeper) {
-        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(side * 10, shY); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(side * shX, shY); ctx.lineTo(hx, hy); ctx.stroke();
         ctx.strokeStyle = '#9aa7bd'; ctx.lineWidth = 4.2; ctx.stroke();
-        ctx.beginPath(); ctx.arc(lerp(side * 10, hx, 0.55), lerp(shY, hy, 0.55), 3.4, 0, Math.PI * 2); this.blob(ctx, '#46d9ff');
+        ctx.beginPath(); ctx.arc(lerp(side * shX, hx, 0.55), lerp(shY, hy, 0.55), 3.4, 0, Math.PI * 2); this.blob(ctx, '#46d9ff');
       }
       if (acc === 'wraps' && !p.isKeeper) {
         ctx.strokeStyle = '#f1ece0'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
         const f0 = Math.max(0.4, (armLen - 9) / armLen);
-        for (let q = 0; q < 3; q++) { const f = f0 + (q * 3) / armLen; ctx.beginPath(); ctx.moveTo(lerp(side * 10, hx, f) - 2.6, lerp(shY, hy, f)); ctx.lineTo(lerp(side * 10, hx, f) + 2.6, lerp(shY, hy, f)); ctx.stroke(); }
+        for (let q = 0; q < 3; q++) { const f = f0 + (q * 3) / armLen; ctx.beginPath(); ctx.moveTo(lerp(side * shX, hx, f) - 2.6, lerp(shY, hy, f)); ctx.lineTo(lerp(side * shX, hx, f) + 2.6, lerp(shY, hy, f)); ctx.stroke(); }
         ctx.lineCap = 'butt';
       }
       if (acc === 'powerband' && !p.isKeeper) {
-        const f = Math.max(0.5, (armLen - 4) / armLen), wx = lerp(side * 10, hx, f), wy = lerp(shY, hy, f);
+        const f = Math.max(0.5, (armLen - 4) / armLen), wx = lerp(side * shX, hx, f), wy = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(wx, wy, 4.4, 0, Math.PI * 2); this.blob(ctx, '#2a2d45');
         ctx.fillStyle = '#39ff88'; ctx.fillRect(wx - 2.6, wy - 1, 5.2, 2);
       }
       if (acc === 'gauntlet' && side > 0 && !p.isKeeper) {
-        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 8.4; ctx.beginPath(); ctx.moveTo(lerp(side * 10, hx, 0.45), lerp(shY, hy, 0.45)); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 8.4; ctx.beginPath(); ctx.moveTo(lerp(side * shX, hx, 0.45), lerp(shY, hy, 0.45)); ctx.lineTo(hx, hy); ctx.stroke();
         ctx.strokeStyle = '#c8a24a'; ctx.lineWidth = 6; ctx.stroke();
-        ctx.beginPath(); ctx.arc(lerp(side * 10, hx, 0.62), lerp(shY, hy, 0.62), 2.6, 0, Math.PI * 2); this.blob(ctx, '#ff3a3f');
+        ctx.beginPath(); ctx.arc(lerp(side * shX, hx, 0.62), lerp(shY, hy, 0.62), 2.6, 0, Math.PI * 2); this.blob(ctx, '#ff3a3f');
       }
       if (acc === 'wristbands' && !p.isKeeper) {
-        const f = Math.max(0.5, (armLen - 3.6) / armLen), wx = lerp(side * 10, hx, f), wy = lerp(shY, hy, f);
+        const f = Math.max(0.5, (armLen - 3.6) / armLen), wx = lerp(side * shX, hx, f), wy = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(wx, wy, 4.1, 0, Math.PI * 2); this.blob(ctx, '#ff3a3f');
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(wx, wy, 1.7, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.beginPath(); ctx.arc(hx, hy, p.isKeeper ? 4.8 : 3.4, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(hx, hy, p.isKeeper ? 4.8 : 3.4 + 0.9 * buff, 0, Math.PI * 2);
       this.blob(ctx, p.isKeeper ? kit.gloves : look.skin);
-      ctx.beginPath(); ctx.arc(side * 10, shY + 1, 5.6, 0, Math.PI * 2); this.blob(ctx, kit.sleeves || kit.jersey);
+      ctx.beginPath(); ctx.arc(side * shX, shY + 1, 5.6 + 1.8 * buff, 0, Math.PI * 2); this.blob(ctx, kit.sleeves || kit.jersey);
       if (acc === 'armband' && side > 0 && !p.isKeeper) {
-        const f = Math.min(0.62, 7 / armLen), ax = lerp(side * 10, hx, f), ay = lerp(shY, hy, f);
+        const f = Math.min(0.62, 7 / armLen), ax = lerp(side * shX, hx, f), ay = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(ax, ay, 4.4, 0, Math.PI * 2); this.blob(ctx, '#ffe14d');
         ctx.fillStyle = OUTLINE; ctx.font = '900 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('C', ax, ay + 0.4);
       }
@@ -184,6 +194,7 @@ const Sprites = {
     arm(-1, -armSwing);
 
     // ---- torso: flat cel-shaded jersey ----
+    ctx.save(); if (buff) ctx.scale(1 + 0.3 * buff, 1);
     this.rr(ctx, -12, -46, 24, 22, 8);
     ctx.fillStyle = kit.jersey; ctx.fill();
     if (kit.stripes) { ctx.fillStyle = kit.stripes; ctx.fillRect(-8.4, -44.6, 3.8, 19.4); ctx.fillRect(-1.9, -45.4, 3.8, 21); ctx.fillRect(4.6, -44.6, 3.8, 19.4); }
@@ -204,6 +215,7 @@ const Sprites = {
       ctx.fillStyle = look.skin;
       ctx.beginPath(); ctx.moveTo(-2.6, -45.6); ctx.lineTo(1, -42); ctx.lineTo(4.6, -45.6); ctx.closePath(); ctx.fill();
     }
+    ctx.restore();
     // number
     ctx.save();
     ctx.scale(flip / squash, 1);
@@ -987,14 +999,14 @@ const Sprites = {
     }
   },
 
-  leg(ctx, x1, y1, x2, y2, skin, sock) {
+  leg(ctx, x1, y1, x2, y2, skin, sock, buff = 0) {
     ctx.lineCap = 'round';
-    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 9.8;
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 9.8 + 2.6 * buff;
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-    ctx.strokeStyle = skin; ctx.lineWidth = 6.6;
+    ctx.strokeStyle = skin; ctx.lineWidth = 6.6 + 2.6 * buff;
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     const mx = lerp(x1, x2, 0.45), my = lerp(y1, y2, 0.45);
-    ctx.strokeStyle = sock; ctx.lineWidth = 6.8; ctx.lineCap = 'butt';
+    ctx.strokeStyle = sock; ctx.lineWidth = 6.8 + 2.6 * buff; ctx.lineCap = 'butt';
     ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(x2, y2); ctx.stroke();
     ctx.lineCap = 'round';
   },
@@ -1011,7 +1023,9 @@ const Sprites = {
     const style = look.hair;
     const hc = look.hairColor, hl = shadeHex(hc, 0.28);
     // neck
-    ctx.fillStyle = look.skin; ctx.fillRect(-2.5, -47, 7, 5);
+    ctx.fillStyle = look.skin;
+    if (look.buff) { ctx.fillRect(-5, -48, 12, 7); ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2; ctx.strokeRect(-5, -48, 12, 7); ctx.fillRect(-4, -48, 10, 7); }
+    else ctx.fillRect(-2.5, -47, 7, 5);
     if (style === 'robot') {
       this.rr(ctx, hx - 14, hy - 14, 28, 27, 8); this.blob(ctx, '#cfd8e3');
       ctx.fillStyle = '#9aa7b8'; ctx.fillRect(hx - 14, hy + 6, 28, 4);

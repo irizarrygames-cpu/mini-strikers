@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 94;
+const BUILD = 95;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -615,7 +615,7 @@ async function handleRequest(req, res) {
       const hash = await hashPassword(body.password, salt, PBKDF2_ITERATIONS);
       if (getUser(id)) return sendJSON(res, 200, { ok: false, msg: 'That username is taken' });
       DB.users[id] = { name: id.toUpperCase(), hash, salt, iterations: PBKDF2_ITERATIONS, created: Date.now(), club, save: null, online: null };
-      // a guest's progress on this device comes along, clamped like any other save
+      // progress already on this device (from before the game needed an account) comes along, clamped like any other save
       DB.users[id].save = sanitizeSave(body.save, { coins: 0, xp: 0, trophies: 0, matches: 0, wins: 0, goals: 0 }, club);
       leagueCache = null;
       saveDB();

@@ -24,15 +24,8 @@ const UI = {
       const hit = e.target && e.target.closest && e.target.closest('[data-needs-net]');
       if (!hit) return;
       e.preventDefault(); e.stopPropagation();
-      // A guest is not short of internet, they are short of an account: take them to the sign-in
-      // screen, where everything they have won so far comes along if they make one.
-      if (!Save.account) { this.showAuth('Make an account to play online. Everything you have won as a guest comes with you.', true); return; }
       this.toast('THAT ONE NEEDS INTERNET');
     }, true);
-    const offBtn = $('auth-offline');
-    if (offBtn) offBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
-    const guestBtn = $('auth-guest');
-    if (guestBtn) guestBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
     window.addEventListener('keydown', leaveSplash, { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
@@ -214,7 +207,7 @@ const UI = {
     const club = Clubs.mine();
     // menus and portraits wear your club's kit
     if (!Clubs.home || Clubs.home.id !== club.id) Clubs.setMatch(club, Clubs.current && Clubs.current.id !== club.id ? Clubs.current : Clubs.random(club));
-    $('home-user').textContent = Save.account || 'GUEST';
+    $('home-user').textContent = Save.account || '';
     $('home-club-name').textContent = club.name;
     this.flagBadge($('home-club-badge'), club);
     $('home-club-pos').textContent = this._leaguePos ? '#' + this._leaguePos : '';
@@ -365,25 +358,18 @@ const UI = {
   // No connection, but this device has been signed in before: open the game as that player,
   // from the copy of their progress kept here. Returns false if there is nothing to go on, in
   // which case the sign-in screen is the only honest thing to show.
-  playOffline(asGuest) {
-    const name = asGuest ? null : Net.lastUser;
-    if (name) {
-      Save.account = name;
-      Save.load();                      // this account's own copy on this device
-      Net.user = { name, club: Save.data.club, online: null, rank: null, wc: { round: 0, titles: 0 } };
-    } else {
-      if (!asGuest) return false;
-      Save.useGuest();
-      Net.user = null;
-    }
-    const wasReachable = !Net.offlineOffer; // a guest who chose to play without an account, not one who has no signal
+  playOffline() {
+    const name = Net.lastUser;
+    if (!name) return false;
+    Save.account = name;
+    Save.load();                      // this account's own copy on this device
+    Net.user = { name, club: Save.data.club, online: null, rank: null, wc: { round: 0, titles: 0 } };
     Net.goOffline();
     $('auth').hidden = true;
     Game.state = 'home';
     Render.buildLayer();   // Clubs.mine() reads the country straight out of the save
     this.show('home');
-    this.toast(name ? 'NO CONNECTION — PLAYING ON THIS DEVICE'
-      : wasReachable ? 'PLAYING AS A GUEST. SIGN IN ANY TIME TO PLAY ONLINE' : 'PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE');
+    this.toast('NO CONNECTION — PLAYING ON THIS DEVICE');
     return true;
   },
 
@@ -395,14 +381,6 @@ const UI = {
     if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.toggle('bad', !calm); }
     else { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); }
     $('auth-logo').innerHTML = $('logo').innerHTML;
-    // offered only when the server is not answering: with a connection, signing in is better,
-    // because progress made as a guest stays on this device
-    const off = $('auth-offline');
-    if (off) off.hidden = !Net.offlineOffer;
-    // with a connection the guest way in is offered in the foot of the card; with none, the
-    // "play offline" button up top says the same thing in the words that fit
-    const guest = $('auth-guest');
-    if (guest) guest.hidden = !!Net.offlineOffer;
   },
 
   async submitAuth() {

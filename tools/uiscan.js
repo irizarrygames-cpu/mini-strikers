@@ -117,12 +117,11 @@ window.US = {
       await wait(40);
     }
 
-    // the sign-in screen: log in, sign up (with the country picker) and the way in with no account
+    // the sign-in screen: log in and sign up (with the country picker)
     {
       const home = document.getElementById('home'), auth = document.getElementById('auth');
-      const homeWas = home.hidden, authWas = auth.hidden, offered = Net.offlineOffer;
-      for (const [label, mode, offer] of [['auth (log in)', 'login', false], ['auth (sign up)', 'signup', false], ['auth (log in, no connection)', 'login', true]]) {
-        Net.offlineOffer = offer;
+      const homeWas = home.hidden, authWas = auth.hidden;
+      for (const [label, mode] of [['auth (log in)', 'login'], ['auth (sign up)', 'signup']]) {
         UI.showAuth();
         const tab = document.querySelector(`[data-auth="${mode}"]`);
         if (tab) tab.click();
@@ -130,7 +129,6 @@ window.US = {
         const card = document.querySelector('.auth-card');
         if (card) out.hits.push(...this.scan(card, label, true));
       }
-      Net.offlineOffer = offered;
       auth.hidden = authWas; home.hidden = homeWas;
     }
     // the grown-up check, which goes in front of a purchase or a link out of the game

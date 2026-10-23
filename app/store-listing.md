@@ -29,7 +29,7 @@ MAKE IT YOURS
 - Daily rewards, missions and medals to chase
 
 SAFE AND SIMPLE
-- Play as a guest with no account, or make a free account to play online
+- A free account keeps your players, coins and progress safe, and lets you play online
 - Quick chat uses short preset phrases only: no typing, no strangers messaging your child
 - No ads, and no tracking
 - Delete your account any time from Settings
@@ -67,4 +67,4 @@ Simple touch controls on phones, keyboard or touch on bigger screens.
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.0.2 (3)`
+- Release name: `1.0.3 (4)`

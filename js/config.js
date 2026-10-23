@@ -386,6 +386,12 @@ const CHARACTERS = [
   { id: 'flow', name: 'Flow', rarity: 'oneofone', only: ['lilotter'], thin: 0.82, ovr: 200,
     stats: [['PACE', 188], ['SHOOTING', 200], ['FIRST TOUCH', 200], ['BALL CONTROL', 200], ['PASSING', 176], ['DEFENDING', 142]],
     r: { spd: 99, sht: 99, pas: 99, ctl: 99, def: 99 }, hair: 'anime', hairColor: '#e9e9f2', skin: '#f7dcc6', anime: true },
+  // Matt: MattHidalgoCR7 only. The card shows the five numbers he was given; the game has one touch
+  // stat, so his 99 dribbling is what ctl plays at (the 69 ball control is on the card). Passing 0 is
+  // real: ratingAttr floors it at a pass 10% weaker than an average player's. Overall is set, not worked out.
+  { id: 'matt', name: 'Matt', rarity: 'oneofone', only: ['matthidalgocr7'], buff: 1, ovr: 99,
+    stats: [['PACE', 99], ['DRIBBLING', 99], ['SHOOTING', 99], ['BALL CONTROL', 69], ['PASSING', 0]],
+    r: { spd: 99, sht: 99, pas: 0, ctl: 99, def: 70 }, hair: 'buzz', hairColor: '#15161c', skin: '#c98b5e' },
 ];
 // Accessories: one slot, worn over any character. slot says where it's drawn on the body.
 const ACCESSORIES = [
@@ -470,7 +476,7 @@ const SIGNATURES = {
   inferno: 'bicycle', iceking: 'scissors', astronaut: 'backflip', wizard: 'scissors', lion: 'bicycle',
   shark: 'scissors', pharaoh: 'backflip', knight: 'volley', pirate: 'bicycle', cowboy: 'volley',
   samurai: 'scissors', dreads: 'bicycle', jacob: 'backflip', street: 'volley', striker: 'volley',
-  flow: 'volley',
+  flow: 'volley', matt: 'bicycle',
 };
 function sigKind(c) {
   if (!c) return ULT_KINDS[0];

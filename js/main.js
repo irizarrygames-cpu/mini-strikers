@@ -132,8 +132,9 @@ const Game = {
       // them showing an empty screen: the title went, and nothing replaced it.
       UI.showAuth('Connecting\u2026', true);
       if (await Net.reachable()) { UI.showAuth(''); return; }
-      Net.offlineOffer = true;
-      UI.showAuth('No connection. You can still play on your own.');
+      // signed in here before (the sign-in just ran out): carry on as them
+      if (UI.playOffline()) return;
+      UI.showAuth('No connection. Connect to the internet to log in or sign up.');
       return;
     }
     // It did not answer: usually the host getting out of bed, sometimes no connection at all.
@@ -151,9 +152,8 @@ const Game = {
     }
     // Still nothing. If this device has played as somebody before, carry on as them with the
     // progress kept here rather than sitting on a sign-in screen that cannot work.
-    Net.offlineOffer = true;
     if (UI.playOffline()) return;
-    UI.showAuth('No connection. You can still play on your own.');
+    UI.showAuth('No connection. Connect to the internet to log in or sign up.');
   },
 
   goHome() {
