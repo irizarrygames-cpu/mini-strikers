@@ -36,6 +36,20 @@ const Net = {
   init() {
     try { this.token = localStorage.getItem(TOKEN_KEY); } catch (e) { this.token = null; }
     try { this.lastUser = localStorage.getItem(USER_KEY); } catch (e) { this.lastUser = null; }
+    // the wifi going off (or coming back) while the game is open: the online buttons grey out with it
+    const wifi = () => document.body.classList.toggle('nowifi', this.noWifi());
+    window.addEventListener('offline', wifi);
+    window.addEventListener('online', wifi);
+    wifi();
+  },
+
+  // the device has no network at all: wifi off, airplane mode, no signal
+  noWifi() { return typeof navigator !== 'undefined' && navigator.onLine === false; },
+  // Why an online thing cannot start right now, in words for a toast, or null if it can. play is
+  // for the things that start a match; the rest (league, friends, rank) say "use this".
+  offlineWhy(play = true) {
+    if (!this.noWifi() && !this.offline) return null;
+    return (this.noWifi() ? 'NO WI-FI' : 'NO CONNECTION') + ' — CONNECT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS');
   },
 
   // While offline, look up now and then to see whether the connection is back. Cheap, and only
@@ -246,6 +260,11 @@ const Net = {
     const done = () => { if (this._waking) { this._waking = false; if (this.handlers.awake) this.handlers.awake(); } };
     const tryIt = () => {
       if (this.wsReady) { this.send(obj); done(); return; }
+      if (this.noWifi()) {
+        this._waking = false;
+        if (this.handlers.error) this.handlers.error({ msg: 'No Wi-Fi — connect and try again' });
+        return;
+      }
       const waited = Date.now() - started;
       if (waited > this.WAKE_AFTER && !knocking) {
         knocking = true; this._waking = true;

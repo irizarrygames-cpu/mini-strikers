@@ -917,8 +917,8 @@ body.splash-on #logo, body.splash-on #auth-logo { visibility: hidden; }
 
 /* No connection: the things that need other people are still there, so you can see what you are
    missing, but they are plainly not available. Pressing one says so. */
-body.offline [data-needs-net] { opacity: 0.4; filter: grayscale(1); }
-body.offline [data-needs-net]:active { transform: none; }
+body.offline [data-needs-net], body.nowifi [data-needs-net] { opacity: 0.4; filter: grayscale(1); }
+body.offline [data-needs-net]:active, body.nowifi [data-needs-net]:active { transform: none; }
 .splash .splash-logo { position: static; transform: rotate(-4deg); animation: logoDrop 0.7s cubic-bezier(.2, 1.6, .5, 1) both; font-size: clamp(48px, 17vmin, 130px); }
 @keyframes logoDrop { from { transform: translateY(-60vmin) rotate(-4deg); } to { transform: translateY(0) rotate(-4deg); } }
 .splash-ball {

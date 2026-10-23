@@ -36,7 +36,11 @@ const Online = {
     Net.on('s', (m) => this.onSnapshot(m));
     Net.on('end', (m) => this.end(m));
     Net.on('left', () => {});
-    Net.on('error', (m) => { UI.toast((m.msg || 'Something went wrong').toUpperCase()); if (this.status === 'queue') { this.status = 'idle'; UI.hideQueue(); } });
+    Net.on('error', (m) => {
+      UI.toast((m.msg || 'Something went wrong').toUpperCase());
+      if (this.status === 'queue') { this.status = 'idle'; UI.hideQueue(); }
+      else if (this.status === 'room' && !this.room) this.status = 'idle';
+    });
     Net.on('kicked', () => { this.abandon(); UI.toast('SIGNED IN ON ANOTHER DEVICE'); });
     // the sign-in ran out, not a log out: keep the name so this device can still play offline
     Net.on('authLost', () => { this.abandon(); Net.forget(true); UI.showAuth('Your session ended. Log in again.'); });
@@ -47,8 +51,16 @@ const Online = {
   },
 
   // ---------- finding a match ----------
+  // No wifi: say so now, before any queue screen or room, rather than wait on a server that cannot be reached.
+  // True if it said so (and so whatever was about to start must not).
+  noWifi(play = true) {
+    const why = Net.offlineWhy(play);
+    if (why) UI.toast(why);
+    return !!why;
+  },
   // worldCup: queue for your next World Cup round instead of an ordinary match
   findMatch(format, worldCup = false) {
+    if (this.noWifi()) return;
     // in a party the leader starts, and the format has to fit everyone on one side
     const p = Social.party;
     if (p && p.members.length > 1) {
@@ -79,8 +91,8 @@ const Online = {
     UI.queueParty(msg.party);
   },
 
-  createRoom(format) { this.status = 'room'; Net.whenReady({ t: 'room.create', format }); },
-  joinRoom(code) { this.status = 'room'; Net.whenReady({ t: 'room.join', code }); },
+  createRoom(format) { if (this.noWifi()) return; this.status = 'room'; Net.whenReady({ t: 'room.create', format }); },
+  joinRoom(code) { if (this.noWifi()) return; this.status = 'room'; Net.whenReady({ t: 'room.join', code }); },
   onRoom(msg) { this.status = 'room'; this.room = msg; UI.showLobby(msg); },
   leaveRoom() { Net.send({ t: 'room.leave' }); this.status = 'idle'; this.room = null; UI.hideLobby(); },
 
@@ -119,6 +131,7 @@ const Online = {
   watching: null,
   nobody: { x: 0, y: 0, vx: 0, vy: 0, fx: 0, fy: 0, r: 0 }, // stands in for "you" when there is no you
   watch(name) {
+    if (this.noWifi(false)) return;
     if (this.status !== 'idle') { UI.toast('FINISH WHAT YOU ARE DOING FIRST'); return; }
     Sound.unlock();
     UI.toast('WATCHING ' + String(name).toUpperCase() + '…');

@@ -17,14 +17,17 @@ const UI = {
       Game.enter();
     };
     $('splash').addEventListener('pointerdown', leaveSplash);
-    // Nothing that needs other people is allowed to start while there is no connection. Caught
-    // here, before the button's own handler, so every one of them behaves the same way.
+    // Nothing that needs other people is allowed to start while there is no connection (no wifi, or a
+    // game that opened without one). Caught here, before the button's own handler, so every one of
+    // them behaves the same way and says why.
     document.addEventListener('click', (e) => {
-      if (!Net.offline) return;
       const hit = e.target && e.target.closest && e.target.closest('[data-needs-net]');
       if (!hit) return;
+      const d = hit.dataset;
+      const why = Net.offlineWhy(!!(d.mode || d.room || d.cup));
+      if (!why) return;
       e.preventDefault(); e.stopPropagation();
-      this.toast('THAT ONE NEEDS INTERNET');
+      this.toast(why);
     }, true);
     window.addEventListener('keydown', leaveSplash, { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
@@ -394,6 +397,11 @@ const UI = {
     let r;
     try { r = this._authMode === 'signup' ? await Net.signup(user, pass, this._authClub) : await Net.login(user, pass); }
     catch (e) { r = null; }
+    // no wifi at all: nothing to wake, so say so
+    if (!r && Net.noWifi()) {
+      go.disabled = false; msg.classList.add('bad'); msg.textContent = 'No Wi-Fi. Connect to the internet to log in or sign up.';
+      return;
+    }
     // no answer at all: the host was asleep. Wake it and have one more go before saying anything.
     if (!r) {
       msg.classList.remove('bad');
