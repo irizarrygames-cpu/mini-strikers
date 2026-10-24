@@ -32,6 +32,11 @@ const Net = {
   _wantSocket: false,
   _retry: 0,
   offline: false,      // the server could not be reached: solo play only, saving to this device
+  unsaved: false,      // progress changed here that the server has not taken yet
+  // how long starting up waits on the server before going on without it (it sleeps: see Game.enter)
+  RESUME_WAIT: 5000,
+  WAKING_MSG: 'Waking the server up… this can take up to a minute.',
+  NO_WIFI_MSG: 'No Wi-Fi. Connect to the internet to log in or sign up.',
 
   init() {
     try { this.token = localStorage.getItem(TOKEN_KEY); } catch (e) { this.token = null; }
@@ -49,23 +54,40 @@ const Net = {
   // for the things that start a match; the rest (league, friends, rank) say "use this".
   offlineWhy(play = true) {
     if (!this.noWifi() && !this.offline) return null;
-    return (this.noWifi() ? 'NO WI-FI' : 'NO CONNECTION') + ' — CONNECT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS');
+    if (!this.noWifi()) return 'STILL CONNECTING TO THE SERVER — TRY AGAIN IN A MOMENT';
+    return 'NO WI-FI — CONNECT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS');
   },
 
-  // While offline, look up now and then to see whether the connection is back. Cheap, and only
-  // while the game is in front of you — there is no point knocking at a door nobody is near.
+  // While offline, look now and then for the connection coming back: every few seconds at first (a
+  // sleeping server is up within the minute), then every 20 s. Only while the game is in front of
+  // you, and the switch back to online only happens when nothing is going on: swapping the save over
+  // in the middle of a match, or under a half-typed name, is not something to do to anyone.
   watchForConnection() {
-    clearInterval(this._watch);
-    this._watch = setInterval(async () => {
-      if (!this.offline || document.hidden) return;
-      if (!(await this.reachable(3000))) return;
-      const r = await this.resume();
-      if (!r) return;                       // reachable but not signed in: leave it alone
-      clearInterval(this._watch);
-      this.goOnline();
-      if (typeof UI !== 'undefined') { UI.signedIn(); UI.toast('BACK ONLINE — PROGRESS SAVED'); }
-    }, 20000);
+    clearTimeout(this._watch);
+    const started = Date.now();
+    const calm = () => typeof UI === 'undefined' || UI.calm();
+    const tick = async () => {
+      const again = () => { clearTimeout(this._watch); this._watch = setTimeout(tick, Date.now() - started < 120000 ? 5000 : 20000); };
+      if (!this.offline || this._looking) return;
+      if (document.hidden || this.noWifi() || !calm()) return again();
+      this._looking = true;
+      try {
+        if (!(await this.reachable(4000)) || !calm()) return again();
+        const r = await this.resume(8000);
+        if (r === null) return;             // reachable, but this device is not signed in: leave it alone
+        if (!r) return again();
+        this.goOnline();
+        if (typeof UI !== 'undefined') { UI.signedIn(); UI.toast('BACK ONLINE — PROGRESS SAVED'); }
+      } finally { this._looking = false; }
+    };
+    this._tick = tick;
+    this._watch = setTimeout(tick, 3000);
   },
+  // Something says the server may be back (the game came to the front, the live connection opened,
+  // which only happens with the server up): look now rather than at the next turn of the loop.
+  pokeConnection() { if (this.offline && this._tick) { clearTimeout(this._watch); this._tick(); } },
+  // start the server waking now (it sleeps when nobody has played for a while), without waiting
+  prewarm() { try { fetch(API_BASE + '/api/health', { cache: 'no-store' }).catch(() => {}); } catch (e) { /* no fetch */ } },
 
   // no connection: play on with what this device already knows
   goOffline() {
@@ -75,7 +97,7 @@ const Net = {
     if (this.lastUser) this.watchForConnection();
   },
   goOnline() {
-    clearInterval(this._watch);
+    clearTimeout(this._watch);
     if (!this.offline) return;
     this.offline = false;
     document.body.classList.remove('offline');
@@ -84,12 +106,20 @@ const Net = {
     Store.onSignedIn();
   },
 
-  async api(path, body = {}) {
-    const res = await fetch(API_BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, token: this.token }) });
-    let data = null;
-    try { data = await res.json(); } catch (e) { data = { ok: false, msg: 'Bad response from the server' }; }
-    if (res.status === 401) data.auth = false;
-    return data;
+  // opts.ms: give up (throw) after this long. opts.keepalive: the request survives the page closing.
+  async api(path, body = {}, opts = {}) {
+    let stop = null, timer = null;
+    if (opts.ms && typeof AbortController !== 'undefined') { stop = new AbortController(); timer = setTimeout(() => stop.abort(), opts.ms); }
+    try {
+      const res = await fetch(API_BASE + path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, token: this.token }),
+        signal: stop ? stop.signal : undefined, keepalive: !!opts.keepalive,
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) { data = { ok: false, msg: 'Bad response from the server' }; }
+      if (res.status === 401) data.auth = false;
+      return data;
+    } finally { if (timer) clearTimeout(timer); }
   },
 
   // Can the server be reached at all, right now? One quick knock with a short deadline — used
@@ -108,12 +138,12 @@ const Net = {
   // The free instance sleeps after about fifteen idle minutes and takes the best part of a
   // minute to get up. This knocks until it answers (or gives up), so the game can say "waking
   // up" instead of "check your connection".
-  async wake(onTry, tries = 14, gap = 4000) {
+  // Each knock has its own deadline: a request to a sleeping host just hangs, which used to stop the
+  // count (and any message with it) for as long as the host took.
+  async wake(onTry, tries = 16, gap = 1500, perTry = 5000) {
     for (let i = 0; i < tries; i++) {
-      try {
-        const res = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
-        if (res.ok) return true;
-      } catch (e) { /* still asleep */ }
+      if (await this.reachable(perTry)) return true;
+      if (this.noWifi()) return false; // nothing to wake with no network at all
       if (onTry) onTry(i + 1, tries);
       await new Promise((r) => setTimeout(r, gap));
     }
@@ -133,11 +163,11 @@ const Net = {
     if (r.ok) this.signedIn(r, false);
     return r;
   },
-  // null = not signed in, false = server unreachable, object = the account
-  async resume() {
+  // null = not signed in, false = server unreachable (or slower than ms), object = the account
+  async resume(ms = 0) {
     if (!this.token) return null;
     try {
-      const r = await this.api('/api/me');
+      const r = await this.api('/api/me', {}, { ms });
       if (r.ok) { this.signedIn(r, false); return r; }
       if (r.auth === false) { this.forget(true); return null; }
       return false;
@@ -176,21 +206,42 @@ const Net = {
   // progress goes up a moment after it changes, batched
   queueSave() {
     if (!this.token) return;
+    this.unsaved = true;
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.pushSave(), 1200);
   },
+  // Any answer but "saved" is tried again, a little less often each time: a server waking up, one
+  // that said "slow down", or a page of HTML from the host in front of it. That used to be dropped
+  // without a word, so the server kept the old progress. The copy on this device is kept either way.
   async pushSave() {
     if (!this.token) return;
+    clearTimeout(this.saveTimer);
     try {
-      const r = await this.api('/api/save', { save: Save.data, gifts: true });
+      const r = await this.api('/api/save', { save: Save.data, gifts: true }, { ms: 30000 });
       if (r.auth === false) {
         this.forget(true);
         // mid-game is no moment to be thrown out: carry on offline and say so
         if (Game.state === 'match' || !$('home').hidden) { UI.playOffline(); UI.toast('SIGNED OUT — PLAYING ON THIS DEVICE'); }
         else UI.showAuth('You were signed out. Log in again.');
+        return;
       }
-      if (r.ok && r.gift > 0) { Save.data.coins += r.gift; Save.write(); this.giftToast(r.gift); }
-    } catch (e) { this.saveTimer = setTimeout(() => this.pushSave(), 8000); }
+      if (!r.ok) throw new Error(r.msg || 'not saved');
+      this.unsaved = false; this._saveFails = 0;
+      if (r.gift > 0) { Save.data.coins += r.gift; Save.write(); this.giftToast(r.gift); }
+    } catch (e) {
+      this._saveFails = (this._saveFails || 0) + 1;
+      this.saveTimer = setTimeout(() => this.pushSave(), Math.min(60000, 4000 * this._saveFails));
+    }
+  },
+  // The page is going away (the app closed, or a phone switched to something else and may never
+  // come back to it): what has not gone up yet goes now, in a request that outlives the page.
+  // No gift is taken here, since nothing would be left to add it to the coins.
+  flushSave() {
+    if (!this.token || !this.unsaved || !Save.data) return;
+    clearTimeout(this.saveTimer);
+    this.api('/api/save', { save: Save.data, gifts: false }, { keepalive: true })
+      .then((r) => { if (r && r.ok) this.unsaved = false; else this.queueSave(); })
+      .catch(() => this.queueSave());
   },
 
   async changePassword(password, newPassword) {
@@ -219,7 +270,7 @@ const Net = {
     ws.onmessage = (e) => {
       let msg;
       try { msg = JSON.parse(e.data); } catch (err) { return; }
-      if (msg.t === 'hello') { this.wsReady = true; this._retry = 0; }
+      if (msg.t === 'hello') { this.wsReady = true; this._retry = 0; if (this.offline) this.pokeConnection(); }
       if (msg.t === 'pong') { this.rtt = Math.max(1, performance.now() - msg.c); return; }
       const fn = this.handlers[msg.t];
       if (fn) fn(msg);

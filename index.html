@@ -18,11 +18,44 @@
 <body>
   <canvas id="game"></canvas>
 
-  <div id="splash" class="splash">
+  <div id="splash" class="splash loading">
     <div class="splash-ball"></div>
     <h1 id="splash-logo" class="logo splash-logo">Mini Strikers</h1>
-    <div class="splash-tap">TAP TO START</div>
+    <div id="splash-tap" class="splash-tap">LOADING…</div>
+    <div id="splash-sub" class="splash-sub" aria-live="polite"></div>
   </div>
+  <script>
+  // The splash is on screen long before the game's files have arrived (most of a megabyte, from a
+  // server that may be waking up). It used to say TAP TO START all that time, and a tap did nothing.
+  // Now it says LOADING until the game can answer; a tap in that gap is remembered and starts the
+  // game the moment it is ready. If the game never comes up, it says so and the next tap reloads.
+  (function () {
+    var s = document.getElementById('splash'), tap = document.getElementById('splash-tap'), sub = document.getElementById('splash-sub');
+    var failed = false;
+    function early() {
+      if (window.__ready) return;
+      if (failed) { location.reload(); return; }
+      window.__earlyTap = true;
+      sub.textContent = 'Starting as soon as the game has loaded…';
+    }
+    s.addEventListener('pointerdown', early);
+    window.addEventListener('keydown', early);
+    window.__splashDone = function () { s.removeEventListener('pointerdown', early); window.removeEventListener('keydown', early); };
+    setTimeout(function () {
+      if (!window.__ready && !failed) sub.textContent = 'Still loading… a slow connection, or the server is waking up. This can take up to a minute.';
+    }, 8000);
+    // one of the game's own files failed to load, or crashed before the game could start
+    window.addEventListener('error', function (e) {
+      if (window.__ready || failed) return;
+      var t = e.target;
+      if (!(t && t.tagName === 'SCRIPT') && !e.error) return;
+      failed = true;
+      s.classList.add('loading');
+      tap.textContent = 'TAP TO RELOAD';
+      sub.textContent = 'The game did not load properly.';
+    }, true);
+  })();
+  </script>
 
   <!-- ===== HUD ===== -->
   <div id="hud" hidden>

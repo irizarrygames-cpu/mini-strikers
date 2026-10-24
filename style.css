@@ -1989,3 +1989,17 @@ body.kb .chat-menu kbd { display: inline-block; }
 /* No line limit on the mode descriptions at any width: a card grows to fit its words, and the
    other cards in its row grow with it, instead of the end of a sentence being cut off. */
 .play-top .mode p, .play-more .mode p { display: block; -webkit-line-clamp: unset; overflow: visible; }
+
+/* ===== STARTING UP (build 97) ===== */
+/* Until the game can answer, and while it is starting, the splash does not pulse: a pulsing
+   TAP TO START that does nothing when tapped is exactly what made the game look broken. */
+.splash.loading .splash-tap { animation: none; opacity: 0.8; }
+/* what is going on: loading, waking the server, starting */
+.splash-sub {
+  min-height: 2.7em; max-width: min(540px, 86vw); margin-top: -1.5vmin; text-align: center;
+  font-size: clamp(13px, 3.6vmin, 19px); line-height: 1.3; color: #fff;
+  -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill;
+}
+.splash-sub:empty { visibility: hidden; }
+/* an upright phone: the wordmark fits across the screen instead of running off both edges */
+.splash .splash-logo { font-size: clamp(40px, min(17vmin, 11.5vw), 130px); }

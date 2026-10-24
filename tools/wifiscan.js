@@ -21,7 +21,7 @@ class FakeSocket { constructor() { log.sockets++; this.readyState = 0; } send(s)
 const el = () => ({ hidden: true, style: {}, classList: { toggle() {}, add() {}, remove() {} }, textContent: '', querySelector: () => el() });
 const noop = new Proxy({}, { get: () => () => {} });
 const sandbox = {
-  console, Math, Date, JSON, Object, Array, Number, String, Boolean, Map, Set, Proxy, Symbol, Error, isFinite, parseInt, parseFloat, performance, URLSearchParams,
+  console, Math, Date, JSON, Object, Array, Number, String, Boolean, Map, Set, Proxy, Symbol, Error, isFinite, parseInt, parseFloat, performance, URLSearchParams, AbortController,
   setTimeout, clearTimeout, setInterval, clearInterval,
   navigator, WebSocket: FakeSocket, location: { hostname: 'localhost', search: '', protocol: 'http:', host: 'localhost:8450' },
   fetch: () => { log.fetches++; return Promise.reject(new Error('offline')); },
@@ -29,7 +29,7 @@ const sandbox = {
   document: { getElementById: el, body: { classList: { toggle(c, on) { if (on) bodyClasses.add(c); else bodyClasses.delete(c); }, add: (c) => bodyClasses.add(c), remove: (c) => bodyClasses.delete(c) } }, documentElement: { style: { setProperty() {} } } },
   Sound: noop, FX: noop, Pens: noop, Render: noop, Store: noop, Game: { match: null, state: 'home' },
   Social: { party: null, reset() {} },
-  UI: { toast: (t) => log.toasts.push(String(t)), showQueue: () => { log.queues++; }, hideQueue: () => { log.hides++; }, hideLobby() {}, showLobby() {}, queueParty() {}, refreshHome() {} },
+  UI: { calm: () => true, toast: (t) => log.toasts.push(String(t)), showQueue: () => { log.queues++; }, hideQueue: () => { log.hides++; }, hideLobby() {}, showLobby() {}, queueParty() {}, refreshHome() {} },
   vibrate: () => {}, $: el,
 };
 sandbox.window = sandbox;
@@ -74,7 +74,7 @@ const wifiMsg = () => log.toasts.some((t) => /NO WI-FI/.test(t) && /PLAY ONLINE|
   // ---- the game opened with no connection (Net.offline) but the device thinks it is online: still says so
   fresh(); Net.offline = true;
   Online.findMatch('4v4'); await sleep(60);
-  check('opened offline: find a match says so', log.toasts.some((t) => /NO CONNECTION/.test(t)) && log.queues === 0 && Online.status === 'idle', log.toasts);
+  check('opened offline: find a match says so', log.toasts.some((t) => /STILL CONNECTING/.test(t)) && log.queues === 0 && Online.status === 'idle', log.toasts);
   Net.offline = false;
 
   // ---- wifi ON: nothing gets in the way

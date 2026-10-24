@@ -19,31 +19,42 @@ const Game = {
   },
 
   boot() {
-    Render.init($('game'));
-    Input.init();
-    Net.init();
-    Store.init();
-    Online.init();
-    UI.init();
-    Social.init();
+    if (this._booted) return;
+    this._booted = true;
+    // Each part starts on its own: one that throws (a browser missing something) is logged and the
+    // rest still start, instead of the whole game sitting dead behind its splash.
+    const part = (name, fn) => { try { fn(); } catch (e) { console.error('starting ' + name + ':', e); } };
+    part('render', () => Render.init($('game')));
+    part('input', () => Input.init());
+    part('net', () => Net.init());
+    part('store', () => Store.init());
+    part('online', () => Online.init());
+    part('ui', () => UI.init());
+    part('social', () => Social.init());
     // penalty shootout on PC: point at the goal to aim
     for (const ev of ['pointermove', 'pointerdown']) $('game').addEventListener(ev, (e) => Pens.mouseAim(e));
     UI.show('home');
     $('home').hidden = true; // nothing but the splash until we know who you are
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });
     document.addEventListener('visibilitychange', () => {
+      // off to the background (a phone may never bring this page back): unsaved progress goes up now
+      if (document.hidden) Net.flushSave();
       // coming back after a while: start waking the host now, not when they press something
       if (!document.hidden && Net.token && !Net.wsReady) Net.openSocket();
+      if (!document.hidden) Net.pokeConnection();
       if (document.hidden) Commentary.pause();
       else if (this.state === 'match') Commentary.resume();
       // online matches keep running on the server, but their local commentary still pauses
       if (document.hidden && this.state === 'match' && !(this.match && this.match.net)) UI.togglePause();
     });
-    window.addEventListener('pagehide', () => Commentary.pause());
+    window.addEventListener('pagehide', () => { Commentary.pause(); Net.flushSave(); });
     window.addEventListener('blur', () => Commentary.pause());
     window.addEventListener('focus', () => { if (!document.hidden && this.state === 'match') Commentary.resume(); });
     this.last = performance.now();
     requestAnimationFrame((ts) => this.loop(ts));
+    // the server starts waking while the splash is being looked at, not after the tap
+    Net.prewarm();
+    UI.splashReady();
   },
 
   // A window that is in the middle of changing size is left alone until it settles: a phone
@@ -121,39 +132,45 @@ const Game = {
     Sound.countdown(true);
   },
 
-  // after the splash: signed in already? straight home. Otherwise the sign-in page.
+  // After the splash: signed in already? Straight home. Otherwise the sign-in page.
+  //
+  // The host is a free one that sleeps after a quiet spell and takes up to a minute to wake. Until
+  // build 97 this waited on it with nothing on screen: tap START, the splash went, and nothing came
+  // for as long as the server took. Now the splash stays up saying what is going on, every question
+  // has a deadline, and anybody who has played on this device before goes straight in from the copy
+  // kept here while the server wakes up behind them (the game comes online by itself).
   async enter() {
-    const r = await Net.resume();
-    if (r) { Net.goOnline(); UI.signedIn(); return; }
-    if (r !== false) {
-      // Nobody signed in on this device yet. Before putting up a sign-in screen, make sure there
-      // is something to sign in to — but put the screen up FIRST, saying so. That check can take
-      // four seconds against a server that is still getting out of bed, and it used to spend
-      // them showing an empty screen: the title went, and nothing replaced it.
-      UI.showAuth('Connecting\u2026', true);
-      if (await Net.reachable()) { UI.showAuth(''); return; }
-      // signed in here before (the sign-in just ran out): carry on as them
-      if (UI.playOffline()) return;
-      UI.showAuth('No connection. Connect to the internet to log in or sign up.');
-      return;
+    try { await this.enterSteps(); } catch (e) { console.error('starting up:', e); }
+    // whatever happened, nobody is left looking at a splash that has stopped answering
+    if (!$('splash').classList.contains('gone') && !UI.playOffline()) UI.showAuth('Something went wrong starting up. Try again.', true);
+  },
+  async enterSteps() {
+    if (Net.token) {
+      const slow = setTimeout(() => UI.splashStatus(Net.WAKING_MSG), 1500);
+      const r = await Net.resume(Net.RESUME_WAIT);
+      clearTimeout(slow);
+      if (r) { UI.signedIn(); return; }
+      if (r === false) {
+        // no answer in time: the server asleep, or no connection at all
+        if (UI.playOffline()) return;
+        UI.showAuth(Net.noWifi() ? Net.NO_WIFI_MSG : Net.WAKING_MSG, true);
+        if (Net.noWifi() || !(await Net.wake())) return;
+        const again = await Net.resume(8000);
+        if (again) { UI.signedIn(); return; }
+        UI.authNote('', false, Net.WAKING_MSG);
+        return;
+      }
+      // null: the sign-in has run out, so the sign-in page it is
     }
-    // It did not answer: usually the host getting out of bed, sometimes no connection at all.
-    // Knock briefly if this device can carry on without it, properly if it cannot.
-    const canFallBack = !!Net.lastUser;
-    UI.showAuth('Waking the server up…', true);
-    const up = canFallBack
-      ? await Net.wake(null, 3, 1200)
-      : await Net.wake((n, of) => UI.showAuth(`Waking the server up… (${n}/${of})`, true));
-    if (up) {
-      const again = await Net.resume();
-      if (again) { Net.goOnline(); UI.signedIn(); return; }
-      UI.showAuth('');
-      return;
-    }
-    // Still nothing. If this device has played as somebody before, carry on as them with the
-    // progress kept here rather than sitting on a sign-in screen that cannot work.
+    UI.showAuth('Connecting\u2026', true);
+    if (await Net.reachable(4000)) { UI.authNote('', false, 'Connecting\u2026'); return; }
+    // signed in here before (the sign-in just ran out): carry on as them for now
     if (UI.playOffline()) return;
-    UI.showAuth('No connection. Connect to the internet to log in or sign up.');
+    if (Net.noWifi()) { UI.authNote(Net.NO_WIFI_MSG, true, 'Connecting\u2026'); return; }
+    // asleep: they can type while it wakes, and the note goes once it is up
+    UI.authNote(Net.WAKING_MSG, false, 'Connecting\u2026');
+    const up = await Net.wake();
+    UI.authNote(up ? '' : "Can't reach the server. Check your connection and try again.", !up, Net.WAKING_MSG);
   },
 
   goHome() {
@@ -283,4 +300,8 @@ const Game = {
   },
 };
 
-window.addEventListener('load', () => Game.boot());
+// Start the moment the page's own elements are there. It used to wait for 'load', which also waits
+// on every image, icon and font, and all that time the splash said TAP TO START and a tap did nothing.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => Game.boot());
+else Game.boot();
+window.addEventListener('load', () => Game.boot()); // (a second call does nothing)

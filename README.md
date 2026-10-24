@@ -113,6 +113,35 @@ Lag in an online match is three different things, and only some of them can be f
    (`https://mini-strikers.onrender.com`), delete the old service first and give the new one the same name.
    Do this before the Android app goes to Google Play, because the address is built into the app.
    Run `node tools/wsping.js` again afterwards to see the difference.
+   **Done 2026-10-23:** the service now runs in Virginia, made by hand in the dashboard (New > Web Service,
+   region Virginia, `npm install`, `node server.js`, health check `/api/health`, the same `DATABASE_URL`). From
+   Miami the round trip went from 120 ms (Oregon) to 69 ms (`wsping`, 40 of 40). The address did not change, so the
+   website and the Android app are untouched. The Blueprint was disconnected first (a Blueprint recreates a deleted
+   service in the region written in `render.yaml`, which has none, so Oregon): `render.yaml` still has no `region`,
+   so do not create this service from it again without adding `region: virginia`.
+
+## Starting up while the free server sleeps (build 97)
+
+The free Render instance sleeps after ~15 idle minutes and takes up to a minute to wake. The game copes:
+
+- The splash says LOADING until the game's files have arrived and a tap works (it used to say TAP TO
+  START while a tap did nothing); a tap made while loading is remembered. If a file fails, it says so
+  and the next tap reloads. The game starts on DOMContentLoaded, not `load`.
+- After the tap the splash stays up saying what is going on until there is something to show. Every
+  question to the server has a deadline (`Net.RESUME_WAIT`, per-knock timeouts in `Net.wake`). Someone
+  who has played on the device before is let in from the copy kept there after ~5 s and comes online by
+  itself when the server answers (`Net.watchForConnection`, poked when the game comes to the front or
+  the socket opens). A new device gets the sign-in page at once, saying the server is waking.
+- A new build never reloads the page in the middle of something (`UI.calm`, `Install.whenCalm`), and
+  someone already past the splash carries straight on after the reload.
+- Saves the server turns down (or that never arrive) are tried again with backoff, and leaving the page
+  sends unsaved progress in a `keepalive` request (`Net.flushSave`).
+- The service worker serves a page that came out of its copy with files from the same copy, and only
+  fills gaps in it, so one page load never mixes two builds.
+
+Test it in the Browser pane with `tools/startscan.js` (one scenario per fresh load; see its header).
+What code cannot fix: the very first visit on a device while the server sleeps waits on Render's
+"Application loading" page. Only a paid instance that does not sleep removes that.
 2. **A connection that cannot keep up.** On a slow or choppy link (weak signal, shared Wi-Fi) the
    server used to keep sending 30 pictures a second into a queue that grew without limit, so the screen
    fell seconds behind and stayed there: a median 4.6 s behind after 25 s on a 14 KB/s link, still

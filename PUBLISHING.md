@@ -54,7 +54,7 @@ if the account holder wants a different one.
 ## Steps, in order
 1. **An adult makes the accounts.** Apple Developer Program (about $99 a year) and Google Play Console
    (about $25 once). The adult is the account holder and signs the agreements.
-2. **Choose the server's region and plan before review.** Pings to the live server are about 125 ms from
+2. **The region is DONE (2026-10-23: Virginia, about 70 ms from Miami); the plan is still to choose.** Older note: pings to the live server were about 125 ms from
    Miami (`node tools/wsping.js`); a server in Virginia or Ohio would be about 45 ms. A Render service's region
    cannot be changed, so it means a new service in the right region, created after deleting the old one and
    given the same name so the address the app uses does not change (see README, "Online lag"). Do this BEFORE

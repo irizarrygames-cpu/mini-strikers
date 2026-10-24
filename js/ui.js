@@ -9,14 +9,7 @@ const UI = {
     $('splash-logo').innerHTML = $('logo').innerHTML;
     // the splash owns the wordmark until it has gone: see .splash-on in style.css
     document.body.classList.add('splash-on');
-    const leaveSplash = () => {
-      if ($('splash').classList.contains('gone')) return;
-      Sound.unlock(); Sound.tap(); Sound.startMusic();
-      $('splash').classList.add('gone');
-      setTimeout(() => { $('splash').hidden = true; document.body.classList.remove('splash-on'); }, 450);
-      Game.enter();
-    };
-    $('splash').addEventListener('pointerdown', leaveSplash);
+    $('splash').addEventListener('pointerdown', () => this.leaveSplash());
     // Nothing that needs other people is allowed to start while there is no connection (no wifi, or a
     // game that opened without one). Caught here, before the button's own handler, so every one of
     // them behaves the same way and says why.
@@ -29,7 +22,7 @@ const UI = {
       e.preventDefault(); e.stopPropagation();
       this.toast(why);
     }, true);
-    window.addEventListener('keydown', leaveSplash, { once: true });
+    window.addEventListener('keydown', () => this.leaveSplash(), { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
     $('home-char').addEventListener('click', () => { this.tap(); this.openModal('characters'); });
@@ -86,6 +79,48 @@ const UI = {
   },
 
   tap() { Sound.unlock(); Sound.tap(); },
+
+  // ---- the splash ----
+  // Everything is loaded and listening: the splash can say TAP TO START and mean it. A tap made while
+  // it was still loading (index.html remembers it), or a reload for a new build after the player had
+  // already started, goes straight on in.
+  splashReady() {
+    window.__ready = true;
+    if (window.__splashDone) window.__splashDone();
+    $('splash').classList.remove('loading');
+    $('splash-tap').textContent = 'TAP TO START';
+    $('splash-sub').textContent = '';
+    let carryOn = false;
+    try { carryOn = sessionStorage.getItem('ms-carry-on') === '1'; sessionStorage.removeItem('ms-carry-on'); } catch (e) { /* no storage */ }
+    if (window.__earlyTap || carryOn) this.leaveSplash();
+  },
+  // The tap. The splash stays up saying what is happening until there is something to show (home
+  // or the sign-in page), which is when it goes (dropSplash). It used to go at once, and while the
+  // server woke up there was nothing at all on the screen.
+  leaveSplash() {
+    if (this._entering || !window.__ready) return;
+    this._entering = true;
+    Sound.unlock(); Sound.tap(); Sound.startMusic();
+    $('splash').classList.add('loading');
+    $('splash-tap').textContent = 'STARTING…';
+    $('splash-sub').textContent = '';
+    Game.enter();
+  },
+  splashStatus(text) { if (!$('splash').classList.contains('gone')) $('splash-sub').textContent = text; },
+  dropSplash() {
+    const s = $('splash');
+    if (s.hidden || s.classList.contains('gone')) return;
+    s.classList.add('gone');
+    setTimeout(() => { s.hidden = true; document.body.classList.remove('splash-on'); }, 450);
+  },
+  // Nothing is going on that a reload, or a swap of the save, would spoil: on the menu, no window
+  // open, not looking for a match, nothing half typed.
+  calm() {
+    const a = document.activeElement;
+    return Game.state === 'home' && $('modal').hidden
+      && (typeof Online === 'undefined' || Online.status === 'idle' || Online.status === 'over')
+      && !(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'));
+  },
   isTouch() { return window.matchMedia('(pointer: coarse)').matches; },
 
   checkRotate() {
@@ -364,6 +399,7 @@ const UI = {
   playOffline() {
     const name = Net.lastUser;
     if (!name) return false;
+    this.dropSplash();
     Save.account = name;
     Save.load();                      // this account's own copy on this device
     Net.user = { name, club: Save.data.club, online: null, rank: null, wc: { round: 0, titles: 0 } };
@@ -372,11 +408,13 @@ const UI = {
     Game.state = 'home';
     Render.buildLayer();   // Clubs.mine() reads the country straight out of the save
     this.show('home');
-    this.toast('NO CONNECTION — PLAYING ON THIS DEVICE');
+    // with a connection this is the server still waking up, and it comes online by itself
+    this.toast(Net.noWifi() ? 'NO WI-FI — PLAYING ON THIS DEVICE' : 'THE SERVER IS WAKING UP — ONLINE IN A MOMENT');
     return true;
   },
 
   showAuth(msg, calm) {
+    this.dropSplash();
     Game.state = 'home';
     this.closeAll();
     $('home').hidden = true;
@@ -384,6 +422,14 @@ const UI = {
     if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.toggle('bad', !calm); }
     else { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); }
     $('auth-logo').innerHTML = $('logo').innerHTML;
+  },
+  // a note on the sign-in page from starting up (connecting, waking the server), which never writes
+  // over anything the player's own LOG IN put there. onlyOver: change it only if it still says this.
+  authNote(text, bad, onlyOver) {
+    const m = $('auth-msg');
+    if ($('auth').hidden || $('auth-go').disabled) return;
+    if (onlyOver !== undefined && m.textContent !== onlyOver) return;
+    m.textContent = text; m.classList.toggle('bad', !!bad);
   },
 
   async submitAuth() {
@@ -395,11 +441,14 @@ const UI = {
     const go = $('auth-go');
     go.disabled = true; msg.classList.remove('bad'); msg.textContent = this._authMode === 'signup' ? 'Creating your account…' : 'Logging in…';
     let r;
+    // a sleeping server holds the answer back for up to a minute: say so, rather than sit on "Logging in…"
+    const slow = setTimeout(() => { if (go.disabled) msg.textContent = Net.WAKING_MSG; }, 3000);
     try { r = this._authMode === 'signup' ? await Net.signup(user, pass, this._authClub) : await Net.login(user, pass); }
     catch (e) { r = null; }
+    clearTimeout(slow);
     // no wifi at all: nothing to wake, so say so
     if (!r && Net.noWifi()) {
-      go.disabled = false; msg.classList.add('bad'); msg.textContent = 'No Wi-Fi. Connect to the internet to log in or sign up.';
+      go.disabled = false; msg.classList.add('bad'); msg.textContent = Net.NO_WIFI_MSG;
       return;
     }
     // no answer at all: the host was asleep. Wake it and have one more go before saying anything.
@@ -422,10 +471,18 @@ const UI = {
   },
 
   signedIn(fresh) {
+    this.dropSplash();
+    // A phone keeps its keyboard up, and the page scrolled up to make room for it, after the sign-in
+    // form has gone, which left bits of the sign-in screen over the game. Put both back.
+    const a = document.activeElement;
+    if (a && a.blur && a.closest && a.closest('#auth')) a.blur();
+    window.scrollTo(0, 0);
     // whichever way we got here — resumed, logged in, signed up — we are online again, so the
     // offline marks come off and anything won while offline goes up
     Net.goOnline();
     $('auth').hidden = true;
+    // back online in the middle of something (a match, its results): leave the screen as it is
+    if (Game.state !== 'home') { Net.openSocket(); return; }
     Game.state = 'home';
     Render.buildLayer();
     this.show('home');
@@ -1047,7 +1104,7 @@ const Install = {
     let had = !!(sw && sw.controller);
     if (sw) sw.addEventListener('controllerchange', () => {
       if (!had) { had = true; return; }           // the first worker ever: nothing to replace
-      this.freshen('a new version took over');
+      this.whenCalm(() => this.freshen('a new version took over'));
     });
 
     // and the belt to that pair of braces: ask the server what the build should be
@@ -1057,7 +1114,9 @@ const Install = {
         const r = await fetch(API_BASE + '/api/health', { cache: 'no-store' });
         const j = await r.json();
         if (!j || !j.build) return;
-        if (known && String(j.build) !== String(window.BUILD)) this.freshen('build ' + j.build + ' is out');
+        // Never in the middle of something: a match, an open window, a search for a match, a half-typed
+        // sign-in. It used to reload on the spot, which could be the moment after START was tapped.
+        if (known && String(j.build) !== String(window.BUILD)) this.whenCalm(() => this.freshen('build ' + j.build + ' is out'));
       } catch (e) { /* asleep, or no line: try again later */ }
     };
     check();
@@ -1065,12 +1124,22 @@ const Install = {
     window.addEventListener('focus', check);
   },
 
+  // run fn the next time nothing is going on (looked at every 10 s)
+  whenCalm(fn) {
+    if (this._calmWait) return;
+    const go = () => { if (UI.calm()) { this._calmWait = null; fn(); } else this._calmWait = setTimeout(go, 10000); };
+    this._calmWait = true;
+    go();
+  },
   // Throw the kept copy away and load again — but only once for any one build, so a server that
-  // is still waking up can never put the game in a loop.
+  // is still waking up can never put the game in a loop. Somebody already past the splash carries
+  // straight on after the reload, rather than being sent back to TAP TO START.
   async freshen(why) {
     const key = 'ms-freshened';
     const stamp = String(window.BUILD || '?') + ':' + why.replace(/[^0-9]/g, '');
     try { if (sessionStorage.getItem(key) === stamp) return; sessionStorage.setItem(key, stamp); } catch (e) { return; }
+    try { if (UI._entering) sessionStorage.setItem('ms-carry-on', '1'); } catch (e) { /* no storage */ }
+    Net.flushSave();
     try {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));

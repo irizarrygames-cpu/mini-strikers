@@ -46,6 +46,11 @@ self.addEventListener('activate', (e) => {
 });
 
 const live = (url) => url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws');
+// When the page itself had to come out of the copy (the server did not answer in time), the files it
+// then asks for come out of the same copy at once, without waiting on the network one by one. A kept
+// page with fresh files, or the other way round, right after a deploy, is a page made of two builds.
+let keptAt = 0;
+const KEPT_FOR = 60000;
 // The lettering the game is set in comes from Google. It is not ours, so it is kept separately
 // and taken from the copy first: a font does not change, and without it the game falls back to
 // whatever the device has and stops looking like itself.
@@ -69,10 +74,19 @@ self.addEventListener('fetch', (e) => {
   }
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    // the request keeps going even if we stop waiting for it, so a slow answer still refreshes
-    // the copy for next time
+    const nav = req.mode === 'navigate';
+    if (!nav && Date.now() - keptAt < KEPT_FOR) {
+      const kept = await cache.match(req, { ignoreSearch: true });
+      if (kept) return kept;
+    }
+    // The request keeps going even if we stop waiting for it. Its answer only fills a gap in the
+    // copy: what was kept at install is one whole build, and a file from a newer build written over
+    // it is how the copy stops matching itself.
     const net = fetch(req).then((res) => {
-      if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+      if (res && res.ok) {
+        const copy = res.clone(); // now, before the page reads the body
+        cache.match(req).then((had) => { if (!had) cache.put(req, copy).catch(() => {}); }).catch(() => {});
+      }
       return res;
     });
     try {
@@ -80,11 +94,12 @@ self.addEventListener('fetch', (e) => {
         net,
         new Promise((_, no) => setTimeout(() => no(new Error('slow')), NET_TIMEOUT)),
       ]);
+      if (nav) keptAt = 0;
       return fresh;
     } catch (err) {
       const kept = await cache.match(req, { ignoreSearch: true })
-        || (req.mode === 'navigate' ? await cache.match('./index.html') : null);
-      if (kept) return kept;
+        || (nav ? await cache.match('./index.html') : null);
+      if (kept) { if (nav) keptAt = Date.now(); return kept; }
       // nothing kept and nothing answering: let the request finish however it finishes
       return fetch(req);
     }
