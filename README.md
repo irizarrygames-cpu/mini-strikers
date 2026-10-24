@@ -131,7 +131,8 @@ The free Render instance sleeps after ~15 idle minutes and takes up to a minute 
   question to the server has a deadline (`Net.RESUME_WAIT`, per-knock timeouts in `Net.wake`). Someone
   who has played on the device before is let in from the copy kept there after ~5 s and comes online by
   itself when the server answers (`Net.watchForConnection`, poked when the game comes to the front or
-  the socket opens). A new device gets the sign-in page at once, saying the server is waking.
+  the socket opens). A new device gets the sign-in page at once, saying the server is waking and
+  offering PLAY AS A GUEST, which needs no server at all (back in build 98).
 - A new build never reloads the page in the middle of something (`UI.calm`, `Install.whenCalm`), and
   someone already past the splash carries straight on after the reload.
 - Saves the server turns down (or that never arrive) are tried again with backoff, and leaving the page

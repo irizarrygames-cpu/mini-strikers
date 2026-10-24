@@ -1,6 +1,6 @@
 // Profile + settings. Signed in, progress belongs to the account: it is kept on the
-// server and cached per account on this device. Whatever is kept under the bare key is from
-// before the game needed an account, and it comes along when you sign up.
+// server and cached per account on this device. The guest save is what you have before
+// making an account, and it comes along when you sign up.
 const Save = {
   data: null,
   account: null, // username when signed in
@@ -92,8 +92,8 @@ const Save = {
     try { localStorage.setItem(this.key(), JSON.stringify(this.data)); } catch (e) {}
     if (!serverSave) Net.queueSave();
   },
-  // logged out: nobody is signed in, so there is nothing of an account's to show
-  signedOut() {
+  // a guest (or logged out): the save kept on this device under no account
+  useGuest() {
     this.account = null;
     this.load();
   },

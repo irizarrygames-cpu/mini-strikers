@@ -4,6 +4,8 @@
 //   await SS.run('asleep-returning') signed in before, server not answering: in from this device at once, online by itself later
 //   await SS.run('asleep-new')       never signed in here, server not answering: the sign-in page, saying so, never a blank screen
 //   await SS.run('awake-returning')  signed in before, server up: straight home
+//   await SS.run('guest')            never signed in here, server not answering: PLAY AS A GUEST is there and works at once,
+//                                    and an online mode takes the guest to sign-up
 //   await SS.run('save-retry')       the server turns two saves down: the game keeps trying until one lands
 //   await SS.run('flush')            leaving the page sends unsaved progress in a request that outlives it
 //   await SS.run('calm')             a new build never reloads the page in the middle of a match
@@ -89,6 +91,27 @@ const SS = {
         this.restore();
         const clearAt = (await this.until(() => document.getElementById('auth-msg').textContent === '', 15000)) ? ms() : null;
         check('the note goes once the server answers', clearAt !== null, document.getElementById('auth-msg').textContent);
+      } else if (name === 'guest') {
+        Net.token = null; Net.lastUser = null;
+        this.asleep();
+        this.tap();
+        await this.until(() => this.vis('auth'), 3000);
+        await this.until(() => /guest/i.test(document.getElementById('auth-msg').textContent), 7000);
+        check('while the server wakes, the sign-in page offers to play as a guest', this.vis('auth-guest') && /guest/i.test(document.getElementById('auth-msg').textContent), document.getElementById('auth-msg').textContent);
+        const t1 = performance.now();
+        document.getElementById('auth-guest').click();
+        const inAt = (await this.until(() => this.vis('home') && !this.vis('auth'), 3000)) ? Math.round(performance.now() - t1) : null;
+        check('PLAY AS A GUEST is in at once, with no server', inAt !== null && inAt < 1500, inAt);
+        check('as a guest', !Save.account && document.getElementById('home-user').textContent === 'GUEST', document.getElementById('home-user').textContent);
+        check('and says so', /GUEST/.test(toast()), toast());
+        this.restore();
+        UI.openModal('play');
+        await this.wait(400);
+        const online = document.querySelector('#modal [data-mode="online"]');
+        if (online) online.click();
+        await this.wait(400);
+        check('an online mode takes a guest to sign-up, keeping what they won', this.vis('auth') && /guest comes with you/.test(document.getElementById('auth-msg').textContent), document.getElementById('auth-msg').textContent);
+        check('with a way back to playing as a guest', this.vis('auth-offline') || this.vis('auth-guest'));
       } else if (name === 'awake-returning') {
         check('precondition: this device has been signed in', !!Net.token);
         const blank = this.watchBlank();

@@ -1115,7 +1115,7 @@ Object.assign(UI, {
       <div class="set"><span>GRAPHICS</span>${seg('graphics', [['auto', 'AUTO'], ['high', 'HIGH'], ['low', 'LOW']])}</div>
       <div class="set"><span>CONTROLS</span>${seg('controls', [['auto', 'AUTO'], ['touch', 'TOUCH'], ['keyboard', 'KEYBOARD']])}</div>
       ${this.controlsRef()}
-      <div class="set account"><span>ACCOUNT</span><em>${Save.account} · ${Clubs.mine().name}</em><button id="logout" class="mini-danger">LOG OUT</button></div>
+      <div class="set account"><span>ACCOUNT</span><em>${Save.account || 'GUEST'} · ${Clubs.mine().name}</em><button id="logout" class="${Save.account ? 'mini-danger' : 'mid-btn'}">${Save.account ? 'LOG OUT' : 'SIGN IN'}</button></div>
       ${Net.user ? `<div class="set"><span>PASSWORD</span><em>Only you can change it, and only from here</em><button id="chpw" class="mid-btn">CHANGE</button></div>
       <form id="pw-form" class="pw-form" hidden autocomplete="off">
         <input type="password" id="pw-old" placeholder="CURRENT PASSWORD" autocomplete="current-password" maxlength="200">
@@ -1140,8 +1140,9 @@ Object.assign(UI, {
     });
     $('logout').addEventListener('click', async () => {
       this.tap();
+      const guest = !Save.account;
       await Net.logout();
-      UI.showAuth('Logged out.');
+      UI.showAuth(guest ? UI.GUEST_MSG : 'Logged out.');
       $('auth-msg').classList.remove('bad');
     });
     if ($('chpw')) {
@@ -1279,7 +1280,7 @@ Object.assign(UI, {
         <canvas width="96" height="96" id="prof-canvas"></canvas>
         <div class="prof-id">
           <strong>${ch.name}</strong>
-          <small>${Save.account} · ${Clubs.mine().name} · LEVEL ${lv.level} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${charOvr(ch)}</small>
+          <small>${Save.account || 'GUEST'} · ${Clubs.mine().name} · LEVEL ${lv.level} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${charOvr(ch)}</small>
           <small class="ramp-note">Every level makes every match harder — opponents are +${levelRampPct(lv.level)}% sharper than at level 1${lv.level >= LEVEL_RAMP_TOP ? ' (maxed)' : ''}.</small>
           <span>${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L · ${winPct}% WON</span>
         </div>

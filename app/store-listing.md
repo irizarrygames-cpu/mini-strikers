@@ -29,7 +29,7 @@ MAKE IT YOURS
 - Daily rewards, missions and medals to chase
 
 SAFE AND SIMPLE
-- A free account keeps your players, coins and progress safe, and lets you play online
+- Play as a guest straight away, or make a free account to keep your progress safe and play online
 - Quick chat uses short preset phrases only: no typing, no strangers messaging your child
 - No ads, and no tracking
 - Delete your account any time from Settings

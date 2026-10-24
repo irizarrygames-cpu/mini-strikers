@@ -153,11 +153,13 @@ const Game = {
       if (r === false) {
         // no answer in time: the server asleep, or no connection at all
         if (UI.playOffline()) return;
-        UI.showAuth(Net.noWifi() ? Net.NO_WIFI_MSG : Net.WAKING_MSG, true);
-        if (Net.noWifi() || !(await Net.wake())) return;
+        Net.offlineOffer = Net.noWifi();
+        UI.showAuth(Net.noWifi() ? Net.NO_WIFI_MSG : UI.AUTH_WAKING, true);
+        if (Net.noWifi()) return;
+        if (!(await Net.wake())) { Net.offlineOffer = true; UI.authButtons(); UI.authNote(UI.AUTH_UNREACHABLE, true, UI.AUTH_WAKING); return; }
         const again = await Net.resume(8000);
         if (again) { UI.signedIn(); return; }
-        UI.authNote('', false, Net.WAKING_MSG);
+        UI.authNote('', false, UI.AUTH_WAKING);
         return;
       }
       // null: the sign-in has run out, so the sign-in page it is
@@ -166,11 +168,12 @@ const Game = {
     if (await Net.reachable(4000)) { UI.authNote('', false, 'Connecting\u2026'); return; }
     // signed in here before (the sign-in just ran out): carry on as them for now
     if (UI.playOffline()) return;
-    if (Net.noWifi()) { UI.authNote(Net.NO_WIFI_MSG, true, 'Connecting\u2026'); return; }
-    // asleep: they can type while it wakes, and the note goes once it is up
-    UI.authNote(Net.WAKING_MSG, false, 'Connecting\u2026');
+    if (Net.noWifi()) { Net.offlineOffer = true; UI.authButtons(); UI.authNote(Net.NO_WIFI_MSG, true, 'Connecting\u2026'); return; }
+    // asleep: they can type, or play as a guest, while it wakes; the note goes once it is up
+    UI.authNote(UI.AUTH_WAKING, false, 'Connecting\u2026');
     const up = await Net.wake();
-    UI.authNote(up ? '' : "Can't reach the server. Check your connection and try again.", !up, Net.WAKING_MSG);
+    if (!up) { Net.offlineOffer = true; UI.authButtons(); }
+    UI.authNote(up ? '' : UI.AUTH_UNREACHABLE, !up, UI.AUTH_WAKING);
   },
 
   goHome() {

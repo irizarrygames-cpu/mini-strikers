@@ -32,11 +32,12 @@ const Net = {
   _wantSocket: false,
   _retry: 0,
   offline: false,      // the server could not be reached: solo play only, saving to this device
+  offlineOffer: false, // PLAY OFFLINE on the sign-in page (set once the server cannot be reached at all)
   unsaved: false,      // progress changed here that the server has not taken yet
   // how long starting up waits on the server before going on without it (it sleeps: see Game.enter)
   RESUME_WAIT: 5000,
   WAKING_MSG: 'Waking the server up… this can take up to a minute.',
-  NO_WIFI_MSG: 'No Wi-Fi. Connect to the internet to log in or sign up.',
+  NO_WIFI_MSG: 'No Wi-Fi. Connect to log in or sign up, or play offline as a guest.',
 
   init() {
     try { this.token = localStorage.getItem(TOKEN_KEY); } catch (e) { this.token = null; }
@@ -54,8 +55,10 @@ const Net = {
   // for the things that start a match; the rest (league, friends, rank) say "use this".
   offlineWhy(play = true) {
     if (!this.noWifi() && !this.offline) return null;
-    if (!this.noWifi()) return 'STILL CONNECTING TO THE SERVER — TRY AGAIN IN A MOMENT';
-    return 'NO WI-FI — CONNECT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS');
+    if (this.noWifi()) return 'NO WI-FI — CONNECT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS');
+    // a guest is not short of a connection, they are short of an account
+    if (typeof Save !== 'undefined' && !Save.account) return 'MAKE AN ACCOUNT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS') + ' — IT IS FREE';
+    return 'STILL CONNECTING TO THE SERVER — TRY AGAIN IN A MOMENT';
   },
 
   // While offline, look now and then for the connection coming back: every few seconds at first (a
@@ -92,11 +95,13 @@ const Net = {
   // no connection: play on with what this device already knows
   goOffline() {
     this.offline = true;
+    this.offlineOffer = true;
     this.closeSocket();
     document.body.classList.add('offline');
     if (this.lastUser) this.watchForConnection();
   },
   goOnline() {
+    this.offlineOffer = false;
     clearTimeout(this._watch);
     if (!this.offline) return;
     this.offline = false;
@@ -152,7 +157,7 @@ const Net = {
 
   // ---- accounts ----
   async signup(username, password, club) {
-    // progress already on this device (from before the game needed an account) comes with them
+    // a guest's progress on this device comes with them
     const carried = Save.data && (Save.data.matches > 0 || Save.data.coins > 0) ? Save.data : null;
     const r = await this.api('/api/auth/signup', { username, password, club, save: carried });
     if (r.ok) this.signedIn(r, true);
@@ -200,7 +205,7 @@ const Net = {
     this.forget();
     Social.reset();
     Store.reset();
-    Save.signedOut();
+    Save.useGuest();
   },
 
   // progress goes up a moment after it changes, batched

@@ -2003,3 +2003,11 @@ body.kb .chat-menu kbd { display: inline-block; }
 .splash-sub:empty { visibility: hidden; }
 /* an upright phone: the wordmark fits across the screen instead of running off both edges */
 .splash .splash-logo { font-size: clamp(40px, min(17vmin, 11.5vw), 130px); }
+
+/* ===== PLAYING AS A GUEST (back in build 98) ===== */
+/* with no connection at all: up top, where it is the obvious thing to press */
+.auth-offline { align-self: center; margin-top: 2px; }
+/* a way in with no account: quiet, under the main button, but a real button with room to press */
+.auth-guest { align-self: center; min-height: 34px; padding: 4px 10px; border: 0; background: none; color: #6b7299; font-family: var(--font); font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.auth-guest[hidden] { display: none; }
+.auth-guest:active { color: var(--ink); }

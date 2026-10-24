@@ -37,7 +37,7 @@ sandbox.addEventListener = (ev, fn) => { (listeners[ev] = listeners[ev] || []).p
 vm.createContext(sandbox);
 const root = path.join(__dirname, '..');
 for (const f of ['config.js', 'clubs.js', 'celebs.js', 'save.js', 'meta.js', 'net.js', 'online.js']) vm.runInContext(fs.readFileSync(path.join(root, 'js', f), 'utf8'), sandbox, { filename: 'js/' + f });
-const { Net, Online } = vm.runInContext('({ Net, Online })', sandbox);
+const { Net, Online, Save } = vm.runInContext('({ Net, Online, Save })', sandbox);
 
 Net.init();
 Online.init();
@@ -72,9 +72,15 @@ const wifiMsg = () => log.toasts.some((t) => /NO WI-FI/.test(t) && /PLAY ONLINE|
   check('the page notices the wifi coming back', !bodyClasses.has('nowifi'));
 
   // ---- the game opened with no connection (Net.offline) but the device thinks it is online: still says so
-  fresh(); Net.offline = true;
+  fresh(); Net.offline = true; Save.account = 'someone';
   Online.findMatch('4v4'); await sleep(60);
   check('opened offline: find a match says so', log.toasts.some((t) => /STILL CONNECTING/.test(t)) && log.queues === 0 && Online.status === 'idle', log.toasts);
+  Save.account = null;
+
+  // ---- a guest (no account, playing on this device) with wifi: it is an account they need, not wifi
+  fresh(); Net.offline = true;
+  Online.findMatch('4v4'); await sleep(60);
+  check('a guest: find a match says to make an account', log.toasts.some((t) => /MAKE AN ACCOUNT/.test(t)) && !log.toasts.some((t) => /WI-FI/.test(t)) && log.queues === 0 && log.sockets === 0, log.toasts);
   Net.offline = false;
 
   // ---- wifi ON: nothing gets in the way

@@ -16,12 +16,19 @@ const UI = {
     document.addEventListener('click', (e) => {
       const hit = e.target && e.target.closest && e.target.closest('[data-needs-net]');
       if (!hit) return;
+      // A guest with a connection is not short of internet, they are short of an account: take them
+      // to the sign-in page, where everything they have won so far comes along if they make one.
+      if (!Save.account && !Net.noWifi()) { e.preventDefault(); e.stopPropagation(); this.showAuth(this.GUEST_MSG, true); return; }
       const d = hit.dataset;
       const why = Net.offlineWhy(!!(d.mode || d.room || d.cup));
       if (!why) return;
       e.preventDefault(); e.stopPropagation();
       this.toast(why);
     }, true);
+    const offBtn = $('auth-offline');
+    if (offBtn) offBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
+    const guestBtn = $('auth-guest');
+    if (guestBtn) guestBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
     window.addEventListener('keydown', () => this.leaveSplash(), { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
@@ -79,6 +86,10 @@ const UI = {
   },
 
   tap() { Sound.unlock(); Sound.tap(); },
+
+  GUEST_MSG: 'Make an account to play online. Everything you have won as a guest comes with you.',
+  AUTH_WAKING: 'Waking the server up… this can take up to a minute. You can play as a guest while you wait.',
+  AUTH_UNREACHABLE: "Can't reach the server. Check your connection, or play offline as a guest.",
 
   // ---- the splash ----
   // Everything is loaded and listening: the splash can say TAP TO START and mean it. A tap made while
@@ -245,7 +256,7 @@ const UI = {
     const club = Clubs.mine();
     // menus and portraits wear your club's kit
     if (!Clubs.home || Clubs.home.id !== club.id) Clubs.setMatch(club, Clubs.current && Clubs.current.id !== club.id ? Clubs.current : Clubs.random(club));
-    $('home-user').textContent = Save.account || '';
+    $('home-user').textContent = Save.account || 'GUEST';
     $('home-club-name').textContent = club.name;
     this.flagBadge($('home-club-badge'), club);
     $('home-club-pos').textContent = this._leaguePos ? '#' + this._leaguePos : '';
@@ -396,20 +407,27 @@ const UI = {
   // No connection, but this device has been signed in before: open the game as that player,
   // from the copy of their progress kept here. Returns false if there is nothing to go on, in
   // which case the sign-in screen is the only honest thing to show.
-  playOffline() {
-    const name = Net.lastUser;
-    if (!name) return false;
+  // asGuest: no account at all, playing on the save kept on this device (PLAY AS A GUEST, PLAY OFFLINE)
+  playOffline(asGuest) {
+    const name = asGuest ? null : Net.lastUser;
+    if (!name && !asGuest) return false;
     this.dropSplash();
-    Save.account = name;
-    Save.load();                      // this account's own copy on this device
-    Net.user = { name, club: Save.data.club, online: null, rank: null, wc: { round: 0, titles: 0 } };
+    if (name) {
+      Save.account = name;
+      Save.load();                    // this account's own copy on this device
+      Net.user = { name, club: Save.data.club, online: null, rank: null, wc: { round: 0, titles: 0 } };
+    } else {
+      Save.useGuest();
+      Net.user = null;
+    }
     Net.goOffline();
     $('auth').hidden = true;
     Game.state = 'home';
     Render.buildLayer();   // Clubs.mine() reads the country straight out of the save
     this.show('home');
     // with a connection this is the server still waking up, and it comes online by itself
-    this.toast(Net.noWifi() ? 'NO WI-FI — PLAYING ON THIS DEVICE' : 'THE SERVER IS WAKING UP — ONLINE IN A MOMENT');
+    this.toast(!name ? (Net.noWifi() ? 'PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE' : 'PLAYING AS A GUEST. SIGN IN ANY TIME TO PLAY ONLINE')
+      : Net.noWifi() ? 'NO WI-FI — PLAYING ON THIS DEVICE' : 'THE SERVER IS WAKING UP — ONLINE IN A MOMENT');
     return true;
   },
 
@@ -422,6 +440,14 @@ const UI = {
     if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.toggle('bad', !calm); }
     else { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); }
     $('auth-logo').innerHTML = $('logo').innerHTML;
+    this.authButtons();
+  },
+  // PLAY OFFLINE up top when the server cannot be reached at all; otherwise the quieter guest way in
+  // under LOG IN (with a connection, signing in is better: a guest's progress stays on this device)
+  authButtons() {
+    const off = $('auth-offline'), guest = $('auth-guest');
+    if (off) off.hidden = !Net.offlineOffer;
+    if (guest) guest.hidden = !!Net.offlineOffer;
   },
   // a note on the sign-in page from starting up (connecting, waking the server), which never writes
   // over anything the player's own LOG IN put there. onlyOver: change it only if it still says this.

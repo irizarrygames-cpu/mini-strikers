@@ -2,9 +2,9 @@
 
 ## Done (live in build 97)
 - The game, the server, accounts, online play, and a privacy page at `/privacy.html`.
-- Every player needs an account (there is no guest play), and account deletion inside the game
-  (Settings → Delete Account), which both stores require. Because the game opens on a sign-in screen,
-  Google Play's "App access" form needs the reviewer account in step 7 below.
+- Play as a guest (no account needed; back since build 98), and account deletion inside the game
+  (Settings → Delete Account), which both stores require. Online play needs an account, so Google Play's
+  "App access" form still wants the reviewer account in step 7 below.
 - Coin packs (in-app purchases): built and tested, switched off until the stores are set up.
 - The game runs from inside an app (`API_BASE` in `js/net.js`, CORS in `server.js`) and carries its own
   copy of its font, so it makes no request to anyone but its own server.
