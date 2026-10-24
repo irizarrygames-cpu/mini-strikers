@@ -1,6 +1,6 @@
 # Publishing Mini Strikers: what is done, what is left
 
-## Done (live in build 97)
+## Done (live in build 98)
 - The game, the server, accounts, online play, and a privacy page at `/privacy.html`.
 - Play as a guest (no account needed; back since build 98), and account deletion inside the game
   (Settings → Delete Account), which both stores require. Online play needs an account, so Google Play's
@@ -8,7 +8,7 @@
 - Coin packs (in-app purchases): built and tested, switched off until the stores are set up.
 - The game runs from inside an app (`API_BASE` in `js/net.js`, CORS in `server.js`) and carries its own
   copy of its font, so it makes no request to anyone but its own server.
-- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.5-code6.aab`**, signed with
+- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.6-code7.aab`**, signed with
   the upload key, ready to upload to Google Play. Built from `app/`.
 
 ## Not done
