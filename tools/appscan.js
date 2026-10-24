@@ -77,5 +77,9 @@ const log = [];
   const errs = log.join('').split('\n').filter((l) => /uncaught|unhandled|TypeError|ReferenceError/i.test(l));
   check('the server never threw once', errs.length === 0, errs.slice(0, 3));
   console.log(failures ? `\n${failures} FAILED` : '\nall app-origin checks passed');
+  // Stop the server and let its connections close before leaving. Exiting while they were still
+  // closing could trip a libuv assertion on Windows (exit 127) after every check had passed.
+  await new Promise((r) => { if (child.exitCode !== null) return r(); child.once('exit', r); try { child.kill(); } catch (e) { r(); } });
+  await new Promise((r) => setTimeout(r, 150));
   process.exit(failures ? 1 : 0);
 })().catch((e) => { console.error(e); console.log(log.join('').slice(-1200)); process.exit(1); });

@@ -44,8 +44,8 @@ Simple touch controls on phones, keyboard or touch on bigger screens.
 
 ## Graphics to upload
 - App icon 512x512: `icon-512.png` in the project folder
-- Feature graphic 1024x500: still to make
-- Phone screenshots (landscape, at least 2, up to 8): still to take
+- Feature graphic 1024x500: `Desktop/Mini Strikers - Play Store/Store pictures/mini-strikers-feature-graphic.png`
+- Phone screenshots (landscape, at least 2, up to 8): `mini-strikers-screenshot-1-match.png` and `mini-strikers-screenshot-2-penalties.png` in the same folder (1920x1080, 24-bit PNG). Made by `tools/storeart.js`; run it again after a big change to the look.
 
 ## App content questionnaires
 
@@ -67,4 +67,4 @@ Simple touch controls on phones, keyboard or touch on bigger screens.
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.0.6 (7)`
+- Release name: `1.0.7 (8)`

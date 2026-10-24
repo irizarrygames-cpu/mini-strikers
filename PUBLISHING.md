@@ -1,6 +1,6 @@
 # Publishing Mini Strikers: what is done, what is left
 
-## Done (live in build 98)
+## Done (live in build 100)
 - The game, the server, accounts, online play, and a privacy page at `/privacy.html`.
 - Play as a guest (no account needed; back since build 98), and account deletion inside the game
   (Settings → Delete Account), which both stores require. Online play needs an account, so Google Play's
@@ -8,12 +8,12 @@
 - Coin packs (in-app purchases): built and tested, switched off until the stores are set up.
 - The game runs from inside an app (`API_BASE` in `js/net.js`, CORS in `server.js`) and carries its own
   copy of its font, so it makes no request to anyone but its own server.
-- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.6-code7.aab`**, signed with
+- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.7-code8.aab`**, signed with
   the upload key, ready to upload to Google Play. Built from `app/`.
 
 ## Not done
 1. The iPhone app (needs a Mac with Xcode).
-2. The store accounts, and the listing graphics (feature graphic 1024x500, phone screenshots).
+2. The store accounts. (The listing graphics are done: `Desktop/Mini Strikers - Play Store/Store pictures/`.)
    The listing words are written: `app/store-listing.md`.
 3. Store credentials for purchases (see README, "Selling coins").
 4. The Android app has been built and checked (signature, contents, manifest, and the bundled game
@@ -63,8 +63,8 @@ if the account holder wants a different one.
    Render's paid plan stays awake.
 3. **Upload the `.aab`** to a Closed testing track, add 12 or more testers (their Google accounts),
    and keep them opted in for 14 days. Then apply for production access.
-4. **Listing:** use `app/store-listing.md`. Still needed: a 1024x500 feature graphic and at least two
-   landscape phone screenshots. Fill in the age-rating questionnaire and the Data safety form (answers
+4. **Listing:** use `app/store-listing.md`. The 1024x500 feature graphic and two landscape phone screenshots
+   are in `Desktop/Mini Strikers - Play Store/Store pictures/` (made by `tools/storeart.js`). Fill in the age-rating questionnaire and the Data safety form (answers
    are in the listing file).
 5. **Kids.** The game is for children. The adult decides whether to list it as made for kids (Apple
    Kids Category, Google Families). That means no ads or third-party tracking (there are none), a

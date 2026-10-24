@@ -309,7 +309,7 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
   position: absolute; right: -6px; top: 2px; width: 44px; height: 44px; border-radius: 12px;
   background: var(--ui-red); color: #fff; border: 3px solid var(--ink); font-size: 22px; box-shadow: 0 4px 0 var(--ink);
 }
-.note { margin: 9px 0 12px; text-align: center; color: #6b7299; font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; }
+.note { margin: 9px 0 12px; text-align: center; color: #6b7299; font-family: system-ui, sans-serif; font-weight: 500; font-size: 14px; }
 
 .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .char-card-sm {
@@ -371,9 +371,9 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .r-mvp canvas { width: 56px; height: 56px; }
 .r-mvp small { display: block; font-size: 12px; }
 .r-mvp strong { display: block; font-weight: 400; font-size: 20px; }
-.r-mvp em { font-style: normal; font-size: 13px; font-family: system-ui, sans-serif; font-weight: 600; }
+.r-mvp em { font-style: normal; font-size: 13px; font-family: system-ui, sans-serif; font-weight: 500; }
 .r-you-wrap small { font-size: 12px; color: #6b7299; }
-.r-you { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; }
+.r-you { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 500; }
 .r-you b { font-family: var(--font); font-weight: 400; font-size: 18px; }
 .r-coins { display: flex; align-items: center; gap: 8px; font-size: 24px; }
 .r-coins b { font-weight: 400; }
@@ -520,15 +520,15 @@ button { font-family: var(--font); cursor: pointer; color: inherit; touch-action
 .auth-tabs button.sel { background: var(--blue); color: #fff; }
 .auth-fields { display: flex; flex-direction: column; gap: 8px; }
 .auth-fields label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: #6b7299; }
-.auth-fields input { font-family: system-ui, sans-serif; font-size: 18px; font-weight: 600; padding: 9px 12px; border: 3px solid var(--ink); border-radius: 12px; color: var(--ink); background: #f7f8ff; outline: none; }
+.auth-fields input { font-family: system-ui, sans-serif; font-size: 18px; font-weight: 500; padding: 9px 12px; border: 3px solid var(--ink); border-radius: 12px; color: var(--ink); background: #f7f8ff; outline: none; }
 .auth-fields input:focus { background: #fff; box-shadow: 0 0 0 3px var(--yellow); }
-.auth-msg { margin: 0; min-height: 18px; font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; color: #6b7299; }
+.auth-msg { margin: 0; min-height: 18px; font-family: system-ui, sans-serif; font-weight: 500; font-size: 13px; color: #6b7299; }
 .auth-msg.bad { color: var(--ui-red); }
 #auth-go { font-size: clamp(24px, 6.5vmin, 34px); }
 #auth-go:disabled { filter: grayscale(0.6); }
 .auth-right { grid-area: right; width: min(460px, 50vw); display: flex; flex-direction: column; gap: 8px; min-height: 0; max-height: 100%; }
 .auth-clubs-head b { font-weight: 400; font-size: 20px; display: block; }
-.auth-clubs-head small { font-family: system-ui, sans-serif; font-weight: 600; font-size: 12.5px; color: #6b7299; }
+.auth-clubs-head small { font-family: system-ui, sans-serif; font-weight: 500; font-size: 12.5px; color: #6b7299; }
 .auth-clubs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; overflow: auto; padding: 2px 4px 6px 2px; }
 .auth-club { display: flex; flex-direction: column; align-items: center; gap: 1px; border: 3px solid var(--ink); border-radius: 12px; background: #eef2ff; padding: 5px 2px 4px; box-shadow: 0 3px 0 var(--ink); }
 .auth-club canvas { width: 45px; height: 30px; margin: 3px 0 2px; }
@@ -652,7 +652,7 @@ body:not(.kb) #kb-legend { display: none; }
 
 .controls-ref { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
 .controls-ref h3 { margin: 0 0 6px; font-weight: 400; font-size: 18px; }
-.controls-ref ul { margin: 0; padding: 0; list-style: none; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; display: grid; gap: 4px; }
+.controls-ref ul { margin: 0; padding: 0; list-style: none; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 500; display: grid; gap: 4px; }
 .controls-ref li { display: flex; gap: 8px; align-items: center; }
 .controls-ref li .kc { height: 24px; min-width: 28px; font-size: 13px; font-family: var(--font); box-shadow: 0 2px 0 #8a90b8; }
 .controls-ref li .kc.wide { min-width: 48px; font-size: 11px; }
@@ -707,7 +707,7 @@ body:not(.kb) #kb-legend { display: none; }
 .intro-ch ul, .p-ch ul, .r-challenges { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 4px; }
 .intro-ch li, .p-ch li, .r-challenges li {
   display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 10px;
-  font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px;
+  font-family: system-ui, sans-serif; font-weight: 500; font-size: 13px;
 }
 .intro-ch li span, .p-ch li span, .r-challenges li span { flex: 1; }
 .intro-ch li b, .p-ch li b, .r-challenges li b { display: flex; align-items: center; gap: 4px; font-family: var(--font); font-weight: 400; font-size: 15px; }
@@ -733,7 +733,7 @@ body:not(.kb) #kb-legend { display: none; }
 .howto-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
 .hcard { background: #eef2ff; border: 3px solid var(--ink); border-radius: 14px; padding: 8px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
 .hcard strong { font-weight: 400; font-size: 17px; }
-.hcard p { margin: 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 12.5px; line-height: 1.35; }
+.hcard p { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; font-size: 12.5px; line-height: 1.35; }
 .hcard .kc { height: 20px; min-width: 22px; font-size: 11px; box-shadow: 0 2px 0 #8a90b8; font-family: var(--font); vertical-align: middle; }
 .hico { width: 54px; height: 54px; border-radius: 50%; border: 4px solid var(--ink); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26px; box-shadow: 0 4px 0 var(--ink); }
 .hico b { font-weight: 400; -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; }
@@ -785,7 +785,7 @@ body:not(.kb) #kb-legend { display: none; }
   display: flex; flex-direction: column; gap: 6px; min-height: 150px;
 }
 .mode strong { font-weight: 400; font-size: clamp(22px, 6vmin, 32px); -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; }
-.mode p { margin: 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; flex: 1; }
+.mode p { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; font-size: 14px; flex: 1; }
 .mode .tag { align-self: flex-start; background: var(--ink); border-radius: 8px; padding: 2px 8px; font-size: 12px; color: var(--yellow); }
 .mode.quick { background: var(--blue); }
 .mode.cup { background: #e0a100; }
@@ -836,7 +836,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 #install-steps { z-index: 22; }
 .panel.install { max-width: 520px; }
 .panel.install .big-btn { align-self: center; }
-.install-how { font-family: system-ui, sans-serif; font-weight: 600; font-size: 14.5px; color: #4b5273; line-height: 1.5; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.install-how { font-family: system-ui, sans-serif; font-weight: 500; font-size: 14.5px; color: #4b5273; line-height: 1.5; text-align: left; display: flex; flex-direction: column; gap: 8px; }
 .install-how b { font-family: 'Lilita One', system-ui, sans-serif; font-weight: 400; color: var(--ink); font-size: 16px; }
 .get-btn { background: var(--green); color: #fff; }
 #intro { z-index: 12; }
@@ -853,7 +853,7 @@ button.club-chip:active { transform: translateY(3px); box-shadow: 0 0 0 var(--in
 .wc-panel.online { background: #8a3ffc; }
 .wc-panel.bots { background: #e0a100; }
 .wc-panel header strong { display: block; font-weight: 400; font-size: clamp(22px, 5.5vmin, 30px); -webkit-text-stroke: 0.12em var(--ink); paint-order: stroke fill; }
-.wc-panel header small { font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; }
+.wc-panel header small { font-family: system-ui, sans-serif; font-weight: 500; font-size: 13px; }
 .wc-bracket { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .wc-bracket li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; background: rgba(255,255,255,0.18); border: 3px solid var(--ink); border-radius: 10px; padding: 3px 8px; min-height: 34px; }
 .wc-bracket li small { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
@@ -1101,7 +1101,7 @@ body.offline [data-needs-net]:active, body.nowifi [data-needs-net]:active { tran
 .prof-id strong { font-weight: 400; font-size: 26px; line-height: 1; }
 .prof-id small { font-size: 14px; color: #6b7299; }
 .prof-id small em { font-style: normal; }
-.prof-id span { font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; }
+.prof-id span { font-family: system-ui, sans-serif; font-weight: 500; font-size: 13px; }
 .prof-top .panel-coins { margin: 0; }
 .prof-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .prof-stats div { background: #eef2ff; border: 3px solid var(--ink); border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 3px 2px; }
@@ -1117,7 +1117,7 @@ body.offline [data-needs-net]:active, body.nowifi [data-needs-net]:active { tran
 .ach.claimed { background: #c9f7cf; }
 .ach-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ach-txt strong { font-weight: 400; font-size: 16px; line-height: 1.1; }
-.ach-txt small { font-family: system-ui, sans-serif; font-weight: 600; font-size: 11.5px; color: #6b7299; }
+.ach-txt small { font-family: system-ui, sans-serif; font-weight: 500; font-size: 11.5px; color: #6b7299; }
 .ach-bar { display: block; height: 7px; background: #fff; border: 2px solid var(--ink); border-radius: 4px; overflow: hidden; margin-top: 3px; }
 .ach-bar b { display: block; height: 100%; background: var(--green); }
 .ach-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; }
@@ -1584,7 +1584,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 /* a signature move needs room for what it is, not just what it is called */
 .cust-side .skill-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
 .skill-opt .skill-blurb {
-  display: block; font-family: system-ui, sans-serif; font-weight: 600; font-size: 11px;
+  display: block; font-family: system-ui, sans-serif; font-weight: 500; font-size: 11px;
   line-height: 1.25; color: #8a7a62; margin: 2px 4px 3px; text-align: center;
 }
 .skill-opt canvas { border-radius: 8px; border: 2px solid var(--ink); }
@@ -1633,7 +1633,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 .chal-card { text-align: left; background: #eef2ff; border: 4px solid var(--ink); border-radius: 16px; box-shadow: 0 5px 0 var(--ink); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; color: var(--ink); }
 .chal-card:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
 .chal-card strong { font-weight: 400; font-size: clamp(18px, 5vmin, 24px); }
-.chal-card p { margin: 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 13px; color: #4b5480; }
+.chal-card p { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; font-size: 13px; color: #4b5480; }
 .chal-card.bronze { background: #f7ead9; } .chal-card.silver { background: #eef1f8; } .chal-card.gold { background: #fff6d8; }
 .chal-row { display: flex; align-items: center; gap: 8px; }
 .chal-best { font-size: 13px; color: #6b7299; }
@@ -1792,7 +1792,7 @@ body.kb .chat-menu kbd { display: inline-block; }
 .tut-bar i.on { background: var(--green); }
 .tut-bar i.now { background: var(--yellow); width: 22px; }
 .tut-canvas { width: 100%; aspect-ratio: 16 / 7; max-height: 44vh; display: block; border: 4px solid var(--ink); border-radius: 14px; background: #4fbd3b; }
-.tut-caption { margin: 0; min-height: 3.1em; font-family: system-ui, sans-serif; font-weight: 600; font-size: clamp(12px, 3.2vmin, 16px); line-height: 1.35; color: var(--ink); text-align: center; }
+.tut-caption { margin: 0; min-height: 3.1em; font-family: system-ui, sans-serif; font-weight: 500; font-size: clamp(12px, 3.2vmin, 16px); line-height: 1.35; color: var(--ink); text-align: center; }
 .tut-caption .kc { height: 20px; min-width: 22px; font-size: 11px; box-shadow: 0 2px 0 #8a90b8; font-family: var(--font); vertical-align: middle; }
 .tut-caption .kc.wide { min-width: 58px; }
 .tut-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
@@ -1930,10 +1930,10 @@ body.kb .chat-menu kbd { display: inline-block; }
 .coins-go { display: flex; justify-content: center; margin-top: 4px; }
 .gate { display: grid; gap: 8px; justify-items: center; text-align: center; background: #eef2ff; border: 3px solid var(--ink); border-radius: 14px; padding: 14px; box-shadow: 0 4px 0 var(--ink); }
 .gate strong { font-weight: 400; font-size: 22px; }
-.gate p { margin: 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 14px; color: #3d4470; }
+.gate p { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; font-size: 14px; color: #3d4470; }
 .gate .gate-pack { font-family: inherit; font-weight: 400; font-size: 16px; color: var(--ink); }
 .gate-words { font-size: 20px; line-height: 1.25; background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 8px 12px; }
-.gate input { width: min(100%, 240px); text-align: center; font-family: system-ui, sans-serif; font-size: 20px; font-weight: 600; padding: 8px 12px; border: 3px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff; outline: none; }
+.gate input { width: min(100%, 240px); text-align: center; font-family: system-ui, sans-serif; font-size: 20px; font-weight: 500; padding: 8px 12px; border: 3px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff; outline: none; }
 .gate input:focus { box-shadow: 0 0 0 3px var(--yellow); }
 .gate .note { min-height: 1.2em; margin: 0; }
 .gate-btns { display: flex; gap: 10px; justify-content: center; }

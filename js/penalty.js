@@ -562,7 +562,8 @@ const Pens = {
     const x1 = L.gx - L.gw * 0.78, x2 = L.gx + L.gw * 0.78, x1b = L.gx - L.gw * 0.86, x2b = L.gx + L.gw * 0.86;
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = lw; ctx.lineJoin = 'miter';
     ctx.beginPath(); ctx.moveTo(x1, L.gy); ctx.lineTo(x1b, box); ctx.lineTo(x2b, box); ctx.lineTo(x2, L.gy); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(L.spot.x, L.spot.y + L.s * L.near * 0.1, L.s * L.near * 0.16, L.s * L.near * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+    // where the ball touches the grass: it used to be painted lower, so the ball hung in the air above it
+    ctx.beginPath(); ctx.ellipse(L.spot.x, L.spot.y, L.s * L.near * 0.16, L.s * L.near * 0.07, 0, 0, Math.PI * 2); ctx.fill();
   },
 
   // the goal: net first (the ball can end up in it), then the frame over it
@@ -581,15 +582,21 @@ const Pens = {
       return [x + (hit.x - x) * f, y + (hit.y - y) * f];
     };
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; ctx.lineWidth = Math.max(1, L.s * 0.025);
-    const cell = L.gw / 22;
-    for (let x = back.x0; x <= back.x1 + 0.5; x += cell) {
+    // A whole number of squares across and down, so the last line IS the edge. It used to step a fixed
+    // size from the left and stop short of the right, which left the back of the net hanging loose of
+    // the right-hand side netting.
+    const cols = Math.max(1, Math.round((back.x1 - back.x0) / (L.gw / 22))), dx = (back.x1 - back.x0) / cols;
+    const rows = Math.max(1, Math.round((L.gy - back.top) / dx)), dy = (L.gy - back.top) / rows;
+    for (let i = 0; i <= cols; i++) {
+      const x = back.x0 + dx * i;
       ctx.beginPath();
-      for (let y = back.top; y <= L.gy + 0.5; y += cell / 2) { const [px, py] = bend(x, y); if (y === back.top) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+      for (let j = 0; j <= rows * 2; j++) { const [px, py] = bend(x, back.top + (dy / 2) * j); if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
       ctx.stroke();
     }
-    for (let y = back.top; y <= L.gy + 0.5; y += cell) {
+    for (let j = 0; j <= rows; j++) {
+      const y = back.top + dy * j;
       ctx.beginPath();
-      for (let x = back.x0; x <= back.x1 + 0.5; x += cell / 2) { const [px, py] = bend(x, y); if (x === back.x0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
+      for (let i = 0; i <= cols * 2; i++) { const [px, py] = bend(back.x0 + (dx / 2) * i, y); if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
       ctx.stroke();
     }
     // side and roof netting
@@ -673,13 +680,17 @@ const Pens = {
     const x = g.x + side * L.gw * 0.35 * u + (res === 'post' ? -Math.sign(s.x) * L.gw * 0.15 * u : 0);
     const groundY = lerp(L.gy, L.spot.y, u * 0.7);
     const arc = Math.abs(Math.sin(u * Math.PI * 1.5)) * L.gh * 0.5 * (1 - u);
-    return { x, y: lerp(g.y, groundY, Math.min(1, u * 2.2)) - arc, r: rg * lerp(1, 1.6, u), spin: 12 + u * 8 };
+    return { x, y: lerp(g.y, groundY, Math.min(1, u * 2.2)) - arc, r: rg * lerp(1, 1.6, u), spin: 12 + u * 8, onGround: u * 2.2 >= 1 && arc < rg * 0.2 };
   },
 
   drawBall(ctx, bp, t) {
     const b = this._ballObj || (this._ballObj = { x: 0, y: 0, z: 0, vx: 1, vy: 0, roll: 0, shot: null, owner: null, skin: null });
     b.roll = bp.spin || 0;
-    // a flat shadow on the grass under the ball on the spot
+    // a flat shadow on the grass under a ball that is on the ground (on the spot, or rolling back out)
+    if (bp.atSpot || bp.onGround) {
+      ctx.fillStyle = 'rgba(22, 26, 51, 0.38)';
+      ctx.beginPath(); ctx.ellipse(bp.x + bp.r * 0.12, bp.y + bp.r * 0.04, bp.r * 0.98, bp.r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    }
     Sprites.ball(ctx, b, bp.x, bp.y - bp.r, bp.r / CFG.BALL_R, t);
   },
 
@@ -766,11 +777,18 @@ const Pens = {
       ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(c.x - r * 1.5, c.y); ctx.lineTo(c.x - r * 0.5, c.y); ctx.moveTo(c.x + r * 0.5, c.y); ctx.lineTo(c.x + r * 1.5, c.y);
       ctx.moveTo(c.x, c.y - r * 1.5); ctx.lineTo(c.x, c.y - r * 0.5); ctx.moveTo(c.x, c.y + r * 0.5); ctx.lineTo(c.x, c.y + r * 1.5); ctx.stroke();
-      // power: fills while you hold, the top bit (red) is too much. On touch the right-hand
-      // corner belongs to SHOOT, so the bar stops short of it instead of hiding behind it.
-      const bw = Math.max(14, L.s * 0.32), bh = L.gh * 1.05;
-      const room = document.body.classList.contains('kb') ? W - bw - 16 : W * 0.8 - bw;
-      const bx = Math.min(room, L.gx + L.gw / 2 + L.s * 0.6), by = L.gy - bh;
+      // power: fills while you hold, the top bit (red) is too much. It stands just outside the
+      // right post. On touch it used to be pulled in to 80% of the width to keep clear of SHOOT,
+      // which on a phone put it straight over the post, and the right side of the goal looked
+      // broken. Now it keeps its place and, if SHOOT is under it, gets shorter instead.
+      const bw = Math.max(14, L.s * 0.32), post = Math.max(5, L.s * 0.12);
+      let bh = L.gh * 1.05;
+      const bx = Math.min(W - bw - 16, L.gx + L.gw / 2 + post + Math.max(10, L.s * 0.3)), by = L.gy - bh;
+      const shootEl = !document.body.classList.contains('kb') && typeof $ === 'function' ? $('btn-shoot') : null;
+      if (shootEl) {
+        const r = shootEl.getBoundingClientRect();
+        if (r.width > 1 && r.left < bx + bw + 6 && r.right > bx - 6) bh = clamp(r.top - 10 - sub * 1.2 - by, bh * 0.35, bh);
+      }
       ctx.fillStyle = OUTLINE; Sprites.rr(ctx, bx + 3, by + 3, bw, bh, bw / 2); ctx.fill();
       ctx.fillStyle = '#e4e7f5'; Sprites.rr(ctx, bx, by, bw, bh, bw / 2); ctx.fill();
       ctx.fillStyle = '#ffc9cb'; ctx.fillRect(bx + 2, by + 2, bw - 4, bh * 0.18);
