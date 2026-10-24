@@ -206,8 +206,8 @@ const UI = {
     const head = Math.round(Math.max(bar.getBoundingClientRect().bottom, pills.getBoundingClientRect().bottom) - top);
     root.setProperty('--head-b', head + 'px');
     const logo = $('logo');
-    // (the logo is tilted, so its box on screen is taller than its line height)
-    if (logo && logo.offsetHeight) root.setProperty('--logo-b', Math.round(head + 12 + logo.getBoundingClientRect().height) + 'px');
+    // where the logo really ends on screen (it is tilted, and its gap above differs by layout)
+    if (logo && logo.offsetHeight) root.setProperty('--logo-b', Math.round(logo.getBoundingClientRect().bottom - top) + 'px');
   },
 
   // the caption sits under the scoreboard, which is taller on a big screen than a small one

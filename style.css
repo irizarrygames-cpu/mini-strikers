@@ -2011,3 +2011,18 @@ body.kb .chat-menu kbd { display: inline-block; }
 .auth-guest { align-self: center; min-height: 34px; padding: 4px 10px; border: 0; background: none; color: #6b7299; font-family: var(--font); font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .auth-guest[hidden] { display: none; }
 .auth-guest:active { color: var(--ink); }
+
+/* ===== THE HOME TOP ROW ON AN UPRIGHT SCREEN (build 99) =====
+   Upright, the country / rank / cups / coins pills used to drop onto a line of their own under the
+   account card on every screen taller than wide, so a tablet or a tall window (800 wide, room to
+   spare) got them floating at the right under the card with the logo jammed beneath. Only a
+   phone-narrow screen needs that line now; anything wider keeps them beside the card, wrapping onto
+   a second line beside it if they must, like a landscape screen. */
+@media (orientation: portrait) and (min-width: 561px) {
+  .home-bar { display: flex; }
+  .home-top { position: relative; top: auto; left: auto; right: auto; margin-left: auto; }
+}
+/* the logo is tilted, so its corner rises above its box: a real gap under whatever is above it */
+@media (orientation: portrait) {
+  .logo { top: calc(var(--head-b, calc(var(--st) + 122px)) + 22px); }
+}
