@@ -10,14 +10,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { screenUsername } = require('./server/moderation');
+const { screenUsername, isRude } = require('./server/moderation');
 const { attach } = require('./server/ws');
 const { createGame } = require('./server/game');
 const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 103;
+const BUILD = 104;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -276,6 +276,37 @@ function validateNewPassword(username, password) {
   return null;
 }
 
+// A recovery code: shown once, kept only scrambled like a password, and good for one reset. It is
+// the way back in for someone who forgot their password, since accounts have no email to send to.
+// 12 letters and digits with the easily mixed-up ones (0/O, 1/I) left out, written XXXX-XXXX-XXXX.
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const RECOVER_TRIES = 5, RECOVER_LOCK = 30 * 60000;
+const recoverFails = new Map(); // account id -> { n, at }: wrong codes for that account, in memory only
+function makeRecoveryCode() {
+  let s = '';
+  for (let i = 0; i < 12; i++) s += CODE_CHARS[crypto.randomInt(CODE_CHARS.length)];
+  return s.match(/.{4}/g).join('-');
+}
+// what was typed, as the 12 characters that matter (spaces, dashes, small letters and a phone
+// keyboard's full-width letters are all fine)
+const cleanCode = (v) => { let s = str(v); try { s = s.normalize('NFKC'); } catch (e) { /* leave it */ } return s.toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+async function newRecovery() {
+  const code = makeRecoveryCode(), salt = crypto.randomBytes(16).toString('base64');
+  return { code, record: { hash: await hashPassword(cleanCode(code), salt, PBKDF2_ITERATIONS), salt, iterations: PBKDF2_ITERATIONS, at: Date.now() } };
+}
+async function recoveryMatches(u, typed) {
+  const code = cleanCode(typed), r = u && u.recovery;
+  if (code.length !== 12 || !r || !r.hash || !r.salt) return false;
+  return (await hashPassword(code, r.salt, r.iterations || PBKDF2_ITERATIONS)) === r.hash;
+}
+// every device signed out of this account: its tokens, its sessions, and its live connection
+function signOutEverywhere(id) {
+  for (const [tok, owner] of tokens) if (owner === id) tokens.delete(tok);
+  const u = getUser(id);
+  if (u) u.sessions = [];
+  game.removeUser(id, 4001);
+}
+
 function issueToken(id) {
   const token = crypto.randomBytes(24).toString('hex');
   tokens.set(token, id);
@@ -301,6 +332,40 @@ function restoreSessions() {
   }
 }
 const userIdFromToken = (token) => tokens.get(str(token));
+
+/* ---------------- reports and bans ----------------
+   No admins. Players report a rude or weird username, and once REPORTS_TO_BAN different players
+   have, the account is banned by itself; a name the username filter turns down goes on the first
+   report. Each time the server starts, the filter also looks over every name already taken, so
+   anything made before it was this strict is caught too. A banned account can't sign in or play
+   online, drops off every friends list and leaderboard, and keeps its name so nobody can take it. */
+const REPORTS_TO_BAN = 3;
+const REPORT_MIN_AGE = 60 * 60 * 1000;     // an account an hour old or more can report
+const REPORT_KEEP = 30 * 86400000;         // a report older than this stops counting
+// what a banned account is told when it tries to sign in
+const bannedMsg = (u) => (u.banned && u.banned.why === 'reported'
+  ? 'This account has been banned. Other players reported its username.'
+  : 'This account has been banned. Its username breaks the rules.');
+function banAccount(id, why) {
+  const u = getUser(id);
+  if (!u || id === LEAGUE_ID || u.banned) return false;
+  u.banned = { at: Date.now(), why };
+  delete u.reports;
+  signOutEverywhere(id);
+  forgetEverywhere(DB.users, id, LEAGUE_ID);
+  leagueCache = null; boardCache = null;
+  saveDB();
+  console.log(`banned ${u.name} (${why})`);
+  return true;
+}
+function sweepNames() {
+  let n = 0;
+  for (const [id, u] of Object.entries(DB.users)) {
+    if (id === LEAGUE_ID || !u || u.banned) continue;
+    if (isRude(u.name || id) && banAccount(id, 'username')) n++;
+  }
+  if (n) console.log(`username check: ${n} account${n === 1 ? '' : 's'} banned`);
+}
 
 /* ---------------- league ----------------
    Every online match adds to your own record, and your record counts for your country. The table's
@@ -376,14 +441,16 @@ function rankOf(u) {
   }
   return { season: now, rp, best: Math.max(rp, Number(r.best) || 0), owed: Number(r.owed) || 0, last: r.last || null, wins: r.wins | 0, played: r.played | 0 };
 }
+// the points really moved: a loss at 0 RP takes nothing, so the result says so instead of -5
 function rankRecord(u, outcome, challenges) {
   const r = rankOf(u);
+  const before = r.rp;
   r.rp = Math.max(0, r.rp + rankDelta(outcome, challenges));
   r.best = Math.max(r.best, r.rp);
   r.played++;
   if (outcome === 'win') r.wins++;
   u.rank = r;
-  return r;
+  return r.rp - before;
 }
 // what the client is told about a rank (and any season payout waiting)
 function rankView(u) {
@@ -401,10 +468,11 @@ function onlineRecord(id, { outcome, goalsFor, goalsAgainst, goals, ranked, chal
   o.p++;
   if (outcome === 'win') o.w++; else if (outcome === 'draw') o.d++; else o.l++;
   o.gf += goalsFor | 0; o.ga += goalsAgainst | 0; o.goals += goals | 0;
-  if (ranked) rankRecord(u, outcome, challenges); // ranked matches are the only thing that moves a rank
+  const moved = ranked ? rankRecord(u, outcome, challenges) : 0; // ranked matches are the only thing that moves a rank
   leagueCache = null;
   boardCache = null;
   saveDB();
+  return moved;
 }
 
 let leagueCache = null;
@@ -416,7 +484,7 @@ function rankBoard(meId, limit) {
   if (!boardCache || boardCache.season !== season || Date.now() - boardCache.at > 15000) {
     const rows = [];
     for (const [id, u] of Object.entries(DB.users)) {
-      if (id === LEAGUE_ID || !u || !u.rank || typeof u.rank !== 'object') continue;
+      if (id === LEAGUE_ID || !u || u.banned || !u.rank || typeof u.rank !== 'object') continue;
       if ((u.rank.season | 0) !== season) continue; // last season's points are last season's
       const rp = Math.max(0, Number(u.rank.rp) || 0);
       if (rp <= 0) continue;
@@ -438,7 +506,7 @@ function leagueTable() {
   const byId = new Map(rows.map((r) => [r.club, r]));
   const scorers = [];
   for (const [id, u] of Object.entries(DB.users)) {
-    if (id === LEAGUE_ID) continue;
+    if (id === LEAGUE_ID || !u || u.banned) continue;
     const r = byId.get(u.club);
     if (!r) continue;
     r.players++;
@@ -565,7 +633,7 @@ const server = http.createServer((req, res) => {
 
 function publicUser(id) {
   const u = getUser(id);
-  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u), rank: rankView(u) };
+  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u), rank: rankView(u), hasRecovery: !!(u.recovery && u.recovery.hash) };
 }
 
 
@@ -613,24 +681,59 @@ async function handleRequest(req, res) {
       if (getUser(id)) return sendJSON(res, 200, { ok: false, msg: 'That username is taken' });
       const salt = crypto.randomBytes(16).toString('base64');
       const hash = await hashPassword(body.password, salt, PBKDF2_ITERATIONS);
+      const rec = await newRecovery();
       if (getUser(id)) return sendJSON(res, 200, { ok: false, msg: 'That username is taken' });
-      DB.users[id] = { name: id.toUpperCase(), hash, salt, iterations: PBKDF2_ITERATIONS, created: Date.now(), club, save: null, online: null };
+      DB.users[id] = { name: id.toUpperCase(), hash, salt, iterations: PBKDF2_ITERATIONS, created: Date.now(), club, save: null, online: null, recovery: rec.record };
       // a guest's progress on this device comes along, clamped like any other save
       DB.users[id].save = sanitizeSave(body.save, { coins: 0, xp: 0, trophies: 0, matches: 0, wins: 0, goals: 0 }, club);
       leagueCache = null;
       saveDB();
-      return sendJSON(res, 200, { ok: true, token: issueToken(id), ...publicUser(id) });
+      // the code goes back this once, to be written down; after this only its scrambled form exists
+      return sendJSON(res, 200, { ok: true, token: issueToken(id), ...publicUser(id), recovery: rec.code });
     }
     const u = getUser(id);
     if (!u) return sendJSON(res, 200, { ok: false, msg: 'No account with that username' });
     if (str(body.password).length > 200) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
     if (await hashPassword(body.password, u.salt, u.iterations) !== u.hash) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
+    if (u.banned) return sendJSON(res, 200, { ok: false, banned: true, msg: bannedMsg(u) });
     const gift = deliverGifts(u); // the game takes the account's save as it comes back here
     return sendJSON(res, 200, { ok: true, token: issueToken(id), ...publicUser(id), gift });
   }
 
+  // Forgot the password: the username, the recovery code and a new password. The code is used up
+  // (a new one comes back, to write down), and every device that was signed in is signed out.
+  if (route === '/api/auth/recover') {
+    if (throttled(ip, 'recover', 10, 15 * 60000)) return sendJSON(res, 429, { ok: false, msg: 'Too many tries. Wait a few minutes' });
+    const bad = validateUsername(body.username);
+    if (bad) return sendJSON(res, 200, { ok: false, msg: bad });
+    const id = normalizeId(body.username), u = getUser(id);
+    if (!u || id === LEAGUE_ID) return sendJSON(res, 200, { ok: false, msg: 'No account with that username' });
+    if (u.banned) return sendJSON(res, 200, { ok: false, banned: true, msg: bannedMsg(u) });
+    const fails = recoverFails.get(id);
+    const fresh = !fails || Date.now() - fails.at > RECOVER_LOCK;
+    if (!fresh && fails.n >= RECOVER_TRIES) return sendJSON(res, 200, { ok: false, msg: 'Too many wrong codes for that account. Try again in half an hour' });
+    if (!(await recoveryMatches(u, body.code))) {
+      recoverFails.set(id, fresh ? { n: 1, at: Date.now() } : { n: fails.n + 1, at: fails.at });
+      return sendJSON(res, 200, { ok: false, msg: 'That recovery code is not right' });
+    }
+    const problem = validateNewPassword(id, body.password);
+    if (problem) return sendJSON(res, 200, { ok: false, msg: problem });
+    const salt = crypto.randomBytes(16).toString('base64');
+    const hash = await hashPassword(body.password, salt, PBKDF2_ITERATIONS);
+    const rec = await newRecovery();
+    // the account may have gone (deleted, banned) while those were being worked out
+    if (getUser(id) !== u || u.banned) return sendJSON(res, 200, { ok: false, msg: 'That did not work. Try again' });
+    recoverFails.delete(id);
+    u.salt = salt; u.hash = hash; u.iterations = PBKDF2_ITERATIONS;
+    u.recovery = rec.record;
+    signOutEverywhere(id);
+    const gift = deliverGifts(u);
+    saveDB();
+    return sendJSON(res, 200, { ok: true, token: issueToken(id), ...publicUser(id), gift, recovery: rec.code });
+  }
+
   const me = userIdFromToken(body.token);
-  if (!me || !getUser(me)) return sendJSON(res, 401, { ok: false, msg: 'Not signed in' });
+  if (!me || !getUser(me) || getUser(me).banned) return sendJSON(res, 401, { ok: false, msg: 'Not signed in' });
   const meUser = getUser(me);
 
   if (route === '/api/me') { const gift = deliverGifts(meUser); return sendJSON(res, 200, { ok: true, ...publicUser(me), gift }); }
@@ -706,6 +809,38 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { ok: true, msg: 'Password changed. Any other device has been signed out.' });
   }
 
+  // A new recovery code (for an account made before there were any, or one whose code was lost).
+  // It takes the password, so a borrowed phone can't swap the code out from under the owner.
+  if (route === '/api/account/recovery') {
+    if (throttled(ip, 'auth', 20, 60000)) return sendJSON(res, 429, { ok: false, msg: 'Too many attempts, wait a minute' });
+    if (str(body.password).length > 200 || (await hashPassword(body.password, meUser.salt, meUser.iterations)) !== meUser.hash) {
+      return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
+    }
+    const rec = await newRecovery();
+    if (getUser(me) !== meUser) return sendJSON(res, 401, { ok: false, msg: 'Not signed in' });
+    meUser.recovery = rec.record;
+    saveDB();
+    return sendJSON(res, 200, { ok: true, recovery: rec.code });
+  }
+
+  // Report a username as rude or weird. See "reports and bans" above for what happens next.
+  if (route === '/api/report') {
+    if (throttled(ip, 'report', 30, 3600000) || throttled(me, 'report-user', 10, 86400000)) return sendJSON(res, 429, { ok: false, msg: 'Too many reports today' });
+    const them = normalizeId(body.name), target = validateUsername(them) ? null : getUser(them);
+    if (!target || them === LEAGUE_ID || target.banned) return sendJSON(res, 200, { ok: false, msg: `No player called ${them.toUpperCase().slice(0, 14) || 'that'}` });
+    if (them === me) return sendJSON(res, 200, { ok: false, msg: "You can't report yourself" });
+    if (Date.now() - (Number(meUser.created) || 0) < REPORT_MIN_AGE) return sendJSON(res, 200, { ok: false, msg: 'Your account is too new to report yet' });
+    const now = Date.now();
+    const reports = (Array.isArray(target.reports) ? target.reports : []).filter((r) => r && r.by && getUser(r.by) && now - (Number(r.at) || 0) < REPORT_KEEP);
+    if (reports.some((r) => r.by === me)) return sendJSON(res, 200, { ok: true, msg: `You already reported ${target.name}` });
+    reports.push({ by: me, at: now });
+    target.reports = reports;
+    if (isRude(target.name || them)) banAccount(them, 'username');
+    else if (new Set(reports.map((r) => r.by)).size >= REPORTS_TO_BAN) banAccount(them, 'reported');
+    saveDB();
+    return sendJSON(res, 200, { ok: true, msg: `Reported ${target.name}. Thanks!` });
+  }
+
   if (route === '/api/account/delete') {
     if (await hashPassword(str(body.password), meUser.salt, meUser.iterations) !== meUser.hash) return sendJSON(res, 200, { ok: false, msg: 'Wrong password' });
     game.removeUser(me);
@@ -729,7 +864,7 @@ attach(server, '/ws', (ws) => {
     clearTimeout(timer);
     ws.removeListener('message', onAuth);
     const id = userIdFromToken(msg.token);
-    if (!id || !getUser(id)) { ws.send(JSON.stringify({ t: 'error', msg: 'Not signed in', auth: false })); ws.close(4001); return; }
+    if (!id || !getUser(id) || getUser(id).banned) { ws.send(JSON.stringify({ t: 'error', msg: 'Not signed in', auth: false })); ws.close(4001); return; }
     game.connect(ws, id);
   };
   ws.on('message', onAuth);
@@ -753,6 +888,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
   }
   // the clean slate, if its key has not been spent yet
   await wipeEverything();
+  sweepNames();
   restoreSessions();
   queueGifts();
   // an account that signs up later still gets what was meant for it

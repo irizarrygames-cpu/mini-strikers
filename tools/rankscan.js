@@ -19,9 +19,10 @@ console.log('what a result is worth');
 const win = rankDelta('win'), loss = rankDelta('loss'), draw = rankDelta('draw');
 check('a win is 10', win === 10, win);
 check('a draw is 5', draw === 5, draw);
-check('a loss costs nothing — a rank never goes backwards', loss === 0, loss);
+check('a loss costs 5', loss === -5, loss);
+check('and a loss at 0 RP stays at 0 (it never goes below zero)', Math.max(0, 0 + loss) === 0);
 check('the score makes no difference', rankDelta('win') === rankDelta('win'));
-check('challenges pay on a win and only on a win', rankDelta('win', 3) === 13 && rankDelta('draw', 1) === 5 && rankDelta('loss', 3) === 0, [rankDelta('win', 3), rankDelta('draw', 1), rankDelta('loss', 3)]);
+check('challenges pay on a win and only on a win', rankDelta('win', 3) === 13 && rankDelta('draw', 1) === 5 && rankDelta('loss', 3) === -5, [rankDelta('win', 3), rankDelta('draw', 1), rankDelta('loss', 3)]);
 check('challenges cannot be counted backwards', rankDelta('win', -5) === 10, rankDelta('win', -5));
 
 console.log('a season of real results moves you sensibly');
@@ -51,11 +52,12 @@ function rankOf(u) {
   if ((r.season | 0) !== s) return { season: s, rp: Math.round(rp * 0.4), best: Math.max(rp, Number(r.best) || 0), owed: (rp > 0 ? rankTier(rp).reward : 0) + (Number(r.owed) || 0), last: rp ? rankTier(rp).id : null, wins: 0, played: 0 };
   return { season: s, rp, best: Math.max(rp, Number(r.best) || 0), owed: Number(r.owed) || 0, last: r.last || null, wins: r.wins | 0, played: r.played | 0 };
 }
+// (and, like server.js, says how far the points really moved)
 function record(u, outcome, challenges) {
-  const r = rankOf(u);
+  const r = rankOf(u), before = r.rp;
   r.rp = Math.max(0, r.rp + rankDelta(outcome, challenges));
   r.best = Math.max(r.best, r.rp); r.played++; if (outcome === 'win') r.wins++;
-  u.rank = r; return r;
+  u.rank = r; return r.rp - before;
 }
 const view = (u) => { const r = rankOf(u); u.rank = r; const t = rankTier(r.rp), n = rankNext(r.rp); return { rp: r.rp, tier: t.id, name: t.name, next: n ? { id: n.id, name: n.name, at: n.at } : null, season: r.season, ends: seasonEndsAt(r.season), best: r.best, wins: r.wins, played: r.played }; };
 
@@ -72,7 +74,7 @@ const game = createGame({
   getUser: (id) => account(id),
   userName: (id) => id.toUpperCase(),
   saveDB: () => {},
-  onlineRecord: (id, r) => { if (r.ranked) record(account(id), r.outcome, r.challenges); }, // only ranked matches count
+  onlineRecord: (id, r) => (r.ranked ? record(account(id), r.outcome, r.challenges) : 0), // only ranked matches count
   isNameTaken: () => false,
   ranked: { view: (id) => view(account(id)) },
 });
@@ -96,10 +98,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('the winner is told their new rank', !!(endA && endA.rank) && endA.rank.rp > 0, endA && { rp: endA.rank.rp, tier: endA.rank.tier, d: endA.rankD });
   const doneA = endA.challenges.filter((c) => c.done).length;
   check('and how much it moved: 10 for the win, one a challenge', endA && endA.rankD === 10 + doneA, { rankD: endA && endA.rankD, done: doneA });
-  check('the loser is told too, and dropped nothing', !!(endB && endB.rank) && endB.rankD === 0, endB && { rp: endB.rank.rp, d: endB.rankD });
+  check('the loser is told too: at 0 RP a loss takes nothing (it says NO CHANGE, not -5)', !!(endB && endB.rank) && endB.rankD === 0 && endB.rank.rp === 0, endB && { rp: endB.rank.rp, d: endB.rankD });
   check('a loser never goes below zero', endB && endB.rank.rp >= 0, endB && endB.rank.rp);
   check('the account kept the points', account('ranka').rank.rp === endA.rank.rp && account('ranka').rank.wins === 1, account('ranka').rank);
   check('the season and its end date came along', endA.rank.season === seasonNow() && endA.rank.ends > Date.now());
+
+  console.log('a loss with points on the board costs 5');
+  {
+    const was = account('ranka').rank.rp;
+    a.got.length = 0; b.got.length = 0;
+    a.msg({ t: 'queue', format: 'ranked' }); b.msg({ t: 'queue', format: 'ranked' });
+    const t2 = Date.now();
+    let room2 = null;
+    while (Date.now() - t2 < 5000) { room2 = game._roomOf('ranka'); if (room2 && room2 !== room) break; await sleep(40); }
+    check('a second match started', !!room2 && room2 !== room);
+    while (room2.m.phase !== 'play') await sleep(30);
+    const s2 = room2.seats.find((s) => s.userId === 'ranka');
+    room2.m.score[s2.team] = 0; room2.m.score[s2.team === 'blue' ? 'red' : 'blue'] = 2;
+    room2.m.time = 0.05;
+    const t3 = Date.now();
+    while (!a.last('end') && Date.now() - t3 < 8000) await sleep(40);
+    const lost = a.last('end');
+    check('the loser is told -5', lost && lost.rankD === -5, lost && lost.rankD);
+    check('and their points went down by exactly 5', account('ranka').rank.rp === was - 5 && lost.rank.rp === was - 5, { was, now: account('ranka').rank.rp });
+  }
 
   // a season that ended while they were away
   const u = account('ranka');

@@ -27,11 +27,13 @@ const game = createGame({
   getUser: (id) => users[id],
   userName: (id) => (users[id] ? users[id].name : id.toUpperCase()),
   saveDB: () => {},
-  // the same rule server.js follows: a rank only moves for a ranked match
+  // the same rule server.js follows: a rank only moves for a ranked match, never below zero, and
+  // what comes back is how far it really moved
   onlineRecord: (id, r) => {
     banked.push({ id, ...r });
-    const u = account(id);
+    const u = account(id), was = u.rp;
     if (r.ranked) u.rp = Math.max(0, u.rp + sim.rankDelta(r.outcome, r.challenges));
+    return u.rp - was;
   },
   isNameTaken: () => false,
   ranked: { view: (id) => ({ rp: account(id).rp, tier: sim.rankTier(account(id).rp).id, name: sim.rankTier(account(id).rp).name, next: null, season: sim.seasonNow(), ends: sim.seasonEndsAt(sim.seasonNow()), best: account(id).rp, wins: 0, played: 0 }) },
@@ -61,10 +63,10 @@ async function endWith(room, blue, red) {
   console.log('the points on their own');
   check('a win is 10', sim.rankDelta('win') === 10, sim.rankDelta('win'));
   check('a draw is 5', sim.rankDelta('draw') === 5, sim.rankDelta('draw'));
-  check('a loss costs nothing', sim.rankDelta('loss') === 0, sim.rankDelta('loss'));
+  check('a loss costs 5', sim.rankDelta('loss') === -5, sim.rankDelta('loss'));
   check('the score does not change it', sim.rankDelta('win', 0) === sim.rankDelta('win', 0) && sim.rankDelta('win') === 10);
   check('each challenge is one more point, on a win', sim.rankDelta('win', 3) === 13, sim.rankDelta('win', 3));
-  check('...and nothing on a loss or a draw', sim.rankDelta('loss', 3) === 0 && sim.rankDelta('draw', 3) === 5, [sim.rankDelta('loss', 3), sim.rankDelta('draw', 3)]);
+  check('...and nothing extra on a loss or a draw', sim.rankDelta('loss', 3) === -5 && sim.rankDelta('draw', 3) === 5, [sim.rankDelta('loss', 3), sim.rankDelta('draw', 3)]);
   check('three challenges is the most a match can have', sim.NET_CHALLENGES.length >= 3);
   check('nothing in the ranked pool needs a team-mate', sim.NET_CHALLENGES.every((c) => !c.team));
 
@@ -123,12 +125,34 @@ async function endWith(room, blue, red) {
   check('the points are 10 for the win plus one a challenge', endW.rankD === 10 + doneW, { rankD: endW.rankD, done: doneW });
   check('and the new rank came with it', !!(endW.rank && typeof endW.rank.rp === 'number'), endW.rank);
   const doneL = endL.challenges.filter((c) => c.done).length;
-  check('the loser drops nothing, whatever they finished', endL.rankD === 0, { rankD: endL.rankD, done: doneL });
+  check('the loser had 0 RP, so they drop nothing (it never goes below zero)', endL.rankD === 0, { rankD: endL.rankD, done: doneL });
   check('the account was given exactly that', account(winner).rp === endW.rankD, { rp: account(winner).rp, rankD: endW.rankD });
-  check('and their account is untouched', account(loser).rp === 0, account(loser).rp);
+  check('and their account is still at 0', account(loser).rp === 0, account(loser).rp);
   check('the game was told it was a ranked result', banked.filter((b) => b.ranked).length === 2, banked.map((b) => [b.id, b.ranked, b.challenges]));
   check('a clean sheet counted for the winner', !endW.challenges.some((c) => /clean sheet/i.test(c.text) && !c.done), endW.challenges);
   check('...and not for the loser', !endL.challenges.some((c) => /clean sheet/i.test(c.text) && c.done), endL.challenges);
+
+  console.log('a loss costs 5, and so does walking out');
+  {
+    for (const id of ['rke', 'rkf', 'rkg', 'rkh']) { connect(id); account(id).rp = 30; }
+    say('rke', { t: 'queue', format: 'ranked' }); say('rkf', { t: 'queue', format: 'ranked' });
+    await waitFor(socks.rke, 'start', 0);
+    const r3 = game._roomOf('rke');
+    const blue3 = r3.seats.find((s) => s.human && s.team === 'blue').userId, red3 = blue3 === 'rke' ? 'rkf' : 'rke';
+    const nR = socks[red3].got.length;
+    await endWith(r3, 3, 1);
+    const endR = socks[red3].since(nR, 'end')[0];
+    check('a loser with 30 RP is told -5', endR && endR.rankD === -5, endR && endR.rankD);
+    check('and has 25 now', account(red3).rp === 25, account(red3).rp);
+    say('rkg', { t: 'queue', format: 'ranked' }); say('rkh', { t: 'queue', format: 'ranked' });
+    await waitFor(socks.rkg, 'start', 0);
+    const r4 = game._roomOf('rkg');
+    while (r4.m.phase !== 'play') await sleep(20);
+    say('rkg', { t: 'leave' });
+    await sleep(150);
+    check('walking out of a ranked match costs 5 too', account('rkg').rp === 25, account('rkg').rp);
+    await sleep(100);
+  }
 
   console.log('nothing else moves a rank');
   banked.length = 0;

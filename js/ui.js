@@ -67,6 +67,7 @@ const UI = {
     $('intro').addEventListener('pointerdown', (e) => { if (e.target === $('intro') && !(Game.match && Game.match.net)) Game.kickOff(); });
     this.initAuth();
     this.initOnline();
+    this.initBack();
     $('howto-ok').addEventListener('click', () => { this.tap(); this.closeHowTo(); });
     $('rotate-dismiss').addEventListener('click', () => { this.rotateDismissed = true; this.checkRotate(); });
     ['p-sound', 'p-music', 'p-vibe'].forEach((id) => $(id).addEventListener('click', () => this.quickToggle(id)));
@@ -380,6 +381,7 @@ const UI = {
     this._authMode = 'login';
     document.querySelectorAll('[data-auth]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.setAuthMode(b.dataset.auth); }));
     $('auth-form').addEventListener('submit', (e) => { e.preventDefault(); this.submitAuth(); });
+    $('auth-forgot').addEventListener('click', (e) => { e.preventDefault(); this.tap(); this.showForgot(); });
     $('auth-clubs').innerHTML = CLUBS.slice().sort((x, y) => x.name.localeCompare(y.name)).map((c) => `<button type="button" class="auth-club" data-club="${c.id}"><canvas width="96" height="64"></canvas><b${c.name.length > 9 ? ' class="long"' : ''}>${c.name}</b></button>`).join('');
     $('auth-clubs').querySelectorAll('.auth-club').forEach((b) => {
       this.flagBadge(b.querySelector('canvas'), Clubs.get(b.dataset.club));
@@ -398,6 +400,7 @@ const UI = {
     $('auth-clubs-wrap').hidden = mode !== 'signup';
     $('auth').classList.toggle('signup', mode === 'signup');
     $('auth-go').textContent = mode === 'signup' ? 'CREATE ACCOUNT' : 'LOG IN';
+    $('auth-forgot').hidden = mode !== 'login';
     $('auth-pass').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
     $('auth-msg').textContent = mode === 'signup' ? 'Password: 8+ characters.' : '';
     $('auth-msg').classList.remove('bad');
@@ -507,6 +510,8 @@ const UI = {
     // offline marks come off and anything won while offline goes up
     Net.goOnline();
     $('auth').hidden = true;
+    // just signed up, or just used a recovery code: the new code, to write down, this once
+    if (Net.freshCode) { const code = Net.freshCode; Net.freshCode = null; this.showCode(code, fresh ? 'new' : 'reset'); }
     // back online in the middle of something (a match, its results): leave the screen as it is
     if (Game.state !== 'home') { Net.openSocket(); return; }
     Game.state = 'home';
@@ -623,6 +628,66 @@ const UI = {
 
   closeAll() {
     for (const id of ['modal', 'pause', 'results', 'intro', 'howto', 'daily', 'queue', 'lobby']) $(id).hidden = true;
+  },
+
+  // ---- the phone's Back button (inside the Android app) ----
+  // Without this, Back threw the whole game into the background, even in the middle of a match.
+  // Now it does what the screen's own close, back or pause button would: whatever is on top goes,
+  // a match pauses, and on the home screen it asks before leaving the game. The app's App plugin
+  // sends the press; the bridge Capacitor puts in the page is enough to hear it, no bundler needed.
+  initBack() {
+    const cap = window.Capacitor;
+    if (!NATIVE || !cap || typeof cap.addListener !== 'function') return false;
+    if (Array.isArray(cap.PluginHeaders) && !cap.PluginHeaders.some((h) => h && h.name === 'App')) return false;
+    try { cap.addListener('App', 'backButton', () => this.back()); return true; } catch (e) { return false; }
+  },
+  // one press of Back; returns what it did (the tests read it)
+  back() {
+    // a card over everything (a grown-up check, a recovery code, "leave the game?"): its own way out
+    const cards = document.querySelectorAll('.overlay.grownup');
+    if (cards.length) {
+      const top = cards[cards.length - 1], no = top.querySelector('[data-no]');
+      if (no) no.click(); else top.remove();
+      return 'card';
+    }
+    if (!$('splash').hidden && !$('splash').classList.contains('gone')) { this.leaveApp(); return 'leave'; }
+    if (!$('install-steps').hidden) { $('install-steps').hidden = true; return 'install'; }
+    if (!$('modal').hidden) {
+      const p = this._player;
+      if ($('modal').dataset.kind === 'player' && p && p.back) { this.tap(); this.openModal(p.back); return 'player-back'; }
+      this.tap(); this.closeModal();
+      return 'modal';
+    }
+    if (!$('howto').hidden) { this.tap(); this.closeHowTo(); return 'howto'; }
+    if (!$('daily').hidden) { $('daily-claim').click(); return 'daily'; }
+    if (!$('queue').hidden) { $('q-cancel').click(); return 'queue'; }
+    if (!$('lobby').hidden) { $('lb-leave').click(); return 'lobby'; }
+    if (Game.state === 'paused') { this.tap(); this.togglePause(); return 'resume'; }
+    if (Game.state === 'match') { this.tap(); this.togglePause(); return 'pause'; }
+    if (!$('results').hidden) { $('r-home').click(); return 'results'; }
+    // the card before a match: off a match against the computer, nothing while an online one counts down
+    if (Game.state === 'intro') { if (!(Game.match && Game.match.net)) { this.tap(); Game.goHome(); return 'intro'; } return 'wait'; }
+    if (!$('auth').hidden && this._authMode === 'signup') { this.tap(); this.setAuthMode('login'); return 'login'; }
+    this.askLeave();
+    return 'ask';
+  },
+  askLeave() {
+    if (document.querySelector('.overlay.leave')) return;
+    const el = document.createElement('div');
+    el.className = 'overlay grownup leave';
+    el.style.zIndex = 46; // over everything a press of Back can be made on, the sign-in page (40) too
+    el.innerHTML = `<div class="panel small"><div class="gate"><strong>LEAVE THE GAME?</strong>
+      <div class="gate-btns"><button class="mid-btn" data-no>STAY</button><button class="mid-btn red" data-yes>LEAVE</button></div></div></div>`;
+    document.body.appendChild(el);
+    el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); el.remove(); });
+    el.querySelector('[data-yes]').addEventListener('click', () => { el.remove(); this.leaveApp(); });
+  },
+  // into the background, the way Android's own Back leaves an app (it is all still there when you come back)
+  leaveApp() {
+    Net.flushSave();
+    const cap = window.Capacitor;
+    if (!cap || typeof cap.nativePromise !== 'function') return;
+    cap.nativePromise('App', 'minimizeApp', {}).catch(() => cap.nativePromise('App', 'exitApp', {}).catch(() => {}));
   },
 
   // ---- match intro card ----

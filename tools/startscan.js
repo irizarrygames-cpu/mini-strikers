@@ -8,6 +8,7 @@
 //                                    and an online mode takes the guest to sign-up
 //   await SS.run('save-retry')       the server turns two saves down: the game keeps trying until one lands
 //   await SS.run('flush')            leaving the page sends unsaved progress in a request that outlives it
+//                                    (these two: tap in and wait for home first; they start signed in)
 //   await SS.run('calm')             a new build never reloads the page in the middle of a match
 // 'asleep-*' fake the server's silence inside the page (requests to /api/ never answer until the
 // scenario lets them through); the rest talk to the real server the page came from.
@@ -124,7 +125,8 @@ const SS = {
         check('nothing of the sign-in page left over', !this.vis('auth'));
         check('no input still holding the keyboard', !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#auth')));
       } else if (name === 'save-retry') {
-        check('precondition: signed in and online', !!Net.token && !Net.offline);
+        // (tap in first: a token on its own is not signed in, and nothing is saved for nobody)
+        check('precondition: signed in and online', !!Net.token && !!Save.account && !Net.offline, { token: !!Net.token, account: Save.account, offline: Net.offline });
         let turned = 0;
         if (!this.realFetch) this.realFetch = window.fetch.bind(window);
         const real = this.realFetch;
@@ -140,7 +142,7 @@ const SS = {
         const me = await (await fetch('/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: Net.token }) })).json();
         check('the server has the new coins', me && me.save && me.save.coins === want, { server: me && me.save && me.save.coins, want });
       } else if (name === 'flush') {
-        check('precondition: signed in and online', !!Net.token && !Net.offline);
+        check('precondition: signed in and online', !!Net.token && !!Save.account && !Net.offline, { token: !!Net.token, account: Save.account, offline: Net.offline });
         const real = window.fetch.bind(window);
         let sentKeepalive = false;
         window.fetch = (u, o) => { if (String(u).includes('/api/save') && o && o.keepalive) sentKeepalive = true; return real(u, o); };

@@ -517,14 +517,15 @@ function rankNext(rp) {
   const i = RANK_TIERS.indexOf(rankTier(rp));
   return i + 1 < RANK_TIERS.length ? RANK_TIERS[i + 1] : null;
 }
-// what a result is worth: a win pays, a loss costs less, and goals count for a little
 // What a ranked match is worth: a win 10 plus a point for every challenge you finished in it,
-// a draw 5, and a loss costs nothing — your rank never goes backwards. The challenges only pay
-// when you win. Nothing else in the game moves your rank.
+// a draw 5, and a loss costs 5 (walking out of one counts as a loss). Points never go below
+// zero. The challenges only pay when you win. Nothing else in the game moves your rank.
 const RANK_CHALLENGE = 1;
+const RANK_LOSS = 5;
 function rankDelta(outcome, challenges = 0) {
   if (outcome === 'win') return 10 + Math.max(0, challenges | 0) * RANK_CHALLENGE;
-  return outcome === 'draw' ? 5 : 0;
+  if (outcome === 'draw') return 5;
+  return outcome === 'loss' ? -RANK_LOSS : 0;
 }
 // quick chat: the only things anyone can say in a match (no typing, so nothing nasty gets through)
 const QUICK_CHAT = ['HI!', 'NICE ONE!', 'PASS!', 'SHOOT!', 'DEFEND!', 'WHAT A GOAL!', 'THANKS!', 'SORRY!', 'UNLUCKY', 'WOW!', "LET'S GO!", 'GG'];

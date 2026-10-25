@@ -400,6 +400,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'friend.accept': return answer(friends.accept(id, msg.name));
       case 'friend.decline': return answer(friends.decline(id, msg.name));
       case 'friend.remove': return answer(friends.remove(id, msg.name));
+      case 'friend.block': return answer(friends.block(id, msg.name));
+      case 'friend.unblock': return answer(friends.unblock(id, msg.name));
       case 'party.invite': return answer(partyInvite(id, msg.name));
       case 'party.accept': return answer(partyAccept(id, msg.id));
       case 'party.decline': return answer(partyDecline(id, msg.id));
@@ -541,12 +543,16 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     for (const { e, gap } of rest) {
       if (total + e.ids.length > size * 2) continue;
       if (gap > window) continue;                  // too far from them in rank: not this time
+      if (clash(chosen, e)) continue;              // someone in it blocked someone already picked
       if (!splitSides([...chosen, e].map((x) => x.ids.length), size)) continue;
       chosen.push(e); total += e.ids.length;
       if (total === size * 2) break;
     }
     return chosen;
   }
+
+  // Two players where one blocked the other never go into the same match, however long they wait.
+  function clash(chosen, e) { return chosen.some((c) => c.ids.some((a) => e.ids.some((b) => friends.isBlocked(a, b)))); }
 
   // Nobody is left standing about: once the wait is up, take whoever is there, rank or not.
   function packAnyone(q, size, anchor) {
@@ -556,6 +562,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     for (const e of q) {
       if (e === head) continue;
       if (total + e.ids.length > size * 2) continue;
+      if (clash(chosen, e)) continue;
       if (!splitSides([...chosen, e].map((x) => x.ids.length), size)) continue;
       chosen.push(e); total += e.ids.length;
       if (total === size * 2) break;
@@ -677,6 +684,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (roomOf(id)) return send(conn, { t: 'error', msg: 'You are already in a room' });
     const size = FORMAT_SIZE[room.format];
     if (room.seats.length >= size * 2) return send(conn, { t: 'error', msg: 'That room is full' });
+    // a room with someone in it you blocked (or who blocked you) is not one you can walk into
+    if (room.seats.some((s) => friends.isBlocked(id, s.userId))) return send(conn, { t: 'error', msg: "You can't join that room" });
     stopQueue(id);
     const blues = room.seats.filter((s) => s.team === 'blue').length;
     room.seats.push({ userId: id, team: blues < size && blues <= room.seats.length - blues ? 'blue' : 'red', conn });
@@ -1213,8 +1222,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
   function roomChat(room, player, n, from) {
     const msg = { t: 'chat', p: room.m.players.indexOf(player), m: n };
-    for (const s of room.seats) if (s.human && !s.gone && s !== from) send(s.conn, msg);
-    if (room.viewers) for (const v of room.viewers.keys()) push(v, msg);
+    // nobody hears someone they blocked, or someone who blocked them
+    const heard = (id) => !(from && from.userId && friends.isBlocked(id, from.userId));
+    for (const s of room.seats) if (s.human && !s.gone && s !== from && heard(s.userId)) send(s.conn, msg);
+    if (room.viewers) for (const v of room.viewers.keys()) if (heard(v)) push(v, msg);
   }
 
   // The filled spots chat like people do: now and then, about what just happened.
@@ -1406,20 +1417,21 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const stats = seat.player ? seat.player.stats : {};
       // only a ranked match moves your rank, and each challenge you finished in it is a point
       const chal = chalDone(seat);
-      if (!room.coop) onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0, ranked: !!room.ranked, challenges: chal.length });
+      // what the rank really moved by (a loss at 0 RP moves nothing), from the accounts that keep it
+      const moved = !room.coop ? onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0, ranked: !!room.ranked, challenges: chal.length }) : 0;
       let cup = null;
       if (room.wc !== null && room.wc !== undefined) {
         const r = wc.result(seat.userId, outcome === 'win');
         cup = { round: seat.wc == null ? room.wc : seat.wc, won: outcome === 'win', champion: r.champion, next: r.round, titles: r.titles };
       }
       if (seat.club && !room.coop) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : outcome === 'loss' ? -1 : 0));
-      results.push({ seat, outcome, cup, chal });
+      results.push({ seat, outcome, cup, chal, moved });
     }
     // a country moves one place per match, however many of its players were in it
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
-    for (const { seat, outcome, cup, chal } of results) {
+    for (const { seat, outcome, cup, chal, moved } of results) {
       const d = seat.club ? Math.sign(moves.get(seat.club) || 0) : 0;
-      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, coop: room.coop || undefined, league: seat.club && !room.coop ? { pos: ladder.pos(seat.club), d } : null, ranked: !!room.ranked, challenges: seat.chal ? seat.chal.map((c) => ({ text: c.text, done: chal.includes(c) })) : null, rank: room.ranked ? rankOf(seat.userId) : null, rankD: room.ranked ? rankDeltaFor(outcome, chal.length) : 0, fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
+      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, coop: room.coop || undefined, league: seat.club && !room.coop ? { pos: ladder.pos(seat.club), d } : null, ranked: !!room.ranked, challenges: seat.chal ? seat.chal.map((c) => ({ text: c.text, done: chal.includes(c) })) : null, rank: room.ranked ? rankOf(seat.userId) : null, rankD: room.ranked ? (typeof moved === 'number' ? moved : rankDeltaFor(outcome, chal.length)) : 0, fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
     }
     saveDB();
   }
@@ -1471,7 +1483,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     countryFor: sim.countryFor,
     stats: () => ({ online: conns.size, rooms: [...rooms.values()].filter((r) => r.state !== 'lobby').length, lobbies: codes.size, queued: Object.values(queues).reduce((a, q) => a + q.length, 0) }),
     inMatch: (id) => !!roomOf(id),
-    removeUser(id) { stopWatching(id, false); cupLeave(id, false); stopQueue(id, `${userName(id)} left`); leaveParty(id); for (const p of parties.values()) if (p.invites.delete(id)) tidyParty(p); const r = roomOf(id); if (r) { if (r.state === 'lobby') leaveLobby(r, id); else leaveMatch(id); } const c = conns.get(id); if (c) c.ws.close(); },
+    // code 4001 tells the game its sign-in is over (a ban, a password reset); nothing says "try again"
+    removeUser(id, code) { stopWatching(id, false); cupLeave(id, false); stopQueue(id, `${userName(id)} left`); leaveParty(id); for (const p of parties.values()) if (p.invites.delete(id)) tidyParty(p); const r = roomOf(id); if (r) { if (r.state === 'lobby') leaveLobby(r, id); else leaveMatch(id); } const c = conns.get(id); if (c) c.ws.close(code); },
     _roomOf: roomOf, // tools only (tools/ballscan.js sets up drills in a live room)
     _social: { queues, parties, partyOf, cups, cupOf }, // tools only (tools/socialscan.js, tools/cupscan.js)
   };

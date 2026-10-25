@@ -41,7 +41,7 @@ Object.assign(UI, {
       <div class="play-more">
         <button class="mode ranked" data-needs-net data-mode="ranked">
           <strong>RANKED</strong>
-          <p>1v1 for rank points. Win +10, draw +5, and losing costs nothing.</p>
+          <p>1v1 for rank points. Win +10, draw +5, lose -5.</p>
           <span class="tag">ONLINE · 1V1</span>
         </button>
         <button class="mode cup" data-mode="worldcup">
@@ -187,7 +187,7 @@ Object.assign(UI, {
     const me = Net.user && Net.user.name;
     const row = (x) => {
       const t = RANK_TIERS.find((y) => y.id === x.tier) || RANK_TIERS[0];
-      return `<li class="${x.name === me ? 'you' : ''} ${x.pos <= 3 ? 'podium p' + x.pos : ''}">
+      return `<li class="${x.name === me ? 'you' : ''} ${x.pos <= 3 ? 'podium p' + x.pos : ''}"${x.name !== me ? ` data-player="${esc(x.name)}" role="button" tabindex="0"` : ''}>
         <b>${x.pos}</b><canvas width="42" height="28" data-club="${x.club}"></canvas>
         <span>${esc(x.name)}</span>
         <em style="--t:${t.color}">${x.tierName}</em>
@@ -201,6 +201,8 @@ Object.assign(UI, {
       ${!r.you && Net.user ? '<p class="note">Win a ranked match and you are on it.</p>' : ''}
       <div class="cup-foot"><button class="mid-btn" data-open2="ranked">YOUR RANK</button><button class="big-btn green" data-rankplay>PLAY RANKED</button></div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
+    // tap anyone else on the board to block them or report their name
+    body.querySelectorAll('[data-player]').forEach((li) => li.addEventListener('click', () => { this.tap(); this.openPlayer(li.dataset.player, 'leaderboard'); }));
     const go = body.querySelector('[data-rankplay]');
     if (go) go.addEventListener('click', () => { this.tap(); this.closeModal(); Online.findMatch('ranked'); });
     const back = body.querySelector('[data-open2="ranked"]');
@@ -226,8 +228,8 @@ Object.assign(UI, {
       <div class="rank-stats"><span>WON <b>${rk.wins}</b></span><span>PLAYED <b>${rk.played}</b></span><span>BEST <b>${rk.best}</b></span></div>
       <h3 class="fr-h">TIERS · WHAT EACH PAYS WHEN THE SEASON ENDS</h3>
       <div class="rank-tiers">${RANK_TIERS.map((x) => `<div class="rank-tier ${x.id === tier.id ? 'you' : ''}" style="--t:${x.color}"><i></i><b>${x.name}</b><small>${x.at} RP</small><em><span class="coin"></span>${x.reward}</em></div>`).join('')}</div>
-      <div class="rank-how"><b>HOW POINTS WORK</b><span>WIN <em>+10</em></span><span>DRAW <em>+5</em></span><span>LOSE <em>0</em></span><span>EACH CHALLENGE YOU WIN WITH <em>+1</em></span></div>
-      <p class="note">Only RANKED matches move your rank — 1v1, from PLAY. Every ranked match sets you three challenges, each worth a point if you win the match. A rank never goes backwards: losing costs nothing. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>
+      <div class="rank-how"><b>HOW POINTS WORK</b><span>WIN <em>+10</em></span><span>DRAW <em>+5</em></span><span>LOSE <em>-5</em></span><span>EACH CHALLENGE YOU WIN WITH <em>+1</em></span></div>
+      <p class="note">Only RANKED matches move your rank — 1v1, from PLAY. Every ranked match sets you three challenges, each worth a point if you win the match. A loss costs 5 points (so does leaving a ranked match), but you never drop below 0. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>
       <div class="cup-foot"><button class="mid-btn" data-board>LEADERBOARD</button><button class="big-btn green rank-play" data-rankplay>PLAY RANKED</button></div>`;
     const lb = body.querySelector('[data-board]');
     if (lb) lb.addEventListener('click', () => { this.tap(); this.openModal('leaderboard'); });
@@ -465,6 +467,129 @@ Object.assign(UI, {
       el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); done(false); });
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
       input.focus();
+    });
+  },
+
+  // A recovery code, shown this once. kind: 'new' (just signed up), 'reset' (one was just used, this
+  // is the next), 'made' (asked for in Settings). Only its scrambled form is kept anywhere else.
+  showCode(code, kind) {
+    const el = document.createElement('div');
+    el.className = 'overlay grownup sheet';
+    el.style.zIndex = 45; // over the sign-in page (40) as well as the game
+    const why = kind === 'reset' ? 'Your password is changed, and the code you used is used up. This is your new one.'
+      : kind === 'made' ? 'This is your new code. Any old one stops working.'
+        : 'If you ever forget your password, this code gets you back in.';
+    el.innerHTML = `<div class="panel small"><div class="gate rcode">
+      <strong>YOUR RECOVERY CODE</strong>
+      <p>${why}</p>
+      <div class="gate-words rcode-code">${esc(code)}</div>
+      <p>Write it down and keep it somewhere safe. It is only shown this once: nobody can look it up for you later.</p>
+      <div class="gate-btns"><button class="mid-btn" data-copy>COPY</button><button class="mid-btn green" data-no>I WROTE IT DOWN</button></div>
+    </div></div>`;
+    document.body.appendChild(el);
+    // the button says how it went: a toast would be under this card's own dimmed backdrop
+    const copy = el.querySelector('[data-copy]');
+    copy.addEventListener('click', async () => {
+      this.tap();
+      let ok = false;
+      try { await navigator.clipboard.writeText(code); ok = true; } catch (e) { /* no clipboard here */ }
+      copy.textContent = ok ? 'COPIED!' : "CAN'T COPY";
+    });
+    el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); el.remove(); if (Net.user) Net.user.hasRecovery = true; });
+  },
+
+  // Forgot the password: username, recovery code, new password. Opened from the sign-in page.
+  showForgot() {
+    const el = document.createElement('div');
+    el.className = 'overlay grownup sheet';
+    el.style.zIndex = 45; // over the sign-in page (40), where it is opened from
+    el.innerHTML = `<div class="panel small fg-panel"><form class="gate forgot" autocomplete="off" novalidate>
+      <strong>FORGOT YOUR PASSWORD?</strong>
+      <p>Type your username and the recovery code you wrote down, then pick a new password.</p>
+      <input data-f="user" maxlength="14" placeholder="USERNAME" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input data-f="code" maxlength="24" placeholder="RECOVERY CODE" autocapitalize="characters" autocorrect="off" spellcheck="false">
+      <input data-f="pass" type="password" maxlength="200" placeholder="NEW PASSWORD" autocomplete="new-password">
+      <input data-f="pass2" type="password" maxlength="200" placeholder="NEW PASSWORD AGAIN" autocomplete="new-password">
+      <p class="note fg-msg"></p>
+      <div class="gate-btns"><button type="button" class="mid-btn" data-no>BACK</button><button type="submit" class="mid-btn green">RESET IT</button></div>
+      <p class="fg-none">No code? Then the password can't be reset: accounts have no email to send anything to.</p>
+    </form></div>`;
+    document.body.appendChild(el);
+    const f = (k) => el.querySelector(`[data-f="${k}"]`);
+    const msg = el.querySelector('.fg-msg'), go = el.querySelector('button[type=submit]');
+    f('user').value = $('auth-user').value.trim();
+    (f('user').value ? f('code') : f('user')).focus();
+    el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); el.remove(); });
+    el.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = f('user').value.trim(), code = f('code').value, pass = f('pass').value;
+      msg.classList.add('bad');
+      if (!user || !code.trim() || !pass) { msg.textContent = 'Fill in all four boxes.'; return; }
+      if (pass !== f('pass2').value) { msg.textContent = 'The two new passwords do not match.'; return; }
+      go.disabled = true; msg.classList.remove('bad'); msg.textContent = 'Checking the code…';
+      const slow = setTimeout(() => { if (go.disabled) msg.textContent = Net.WAKING_MSG; }, 3000);
+      let r = null;
+      try { r = await Net.recover(user, code, pass); } catch (err) { r = null; }
+      clearTimeout(slow);
+      go.disabled = false;
+      if (!r) { msg.classList.add('bad'); msg.textContent = Net.noWifi() ? Net.NO_WIFI_MSG : "Can't reach the server. Try again in a minute."; return; }
+      if (!r.ok) { msg.classList.add('bad'); msg.textContent = r.msg || 'That did not work'; Sound.steal(); return; }
+      el.remove();
+      $('auth-pass').value = '';
+      $('auth-user').value = r.name || user;
+      this.signedIn(false);      // signed in, and the new code comes up to be written down
+    });
+  },
+
+  // ---- one player: block them, or report their username ----
+  // back: the window to go back to (friends, leaderboard); a name of null asks for one
+  openPlayer(name, back) { this._player = { name: name ? String(name).toUpperCase() : null, back: back || null }; this.openModal('player'); },
+  panel_player(body) {
+    $('modal-title').textContent = 'PLAYER';
+    const p = this._player || { name: null, back: null }, S = Social;
+    const backBtn = p.back ? `<div class="cup-foot"><button class="mid-btn" data-back>BACK</button></div>` : '';
+    const wire = () => { const b = body.querySelector('[data-back]'); if (b) b.addEventListener('click', () => { this.tap(); this.openModal(p.back); }); };
+    if (!S.signedIn()) { body.innerHTML = `<p class="note">Log in to block or report players.</p>${backBtn}`; wire(); return; }
+    if (!Net.wsReady) Net.openSocket();
+    if (!p.name) {
+      body.innerHTML = `<form class="fr-add pl-find" autocomplete="off"><input id="pl-name" maxlength="14" placeholder="THEIR USERNAME" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">FIND</button></form>
+        <p class="note">Type the username of the player you want to block, or whose name you want to report.</p>${backBtn}`;
+      body.querySelector('.pl-find').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = body.querySelector('#pl-name').value.trim();
+        if (name.length < 3) { this.toast('TYPE THEIR USERNAME'); return; }
+        this.tap();
+        this._player = { name: name.toUpperCase(), back: p.back };
+        this.panel_player(body);
+      });
+      wire();
+      return;
+    }
+    const me = Net.user && String(Net.user.name).toUpperCase();
+    const blocked = S.blocked.some((b) => b.name === p.name), reported = S.reported.includes(p.name);
+    body.innerHTML = `<div class="pl-card"><b class="pl-name">${esc(p.name)}</b>
+      ${p.name === me ? '<p class="note">That is you.</p>' : `
+      <div class="pl-act"><span><b>${blocked ? 'BLOCKED' : 'BLOCK'}</b><small>${blocked
+        ? 'They can not send you friend requests, their quick chat never reaches you, and you never end up in the same match.'
+        : 'No friend requests from them, none of their quick chat, and you never end up in the same match.'}</small></span>
+        <button class="mid-btn ${blocked ? '' : 'red'}" data-block>${blocked ? 'UNBLOCK' : 'BLOCK'}</button></div>
+      <div class="pl-act"><span><b>REPORT NAME</b><small>Is their username rude or weird? When enough different players report a name, that account is banned.</small></span>
+        <button class="mid-btn gold" data-report ${reported ? 'disabled' : ''}>${reported ? 'REPORTED' : 'REPORT'}</button></div>`}
+    </div>${backBtn}`;
+    wire();
+    const bl = body.querySelector('[data-block]');
+    if (bl) bl.addEventListener('click', () => { this.tap(); Net.sendSoon({ t: blocked ? 'friend.unblock' : 'friend.block', name: p.name }); });
+    const rep = body.querySelector('[data-report]');
+    if (rep) rep.addEventListener('click', async () => {
+      // two taps: REPORT, then TAP AGAIN
+      if (!rep.classList.contains('armed')) { this.tap(); rep.classList.add('armed'); rep.textContent = 'TAP AGAIN'; return; }
+      this.tap();
+      rep.disabled = true; rep.textContent = 'SENDING…';
+      const r = await Net.report(p.name);
+      if (r && r.auth === false) { rep.disabled = false; rep.classList.remove('armed'); rep.textContent = 'REPORT'; this.toast('LOG IN AGAIN TO REPORT'); return; }
+      if (r && r.ok && !S.reported.includes(p.name)) S.reported.push(p.name);
+      this.toast(String((r && r.msg) || 'THAT DID NOT WORK').toUpperCase());
+      if ($('modal').dataset.kind === 'player' && !$('modal').hidden) this.panel_player(body);
     });
   },
 
@@ -1124,6 +1249,12 @@ Object.assign(UI, {
         <button type="submit" class="mid-btn green">SAVE IT</button>
         <p id="pw-msg" class="note"></p>
       </form>` : ''}
+      ${Net.user ? `<div class="set"><span>RECOVERY CODE</span><em id="code-note">${Net.user.hasRecovery === false ? 'You do not have one yet. Make one, in case you ever forget your password' : 'Gets you back in if you forget your password'}</em><button id="mkcode" class="mid-btn">${Net.user.hasRecovery === false ? 'MAKE ONE' : 'NEW CODE'}</button></div>
+      <form id="code-form" class="pw-form" hidden autocomplete="off">
+        <input type="password" id="code-pw" placeholder="YOUR PASSWORD" autocomplete="current-password" maxlength="200">
+        <button type="submit" class="mid-btn green">SHOW MY NEW CODE</button>
+        <p id="code-msg" class="note"></p>
+      </form>` : ''}
       <div class="set"><span>PRIVACY</span><em>What the game keeps, and what it does not</em><a class="mid-btn set-link" href="${API_BASE}/privacy.html" target="_blank" rel="noopener">READ IT</a></div>
       <div class="set danger"><span>PROGRESS</span><em>Start again from zero.${Net.user ? ' Your account stays.' : ''}</em><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>
       ${Net.user ? `<div class="set danger"><span>DELETE ACCOUNT</span><em>Your coins, everything you have won, and your record. Gone for good, everywhere.</em><button id="del-acct" class="mini-danger">DELETE</button></div>
@@ -1159,6 +1290,25 @@ Object.assign(UI, {
         $('pw-old').value = ''; $('pw-new').value = ''; $('pw-new2').value = '';
         $('pw-form').hidden = true;
         this.toast('PASSWORD CHANGED');
+      });
+    }
+    if ($('mkcode')) {
+      $('mkcode').addEventListener('click', () => { this.tap(); const f = $('code-form'); f.hidden = !f.hidden; $('code-msg').textContent = ''; if (!f.hidden) $('code-pw').focus(); });
+      $('code-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = $('code-msg'), btn = $('code-form').querySelector('button[type=submit]');
+        msg.classList.remove('bad');
+        if (!$('code-pw').value) { msg.classList.add('bad'); msg.textContent = 'Type your password first.'; return; }
+        btn.disabled = true; msg.textContent = 'Making it…';
+        const had = Net.user && Net.user.hasRecovery !== false;
+        const r = await Net.newRecovery($('code-pw').value);
+        btn.disabled = false;
+        if (!r || !r.ok) { msg.classList.add('bad'); msg.textContent = (r && r.msg) || 'Something went wrong'; return; }
+        $('code-pw').value = ''; $('code-form').hidden = true;
+        if (Net.user) Net.user.hasRecovery = true;
+        $('code-note').textContent = 'Gets you back in if you forget your password';
+        $('mkcode').textContent = 'NEW CODE';
+        this.showCode(r.recovery, had ? 'made' : 'new');
       });
     }
     body.querySelectorAll('input[type=range]').forEach((inp) => inp.addEventListener('input', () => {

@@ -12,6 +12,8 @@ const FRIEND_STATUS = {
 
 const Social = {
   friends: [], incoming: [], outgoing: [], loaded: false,
+  blocked: [],          // players you blocked: [{ name }] (the server keeps the list)
+  reported: [],         // names you reported while the game has been open (for the REPORTED label)
   party: null,          // { id, leader, lead, members: [{ name, club, status, leader, you }], invited }
   invites: [],          // party invites waiting for an answer: { id, from, club, until }
   challenges: [],
@@ -24,7 +26,7 @@ const Social = {
   init() {
     // (a refresh in the middle of a cup: ask the server which one you are in)
     Net.on('hello', () => { this.busy = null; this.syncBusy(); Net.send({ t: 'cup.view' }); });
-    Net.on('friends', (m) => { this.friends = m.friends || []; this.incoming = m.incoming || []; this.outgoing = m.outgoing || []; this.loaded = true; this.changed(); });
+    Net.on('friends', (m) => { this.friends = m.friends || []; this.incoming = m.incoming || []; this.outgoing = m.outgoing || []; this.blocked = m.blocked || []; this.loaded = true; this.changed(); });
     Net.on('party', (m) => { this.party = m.id ? m : null; this.changed(); });
     Net.on('party.invite', (m) => {
       this.invites = this.invites.filter((i) => i.from !== m.from);
@@ -93,13 +95,14 @@ const Social = {
   },
 
   // signed out: nothing of the last account's lists stays on screen
-  reset() { this.friends = []; this.incoming = []; this.outgoing = []; this.loaded = false; this.party = null; this.invites = []; this.challenges = []; this.cup = null; this.cupInvites = []; this.cupAt = 0; this.busy = false; this.refreshHome(); },
+  reset() { this.friends = []; this.incoming = []; this.outgoing = []; this.blocked = []; this.reported = []; this.loaded = false; this.party = null; this.invites = []; this.challenges = []; this.cup = null; this.cupInvites = []; this.cupAt = 0; this.busy = false; this.refreshHome(); },
 
   // something changed: redraw whatever is showing it
   changed() {
     this.refreshHome();
     if (!$('modal').hidden && $('modal').dataset.kind === 'friends') UI.panel_friends($('modal-body'), true);
     if (!$('modal').hidden && $('modal').dataset.kind === 'cup') UI.panel_cup($('modal-body'));
+    if (!$('modal').hidden && $('modal').dataset.kind === 'player') UI.panel_player($('modal-body'));
   },
 
   refreshHome() {
@@ -355,7 +358,9 @@ Object.assign(UI, {
     const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>CHALLENGED YOU TO A 1V1</small><button class="mid-btn green" data-accept-challenge="${i.id}">PLAY</button><button class="mid-btn red" data-decline-challenge="${i.id}">NO</button></div>`).join('');
     const invites = S.liveInvites().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>INVITED YOU TO THEIR PARTY</small><button class="mid-btn green" data-join="${i.id}">JOIN</button><button class="mid-btn red" data-nojoin="${i.id}">NO</button></div>`).join('');
     const cupBtn = `<div class="fr-row cup-row"><b>FRIEND CUP</b><small>${S.cup ? 'YOU ARE IN ONE' : '4 OR 8 FRIENDS, KNOCKOUT'}</small><button class="mid-btn gold" data-cup="1">${S.cup ? 'SEE THE BOARD' : 'START ONE'}</button></div>`;
-    const asks = S.incoming.map((f) => `<div class="fr-row ask">${flag(f.club)}<b>${esc(f.name)}</b><small>WANTS TO BE FRIENDS</small><button class="mid-btn green" data-accept="${esc(f.name)}">ACCEPT</button><button class="mid-btn red" data-decline="${esc(f.name)}">NO</button></div>`).join('');
+    // a name is a button: it opens that player, to block them or report their name
+    const who = (name) => `<button type="button" class="fr-name" data-player="${esc(name)}">${esc(name)}</button>`;
+    const asks = S.incoming.map((f) => `<div class="fr-row ask">${flag(f.club)}${who(f.name)}<small>WANTS TO BE FRIENDS</small><button class="mid-btn green" data-accept="${esc(f.name)}">ACCEPT</button><button class="mid-btn red" data-decline="${esc(f.name)}">NO</button></div>`).join('');
     const partyFull = p && p.members.length + p.invited.length >= 4;
     const rows = S.friends.map((f) => {
       let act = '';
@@ -365,9 +370,9 @@ Object.assign(UI, {
       if (f.status === 'online') act += `<button class="mid-btn green" data-challenge="${esc(f.name)}">1V1</button>`;
       if (f.status === 'match') act += `<button class="mid-btn gold" data-watch="${esc(f.name)}">WATCH</button>`;
       const armed = S._armed === f.name;
-      return `<div class="fr-row">${flag(f.club)}<b>${esc(f.name)}</b>${status(f.status)}${act}<button class="fr-x ${armed ? 'armed' : ''}" data-remove="${esc(f.name)}" aria-label="Remove friend">${armed ? 'REMOVE?' : '×'}</button></div>`;
+      return `<div class="fr-row">${flag(f.club)}${who(f.name)}${status(f.status)}${act}<button class="fr-x ${armed ? 'armed' : ''}" data-remove="${esc(f.name)}" aria-label="Remove friend">${armed ? 'REMOVE?' : '×'}</button></div>`;
     }).join('');
-    const sent = S.outgoing.map((f) => `<div class="fr-row sent"><b>${esc(f.name)}</b><small>REQUEST SENT</small><button class="fr-x" data-cancel="${esc(f.name)}" aria-label="Cancel request">×</button></div>`).join('');
+    const sent = S.outgoing.map((f) => `<div class="fr-row sent">${who(f.name)}<small>REQUEST SENT</small><button class="fr-x" data-cancel="${esc(f.name)}" aria-label="Cancel request">×</button></div>`).join('');
     body.innerHTML = `
       <form class="fr-add" autocomplete="off"><input id="fr-name" maxlength="14" placeholder="THEIR USERNAME" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">ADD FRIEND</button></form>
       ${Net.wsReady ? '' : connecting}
@@ -377,7 +382,9 @@ Object.assign(UI, {
       <h3 class="fr-h">FRIENDS${S.friends.length ? ` · ${S.friends.length}` : ''}</h3>
       ${rows || `<p class="note fr-empty">${S.loaded ? 'No friends yet. Ask your mates for their username and add them here.' : 'Connecting…'}</p>`}
       ${sent ? `<h3 class="fr-h">SENT</h3>${sent}` : ''}
-      <p class="note fr-foot">Challenge an online friend to a 1v1, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match.</p>`;
+      ${S.blocked.length ? `<h3 class="fr-h">BLOCKED · ${S.blocked.length}</h3>${S.blocked.map((b) => `<div class="fr-row blocked"><b>${esc(b.name)}</b><small>BLOCKED</small><button class="mid-btn" data-unblock="${esc(b.name)}">UNBLOCK</button></div>`).join('')}` : ''}
+      <p class="note fr-foot">Challenge an online friend to a 1v1, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match. Tap a name to block that player or report their name.</p>
+      <div class="fr-safety"><button type="button" class="auth-guest" data-findplayer>BLOCK OR REPORT A PLAYER</button></div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     const input = body.querySelector('#fr-name');
     input.value = typed;
@@ -407,6 +414,9 @@ Object.assign(UI, {
     on('[data-accept-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.acceptChallenge); if (inv) S.answerChallenge(inv, true); });
     on('[data-decline-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.declineChallenge); if (inv) S.answerChallenge(inv, false); });
     on('[data-kick]', (b) => go({ t: 'party.kick', name: b.dataset.kick }));
+    on('[data-unblock]', (b) => go({ t: 'friend.unblock', name: b.dataset.unblock }));
+    on('[data-player]', (b) => { this.tap(); this.openPlayer(b.dataset.player, 'friends'); });
+    on('[data-findplayer]', () => { this.tap(); this.openPlayer(null, 'friends'); });
     on('[data-leave]', () => go({ t: 'party.leave' }));
     on('[data-coop]', (b2) => { this.tap(); Net.sendSoon({ t: 'party.coop', format: b2.dataset.coop }); this.closeAll(); this.toast('STARTING ' + b2.dataset.coop + ' WITH YOUR PARTY…'); });
     on('[data-vs]', (b2) => { this.tap(); this.closeAll(); Online.findMatch(b2.dataset.vs); });

@@ -160,8 +160,22 @@ const Net = {
     // a guest's progress on this device comes with them
     const carried = Save.data && (Save.data.matches > 0 || Save.data.coins > 0) ? Save.data : null;
     const r = await this.api('/api/auth/signup', { username, password, club, save: carried });
-    if (r.ok) this.signedIn(r, true);
+    // the recovery code comes back this once, to be shown and written down (UI.signedIn shows it)
+    if (r.ok) { this.freshCode = r.recovery || null; this.signedIn(r, true); }
     return r;
+  },
+  // Forgot the password: the recovery code and a new password sign you in, and a new code comes
+  // back (the one just used is spent).
+  async recover(username, code, password) {
+    const r = await this.api('/api/auth/recover', { username, code, password });
+    if (r.ok) { this.freshCode = r.recovery || null; this.signedIn(r, false); }
+    return r;
+  },
+  async newRecovery(password) {
+    try { return await this.api('/api/account/recovery', { password }); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+  },
+  async report(name) {
+    try { return await this.api('/api/report', { name }); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
   },
   async login(username, password) {
     const r = await this.api('/api/auth/login', { username, password });
@@ -184,7 +198,7 @@ const Net = {
     if (r.token) { this.token = r.token; try { localStorage.setItem(TOKEN_KEY, r.token); } catch (e) {} }
     if (r.name) { this.lastUser = r.name; try { localStorage.setItem(USER_KEY, r.name); } catch (e) {} }
     this.openSocket(); // have it ready before the first thing they press
-    this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 } };
+    this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 }, hasRecovery: r.hasRecovery };
     Save.useAccount(r.name, r.save, r.club, fresh);
     Store.onSignedIn();
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back

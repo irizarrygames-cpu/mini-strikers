@@ -29,7 +29,7 @@
 <body>
 <main>
   <h1>Mini Strikers — Privacy</h1>
-  <p class="sub">Last updated 24 October 2026</p>
+  <p class="sub">Last updated 25 October 2026</p>
 
   <p>Mini Strikers is a football game made by <strong>JMRI Consulting Services LLC</strong>, also
   known as Irizarry Games (<a href="https://irizarrygames.com">irizarrygames.com</a>). On this
@@ -42,6 +42,7 @@
       <li>You can play without an account, and then nothing of yours leaves your device.</li>
       <li>An account is a username and a password. No email, no real name, no age, no phone number.</li>
       <li>No ads, no tracking, no analytics, no cookies. Nothing is sold or shared.</li>
+      <li>You can block any player, and a rude username gets its account banned.</li>
       <li>You can delete your account in the game at any time, and it is gone straight away.</li>
     </ul>
   </div>
@@ -56,6 +57,7 @@
       <li><a href="#coins">Buying coins</a></li>
       <li><a href="#not">What it does not do</a></li>
       <li><a href="#see">Who can see it</a></li>
+      <li><a href="#bans">Blocking, reports and bans</a></li>
       <li><a href="#helpers">Who helps run the game</a></li>
       <li><a href="#where">Where it is kept</a></li>
       <li><a href="#how-long">How long it is kept</a></li>
@@ -93,6 +95,12 @@
       <li><strong>Your game progress.</strong> Coins, the country you play for, what you own, your
       record online (games played, won, drawn and lost, and goals), your rank, your World Cup run,
       and who your friends in the game are, including friend requests.</li>
+      <li><strong>A recovery code, scrambled.</strong> When you sign up, the game shows you a code to
+      write down. It gets you back in if you forget your password. Like the password, it is put
+      through PBKDF2 and only that scrambled form is kept, and each code works once.</li>
+      <li><strong>The players you blocked,</strong> so they stay blocked.</li>
+      <li><strong>Reports.</strong> If you report a player's username, a note that you reported it,
+      and when, is kept on their account. See <a href="#bans">Blocking, reports and bans</a>.</li>
       <li><strong>Sign-in keys.</strong> When you log in, the server gives your device a random key
       so you stay signed in. It is stored with the date it was made, and it stops working after 30
       days or when you log out, whichever comes first.</li>
@@ -122,7 +130,7 @@
   <h2 id="server">What the server sees when you play</h2>
   <p>Like every website, the game's server sees your device's internet address (its IP address) when
   it sends you the game. It uses that address for one thing: to slow down anybody trying lots of
-  passwords or making lots of accounts at once. It is held only in the server's memory, forgotten
+  passwords or recovery codes, or making lots of accounts, at once. It is held only in the server's memory, forgotten
   within about ten minutes, and never saved with your account or in the database.</p>
   <p>During an online match, your moves and the ready-made chat messages you pick go through the
   server to the other players in that match. Matches are not recorded; only the result is added to
@@ -157,7 +165,19 @@
   also see your rank, your rank points, your wins, how many games you have played and how many goals
   you have scored. Your friends in the game can also see whether you are online, waiting for a match
   or playing one. Nothing else is shown to anyone — never your password and never your sign-in key.</p>
+  <p>Nobody is told who blocked them or who reported them, and nobody can see your blocked list.</p>
   <p>We would only ever hand information over to anyone else if the law made us.</p>
+
+  <h2 id="bans">Blocking, reports and bans</h2>
+  <p><strong>Blocking</strong> someone takes them off your friends and requests, stops them sending
+  you requests, keeps their quick chat away from you, and keeps you out of the same matches. You can
+  unblock them in the Friends screen.</p>
+  <p><strong>Reports and bans</strong> happen on their own: nobody reads them. If a username is
+  turned down by the game's filter for rude words, or three different players report it, that
+  account is banned. A report stops counting after 30 days, and only accounts more than an hour old
+  can make one. A banned account can't sign in or play online, comes off the leaderboards and
+  everybody's friends lists, and is kept with a note that it was banned (when, and whether it was the
+  filter or players' reports), so its username can't be taken again. Its reports are cleared.</p>
 
   <h2 id="helpers">Who helps run the game</h2>
   <p>A few companies provide the computers the game runs on. They handle information only so the
@@ -184,6 +204,8 @@
   <ul>
     <li><strong>Your account:</strong> until you delete it. Deleting it removes it straight away.</li>
     <li><strong>Sign-in keys:</strong> 30 days at most, or until you log out.</li>
+    <li><strong>Your recovery code:</strong> until you use it or make a new one.</li>
+    <li><strong>Reports:</strong> they stop counting after 30 days.</li>
     <li><strong>Your IP address:</strong> about ten minutes, in the server's memory only.</li>
     <li><strong>Copies for accidents:</strong> the database company keeps short-term copies so the
     game can recover if something breaks. A deleted account drops out of those on its own when they
@@ -197,6 +219,8 @@
     <li>Passwords are never stored. Only a scrambled version is kept, made with PBKDF2, a different
     random salt for each account and 150,000 rounds.</li>
     <li>Sign-in keys are long random numbers, and they run out.</li>
+    <li>Recovery codes are kept scrambled like passwords. After five wrong codes, an account takes
+    no more for half an hour.</li>
     <li>Trying lots of passwords or making lots of accounts is slowed down automatically.</li>
     <li>Usernames are checked for inappropriate words before they are accepted.</li>
   </ul>
@@ -229,7 +253,8 @@
   <p>Mini Strikers is for everyone, of every age. It is also made to be safe for children to play:
   it asks for no personal information at all beyond a username and a password, usernames are
   filtered for inappropriate words, and in a match players can only send short ready-made messages,
-  never anything typed. There are no ads and no way for a stranger to message a child. The only link
+  never anything typed. Players can block anyone, and rude usernames get their accounts banned.
+  There are no ads and no way for a stranger to message a child. The only link
   out of the game is the one to this page, and in the app it sits behind a grown-up check.</p>
   <p>Children can play the whole game without an account. If a child makes one, we suggest a
   grown-up helps them choose a username that is not their real name. If you are a parent or

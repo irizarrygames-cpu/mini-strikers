@@ -168,6 +168,28 @@ What code cannot fix: the very first visit on a device while the server sleeps w
 The free plan also sleeps after 15 minutes without a visitor and takes up to a minute to wake. That is
 not lag in a match but it is the first thing a new player feels. A paid instance stays awake.
 
+## Safety, recovery and ranked (build 104)
+
+- **Recovery codes.** Accounts have no email, so a forgotten password used to be the end of an account.
+  Signing up now shows a code (`XXXX-XXXX-XXXX`) to write down; it is kept only scrambled, like the
+  password. FORGOT IT? on the sign-in page takes the username, the code and a new password: the code is
+  used up, a new one is shown, and every other device is signed out. Five wrong codes lock that account's
+  codes for half an hour. Older accounts make one in Settings → RECOVERY CODE (it asks for the password).
+- **Blocking.** Tap a name in Friends or on the leaderboard. A block takes them off your friends and
+  requests both ways, stops requests either way, keeps their quick chat away from you (and yours from
+  them), keeps you out of each other's rooms, and matchmaking never puts you in the same match.
+- **Reports and bans, with no admins.** REPORT NAME on a player's card. Three different players (with
+  accounts an hour old or more) reporting a name bans the account; a name the username filter turns down is
+  banned on the first report, and the filter looks over every existing name each time the server starts
+  (they show in the server log as `banned NAME (username)`). A banned account can't sign in or play online,
+  drops off every list and board, and keeps its name so nobody can take it.
+- **Ranked.** A loss costs 5 RP (walking out counts as a loss); points never go below 0.
+- **The Android Back button** (app only, through Capacitor's App plugin) closes whatever is on top, pauses
+  a match, and on the home screen asks before leaving the game.
+
+Tests: `node tools/safetyscan.js` (recovery codes, reports, bans, against a real server) and
+`node tools/blockscan.js` (blocking, against the real game code).
+
 ## Tools
 
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).

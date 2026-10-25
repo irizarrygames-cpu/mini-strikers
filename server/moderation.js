@@ -195,4 +195,8 @@ function screenUsername(raw) {
   return null;
 }
 
-module.exports = { screenUsername, normalize };
+// Turned down for being rude, not just reserved ('admin') or letterless ('1234'): the bans in
+// server.js only act on this.
+const isRude = (raw) => screenUsername(raw) === 'Pick a different name';
+
+module.exports = { screenUsername, isRude, normalize };

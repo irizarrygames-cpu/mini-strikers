@@ -9,7 +9,7 @@
 // checks, and the 25px-tall home row overlapped nothing at all.
 window.US = {
   PANELS: ['play', 'characters', 'customize', 'crates', 'coins', 'collection', 'missions', 'settings',
-    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode'],
+    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'friends'],
 
   // the full-screen ones, which the panel sweep never touched
   OVERLAYS: ['daily', 'howto', 'results', 'pause', 'queue', 'lobby'],
@@ -44,6 +44,11 @@ window.US = {
   // `scrolls` says whether being below the fold is allowed: a panel scrolls, the home screen does not.
   scan(root, where, scrolls) {
     const hits = [], rb = root.getBoundingClientRect();
+    // A panel scrolls up and down, never sideways. Everything inside a scroller is let off the
+    // OUTSIDE check below, so a card grown wider than its panel was invisible to this scan until
+    // this line: it is the panel itself that says so.
+    if (root.scrollWidth > root.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(root).overflowX))
+      hits.push(`${where} SCROLLS-X ${this.name(root)} ${root.scrollWidth} in ${root.clientWidth}`);
     for (const e of root.querySelectorAll('*')) {
       if (!this.vis(e)) continue;
       const cs = getComputedStyle(e), b = e.getBoundingClientRect();
@@ -140,6 +145,28 @@ window.US = {
       const el = document.querySelector('.grownup .panel');
       if (el) out.hits.push(...this.scan(el, 'grown-up check', true));
       const g = document.querySelector('.grownup'); if (g) g.remove();
+    }
+    // build 104: a recovery code, the forgot-password form, "leave the game?", and a player's card
+    // (with the longest name there can be), each shown, looked at and put away
+    {
+      const look = async (sel, label) => { await wait(200); const el = document.querySelector(sel); if (el) out.hits.push(...this.scan(el, label, true)); };
+      UI.showCode('ABCD-EFGH-JKLM', 'reset');
+      await look('.overlay.sheet .panel', 'recovery code');
+      document.querySelectorAll('.overlay.sheet').forEach((x) => x.remove());
+      UI.showForgot();
+      await look('.overlay.sheet .panel', 'forgot password');
+      document.querySelectorAll('.overlay.sheet').forEach((x) => x.remove());
+      UI.askLeave();
+      await look('.overlay.leave .panel', 'leave the game');
+      document.querySelectorAll('.overlay.leave').forEach((x) => x.remove());
+      const tok = Net.token, user = Net.user;
+      Net.token = tok || 'scan'; Net.user = user || { name: 'SCAN' };
+      UI.openPlayer('WWWWWWWWWWWWWW', 'friends');
+      await look('#modal .panel', 'player card');
+      UI.openPlayer(null, 'friends');
+      await look('#modal .panel', 'player card (find)');
+      UI.closeModal();
+      Net.token = tok; Net.user = user;
     }
 
     Save.data.tutorialSeen = was;

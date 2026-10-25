@@ -29,7 +29,14 @@ New-Item -ItemType Directory -Force "$work\scripts" | Out-Null
 Copy-Item "$PSScriptRoot\scripts\*" "$work\scripts" -Force
 Set-Location $work
 
-if (-not (Test-Path 'node_modules')) { npm ci --no-audit --no-fund; if ($LASTEXITCODE) { throw 'npm ci failed' } }
+# Install again whenever the lock file has changed since the last install (a plugin added, a
+# version moved): the old check only looked for node_modules, so a new plugin never arrived.
+$lockHash = (Get-FileHash 'package-lock.json' -Algorithm SHA256).Hash
+$stamp = 'node_modules\.ms-lock-hash'
+if (-not (Test-Path 'node_modules') -or -not (Test-Path $stamp) -or (Get-Content $stamp -Raw).Trim() -ne $lockHash) {
+  npm ci --no-audit --no-fund; if ($LASTEXITCODE) { throw 'npm ci failed' }
+  Set-Content $stamp $lockHash
+}
 node scripts/build-web.js;  if ($LASTEXITCODE) { throw 'web build failed' }
 node scripts/make-assets.js; if ($LASTEXITCODE) { throw 'asset build failed' }
 if (-not (Test-Path 'android')) { npx cap add android; if ($LASTEXITCODE) { throw 'cap add failed' } }

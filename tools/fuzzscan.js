@@ -61,7 +61,7 @@ const NASTY = [
 ];
 const TYPES = ['i', 'pen.shot', 'pen.dive', 'ping', 'chat', 'busy', 'cup.create', 'cup.invite', 'cup.uninvite', 'cup.accept',
   'cup.decline', 'cup.start', 'cup.leave', 'cup.view', 'watch', 'unwatch', 'friends', 'friend.add', 'friend.accept',
-  'friend.decline', 'friend.remove', 'party.invite', 'party.accept', 'party.decline', 'party.leave', 'party.kick',
+  'friend.decline', 'friend.remove', 'friend.block', 'friend.unblock', 'party.invite', 'party.accept', 'party.decline', 'party.leave', 'party.kick',
   'challenge.send', 'challenge.accept', 'challenge.decline', 'queue', 'unqueue', 'party.coop', 'room.coop', 'room.create',
   'room.join', 'room.team', 'room.format', 'room.start', 'room.leave', 'leave'];
 // every field name any message uses
