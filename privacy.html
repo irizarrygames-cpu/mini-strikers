@@ -19,6 +19,10 @@
   ul { padding-left: 22px; }
   a { color: var(--blue); }
   .box { background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 16px 18px; margin: 18px 0; }
+  .box h2 { margin-top: 0; }
+  .toc ul { columns: 2; column-gap: 28px; margin: 0; }
+  .toc li { break-inside: avoid; }
+  @media (max-width: 520px) { .toc ul { columns: 1; } }
   footer { margin-top: 36px; color: #5c6490; font-size: 14px; }
 </style>
 </head>
@@ -27,34 +31,105 @@
   <h1>Mini Strikers — Privacy</h1>
   <p class="sub">Last updated 24 October 2026</p>
 
-  <p>Mini Strikers is a football game. This page explains, in plain words, what it keeps and what
-  it does not. It is short because the game does not collect much.</p>
+  <p>Mini Strikers is a football game made by <strong>JMRI Consulting Services LLC</strong>, also
+  known as Irizarry Games (<a href="https://irizarrygames.com">irizarrygames.com</a>). On this
+  page, "we" means them. It explains, in plain words, what the game keeps, why, who helps run it,
+  and how to get rid of it.</p>
 
-  <h2>If you never make an account</h2>
+  <div class="box">
+    <h2>The short version</h2>
+    <ul>
+      <li>You can play without an account, and then nothing of yours leaves your device.</li>
+      <li>An account is a username and a password. No email, no real name, no age, no phone number.</li>
+      <li>No ads, no tracking, no analytics, no cookies. Nothing is sold or shared.</li>
+      <li>You can delete your account in the game at any time, and it is gone straight away.</li>
+    </ul>
+  </div>
+
+  <nav class="box toc" aria-label="On this page">
+    <ul>
+      <li><a href="#who">Who makes it</a></li>
+      <li><a href="#no-account">Playing without an account</a></li>
+      <li><a href="#account">If you make an account</a></li>
+      <li><a href="#device">What stays on your device</a></li>
+      <li><a href="#server">What the server sees</a></li>
+      <li><a href="#coins">Buying coins</a></li>
+      <li><a href="#not">What it does not do</a></li>
+      <li><a href="#see">Who can see it</a></li>
+      <li><a href="#helpers">Who helps run the game</a></li>
+      <li><a href="#where">Where it is kept</a></li>
+      <li><a href="#how-long">How long it is kept</a></li>
+      <li><a href="#safe">Keeping it safe</a></li>
+      <li><a href="#delete">Deleting it</a></li>
+      <li><a href="#rights">Your rights</a></li>
+      <li><a href="#children">Children and families</a></li>
+      <li><a href="#changes">Changes</a></li>
+      <li><a href="#contact">Getting in touch</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="who">Who makes it</h2>
+  <p>Mini Strikers is made and run by JMRI Consulting Services LLC (Irizarry Games), a small game and
+  app studio in the United States. They are responsible for the information described on this page.
+  You can reach them at <a href="mailto:irizarrygames@gmail.com">irizarrygames@gmail.com</a>, and
+  their website is <a href="https://irizarrygames.com">irizarrygames.com</a>.</p>
+
+  <h2 id="no-account">Playing without an account</h2>
   <p>Nothing of yours leaves your device. Your progress — coins, players, what you have won — is
-  stored in your own browser and goes nowhere else. You can play the whole game this way.</p>
+  stored in your own browser or in the app, and goes nowhere else. You can play the whole game this
+  way except the online parts, which need an account so other players know who they are playing.</p>
 
-  <h2>If you make an account</h2>
+  <h2 id="account">If you make an account</h2>
   <p>Making an account lets you play against other people and keep your progress across devices.
   To do that, the game stores:</p>
   <div class="box">
     <ul>
-      <li><strong>The username you chose.</strong> Other players can see it during a match and on
-      the leaderboard. Pick a name you are happy for people to see.</li>
+      <li><strong>The username you chose.</strong> Other players can see it during a match, on
+      the leaderboards and in friends lists. Pick a name you are happy for people to see, and not
+      your real name.</li>
       <li><strong>Your password, scrambled.</strong> It is put through PBKDF2 before it is stored,
       so what is kept cannot be turned back into your password — not by us, not by anybody who
       got hold of the file.</li>
       <li><strong>Your game progress.</strong> Coins, the country you play for, what you own, your
-      record, your rank, and who your friends in the game are.</li>
+      record online (games played, won, drawn and lost, and goals), your rank, your World Cup run,
+      and who your friends in the game are, including friend requests.</li>
+      <li><strong>Sign-in keys.</strong> When you log in, the server gives your device a random key
+      so you stay signed in. It is stored with the date it was made, and it stops working after 30
+      days or when you log out, whichever comes first.</li>
+      <li><strong>The day the account was made.</strong></li>
       <li><strong>A note of each coin pack you buy,</strong> if you buy any: which pack, the day, and
       the store's reference number for the purchase. This is so a purchase is never counted
       twice and never lost. No card number, no billing details.</li>
     </ul>
   </div>
   <p>That is the whole list. No email address, no real name, no age, no phone number, no address,
-  no photographs, and nothing from anywhere else on your device.</p>
+  no photographs, no device identifiers, and nothing from anywhere else on your device.</p>
+  <p>We use it only to run the game: to sign you in, keep your progress, match you with other
+  players, put you on the leaderboards, and let you play with your friends. It is not used for
+  anything else.</p>
 
-  <h2>Buying coins</h2>
+  <h2 id="device">What stays on your device</h2>
+  <p>The game keeps a few things in your browser's (or the app's) own storage on your device:</p>
+  <ul>
+    <li>your progress, so you can play without the internet;</li>
+    <li>if you are signed in, your username and your sign-in key, so you do not have to log in every time;</li>
+    <li>a copy of the game itself, so it starts quickly and works offline.</li>
+  </ul>
+  <p>This stays on your device and is not used to track you. The game uses no cookies. Logging out
+  removes the sign-in key. Clearing the site's data in your browser, or uninstalling the app, removes
+  all of it, including the progress of a game played without an account.</p>
+
+  <h2 id="server">What the server sees when you play</h2>
+  <p>Like every website, the game's server sees your device's internet address (its IP address) when
+  it sends you the game. It uses that address for one thing: to slow down anybody trying lots of
+  passwords or making lots of accounts at once. It is held only in the server's memory, forgotten
+  within about ten minutes, and never saved with your account or in the database.</p>
+  <p>During an online match, your moves and the ready-made chat messages you pick go through the
+  server to the other players in that match. Matches are not recorded; only the result is added to
+  your record.</p>
+
+  <h2 id="coins">Buying coins</h2>
+  <p>Coin packs are not on sale yet. When they are, this is how it works.</p>
   <p>In the app, coins can be bought in packs for real money. This happens only through the App
   Store or Google Play: they take the payment, and the game never sees a card number or any billing
   detail. Before anything is bought, the game asks a grown-up to type a few numbers that are written
@@ -65,17 +140,68 @@
   turned back into money. Refunds are handled by Apple or Google, not by the game. Buying coins needs
   an account, so the coins follow you to any device.</p>
 
-  <h2>What it does not do</h2>
+  <h2 id="not">What it does not do</h2>
   <ul>
     <li>No advertising, and no advertising identifiers.</li>
     <li>No analytics, no tracking, no third-party trackers of any kind.</li>
-    <li>Nothing is sold, rented or shared with anybody.</li>
+    <li>No cookies.</li>
+    <li>Nothing is sold, rented or shared with anybody, and nothing is used to build a profile of you.</li>
     <li>No location, no contacts, no camera, no microphone, no files.</li>
+    <li>No typed chat. Players can only send short ready-made messages.</li>
+    <li>The game loads nothing from other websites — no outside scripts, fonts or pictures — so
+    playing it sends nothing to anybody but its own server.</li>
   </ul>
 
-  <h2>Who can see it</h2>
-  <p>Other players can see your username, the country you play for, your rank and your position on
-  the leaderboard. Nothing else is shown to anyone.</p>
+  <h2 id="see">Who can see it</h2>
+  <p>Other players can see your username and the country you play for. On the leaderboards they can
+  also see your rank, your rank points, your wins, how many games you have played and how many goals
+  you have scored. Your friends in the game can also see whether you are online, waiting for a match
+  or playing one. Nothing else is shown to anyone — never your password and never your sign-in key.</p>
+  <p>We would only ever hand information over to anyone else if the law made us.</p>
+
+  <h2 id="helpers">Who helps run the game</h2>
+  <p>A few companies provide the computers the game runs on. They handle information only so the
+  game can work, and none of them is an advertising or analytics company.</p>
+  <ul>
+    <li><strong>Render</strong> runs the game's server, in the United States (Virginia).</li>
+    <li><strong>Cloudflare</strong> sits in front of that server and passes the game's pages and
+    messages along quickly and safely. It sees your IP address on the way through, as every network
+    does.</li>
+    <li><strong>Neon</strong> runs the database where accounts are kept.</li>
+    <li><strong>Apple and Google</strong> take the payment if you buy coins in the app, and handle it
+    under their own privacy rules.</li>
+  </ul>
+  <p>Like nearly every web host, Render and Cloudflare may keep short technical records of requests
+  (such as the time and IP address) to keep their services running and safe. If you email us, your
+  message is kept in our email inbox, which is run by Google.</p>
+
+  <h2 id="where">Where it is kept</h2>
+  <p>Accounts are kept on the game's server and in its database, run by the companies above. The
+  server is in the United States. If you play from another country, your account is kept and handled
+  there.</p>
+
+  <h2 id="how-long">How long it is kept</h2>
+  <ul>
+    <li><strong>Your account:</strong> until you delete it. Deleting it removes it straight away.</li>
+    <li><strong>Sign-in keys:</strong> 30 days at most, or until you log out.</li>
+    <li><strong>Your IP address:</strong> about ten minutes, in the server's memory only.</li>
+    <li><strong>Copies for accidents:</strong> the database company keeps short-term copies so the
+    game can recover if something breaks. A deleted account drops out of those on its own when they
+    roll over, after a short time.</li>
+    <li><strong>Emails you send us:</strong> only as long as we need them to help you.</li>
+  </ul>
+
+  <h2 id="safe">Keeping it safe</h2>
+  <ul>
+    <li>Everything between your device and the server travels over an encrypted connection (HTTPS).</li>
+    <li>Passwords are never stored. Only a scrambled version is kept, made with PBKDF2, a different
+    random salt for each account and 150,000 rounds.</li>
+    <li>Sign-in keys are long random numbers, and they run out.</li>
+    <li>Trying lots of passwords or making lots of accounts is slowed down automatically.</li>
+    <li>Usernames are checked for inappropriate words before they are accepted.</li>
+  </ul>
+  <p>No website can promise to be perfectly safe. That is one more reason the game keeps so little:
+  there is no email, real name or payment detail to lose.</p>
 
   <h2 id="delete">Deleting it</h2>
   <p>You can delete your account from inside the game: <strong>Settings → Delete Account</strong>.
@@ -84,23 +210,44 @@
   and it cannot be undone.</p>
   <p>If you only want to start again without losing the account, <strong>Settings → Reset
   Save</strong> clears your progress and keeps the account.</p>
+  <p>If you cannot get into the game, or you have forgotten your password, email
+  <a href="mailto:irizarrygames@gmail.com">irizarrygames@gmail.com</a> with your username and we
+  will help you delete it.</p>
 
-  <h2>Where it is kept</h2>
-  <p>Accounts are stored on the game's own server and its database. They are not copied anywhere
-  else.</p>
+  <h2 id="rights">Your rights</h2>
+  <p>Wherever you live, you can ask us to show you what is kept about you, give you a copy, correct
+  it, or delete it. Depending on where you live, laws such as the GDPR (in Europe and the UK) and
+  privacy laws in US states such as California may give you these rights and others, such as the
+  right to object or to complain to your local data protection authority.</p>
+  <p>Most of it you can do yourself in the game: it shows you your coins, what you own, your record
+  and your rank, and Settings lets you change your password or delete the account. For anything
+  else, email us. We may ask you to show the account is yours (for example by
+  signing in), we will answer within 30 days, and nobody is treated differently for asking.</p>
+  <p>We use your account information because you asked for an account and the game needs it to give
+  you one, and the IP address to keep the game safe from abuse.</p>
 
-  <h2>Who it is for</h2>
+  <h2 id="children">Children and families</h2>
   <p>Mini Strikers is for everyone, of every age. It is also made to be safe for children to play:
   it asks for no personal information at all beyond a username and a password, usernames are
   filtered for inappropriate words, and in a match players can only send short ready-made messages,
-  never anything typed. If you are a parent and want an account removed, use Settings → Delete
-  Account in the game, or get in touch at the address below.</p>
+  never anything typed. There are no ads and no way for a stranger to message a child. The only link
+  out of the game is the one to this page, and in the app it sits behind a grown-up check.</p>
+  <p>Children can play the whole game without an account. If a child makes one, we suggest a
+  grown-up helps them choose a username that is not their real name. If you are a parent or
+  guardian and want to see or remove your child's account, use Settings → Delete Account in the
+  game, or email us with the username and we will help.</p>
 
-  <h2>Changes</h2>
-  <p>If this ever changes, the date at the top changes with it.</p>
+  <h2 id="changes">Changes</h2>
+  <p>If this page ever changes, the date at the top changes with it. If a change means the game
+  starts keeping something it does not keep now, it will say so here before it does.</p>
 
-  <h2>Getting in touch</h2>
-  <p>Questions about any of this: <a href="mailto:irizarrygames@gmail.com">irizarrygames@gmail.com</a></p>
+  <h2 id="contact">Getting in touch</h2>
+  <p>Questions, requests or worries about any of this:</p>
+  <div class="box">
+    <p style="margin:0"><strong>JMRI Consulting Services LLC (Irizarry Games)</strong><br>
+    Email: <a href="mailto:irizarrygames@gmail.com">irizarrygames@gmail.com</a><br>
+    Website: <a href="https://irizarrygames.com">irizarrygames.com</a></p>
+  </div>
 
   <footer><a href="./">Back to the game</a></footer>
 </main>
