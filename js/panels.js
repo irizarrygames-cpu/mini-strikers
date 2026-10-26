@@ -54,6 +54,11 @@ Object.assign(UI, {
           <p>Five kicks each, then sudden death. Pick your corner, then save theirs.</p>
           <span class="tag">VS ${pensClub.name}</span>
         </button>
+        <button class="mode fk" data-mode="fk">
+          <strong>FREE KICKS</strong>
+          <p>Bend it over the wall or round it. Five each, then sudden death.</p>
+          <span class="tag">VS ${pensClub.name} · OR ONLINE</span>
+        </button>
         <button class="mode friendcup" data-needs-net data-mode="friendcup">
           <strong>FRIEND CUP</strong>
           <p>A knockout between 4 or 8 friends. No draws.</p>
@@ -95,6 +100,7 @@ Object.assign(UI, {
     body.querySelector('[data-room="join"]').addEventListener('click', join);
     body.querySelector('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
     body.querySelector('[data-mode="pens"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('pensmode'); });
+    body.querySelector('[data-mode="fk"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('fkmode'); });
     body.querySelector('[data-mode="challenges"]').addEventListener('click', () => { this.tap(); this.openModal('challenges'); });
     body.querySelector('[data-mode="friendcup"]').addEventListener('click', () => { this.tap(); this.openModal('cup'); });
     body.querySelector('[data-mode="ranked"]').addEventListener('click', () => { this.tap(); Online.findMatch('ranked'); });
@@ -121,6 +127,27 @@ Object.assign(UI, {
       </div>`;
     body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
     body.querySelector('[data-pens="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens'); });
+  },
+
+  // ---- FREE KICKS: the same choice, for a free-kick shootout ----
+  panel_fkmode(body) {
+    $('modal-title').textContent = 'FREE KICKS';
+    const club = this._pensClub || Clubs.random(Clubs.mine());
+    body.innerHTML = `
+      <div class="modes pen-choice">
+        <button class="mode pens fk" data-fk="offline">
+          <strong>OFFLINE</strong>
+          <p>Five free kicks each against a computer-controlled opponent. Soft and high goes over the wall; hard goes round it.</p>
+          <span class="tag">VS ${club.name}</span>
+        </button>
+        <button class="mode online" data-fk="online">
+          <strong>ONLINE</strong>
+          <p>Free kick for free kick against a real opponent, live.</p>
+          <span class="tag">ONLINE FREE KICKS</span>
+        </button>
+      </div>`;
+    body.querySelector('[data-fk="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', fk: true, club }); });
+    body.querySelector('[data-fk="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('fk'); });
   },
 
   // ---- FRIEND CUP: a knockout between four or eight friends ----
@@ -1239,6 +1266,7 @@ Object.assign(UI, {
       <div class="set"><span>REPLAYS</span>${seg('replays', [[true, 'ON'], [false, 'OFF']])}</div>
       <div class="set"><span>GRAPHICS</span>${seg('graphics', [['auto', 'AUTO'], ['high', 'HIGH'], ['low', 'LOW']])}</div>
       <div class="set"><span>CONTROLS</span>${seg('controls', [['auto', 'AUTO'], ['touch', 'TOUCH'], ['keyboard', 'KEYBOARD']])}</div>
+      <div class="set"><span>HANDED</span>${seg('lefty', [[false, 'RIGHT'], [true, 'LEFT']])}</div>
       ${this.controlsRef()}
       <div class="set account"><span>ACCOUNT</span><em>${Save.account || 'GUEST'} · ${Clubs.mine().name}</em><button id="logout" class="${Save.account ? 'mini-danger' : 'mid-btn'}">${Save.account ? 'LOG OUT' : 'SIGN IN'}</button></div>
       ${Net.user ? `<div class="set"><span>PASSWORD</span><em>Only you can change it, and only from here</em><button id="chpw" class="mid-btn">CHANGE</button></div>
@@ -1317,12 +1345,12 @@ Object.assign(UI, {
     body.querySelectorAll('.seg').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       const key = g.dataset.key;
       let v = b.dataset.v;
-      if (key === 'vibration' || key === 'minimap' || key === 'replays' || key === 'commentary') v = v === 'true';
+      if (key === 'vibration' || key === 'minimap' || key === 'replays' || key === 'commentary' || key === 'lefty') v = v === 'true';
       if (key === 'minutes') v = parseInt(v, 10);
       s[key] = v; Save.write(); this.tap();
       g.querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b));
       if (key === 'graphics') { Render.quality = 0; Render.resize(); }
-      if (key === 'controls') this.applyControls();
+      if (key === 'controls' || key === 'lefty') this.applyControls();
       if (key === 'vibration' && v) vibrate(20);
     })));
     // Deleting the account. The form is hidden until you ask for it, and asks for the password

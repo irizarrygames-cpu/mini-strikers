@@ -4,7 +4,7 @@ const fs = require('fs');
 // written with plain newlines, so normalise first — otherwise the scan reports the results
 // screen as missing when the only thing that changed was how the lines end.
 const src = fs.readFileSync('js/ui.js', 'utf8').replace(/\r\n/g, '\n');
-if (!src.includes("this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';")) throw new Error('results screen can misroute a normal match to penalties');
+if (!src.includes("this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : 'quick';")) throw new Error('results screen can misroute a normal match to penalties');
 const hit = src.match(/  resultsAgain\(\) \{([\s\S]*?)\n  \},\n\};/);
 if (!hit) throw new Error('resultsAgain not found');
 const make = new Function('Game', 'Clubs', 'Save', 'PenCup', 'Cup', 'Online', `return function resultsAgain() {${hit[1]}\n}`);
@@ -26,4 +26,11 @@ check('penalty rematch stays penalties', calls[1] && calls[1].mode === 'pens', c
 check('penalty rematch gets a new country', calls[1] && calls[1].club === fresh && exclusions[1][1] === old, exclusions[1]);
 UI._againMode = 'onlinepens'; again();
 check('online penalty rematch stays online penalties', queues.length === 1 && queues[0][0] === 'pens', queues[0]);
+UI._againMode = 'fk'; again();
+check('free-kick rematch stays free kicks', calls[2] && calls[2].mode === 'pens' && calls[2].fk === true, calls[2]);
+check('free-kick rematch gets a new country', calls[2] && calls[2].club === fresh && exclusions[2][1] === old, exclusions[2]);
+UI._againMode = 'onlinefk'; again();
+check('online free-kick rematch stays online free kicks', queues.length === 2 && queues[1][0] === 'fk', queues[1]);
+UI._againMode = 'pens'; again();
+check('penalty rematch is not free kicks', calls[3] && !calls[3].fk, calls[3]);
 if (fails) process.exit(1); console.log('all rematch checks passed');

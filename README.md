@@ -190,6 +190,23 @@ not lag in a match but it is the first thing a new player feels. A paid instance
 Tests: `node tools/safetyscan.js` (recovery codes, reports, bans, against a real server) and
 `node tools/blockscan.js` (blocking, against the real game code).
 
+## Free kicks and left-handed controls (build 105)
+
+- **Free kicks** (PLAY → FREE KICKS, offline against a country or online against a real player) are a
+  penalty shootout with a wall: five each, then sudden death, 22 m out. Four of the defending side stand
+  9.15 m from the ball across one side of the goal, and the keeper stands on the other. A shot to the
+  covered side that is still lower than the wall when it gets there hits it (OFF THE WALL!). A soft shot
+  loops higher (`PEN.fkArc`), so soft and high goes over; hard goes round. Sometimes the wall jumps
+  (`wall.jump`), and a ball over the wall is seen late by the keeper (`FK.SCREEN`). The numbers live in
+  `PEN.FK` (js/penalty.js) and again in `server/pens.js`, which runs the online ones (format `fk`, also
+  in private rooms) and picks a new wall for every kick. Bots aim and dive knowing where the wall is.
+- **Left-handed** (Settings → HANDED): the stick goes on the right and the buttons on the left.
+  `UI.applyHands` reads where the stylesheet put each control at this screen size and mirrors it, so
+  there is no second copy of every size's rules; the stick only wakes on the right half.
+
+Test: `node tools/fkscan.js` (how often each kind of free kick goes in, offline and online agreeing,
+3000 online shootouts finishing, and an online free-kick match on the real server).
+
 ## Tools
 
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).

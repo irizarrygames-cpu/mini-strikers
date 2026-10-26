@@ -2067,3 +2067,10 @@ body.kb .chat-menu kbd { display: inline-block; }
 .pl-act .mid-btn { flex: none; font-size: 15px; padding: 6px 14px; min-width: 104px; }
 .pl-act .mid-btn[disabled] { opacity: 0.6; }
 .pl-act .mid-btn.armed { background: var(--ui-red); box-shadow: inset 0 -5px 0 var(--ui-red-d), 0 5px 0 var(--ink); color: #fff; }
+/* ===== FREE KICKS AND LEFT-HANDED CONTROLS (build 105) ===== */
+/* the free-kick card in PLAY, and its offline choice, in their own colour */
+.mode.fk { background: #e0660f; }
+.mode.pens.fk { background: #e0660f; }
+/* left-handed: the stick's half of the screen is the right one (the buttons and the stick are
+   moved by UI.applyHands, which reads where this sheet puts them and mirrors it) */
+body.lefty #touch-zone { left: 50%; }

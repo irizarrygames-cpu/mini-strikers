@@ -101,13 +101,15 @@ const Online = {
     const other = msg.side === 'blue' ? 'red' : 'blue', opponent = Clubs.get(msg.clubs[other]) || Clubs.random(Clubs.mine());
     this.watching = msg.watch || null;
     this._chalQuiet = true;
-    this.status = 'match'; this.format = 'pens'; this.worldCup = msg.wc !== null && msg.wc !== undefined; this.room = null; this.penSide = msg.side;
+    const fk = msg.kind === 'fk' || msg.format === 'fk';   // a free-kick shootout: the same flow, with a wall
+    this.status = 'match'; this.format = fk ? 'fk' : 'pens'; this.worldCup = msg.wc !== null && msg.wc !== undefined; this.room = null; this.penSide = msg.side;
     Sound.unlock(); Game.goFullscreen(); FX.clear(); Input.reset(); UI.closeAll();
-    const m = Match.create({ mode: 'pens', club: opponent, format: '1v1' }); Pens.init(m); Game.match = m; Game.acc = 0;
+    const m = Match.create({ mode: 'pens', club: opponent, format: '1v1' }); Pens.init(m, fk); Game.match = m; Game.acc = 0;
     $('hud').classList.add('pens'); UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
     $('hud').classList.remove('replaying'); UI.show('match'); Game.state = 'intro'; UI.showIntro(m); Sound.startMusic(); Sound.startAmbience(); Sound.cheer(false);
-    m.net = true; m.online = true; m.wc = msg.wc; m.roomId = msg.room; m.code = msg.code; m.mode = 'pens'; m.format = 'pens';
+    m.net = true; m.online = true; m.wc = msg.wc; m.roomId = msg.room; m.code = msg.code; m.mode = 'pens'; m.format = this.format;
     m.pens.net = true; m.pens.serverSide = msg.side; m.pens.phase = 'wait'; m.pens.t = 0;
+    if (fk) Pens.setWall(m.pens, (msg.state && msg.state.wall) || null);   // the server's wall, not one made up here
     m.pens.watch = !!msg.watch;
     m.pens.watchName = msg.watch || null;
     $('hud').classList.toggle('watching', !!msg.watch);
@@ -887,4 +889,4 @@ const Online = {
 
 // the sounds the server makes for a player's own pass, shot, skill and tackle (the only ones played early)
 const SELF_SOUNDS = new Set(['pass', 'kick', 'skill', 'slide']);
-const FORMAT_SIZE_NET = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
+const FORMAT_SIZE_NET = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };

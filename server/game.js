@@ -28,7 +28,9 @@ const CHALLENGE_INVITE_MS = 60000;
 const PARTY_OFFLINE_MS = 60000;     // someone whose game closed keeps their party spot this long
 const CHAT_GAP_MS = 1200, CHAT_BURST = 5, CHAT_BURST_MS = 10000; // quick chat: one at a time, five in any 10s
 const MATCH_MINUTES = 3;
-const FORMAT_SIZE = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
+// 'pens' and 'fk' (free kicks) are both one-a-side shootouts, run by server/pens.js
+const FORMAT_SIZE = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
+const SHOOTOUT = (format) => format === 'pens' || format === 'fk';
 const PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -88,7 +90,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
   const BOT_CELEBS = ['jump', 'jump', 'flex', 'salute', 'spin', 'shush', 'heart', 'dab', 'kneeslide', 'kneeslide', 'airplane', 'chestpump', 'callme', 'chill', 'robot', 'griddy', 'siuu', 'calmdown', 'pointsky', 'floss', 'bird', 'kungfu'];
   const conns = new Map();   // userId -> connection
-  const queues = { 'pens': [], '1v1': [], '2v2': [], '3v3': [], '4v4': [], 'ranked': [] };
+  const queues = { 'pens': [], 'fk': [], '1v1': [], '2v2': [], '3v3': [], '4v4': [], 'ranked': [] };
   const rooms = new Map();   // roomId -> room
   const codes = new Map();   // code -> room (private lobbies)
   let nextRoom = 1;
@@ -667,7 +669,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const party = partyOf.get(id);
     if (!party) return push(id, { t: 'error', msg: 'You are not in a party' });
     if (party.leader !== id) return push(id, { t: 'error', msg: 'Only the party leader can start it' });
-    if (!FORMAT_SIZE[format] || format === 'pens') return push(id, { t: 'error', msg: 'Pick a format' });
+    if (!FORMAT_SIZE[format] || SHOOTOUT(format)) return push(id, { t: 'error', msg: 'Pick a format' });
     if (party.members.length > FORMAT_SIZE[format]) return push(id, { t: 'error', msg: 'Too many of you for ' + format });
     for (const m of party.members) {
       if (!conns.has(m)) return push(id, { t: 'error', msg: userName(m) + ' is not online' });
@@ -750,11 +752,11 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function penView(room, seat) {
     const p = room.pen, other = seat.team === 'blue' ? 'red' : 'blue';
     return {
-      t: 'pen.start', room: room.id, code: room.code, format: 'pens', side: seat.team,
+      t: 'pen.start', room: room.id, code: room.code, format: room.format, kind: room.format, side: seat.team,
       clubs: room.clubs, wc: seat.wc, startsIn: Math.max(0, room.startAt - Date.now()),
       // (nothing here says which spots are filled in: online, a filled spot is just another player)
       players: room.seats.map((s) => ({ team: s.team, name: s.name, character: s.character })),
-      state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline },
+      state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline, wall: p.model.wall },
       opponent: room.seats.find((s) => s.team === other).name,
     };
   }
@@ -762,7 +764,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     for (const s of room.seats) if (s.human && s.conn && !s.gone) send(s.conn, payload);
     if (room.viewers) for (const v of room.viewers.keys()) push(v, payload);
   }
-  function startPensRoom(entries, code, wcRound = null) {
+  // kind: 'pens' or 'fk'
+  function startPensRoom(entries, code, wcRound = null, kind = 'pens') {
     const taken = new Set(), seats = [], clubs = {};
     for (const team of ['blue', 'red']) {
       const e = entries.find((x) => x.team === team);
@@ -778,8 +781,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const clubIds = sim.CLUBS.map((c) => c.id);
     if (!clubs.blue) clubs.blue = pickOne(clubIds.filter((c) => c !== clubs.red));
     if (!clubs.red) clubs.red = pickOne(clubIds.filter((c) => c !== clubs.blue));
-    const model = PenModel.create((Date.now() ^ nextRoom * 2654435761) >>> 0);
-    const room = { id: nextRoom++, code, format: 'pens', seats, state: 'intro', clubs, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound,
+    const model = PenModel.create((Date.now() ^ nextRoom * 2654435761) >>> 0, kind);
+    const room = { id: nextRoom++, code, format: kind === 'fk' ? 'fk' : 'pens', seats, state: 'intro', clubs, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound,
       pen: { model, phase: 'intro', pending: { shot: null, dive: null }, deadline: Date.now() + INTRO_MS + 10000, nextAt: 0 } };
     rooms.set(room.id, room);
     for (const seat of seats) if (seat.human) send(seat.conn, penView(room, seat));
@@ -804,13 +807,18 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     penTryResolve(room);
   }
   function penBotInputs(room) {
-    const p = room.pen, { shooter, keeper } = penRoles(room);
+    const p = room.pen, { shooter, keeper } = penRoles(room), wall = p.model.wall;
     if (!shooter.human && !p.pending.shot) {
       const side = Math.random() < 0.5 ? -1 : 1;
-      p.pending.shot = { ax: side * (0.45 + Math.random() * 0.42), az: 0.08 + Math.random() * 0.68, power: 0.55 + Math.random() * 0.3 };
+      // a free kick: mostly over the wall into its corner, otherwise round it on the keeper's side
+      if (wall) p.pending.shot = Math.random() < 0.6
+        ? { ax: wall.side * (0.5 + Math.random() * 0.32), az: 0.72 + Math.random() * 0.23, power: 0.4 + Math.random() * 0.16 }
+        : { ax: -wall.side * (0.45 + Math.random() * 0.35), az: 0.1 + Math.random() * 0.5, power: 0.55 + Math.random() * 0.25 };
+      else p.pending.shot = { ax: side * (0.45 + Math.random() * 0.42), az: 0.08 + Math.random() * 0.68, power: 0.55 + Math.random() * 0.3 };
     }
     if (!keeper.human && !p.pending.dive) {
-      const r = Math.random(), side = r < 0.44 ? -1 : r < 0.88 ? 1 : 0;
+      // a free kick's keeper mostly goes its own way, the side the wall leaves open
+      const r = Math.random(), side = wall ? (r < 0.6 ? -wall.side : r < 0.85 ? wall.side : 0) : r < 0.44 ? -1 : r < 0.88 ? 1 : 0;
       p.pending.dive = { dx: side, dz: side ? -0.05 + Math.random() * 0.65 : 1, td: 0.12 + Math.random() * 0.18 };
     }
   }
@@ -829,7 +837,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function penBeginTurn(room, now) {
     const p = room.pen; p.pending = { shot: null, dive: null }; p.phase = 'input'; p.turnAt = now; p.deadline = now + 10000;
     penBotInputs(room);
-    penBroadcast(room, { t: 'pen.turn', team: p.model.team, n: p.model.n, deadline: p.deadline, score: p.model.score, kicks: p.model.kicks });
+    penBroadcast(room, { t: 'pen.turn', team: p.model.team, n: p.model.n, deadline: p.deadline, score: p.model.score, kicks: p.model.kicks, wall: p.model.wall });
     penTryResolve(room);
   }
   function finishPens(room, forfeitTeam = null) {
@@ -867,7 +875,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
   function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false, coop = false) {
-    if (format === 'pens') return startPensRoom(entries, code, wcRound);
+    if (SHOOTOUT(format)) return startPensRoom(entries, code, wcRound, format);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
     const seats = [];

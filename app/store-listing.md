@@ -20,6 +20,7 @@ PLAY YOUR WAY
 - Ranked: 1v1 for rank points. Win and climb from Bronze all the way to Legend
 - Friends: make a room, share the code and play together, or run a friend cup
 - World Cup: play for the trophy online or against the bots. Lose once and you are out
+- Free Kicks: bend it over the wall or round it, against the bots or a real player online
 - Penalty Shootouts, Skill Challenges and Training for when you want to practise
 
 MAKE IT YOURS
@@ -68,4 +69,4 @@ Simple touch controls on phones, keyboard or touch on bigger screens.
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.0.8 (9)`
+- Release name: `1.0.9 (10)`

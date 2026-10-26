@@ -165,12 +165,14 @@ const Input = {
   _joyDown(e) {
     Sound.unlock();
     if (this._joyId !== null) return;
-    if (e.clientX > window.innerWidth * 0.5) return;
+    // the stick's half of the screen: the left, or the right for a left-handed player
+    const lefty = document.body.classList.contains('lefty'), half = window.innerWidth * 0.5;
+    if (lefty ? e.clientX < half : e.clientX > half) return;
     e.preventDefault();
     this.lastDevice = 'touch';
     this._joyId = e.pointerId;
     const rad = this.base.offsetWidth / 2;
-    const cx = clamp(e.clientX, rad + 8, window.innerWidth * 0.5 - rad);
+    const cx = lefty ? clamp(e.clientX, half + rad, window.innerWidth - rad - 8) : clamp(e.clientX, rad + 8, half - rad);
     const cy = clamp(e.clientY, rad + 8, window.innerHeight - rad - 8);
     this._joyCenter = { x: cx, y: cy };
     const rest = this._restCenter();

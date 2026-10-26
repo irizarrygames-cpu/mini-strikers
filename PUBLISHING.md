@@ -8,7 +8,7 @@
 - Coin packs (in-app purchases): built and tested, switched off until the stores are set up.
 - The game runs from inside an app (`API_BASE` in `js/net.js`, CORS in `server.js`) and carries its own
   copy of its font, so it makes no request to anyone but its own server.
-- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.8-code9.aab`**, signed with
+- **The Android app: `Desktop\Mini Strikers - Play Store\mini-strikers-1.0.9-code10.aab`**, signed with
   the upload key, ready to upload to Google Play. Built from `app/`.
 
 ## Not done

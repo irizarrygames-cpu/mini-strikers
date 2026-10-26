@@ -2,6 +2,9 @@
 // your side's kicks and you're in goal for theirs. It's drawn from behind the taker, looking
 // at the goal, so picking a corner reads the way it does on TV.
 //
+// FREE KICKS (m.pens.fk) are the same shootout from twice as far out, with a wall in the way: see
+// PEN.FK. The controls are the same; what changes is where it is worth aiming.
+//
 // PEN is the whole kick in plain maths (metres: goal 7.32 x 2.44, spot 11m out), with no screen,
 // so tools/pensscan.js can take thousands of kicks and measure how often they go in.
 const PEN = {
@@ -12,21 +15,47 @@ const PEN = {
   K: { hip: 0.72, reach: 1.75, up: 0.6, speed: 5.2, legs: 0.5, arm: 1.35, r: 0.33, standR: 0.38 },
   PLAYER_DIVE: 7.2, BOT_SLOW: 2.5,
 
+  // FREE KICKS. The ball is 22 m out. A wall of four stands 9.15 m from it, covering one side of
+  // the goal (`side` -1 left, 1 right, in the goal's own across-ways metres); the keeper stands
+  // over the other side, KX in from the middle. A ball aimed at the wall's side that is still
+  // lower than the wall when it gets there is blocked. A soft one loops higher (ARC), so soft and
+  // high clears the wall, hard and low goes round it on the keeper's side. A ball over the wall is
+  // seen late (SCREEN: that much less time for the keeper), one round it a little late too.
+  // At this distance a kick is less sure than a penalty (SIGMA). Half the time the wall jumps.
+  // Tuned by tools/fkscan.js: over the wall goes in about 44%, round it about 33%, a penalty 69%.
+  FK: { DIST: 22, AT: 9.15, H: 2.0, JUMP: 0.32, KX: 0.9, NEAR: 0.12, SCREEN: 0.25, SCREEN_OPEN: 0.1, SIGMA: 1.35, MEN: 4 },
+  fkWall(r = Math.random) { return { side: r() < 0.5 ? -1 : 1, jump: r() < 0.45 }; },
+  fkCovered(x, wall) { return wall.side > 0 ? x > this.FK.NEAR : x < -this.FK.NEAR; },
+  fkArc(power) { return 0.35 + (1 - power) * 1.9; },
+  fkAtWall(z, power) { const f = this.FK.AT / this.FK.DIST; return z * f + this.fkArc(power) * 4 * f * (1 - f); },
+  fkTop(wall) { return this.FK.H + (wall.jump ? this.FK.JUMP : 0); },
+  // how long the keeper really has: the whole flight from the spot, less the screen of a wall
+  saveT(k) { return k.fk ? k.T - (k.covered ? this.FK.SCREEN : this.FK.SCREEN_OPEN) : k.T; },
+  // how long the ball is in the air before something happens to it (the wall stops it part way)
+  flightT(k) { return k.out === 'wall' ? k.T * (this.FK.AT / this.FK.DIST) : k.T; },
+
   gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); },
 
   // a strike. ax: -1..1 across the goal (posts at ±1), az: 0..1 up to the bar, power 0..1,
   // q: the taker's finishing 0..1. Too much power sprays it and lifts it.
   // slow: m/s off the pace (the bots' kicks, so you can see them coming)
-  kick(ax, az, power, q, slow = 0) {
-    const sigma = 0.16 + (1 - q) * 0.22 + Math.max(0, power - 0.82) * 2.4;
+  // wall: a free kick's wall ({ side, jump }), or nothing for a penalty
+  kick(ax, az, power, q, slow = 0, wall = null) {
+    const sigma = (0.16 + (1 - q) * 0.22 + Math.max(0, power - 0.82) * 2.4) * (wall ? this.FK.SIGMA : 1);
     const lift = Math.max(0, power - 0.78) * 2.0;
     const x = ax * this.HW + this.gauss() * sigma;
     const z = Math.max(this.BR, az * this.HT + lift + this.gauss() * sigma * 0.6);
     const v = 16 + power * 13 + q * 2 - slow;
-    const k = { x, z, v, T: this.SPOT / v, power, out: 'in', postIn: false };
+    const k = { x, z, v, T: (wall ? this.FK.DIST : this.SPOT) / v, power, out: 'in', postIn: false };
     k.out = this.frame(k);
     // grazing the inside of the post or the bar: sometimes it goes in off it
     if (k.out === 'post' || k.out === 'bar') k.postIn = Math.random() < 0.4;
+    if (wall) {
+      k.fk = true;
+      k.covered = this.fkCovered(x, wall);
+      k.atWall = this.fkAtWall(z, power);
+      if (k.covered && k.atWall < this.fkTop(wall)) { k.out = 'wall'; k.postIn = false; }
+    }
     return k;
   },
 
@@ -63,11 +92,12 @@ const PEN = {
 
   // a bot in goal: now and then it reads the kick and goes the right way a moment after it's
   // struck; otherwise it guesses a side (or stays up) as the ball is hit
-  botDive(k, read) {
+  // kx: where the keeper stands (a free kick's keeper is off to one side)
+  botDive(k, read, kx = 0) {
     // a soft one gives it time to read
     if (Math.random() < read + (1 - k.power) * 0.4) {
-      const dx = k.x, dz = k.z - this.K.hip, l = Math.hypot(dx, dz) || 1;
-      if (Math.abs(k.x) < 0.45) return null;
+      const dx = k.x - kx, dz = k.z - this.K.hip, l = Math.hypot(dx, dz) || 1;
+      if (Math.abs(dx) < 0.45) return null;
       return { dx: dx / l, dz: dz / l, td: rand(0.1, 0.18) };
     }
     const r = Math.random();
@@ -81,6 +111,31 @@ const PEN = {
     if (Math.random() < 0.12 - aim * 0.06) return { ax: rand(-0.2, 0.2), az: rand(0.05, 0.55), power: rand(0.5, 0.8) };
     const side = Math.random() < 0.5 ? -1 : 1;
     return { ax: side * rand(0.4, 0.8 + aim * 0.14), az: rand(0.05, 0.6 + aim * 0.3), power: rand(0.42 + aim * 0.12, 0.74 + aim * 0.12) };
+  },
+
+  // A bot in goal for a free kick. The ball is in the air a long time, so it reads the kick far more
+  // often than a penalty - unless the ball comes over the wall, which it sees late (READ_OVER).
+  // When it has to guess, it guesses its own side, the one the wall leaves open.
+  FK_READ: 0.42, FK_READ_OVER: 0.18,
+  fkBotDive(k, read, wall) {
+    const kx = -wall.side * this.FK.KX;
+    const chance = read + (k.covered ? this.FK_READ_OVER : this.FK_READ) + (1 - k.power) * 0.2;
+    if (Math.random() < chance) {
+      const dx = k.x - kx, dz = k.z - this.K.hip, l = Math.hypot(dx, dz) || 1;
+      if (Math.abs(dx) < 0.45) return null;
+      return { dx: dx / l, dz: dz / l, td: rand(0.1, 0.18) + (k.covered ? this.FK.SCREEN : 0) };
+    }
+    const r = Math.random();
+    if (r < 0.15) return null;
+    const side = r < 0.72 ? -wall.side : wall.side, ang = rand(-0.35, 1.0);
+    return { dx: side * Math.cos(ang), dz: Math.sin(ang), td: rand(-0.08, 0.04) };
+  },
+
+  // a bot taking a free kick: mostly over the wall into its corner, otherwise round it on the
+  // keeper's side; a better taker is braver with the corner
+  fkBotAim(aim, wall) {
+    if (Math.random() < 0.6) return { ax: wall.side * rand(0.5, 0.8 + aim * 0.12), az: rand(0.72, 0.95), power: rand(0.38 + aim * 0.05, 0.56) };
+    return { ax: -wall.side * rand(0.45, 0.78 + aim * 0.1), az: rand(0.1, 0.6), power: rand(0.55, 0.8) };
   },
 
   // who's won, if anyone yet: 'blue' | 'red' | null. Five each, stopping early when one side can't
@@ -108,11 +163,13 @@ const PEN_LEVELS = {
 const PEN_SAY = {
   goal: ['GOAL!', '#ffe14d'], save: ['SAVED!', '#46d9ff'], wide: ['WIDE!', '#ffffff'], over: ['OVER THE BAR!', '#ffffff'],
   post: ['OFF THE POST!', '#ffffff'], bar: ['OFF THE BAR!', '#ffffff'], postIn: ['IN OFF THE POST!', '#ffe14d'], barIn: ['IN OFF THE BAR!', '#ffe14d'],
+  wall: ['OFF THE WALL!', '#ffffff'],
 };
 
 const Pens = {
   // ---------- setup ----------
-  init(m) {
+  // fk: a free-kick shootout instead of penalties
+  init(m, fk = false) {
     const lvl = PEN_LEVELS[Save.data.settings.difficulty] || PEN_LEVELS.normal, cl = m.club.level || 0;
     const ch = Save.character();
     const rng = mulberry32((Math.random() * 1e9) | 0);
@@ -122,6 +179,7 @@ const Pens = {
       bot: { read: lvl.read + cl * 0.0125, q: clamp(lvl.q + cl * 0.025, 0, 0.95), aim: clamp(lvl.aim + cl * 0.04, 0, 1), sw: lvl.sw },
       q: clamp(((ch.r && ch.r.sht) || 70) - 50, 0, 50) / 50 * 0.9 + 0.1,
       kicks: { blue: [], red: [] }, first: Math.random() < 0.5 ? 'blue' : 'red',
+      fk: !!fk, wall: null, kx: 0, wallMen: null,      // a free kick's wall, where its keeper stands, the men in it
       n: 0, team: null, phase: 'start', t: 0, winner: null, saves: 0, theirSaves: 0,
       aim: { x: 0, z: 0.45 }, power: 0, holding: false, holdInputSeen: false, holdT: 0, clock: 0, mouse: null,
       shot: null, dive: null, kickAt: 0, result: null, say: null, cheerT: 0, shake: 0,
@@ -132,6 +190,20 @@ const Pens = {
     m.human.celebKind = null;
     m.score = { blue: 0, red: 0 };
     this.next(m, true);
+  },
+
+  // a free kick's wall for this kick: its side, whether it jumps, and four of the defending side in it
+  setWall(P, wall) {
+    P.wall = P.fk ? wall : null;
+    P.kx = P.wall ? -P.wall.side * PEN.FK.KX : 0;
+    if (!P.wall) { P.wallMen = null; return; }
+    const team = P.team === 'blue' ? 'red' : 'blue', rng = mulberry32((Math.random() * 1e9) | 0);
+    P.wallMen = [0, 1, 2, 3].map((i) => {
+      const bc = pickBotCharacter(rng);
+      const a = this.actor(team, false, { hair: bc.hair, hairColor: bc.hairColor, skin: bc.skin, cap: bc.cap, band: bc.band, acc: null }, [4, 5, 6, 3][i]);
+      a.fy = 1; a.faceX = 0.001;      // facing the ball
+      return a;
+    });
   },
 
   // something the sprite code can draw
@@ -159,6 +231,7 @@ const Pens = {
     Object.assign(taker, { celebrateT: 0, celebKind: null, sad: false, kickT: 0, fy: -1, faceX: 0.001, run: 0, vx: 0, vy: 0 });
     for (const k of Object.values(P.keeper)) Object.assign(k, { diveT: 0, celebrateT: 0, sad: false, hopT: 0 });
     P.runup = rand(0.9, 1.3);
+    if (P.fk && !P.net) this.setWall(P, PEN.fkWall());
     this.label(P.team === 'blue' ? 'SHOOT' : 'DIVE');
     this.flushInput();
   },
@@ -214,7 +287,7 @@ const Pens = {
         if (P.clock <= 0 && !P.holding) { P.holding = true; P.power = 0.55; release = true; }
         if (release && P.holding) {
           P.holding = false; P.holdInputSeen = false; Sound.chargeStop();
-          P.shot = PEN.kick(P.aim.x + P.sway.x, P.aim.z + P.sway.z, P.power, q);
+          P.shot = PEN.kick(P.aim.x + P.sway.x, P.aim.z + P.sway.z, P.power, q, 0, P.wall);
           P.phase = 'strike'; P.t = 0;
         }
         break;
@@ -231,10 +304,10 @@ const Pens = {
         taker.run = Math.min(1, P.t / P.runup);
         this.keeperInput(m, P.t - P.runup);
         if (P.t >= P.runup) {
-          const a = PEN.botAim(P.bot.aim);
+          const a = P.wall ? PEN.fkBotAim(P.bot.aim, P.wall) : PEN.botAim(P.bot.aim);
           // dive early and a good taker sees it and puts it the other way
-          if (P.dive && P.dive.td < -0.15 && Math.abs(P.dive.dx) > 0.3 && Math.random() < P.bot.sw) a.ax = -Math.sign(P.dive.dx) * rand(0.45, 0.85);
-          P.shot = PEN.kick(a.ax, a.az, a.power, P.bot.q, PEN.BOT_SLOW);
+          if (!P.wall && P.dive && P.dive.td < -0.15 && Math.abs(P.dive.dx) > 0.3 && Math.random() < P.bot.sw) a.ax = -Math.sign(P.dive.dx) * rand(0.45, 0.85);
+          P.shot = PEN.kick(a.ax, a.az, a.power, P.bot.q, PEN.BOT_SLOW, P.wall);
           this.strike(m);
         }
         break;
@@ -242,7 +315,7 @@ const Pens = {
       case 'flight':
         if (P.team === 'red') this.keeperInput(m, P.t);
         this.pose(gk, P.dive, P.t);
-        if (P.t >= P.shot.T) this.resolve(m);
+        if (P.t >= PEN.flightT(P.shot)) this.resolve(m);
         break;
 
       case 'after':
@@ -273,7 +346,7 @@ const Pens = {
     const P = m.pens, taker = this.taker(P);
     taker.kickT = taker.kickDur; taker.faceX = P.shot.x < 0 ? -1 : 1; taker.fy = 0;
     Sound.kick(0.4 + P.shot.power * 0.6);
-    if (P.team === 'blue') P.dive = PEN.botDive(P.shot, P.bot.read);
+    if (P.team === 'blue') P.dive = P.wall ? PEN.fkBotDive(P.shot, P.bot.read, P.wall) : PEN.botDive(P.shot, P.bot.read);
     P.phase = 'flight'; P.t = 0;
   },
 
@@ -289,7 +362,8 @@ const Pens = {
     const P = m.pens, s = P.shot, taker = this.taker(P), gk = this.goalie(P);
     let res;
     const couldGoIn = s.out === 'in' || ((s.out === 'post' || s.out === 'bar') && s.postIn);
-    if (couldGoIn && PEN.saves(P.dive, 0, s.T, s.x, s.z)) res = 'save';
+    if (s.out === 'wall') res = 'wall';
+    else if (couldGoIn && PEN.saves(P.dive, P.kx || 0, PEN.saveT(s), s.x, s.z)) res = 'save';
     else if (s.out === 'in') res = 'goal';
     else if (s.out === 'post' || s.out === 'bar') res = s.postIn ? (s.out === 'post' ? 'postIn' : 'barIn') : s.out;
     else res = s.out;
@@ -307,9 +381,9 @@ const Pens = {
     }
     const good = (scored && P.team === 'blue') || (!scored && P.team === 'red');
     if (scored) { Sound.net(); taker.celebrateT = CELE_TIME; taker.celebKind = P.team === 'blue' ? Save.celebration() : null; taker.fy = -1; }
-    else { taker.sad = true; if (res === 'save') { Sound.save(); gk.celebrateT = 1.4; } else if (res === 'post' || res === 'bar') Sound.post(); }
+    else { taker.sad = true; if (res === 'save') { Sound.save(); gk.celebrateT = 1.4; } else if (res === 'post' || res === 'bar' || res === 'wall') Sound.post(); }
     if (good) { Sound.cheer(true); P.cheerT = 1.8; } else Sound.ooh();
-    P.shake = res === 'save' || res === 'post' || res === 'bar' ? 0.25 : scored ? 0.18 : 0;
+    P.shake = res === 'save' || res === 'post' || res === 'bar' || res === 'wall' ? 0.25 : scored ? 0.18 : 0;
     P.phase = 'after'; P.t = 0;
   },
 
@@ -335,6 +409,7 @@ const Pens = {
     P.kicks = P.serverSide === 'blue' ? { blue: [...msg.kicks.blue], red: [...msg.kicks.red] } : { blue: [...msg.kicks.red], red: [...msg.kicks.blue] };
     m.score = P.serverSide === 'blue' ? { ...msg.score } : { blue: msg.score.red, red: msg.score.blue };
     if (P.team === 'red') P.them = this.actor('red', false, P.takers[Math.floor(msg.n / 2) % 5].look, P.takers[Math.floor(msg.n / 2) % 5].number);
+    if (P.fk) this.setWall(P, msg.wall || null);
     this.label(P.watch ? 'WATCHING' : P.team === 'blue' ? 'SHOOT' : 'DIVE'); this.flushInput(); if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
   },
   netResult(m, msg) {
@@ -347,7 +422,7 @@ const Pens = {
     m.score = P.serverSide === 'blue' ? { ...r.score } : { blue: r.score.red, red: r.score.blue }; P.after = { held: r.result === 'save' && P.shot.v < 24 && Math.abs(P.shot.x) < 2.2, side: Math.random() < 0.5 ? -1 : 1 };
     if (P.team === 'blue') { m.human.stats.shots++; m.stats.blue.shots++; if (r.scored) m.human.stats.goals++; }
     if (r.result === 'save' && P.team === 'red') { P.saves++; m.keepers.blue.stats.saves++; m.stats.blue.saves++; }
-    if (r.scored) { Sound.net(); taker.celebrateT = CELE_TIME; taker.celebKind = P.team === 'blue' ? Save.celebration() : null; } else { taker.sad = true; if (r.result === 'save') { Sound.save(); gk.celebrateT = 1.4; } }
+    if (r.scored) { Sound.net(); taker.celebrateT = CELE_TIME; taker.celebKind = P.team === 'blue' ? Save.celebration() : null; } else { taker.sad = true; if (r.result === 'save') { Sound.save(); gk.celebrateT = 1.4; } else if (r.result === 'wall') Sound.post(); }
     P.phase = 'after'; P.t = 0; P.netResultData = null;
   },
   netStep(m, dt) {
@@ -367,22 +442,23 @@ const Pens = {
       if (press && !P.dive && !P.netSent && !P.watch) { const mv = Input.move, l = Math.hypot(mv.x, mv.y); P.dive = l < 0.25 ? { dx: 0, dz: 1, td: P.t, v: PEN.PLAYER_DIVE } : { dx: mv.x / l, dz: -mv.y / l, td: P.t, v: PEN.PLAYER_DIVE }; P.netSent = true; Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz }); Sound.whoosh(true); }
       return;
     }
-    if (P.phase === 'flight') { this.pose(gk, P.dive, P.t); if (P.t >= P.shot.T) this.netApply(m); return; }
+    if (P.phase === 'flight') { this.pose(gk, P.dive, P.t); if (P.t >= PEN.flightT(P.shot)) this.netApply(m); return; }
     if (P.phase === 'after') this.pose(gk, P.dive, P.shot.T + P.t);
   },
   // ---------- the picture ----------
-  layout(W, H) {
+  layout(W, H, fk = false) {
     const L = this._lay;
-    if (L && L.W === W && L.H === H) return L;
+    if (L && L.W === W && L.H === H && L.fk === fk) return L;
     const portrait = W < H;
-    const gw = portrait ? W * 0.84 : Math.min(W * 0.56, H * 1.2);
+    // a free kick is twice as far out: the goal looks smaller and the wall stands in between
+    const gw = (portrait ? W * 0.84 : Math.min(W * 0.56, H * 1.2)) * (fk ? 0.6 : 1);
     const s = gw / (PEN.HW * 2), gh = PEN.HT * s;
     const gy = portrait ? H * 0.42 : Math.max(gh + H * 0.2, H * 0.52);
     const spot = { x: W / 2, y: portrait ? H * 0.74 : H * 0.86 };
     const near = portrait ? 1.9 : 2.0;
     // the top of the stand is open: sky, whatever you can see of the country beyond it, then the roof
     const sky = Math.min(gy * 0.34, H * 0.22), roofH = Math.max(6, gy * 0.045);
-    const lay = { W, H, gw, gh, s, gx: W / 2, gy, spot, near, board: gh * 0.22, crowd: null, sky, roofH, corner: null };
+    const lay = { W, H, fk, gw, gh, s, gx: W / 2, gy, spot, near, board: gh * 0.22, crowd: null, sky, roofH, corner: null };
     // the pause button lives in the top corner over the canvas: remember where, so the scorecard
     // can keep out of its way on a narrow screen
     const pauseEl = typeof $ === 'function' ? $('btn-pause') : null;
@@ -404,9 +480,20 @@ const Pens = {
 
   // goal-plane metres -> screen
   gp(L, x, z) { return { x: L.gx + x * L.s, y: L.gy - z * L.s }; },
+  // u of the way from the ball (0) to the goal line (1): how far up the screen that is, and how many
+  // pixels a metre is there (the ball's own flight uses the same curve, so the wall, the lines and
+  // the ball all agree about where things are)
+  depth(L, u) { const k = 1.6; return { e: (u * (1 + k)) / (1 + k * u), pm: 1 / lerp(1 / (L.s * L.near), 1 / L.s, u) }; },
+  // a goal-plane point (x across, z up) seen at u of the way there, with a free kick's loop on top
+  along(L, s, u) {
+    const g = this.gp(L, s.x, s.z), d = this.depth(L, u);
+    let y = lerp(L.spot.y, g.y, d.e);
+    if (s.fk) y -= PEN.fkArc(s.power) * 4 * u * (1 - u) * d.pm;
+    return { x: lerp(L.spot.x, g.x, d.e), y, r: 0.11 * d.pm };
+  },
 
   draw(m, dt, t) {
-    const ctx = Render.ctx, W = Render.W, H = Render.H, P = m.pens, L = this.layout(W, H);
+    const ctx = Render.ctx, W = Render.W, H = Render.H, P = m.pens, L = this.layout(W, H, !!P.fk);
     ctx.setTransform(Render.dpr, 0, 0, Render.dpr, 0, 0);
     const shake = P.shake > 0 ? P.shake * 18 : 0;
     ctx.save();
@@ -421,7 +508,11 @@ const Pens = {
     if (ball && ball.behind) this.drawBall(ctx, ball, t);
     this.drawFrame(ctx, L);
     this.drawKeeper(ctx, L, P, t);
-    if (ball && !ball.behind && !ball.atSpot) this.drawBall(ctx, ball, t);
+    // a free kick: the wall stands between; the ball is drawn in front of it until it has passed it
+    const pastWall = ball && ball.u !== undefined && ball.u > PEN.FK.AT / PEN.FK.DIST;
+    if (ball && pastWall && !ball.behind && !ball.atSpot) this.drawBall(ctx, ball, t);
+    if (P.wall) this.drawWall(ctx, L, P, t);
+    if (ball && !pastWall && !ball.behind && !ball.atSpot) this.drawBall(ctx, ball, t);
     if (ball && ball.atSpot) this.drawBall(ctx, ball, t);
     this.drawTaker(ctx, L, P, t);
     ctx.restore();
@@ -558,7 +649,19 @@ const Pens = {
     // the lines: goal line, the six-yard box, the spot
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, L.gy - 1, L.W, Math.max(3, L.s * 0.08));
-    const box = L.gy + (L.spot.y - L.gy) * 0.3, lw = Math.max(3, L.s * 0.09);
+    const lw = Math.max(3, L.s * 0.09);
+    if (L.fk) {
+      // the six-yard box 5.5 m out, the edge of the penalty area 16.5 m out (the ball is 22 m out)
+      const at = (m) => L.spot.y + (L.gy - L.spot.y) * this.depth(L, 1 - m / PEN.FK.DIST).e;
+      const six = at(5.5), edge = at(16.5);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = lw; ctx.lineJoin = 'miter';
+      const x1 = L.gx - L.gw * 0.78, x2 = L.gx + L.gw * 0.78, x1b = L.gx - L.gw * 0.92, x2b = L.gx + L.gw * 0.92;
+      ctx.beginPath(); ctx.moveTo(x1, L.gy); ctx.lineTo(x1b, six); ctx.lineTo(x2b, six); ctx.lineTo(x2, L.gy); ctx.stroke();
+      ctx.lineWidth = Math.max(3, lw * 1.3);
+      ctx.beginPath(); ctx.moveTo(0, edge); ctx.lineTo(L.W, edge); ctx.stroke();
+      return;
+    }
+    const box = L.gy + (L.spot.y - L.gy) * 0.3;
     const x1 = L.gx - L.gw * 0.78, x2 = L.gx + L.gw * 0.78, x1b = L.gx - L.gw * 0.86, x2b = L.gx + L.gw * 0.86;
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = lw; ctx.lineJoin = 'miter';
     ctx.beginPath(); ctx.moveTo(x1, L.gy); ctx.lineTo(x1b, box); ctx.lineTo(x2b, box); ctx.lineTo(x2, L.gy); ctx.stroke();
@@ -627,12 +730,13 @@ const Pens = {
     const gk = this.goalie(P), k = (1.9 * L.s) / 68;
     const flying = P.phase === 'flight' || P.phase === 'after' || (P.net && P.phase === 'runup' && P.dive);
     const tt = P.phase === 'flight' ? P.t : P.phase === 'after' ? P.shot.T + P.t : P.phase === 'runup' ? P.t : 0;
-    const K = flying && P.dive ? PEN.keeper(P.dive, 0, tt) : null;
+    const kx = P.kx || 0;
+    const K = flying && P.dive ? PEN.keeper(P.dive, kx, tt) : null;
     gk.fy = 1; gk.fx = 0; gk.faceX = 0.001;
     if (!K || (K.s <= 0 && P.dive && tt < P.dive.td)) {
       // ready on the line, bouncing on their toes
       gk.diveT = 0;
-      const feet = this.gp(L, 0, 0);
+      const feet = this.gp(L, kx, 0);
       Sprites.player(ctx, gk, feet.x, feet.y - Math.abs(Math.sin(t * 5)) * L.s * 0.04, k, t);
       return;
     }
@@ -656,10 +760,18 @@ const Pens = {
     const s = P.shot, g = this.gp(L, s.x, s.z), rg = 0.11 * L.s;
     if (P.phase === 'flight') {
       const u = clamp(P.t / s.T, 0, 1), k = 1.6, e = (u * (1 + k)) / (1 + k * u);
+      if (s.fk) { const p = this.along(L, s, u); return { x: p.x, y: p.y, r: p.r, spin: u * 12, u }; }
       return { x: lerp(L.spot.x, g.x, e), y: lerp(L.spot.y, g.y, e), r: 1 / lerp(1 / spotR, 1 / rg, u), spin: u * 12 };
     }
     if (P.phase !== 'after') return null;
     const a = P.t, res = P.result;
+    if (res === 'wall') {
+      // off the wall and back towards us, bouncing, drawn in front of the wall
+      const f = PEN.FK.AT / PEN.FK.DIST, w = this.along(L, s, f), u = clamp(a / 1.0, 0, 1);
+      const side = (P.after && P.after.side) || 1, ground = lerp(w.y + w.r * 3, L.spot.y - L.s * L.near * 0.4, u);
+      const hop = Math.abs(Math.sin(u * Math.PI * 2)) * L.s * L.near * 0.5 * (1 - u);
+      return { x: w.x + side * L.gw * 0.4 * u, y: lerp(w.y, ground, Math.min(1, u * 2.5)) - hop, r: w.r * lerp(1, 1.5, u), spin: 12 + u * 8, u: 0, onGround: u > 0.4 && hop < w.r * 0.3 };
+    }
     if (res === 'goal' || res === 'postIn' || res === 'barIn') {
       // into the net, then it drops
       const u = clamp(a / 0.18, 0, 1), fall = clamp((a - 0.18) / 0.5, 0, 1);
@@ -681,6 +793,26 @@ const Pens = {
     const groundY = lerp(L.gy, L.spot.y, u * 0.7);
     const arc = Math.abs(Math.sin(u * Math.PI * 1.5)) * L.gh * 0.5 * (1 - u);
     return { x, y: lerp(g.y, groundY, Math.min(1, u * 2.2)) - arc, r: rg * lerp(1, 1.6, u), spin: 12 + u * 8, onGround: u * 2.2 >= 1 && arc < rg * 0.2 };
+  },
+
+  // four of the defending side, 9.15 m from the ball, across the side of the goal they cover; on a
+  // jump they go up as the ball is struck
+  drawWall(ctx, L, P, t) {
+    if (!P.wallMen || !P.wall) return;
+    const f = PEN.FK.AT / PEN.FK.DIST, d = this.depth(L, f), side = P.wall.side;
+    const k = (1.9 * d.pm) / 68, ground = lerp(L.spot.y, L.gy, d.e);
+    const since = P.phase === 'flight' ? P.t : P.phase === 'after' ? PEN.flightT(P.shot) + P.t : -1;
+    const hop = P.wall.jump && since >= 0 ? Math.sin(clamp(since / 0.55, 0, 1) * Math.PI) * 0.42 * d.pm : 0;
+    // across the covered side, in goal-plane metres, seen from the ball
+    const a = side > 0 ? PEN.FK.NEAR + 0.25 : -(PEN.HW + 0.35), b = side > 0 ? PEN.HW + 0.35 : -(PEN.FK.NEAR + 0.25);
+    const n = P.wallMen.length;
+    for (let i = 0; i < n; i++) {
+      const gx = a + ((i + 0.5) / n) * (b - a);
+      const x = lerp(L.spot.x, L.gx + gx * L.s, d.e);
+      const man = P.wallMen[i];
+      man.fy = 1; man.fx = 0; man.faceX = 0.001; man.vx = 0; man.vy = 0;
+      Sprites.player(ctx, man, x, ground - hop, k, t + i * 0.37);
+    }
   },
 
   drawBall(ctx, bp, t) {
@@ -755,7 +887,7 @@ const Pens = {
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.55); ctx.scale(z, z);
       if (chal) Render.chunkyText(ctx, P.chal.id === 'targets' ? 'HIT A TARGET' : 'SAVE IT!', 0, 0, big, P.chal.id === 'targets' ? '#ffe14d' : '#46d9ff');
       else {
-      const mine = P.watch ? `${P.watchName || 'THEY'} KICKS` : 'YOUR KICK';
+      const mine = P.watch ? `${P.watchName || 'THEY'} KICKS` : P.fk ? 'YOUR FREE KICK' : 'YOUR KICK';
       const shout = this.sudden(P) && P.team === P.first ? 'SUDDEN DEATH' : P.team === 'blue' ? mine : P.watch ? `${TEAMS.red.name} KICK` : 'SAVE IT!';
       if (P.phase === 'start') Render.chunkyText(ctx, P.first === 'blue' ? (P.watch ? mine + ' FIRST' : 'YOU KICK FIRST') : `${TEAMS.red.name} KICK FIRST`, 0, -big * 0.8, big * 0.55 * this.fit(mine + ' FIRST', 17), '#ffffff');
       const sh = big * this.fit(shout, 12), sw = sh * 0.56 * shout.length;
@@ -822,7 +954,7 @@ const Pens = {
     if (P.phase === 'end' && !chal) {
       const u = clamp(P.t / 0.35, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.5); ctx.scale(z, z);
-      const won = P.watch ? `${P.watchName || 'THEY'} WINS IT!` : 'YOU WIN THE SHOOTOUT!';
+      const won = P.watch ? `${P.watchName || 'THEY'} WINS IT!` : P.fk ? 'YOU WIN THE FREE KICKS!' : 'YOU WIN THE SHOOTOUT!';
       Render.chunkyText(ctx, P.winner === 'blue' ? won : `${TEAMS.red.name} WIN IT`, 0, 0, big * 0.8, P.winner === 'blue' ? '#ffe14d' : '#ffffff');
       ctx.restore();
     }
@@ -830,6 +962,7 @@ const Pens = {
     const kb = document.body.classList.contains('kb');
     let hint = null;
     if (P.watch) hint = null; // nobody tells a viewer to press anything
+    else if (P.phase === 'aim' && P.fk && !P.holding) hint = 'SOFT AND HIGH GOES OVER THE WALL  ·  HARD GOES ROUND IT';
     else if (P.phase === 'aim') hint = P.holding ? 'LET GO TO SHOOT' : kb ? 'AIM: WASD OR MOUSE  ·  HOLD SPACE OR CLICK FOR POWER' : 'AIM WITH THE STICK  ·  HOLD SHOOT FOR POWER';
     else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? 'WATCH THE KICK  ·  WASD + SPACE TO DIVE' : 'WATCH THE KICK  ·  STICK + DIVE';
     if (hint) {
@@ -859,7 +992,7 @@ const Pens = {
   mouseAim(e) {
     const m = Game.match;
     if (!m || !m.pens || m.pens.phase !== 'aim' || e.pointerType !== 'mouse') return;
-    const L = this.layout(Render.W, Render.H);
+    const L = this.layout(Render.W, Render.H, !!m.pens.fk);
     const x = (e.clientX - L.gx) / L.s / PEN.HW, z = (L.gy - e.clientY) / L.s / PEN.HT;
     if (x < -1.6 || x > 1.6 || z < -0.4 || z > 1.8) return;
     m.pens.mouse = { x: clamp(x, -1.08, 1.08), z: clamp(z, 0.03, 1.1) };

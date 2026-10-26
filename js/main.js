@@ -108,7 +108,7 @@ const Game = {
     UI.closeAll();
     const pens = opts.mode === 'pens';
     this.match = Match.create({ mode: opts.mode, club, format: pens ? '1v1' : opts.format || Save.data.format });
-    if (pens) Pens.init(this.match);
+    if (pens) Pens.init(this.match, !!opts.fk);   // opts.fk: free kicks rather than penalties
     $('hud').classList.toggle('pens', pens);
     Render.updateCamera(this.match, 0, true);
     this.acc = 0;

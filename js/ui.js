@@ -71,7 +71,7 @@ const UI = {
     $('howto-ok').addEventListener('click', () => { this.tap(); this.closeHowTo(); });
     $('rotate-dismiss').addEventListener('click', () => { this.rotateDismissed = true; this.checkRotate(); });
     ['p-sound', 'p-music', 'p-vibe'].forEach((id) => $(id).addEventListener('click', () => this.quickToggle(id)));
-    window.addEventListener('resize', () => { this.checkRotate(); this.measureHome(); this.measureHud(); });
+    window.addEventListener('resize', () => { this.checkRotate(); this.measureHome(); this.measureHud(); this.applyHands(); });
     window.addEventListener('keydown', (e) => {
       if (e.target && e.target.tagName === 'INPUT') return;
       if (Game.state === 'intro' && (e.key === 'Enter' || e.key === ' ') && !(Game.match && Game.match.net)) { e.preventDefault(); Game.kickOff(); }
@@ -548,7 +548,7 @@ const UI = {
   showQueue(msg) {
     this.closeAll();
     $('queue').hidden = false;
-    $('q-format').textContent = msg.format === 'ranked' ? 'RANKED · 1v1' : msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? 'PENALTY WORLD CUP' : 'WORLD CUP'} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : 'ONLINE · ' + msg.format;
+    $('q-format').textContent = msg.format === 'ranked' ? 'RANKED · 1v1' : msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? 'PENALTY WORLD CUP' : 'WORLD CUP'} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : 'ONLINE · ' + (msg.format === 'fk' ? 'FREE KICKS' : msg.format === 'pens' ? 'PENALTIES' : msg.format);
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
     $('q-note').textContent = 'Searching… 0:00';
@@ -565,8 +565,8 @@ const UI = {
     this.closeAll();
     $('lobby').hidden = false;
     $('lb-code').textContent = msg.code;
-    const size = { 'pens': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
-    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['pens', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
+    const size = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
+    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['pens', 'fk', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
     $('lb-formats').querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.format', format: b.dataset.f }); }));
     const side = (team, el) => {
       const list = msg.players.filter((p) => p.team === team);
@@ -693,7 +693,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? 'PENALTY SHOOTOUT · 5 KICKS EACH' : m.net ? (m.ranked ? 'RANKED · 1v1' : m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.pens.fk ? 'FREE KICKS · 5 EACH, OVER OR ROUND THE WALL' : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.ranked ? 'RANKED · 1v1' : m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -823,6 +823,24 @@ const UI = {
     const mode = Save.data.settings.controls || 'auto';
     const kb = mode === 'keyboard' || (mode === 'auto' && !this.isTouch());
     document.body.classList.toggle('kb', kb);
+    this.applyHands();
+  },
+
+  // LEFT-HANDED (Settings → HANDED): the stick on the right, the buttons on the left. Where each
+  // button sits changes from one screen size to the next (style.css has a rule for each), so rather
+  // than a second copy of every rule, each one is read where the stylesheet put it and mirrored.
+  // Runs whenever a screen is shown and when the window changes size.
+  HAND_IDS: ['joy-base', 'btn-pass', 'btn-shoot', 'btn-skill', 'btn-sprint', 'btn-ult'],
+  applyHands() {
+    const lefty = !!(Save.data && Save.data.settings && Save.data.settings.lefty);
+    document.body.classList.toggle('lefty', lefty);
+    const hud = $('hud'), els = this.HAND_IDS.map((id) => $(id)).filter(Boolean);
+    for (const el of els) { el.style.left = ''; el.style.right = ''; }
+    if (!lefty || !hud || hud.hidden) return;
+    const W = hud.clientWidth;
+    // read every one first, then move them, so one move cannot change what the next one reads
+    const spots = els.filter((el) => el.offsetParent === hud).map((el) => ({ el, from: W - el.offsetLeft - el.offsetWidth }));
+    for (const s of spots) { s.el.style.left = s.from + 'px'; s.el.style.right = 'auto'; }
   },
 
   togglePause() {
@@ -982,7 +1000,8 @@ const UI = {
 
     // cup progress + what the big button does next
     const cupBox = $('r-cup');
-    this._againMode = pens ? 'pens' : 'quick';
+    const fk = !!(m.pens && m.pens.fk);
+    this._againMode = pens ? (fk ? 'fk' : 'pens') : 'quick';
     if (m.mode === 'cup') {
       const c = Save.data.cup;
       cupBox.hidden = false;
@@ -996,7 +1015,7 @@ const UI = {
       if (cupResult === 'champion') Trophy.show({ title: 'CUP WINNERS!', sub: 'BOT WORLD CUP · +300 COINS', club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
-      this._againMode = pens ? (m.net ? 'onlinepens' : 'pens') : 'quick';
+      this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : 'quick';
       $('r-again').textContent = 'PLAY AGAIN';
     }
     $('results').hidden = false;
@@ -1144,6 +1163,8 @@ const UI = {
     else if (this._againMode === 'newcup') { Cup.start(); Game.startMatch({ mode: 'cup' }); }
     else if (this._againMode === 'pens') Game.startMatch({ mode: 'pens', club: Clubs.random(Clubs.mine(), previous) });
     else if (this._againMode === 'onlinepens') { Game.goHome(); Online.m = null; Online.findMatch('pens'); }
+    else if (this._againMode === 'fk') Game.startMatch({ mode: 'pens', fk: true, club: Clubs.random(Clubs.mine(), previous) });
+    else if (this._againMode === 'onlinefk') { Game.goHome(); Online.m = null; Online.findMatch('fk'); }
     else Game.startMatch({ mode: 'quick', format: (Game.match && Game.match.format) || Save.data.format, club: Clubs.random(Clubs.mine(), previous) });
   },
 };
