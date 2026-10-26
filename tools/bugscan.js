@@ -669,6 +669,7 @@ window.BS = {
     const line = (what) => {
       const c = $('commentary');
       if (Game.match && Game.match.pens) { c.classList.remove('show', 'big'); return; } // a shootout says it on the pitch
+      if (UI.placeCommentary) UI.placeCommentary(); // where the game would put it
       c.classList.add('show'); c.classList.toggle('big', what === 'big');
       $('commentary-line').textContent = what === 'big' ? 'WHAT A BALL THROUGH THE MIDDLE — HE IS CLEAN THROUGH ON GOAL!' : 'Clean as a whistle and twice as loud.';
     };

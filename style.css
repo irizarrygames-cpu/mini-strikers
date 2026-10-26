@@ -2074,3 +2074,16 @@ body.kb .chat-menu kbd { display: inline-block; }
 /* left-handed: the stick's half of the screen is the right one (the buttons and the stick are
    moved by UI.applyHands, which reads where this sheet puts them and mirrors it) */
 body.lefty #touch-zone { left: 50%; }
+
+/* ===== A SMALLER SCOREBOARD, AND THE COMMENTARY ALONG THE BOTTOM (build 106) =====
+   On phones and iPads the scoreboard, with the commentary hanging under it, covered the top middle
+   of the pitch. The scoreboard is about two-thirds of its old size (the shootout tally card and the
+   skill challenge boards on the canvas too), and the commentary goes along the bottom between the
+   stick and the buttons wherever there is room: UI.placeCommentary adds .low and sets the width. */
+#scoreboard {
+  height: clamp(28px, 7.6vmin, 42px); border-radius: 11px; box-shadow: 0 3px 0 var(--ink);
+  font-size: clamp(12px, min(5.2vmin, calc((100vw - 2 * var(--sl) - 120px) / 10.6)), 27px);
+}
+.sb-ball { border-width: 2px; }
+.commentary.low { top: auto; bottom: var(--sb); transform: translate(-50%, 8px) scale(.98); }
+.commentary.low.show { transform: translate(-50%, 0) scale(1); }

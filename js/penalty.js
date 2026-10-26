@@ -849,7 +849,7 @@ const Pens = {
     // tally: a row of five for each side (sudden death shows the latest)
     const chal = !!P.chal;
     const n = Math.max(5, P.kicks.blue.length, P.kicks.red.length), from = Math.max(0, n - 5);
-    const dot = clamp(H * 0.028, 9, 15), gap = dot * 2.7, rowH = dot * 2.6;
+    const dot = clamp(H * 0.02, 7, 11), gap = dot * 2.7, rowH = dot * 2.6;
     const pw = gap * 5 + dot * 7.5, ph = rowH * 2 + dot * 0.8, px = W / 2 - pw / 2;
     let py = 10;
     // on a narrow screen the card is nearly the full width, so the pause button would sit on it:

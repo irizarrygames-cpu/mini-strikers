@@ -797,9 +797,12 @@ const Render = {
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     this.chunkyText(ctx, 'REPLAY', x0 + size * 0.75, y, size, '#ffffff');
+    const repR = x0 + size * 0.85 + ctx.measureText('REPLAY').width;
     ctx.textAlign = 'right';
-    const kb = document.body.classList.contains('kb');
-    this.chunkyText(ctx, kb ? 'PRESS SPACE TO SKIP' : 'TAP TO SKIP', W - x0, y, size * 0.55, '#ffe14d');
+    const kb = document.body.classList.contains('kb'), skip = kb ? 'PRESS SPACE TO SKIP' : 'TAP TO SKIP';
+    this.chunkyText(ctx, skip, W - x0, y, size * 0.55, '#ffe14d');
+    // where those words are, so the commentary along the bottom can keep out of their way
+    this.replayBoxes = [[0, H - bar, repR, H], [W - x0 - size * 0.1 - ctx.measureText(skip).width, H - bar, W, H]];
     const rp = m.replay;
     if (rp && m.rec && m.rec.frames.length) {
       const span = rp.t1 - rp.t0;

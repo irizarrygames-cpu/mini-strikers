@@ -276,7 +276,7 @@ const SkillRun = {
       }
     }
     // the scoreline at the top, where the shootout keeps its tally: name on top, score and kick under
-    const big = clamp(Math.min(L.W, L.H) * 0.05, 14, 26), small = big * 0.62;
+    const big = clamp(Math.min(L.W, L.H) * 0.038, 12, 20), small = big * 0.62;
     const score = `${P.chal.score} ${ch.unit}`, kick = `KICK ${Math.min(P.chal.total, P.chal.kicks + 1)}/${P.chal.total}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `400 ${big}px "Lilita One", system-ui, sans-serif`;
@@ -298,7 +298,7 @@ const SkillRun = {
   drawGauntlet(ctx, m) {
     const c = m.challenge;
     if (!c) return;
-    const W = Render.W, big = clamp(Math.min(W, Render.H) * 0.07, 18, 34);
+    const W = Render.W, big = clamp(Math.min(W, Render.H) * 0.05, 14, 24);
     ctx.setTransform(Render.dpr, 0, 0, Render.dpr, 0, 0);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const txt = `${c.t.toFixed(1)}s`;

@@ -225,6 +225,43 @@ const UI = {
       if (box) mini = Math.round(box.mw + 26);
     }
     root.setProperty('--mini-w', mini + 'px');
+    this.placeCommentary();
+  },
+
+  // The commentary goes along the bottom, in the gap between the stick and the buttons, where it
+  // covers the least of the game (under the scoreboard it sat over the top of the pitch, and on a
+  // phone or an iPad that was in the way). Where the gap is too narrow (an upright phone) or
+  // something sits across the middle of it (the key legend on a computer, the WATCHING bar) it goes
+  // back up under the scoreboard. Worked out again each time a line is shown, so it follows the
+  // controls: left-handed, hidden for a replay, a new screen size.
+  COM_AROUND: ['#joy-base', '#hud .action', '#btn-ult', '#kb-legend', '#watch-bar', '#chat-feed', '#chat-menu', '#btn-chat', '#tip'],
+  COM_TALL: 52,   // the most a caption stands, two lines of a big one and its LIVE COMMENTARY tab
+  COM_ROOM: 180,  // the narrowest it may be down there
+  placeCommentary() {
+    const el = $('commentary');
+    if (!el) return;
+    el.style.width = '';
+    el.classList.add('low');
+    const W = window.innerWidth, mid = W / 2;
+    const bottom = window.innerHeight - (parseFloat(getComputedStyle(el).bottom) || 14), top = bottom - this.COM_TALL;
+    let left = 0, right = W, across = false;
+    const meet = (l, t, r, b) => {
+      if (r - l < 2 || b - t < 2 || t >= bottom || b <= top) return;
+      if (l < mid && r > mid) across = true;
+      else if (r <= mid) left = Math.max(left, r);
+      else right = Math.min(right, l);
+    };
+    for (const q of this.COM_AROUND) for (const e of document.querySelectorAll(q)) {
+      if (e.hidden || e.closest('[hidden]') || getComputedStyle(e).visibility === 'hidden') continue;
+      const b = e.getBoundingClientRect();
+      meet(b.left, b.top, b.right, b.bottom);
+    }
+    // a goal replay writes REPLAY and TAP TO SKIP along the bottom
+    const hud = $('hud');
+    if (hud && hud.classList.contains('replaying') && Render.replayBoxes) for (const b of Render.replayBoxes) meet(...b);
+    const w = Math.min(560, 2 * (Math.min(mid - left, right - mid) - 10));
+    if (across || w < this.COM_ROOM) { el.classList.remove('low'); return; }
+    el.style.width = Math.floor(w) + 'px';
   },
 
   refreshHome() {

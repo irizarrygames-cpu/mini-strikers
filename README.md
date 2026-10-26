@@ -207,6 +207,18 @@ Tests: `node tools/safetyscan.js` (recovery codes, reports, bans, against a real
 Test: `node tools/fkscan.js` (how often each kind of free kick goes in, offline and online agreeing,
 3000 online shootouts finishing, and an online free-kick match on the real server).
 
+## A smaller scoreboard, commentary along the bottom (build 106)
+
+On phones and iPads the scoreboard, with the commentary hanging under it, covered the top middle of
+the pitch. The scoreboard is now about two-thirds of its old size (`#scoreboard` at the end of
+style.css), and so are the shootout's tally card (`dot` in `Pens.drawOverlay`) and the skill
+challenge boards. The commentary goes along the bottom, in the gap between the stick and the
+buttons: `UI.placeCommentary` measures that gap each time a line is shown (so it follows left-handed
+controls, a replay's REPLAY / TAP TO SKIP words, and every screen size) and adds `.low`. Where the gap
+is under 180px (an upright phone) or something sits across the middle of it (the key legend on a
+small computer screen, the WATCHING bar) the caption stays under the scoreboard as before. Checked
+with `BS.fitSweep` (touch and keyboard) at phone, iPad and computer sizes.
+
 ## Tools
 
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).

@@ -77,6 +77,7 @@ const Commentary = {
     this.typing = typed ? text : null;
     clearInterval(this.typeTimer); clearTimeout(this.hideTimer);
     const token = ++this.captionToken;
+    if (typeof UI !== 'undefined' && UI.placeCommentary) UI.placeCommentary(); // along the bottom if there is room
     el.classList.toggle('big', priority >= 3); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
     if (!typed) line.textContent = text;
     else {
