@@ -236,6 +236,21 @@ Test (browser): `tools/camscan.js`, `CS.run()` at a window size, or `CS.run(othe
 you and the ball at hundreds of distances apart all over the pitch. With the old camera you were off
 the screen 47-70% of the time at every size; with this one, 0%.
 
+## Two-minute matches, and controls that do what you pressed (build 108)
+
+- **Every match is two minutes**, offline and online: `CFG.MATCH_MINUTES` (js/config.js) and
+  `MATCH_MINUTES` (server/game.js). Settings no longer offers 2 / 3 / 4; an old save's choice is ignored.
+- **SPRINT on a touch screen: tap it to keep sprinting** (`Input.sprintLock`), so the thumb is free for
+  SHOOT and PASS (it used to be a hold, on the same thumb as them). Holding it is still the ordinary
+  sprint; another tap, letting go of the stick, or a long hold ends the lock. Locked, the button stays
+  pressed in with a yellow ring.
+- **A press a moment early still counts.** PASS pressed while the ball is on its way to you goes as
+  soon as it is yours (it used to do nothing; SHOOT already worked this way). SKILL pressed while your
+  own side's pass is on its way does the skill when it arrives instead of slide-tackling at it
+  (`passComing` in js/entities.js), and the button says SKILL, not TACKLE, while the pass comes.
+
+Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
+
 ## Tools
 
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).

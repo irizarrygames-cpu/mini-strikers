@@ -18,6 +18,12 @@ const Input = {
   keys: new Set(),
   shootHeld: false,
   sprintHeld: false,
+  // Touch: a tap on SPRINT keeps you sprinting, so the thumb it took is free for SHOOT and PASS.
+  // Another tap, letting go of the stick, or a long hold (which is the ordinary sprint) ends it.
+  sprintLock: false,
+  SPRINT_TAP: 0.25,
+  _sprintDownAt: 0,
+  _sprintWasLocked: false,
   passHeld: false,
   lastDevice: 'touch',
   _passQueued: false,
@@ -53,7 +59,7 @@ const Input = {
     this._tapButton(this.btnSkill, () => { this._skillQueued = true; });
     if (this.btnUlt) this._tapButton(this.btnUlt, () => { this._ultQueued = true; });
     this._holdButton(this.btnShoot, 'shoot');
-    this._holdButton(this.btnSprint, 'sprint');
+    this._sprintButton(this.btnSprint);
 
     const typing = (e) => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
     window.addEventListener('keydown', (e) => {
@@ -137,8 +143,32 @@ const Input = {
     btn.addEventListener('lostpointercapture', up);
   },
 
+  // SPRINT: held, it is the ordinary sprint; a tap (under SPRINT_TAP seconds) locks it on, or off
+  // again if it was on
+  _sprintButton(btn) {
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      Sound.unlock();
+      this.lastDevice = 'touch';
+      try { btn.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      this._holds.sprint.add(e.pointerId);
+      this._sprintDownAt = performance.now();
+      this._sprintWasLocked = this.sprintLock;
+      this._syncHold('sprint');
+    });
+    const up = (e) => {
+      if (!this._holds.sprint.delete(e.pointerId)) return;
+      const tap = performance.now() - this._sprintDownAt < this.SPRINT_TAP * 1000;
+      this.sprintLock = tap && !this._sprintWasLocked;
+      this._syncHold('sprint');
+    };
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointercancel', up);
+    btn.addEventListener('lostpointercapture', up);
+  },
+
   _syncHold(name) {
-    const down = this._holds[name].size > 0 || this._keyHold[name] || (name === 'shoot' && this._mouseShoot) || (name === 'pass' && this._mousePass);
+    const down = this._holds[name].size > 0 || this._keyHold[name] || (name === 'shoot' && this._mouseShoot) || (name === 'pass' && this._mousePass) || (name === 'sprint' && this.sprintLock);
     if (name === 'pass') {
       if (down === this.passHeld) return;
       this.passHeld = down;
@@ -154,6 +184,7 @@ const Input = {
     } else {
       this.sprintHeld = down;
       this.btnSprint.classList.toggle('down', down);
+      this.btnSprint.classList.toggle('locked', this.sprintLock);
     }
   },
 
@@ -204,6 +235,7 @@ const Input = {
     if (e.pointerId !== this._joyId) return;
     this._joyId = null;
     this.stick.x = 0; this.stick.y = 0;
+    if (this.sprintLock) { this.sprintLock = false; this._syncHold('sprint'); } // let go of the stick: the sprint stops
     this.knob.style.transform = 'translate(-50%, -50%)';
     this.base.style.transform = '';
     this.base.classList.remove('active');
@@ -238,8 +270,8 @@ const Input = {
     this._shootPressed = false; this._shootReleased = false; this._passPressed = false;
     this._holds.shoot.clear(); this._holds.sprint.clear(); this._holds.pass.clear();
     this._keyHold.shoot = false; this._keyHold.sprint = false; this._keyHold.pass = false; this._mouseShoot = false; this._mousePass = false;
-    this.shootHeld = false; this.sprintHeld = false; this.passHeld = false;
-    for (const b of [this.btnShoot, this.btnPass, this.btnSkill, this.btnSprint, this.btnUlt]) if (b) b.classList.remove('down');
+    this.shootHeld = false; this.sprintHeld = false; this.passHeld = false; this.sprintLock = false;
+    for (const b of [this.btnShoot, this.btnPass, this.btnSkill, this.btnSprint, this.btnUlt]) if (b) b.classList.remove('down', 'locked');
     if (this._joyId !== null) this._joyUp({ pointerId: this._joyId });
     this.stick.x = 0; this.stick.y = 0; this.move.x = 0; this.move.y = 0;
   },

@@ -595,6 +595,17 @@ function addMeter(m, p, amt) {
   }
 }
 
+// A pass from your own side on its way to you. SKILL waits for it rather than lunging at it, and
+// the button says SKILL, not TACKLE, while it comes.
+function passComing(m, p) {
+  const b = m.ball;
+  if (b.owner || b.shot || b.lastTouchTeam !== p.team) return false;
+  const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy), v = Math.hypot(b.vx, b.vy);
+  if (d > 600 || v < 40) return false;
+  if (b.lastPass && b.lastPass.target === p) return true;
+  return d < 220 && (b.vx * dx + b.vy * dy) / (d * v) > 0.8;
+}
+
 // ===== Pass =========================================================
 function laneBlocked(m, team, x1, y1, x2, y2, width) {
   const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy || 1;

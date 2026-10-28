@@ -30,7 +30,7 @@ const Tutorial = {
       move: kb ? `${move} to run. You always control the player nearest the ball.`
         : `Drag ${move} to run. You always control the player nearest the ball.`,
       sprint: kb ? `Hold ${k('SHIFT')} to sprint. It empties the bar above your head, and an empty bar leaves you jogging.`
-        : `Hold ${btn('SPRINT')} to run faster. It empties the bar above your head, and an empty bar leaves you jogging.`,
+        : `Hold ${btn('SPRINT')} to run faster, or tap it to keep sprinting with your thumb free. It empties the bar above your head, and an empty bar leaves you jogging.`,
       pass: kb ? `${k('E')} passes to the team-mate you are facing. Hold it for a harder ball through the gap.`
         : `Tap ${btn('PASS')} to the team-mate you are facing. Hold it for a harder ball through the gap.`,
       shoot: kb ? `Hold ${k('SPACE')} to charge, let go to shoot. The longer you hold, the harder it goes.`

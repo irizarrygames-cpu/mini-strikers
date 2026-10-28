@@ -1261,7 +1261,6 @@ Object.assign(UI, {
       <div class="set"><span>VIBRATION</span>${seg('vibration', [[true, 'ON'], [false, 'OFF']])}</div>
       <div class="set"><span>COMMENTARY</span>${seg('commentary', [[true, 'ON'], [false, 'OFF']])}</div>
       <div class="set"><span>DIFFICULTY</span>${seg('difficulty', [['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']])}</div>
-      <div class="set"><span>MATCH</span>${seg('minutes', [[2, '2 MIN'], [3, '3 MIN'], [4, '4 MIN']])}</div>
       <div class="set"><span>MINIMAP</span>${seg('minimap', [[true, 'ON'], [false, 'OFF']])}</div>
       <div class="set"><span>REPLAYS</span>${seg('replays', [[true, 'ON'], [false, 'OFF']])}</div>
       <div class="set"><span>GRAPHICS</span>${seg('graphics', [['auto', 'AUTO'], ['high', 'HIGH'], ['low', 'LOW']])}</div>
@@ -1346,7 +1345,6 @@ Object.assign(UI, {
       const key = g.dataset.key;
       let v = b.dataset.v;
       if (key === 'vibration' || key === 'minimap' || key === 'replays' || key === 'commentary' || key === 'lefty') v = v === 'true';
-      if (key === 'minutes') v = parseInt(v, 10);
       s[key] = v; Save.write(); this.tap();
       g.querySelectorAll('button').forEach((x) => x.classList.toggle('sel', x === b));
       if (key === 'graphics') { Render.quality = 0; Render.resize(); }
@@ -1411,6 +1409,7 @@ Object.assign(UI, {
         <li>Any skill makes tackles miss for a moment</li>
         <li>TACKLE near the carrier to lunge and steal it</li>
         <li>Sprint drains stamina — empty means wait</li>
+        <li>Phone: tap SPRINT to keep sprinting, tap again to stop</li>
       </ul></div>
     </div>`;
   },

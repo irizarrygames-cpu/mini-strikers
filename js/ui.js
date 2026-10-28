@@ -804,7 +804,7 @@ const UI = {
     // the long ult cutscene plays with the world nearly still: the controls get out of its way
     const cut = !!(m.ultCut && !m.ultCut.short);
     if (this._cut !== cut) { $('hud').classList.toggle('cutscene', cut); this._cut = cut; }
-    const h = m.human, has = m.ball.owner === h;
+    const h = m.human, has = m.ball.owner === h || passComing(m, h); // a pass on its way to you: SKILL, not TACKLE
     $('btn-pass').classList.toggle('call', !has && !!m.ball.owner && m.ball.owner.team === 'blue');
 
     const ult = $('btn-ult');

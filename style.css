@@ -2087,3 +2087,8 @@ body.lefty #touch-zone { left: 50%; }
 .sb-ball { border-width: 2px; }
 .commentary.low { top: auto; bottom: var(--sb); transform: translate(-50%, 8px) scale(.98); }
 .commentary.low.show { transform: translate(-50%, 0) scale(1); }
+
+/* ===== SPRINT LOCKED ON (build 108) =====
+   On a touch screen a tap on SPRINT keeps you sprinting (Input.sprintLock): it stays pressed in,
+   with a solid yellow ring round it, until another tap or you let go of the stick. */
+.action.sprint.locked .face { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink), 0 0 0 4px var(--yellow); }

@@ -33,6 +33,7 @@ const CFG = {
   HUMAN_ACCEL: 22,
   HUMAN_DECEL: 28,
   STEP: 1 / 120,
+  MATCH_MINUTES: 2,  // every match, offline and online (server/game.js MATCH_MINUTES says the same)
 
   BALL_FRICTION: 0.78,
   BALL_AIR_DRAG: 0.2,

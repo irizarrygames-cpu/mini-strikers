@@ -27,7 +27,7 @@ const PARTY_INVITE_MS = 60000;      // an invite you don't answer runs out
 const CHALLENGE_INVITE_MS = 60000;
 const PARTY_OFFLINE_MS = 60000;     // someone whose game closed keeps their party spot this long
 const CHAT_GAP_MS = 1200, CHAT_BURST = 5, CHAT_BURST_MS = 10000; // quick chat: one at a time, five in any 10s
-const MATCH_MINUTES = 3;
+const MATCH_MINUTES = 2;            // every match is two minutes: CFG.MATCH_MINUTES in js/config.js
 // 'pens' and 'fk' (free kicks) are both one-a-side shootouts, run by server/pens.js
 const FORMAT_SIZE = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
 const SHOOTOUT = (format) => format === 'pens' || format === 'fk';

@@ -2,7 +2,7 @@
 const COIN_MULT = { easy: 0.8, normal: 1, hard: 1.3 };
 const Match = {
   create(opts = {}) {
-    const minutes = opts.minutes || Save.data.settings.minutes || 3;
+    const minutes = opts.minutes || CFG.MATCH_MINUTES;
     const home = opts.home || Clubs.mine();
     const club = opts.club || Clubs.random(home);
     if (!Game.headless) Clubs.setMatch(home, club);
@@ -240,6 +240,7 @@ const Match = {
       if (I.aim) I.aim = null;
       if (h.charging) { h.charging = false; Sound.chargeStop(); }
       h.mx = 0; h.my = 0; h.sprinting = false;
+      h.bufferT = 0; h.passBufferT = 0; h.skillBufferT = 0;
     }
   },
 
@@ -263,7 +264,12 @@ const Match = {
       const nearLoose = h.input && !b.owner && dist(h.x, h.y, b.x, b.y) < 44 && b.z < 30 && h.stunT <= 0 && h.noPickupT <= 0 && !(b.shot && b.shot.ult);
       if (b.owner === h) performSkill(m, h, aim.x, aim.y);
       else if (nearLoose) { takePossession(m, h); performSkill(m, h, aim.x, aim.y); }
+      else if (passComing(m, h)) h.skillBufferT = 0.4; // your own pass on its way: the skill, when it gets here
       else performSlide(m, h, aim.x, aim.y);
+    }
+    if (h.skillBufferT > 0) {
+      h.skillBufferT -= dt;
+      if (b.owner === h) { h.skillBufferT = 0; performSkill(m, h, aim.x, aim.y); }
     }
     if (I.consumeSlide() && b.owner !== h) performSlide(m, h, aim.x, aim.y);
 
@@ -281,6 +287,12 @@ const Match = {
       if (b.owner === h) performPass(m, h, amag > 0.1 ? aim.x : h.fx, amag > 0.1 ? aim.y : h.fy, null, charge);
       else if (nearLoose) { takePossession(m, h); performPass(m, h, amag > 0.1 ? aim.x : h.fx, amag > 0.1 ? aim.y : h.fy, null, charge); }
       else if (b.owner && b.owner.team === h.team && !b.owner.isKeeper && !b.owner.isHuman) { h.passRequestT = 0.6; FX.ring(h.x, h.y, '#ffffff', 10, 34, 0.35, 3); }
+      // pressed a moment before the ball gets to you: it goes as soon as you have it, as a shot does
+      else { h.passBufferT = 0.3; h.passBufferCharge = charge; }
+    }
+    if (h.passBufferT > 0) {
+      h.passBufferT -= dt;
+      if (b.owner === h) { h.passBufferT = 0; performPass(m, h, amag > 0.1 ? aim.x : h.fx, amag > 0.1 ? aim.y : h.fy, null, h.passBufferCharge || 0); }
     }
 
     if (I.consumeShootPress()) {
@@ -541,7 +553,7 @@ const Sim = {
     Game.headless = true;
     const out = { matches: n, blue: 0, red: 0, shots: 0, saves: 0, passes: 0, steals: 0, draws: 0, overtime: 0, zeroZero: 0, perTeam: [] };
     for (let i = 0; i < n; i++) {
-      const m = Match.create({ autopilot: true, minutes: opts.minutes || 3, club: opts.club, format: opts.format });
+      const m = Match.create({ autopilot: true, minutes: opts.minutes || CFG.MATCH_MINUTES, club: opts.club, format: opts.format });
       let steps = 0;
       while (m.phase !== 'over' && steps < 200000) { Match.step(m, CFG.STEP); steps++; }
       out.blue += m.score.blue; out.red += m.score.red;

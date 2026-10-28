@@ -30,7 +30,7 @@ const Save = {
       achievements: {},
       daily: { last: null, streak: 0 },
       challenges: {},
-      settings: { music: 0.5, sfx: 0.85, vibration: true, difficulty: 'normal', minutes: 3, graphics: 'auto', controls: 'auto', lefty: false, minimap: true, replays: true, chatMute: false, commentary: true },
+      settings: { music: 0.5, sfx: 0.85, vibration: true, difficulty: 'normal', graphics: 'auto', controls: 'auto', lefty: false, minimap: true, replays: true, chatMute: false, commentary: true },
     };
   },
   key() { return this.account ? STORAGE_KEY + '.' + this.account.toLowerCase() : STORAGE_KEY; },
