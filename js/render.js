@@ -576,16 +576,47 @@ const Render = {
 
   // ---------------- camera ----------------
   zoom: 1,
+  // Run away from the ball and the camera pulls back so you and the ball are both on screen: the
+  // further apart, the wider the view; come back and it closes in again. MIN is as far back as it
+  // goes (players at 55% of their size), RATE is how quickly the zoom follows. YOU and BALL are how
+  // far in from each edge (parts of the screen's width and height) they are kept: you further from
+  // the bottom, where the stick and the buttons are, and the ball nearer the edges than you. Past
+  // what MIN can show, you stay where you can be seen and the ball goes off the edge.
+  PULL: { MIN: 0.55, RATE: 2.4, YOU: { x: 0.26, top: 0.2, bottom: 0.4 }, BALL: { x: 0.1, top: 0.14, bottom: 0.12 } },
+  // How far either side of the middle of the screen you can be, at the heights YOU keeps you to,
+  // before the stick or a button is over you: on a small phone they reach further in than YOU.x
+  // allows for. Measured from the page like the minimap's spot, and kept until the screen changes.
+  _youX: null,
+  youRoomX() {
+    const kb = document.body.classList.contains('kb'), c = this._youX;
+    if (c && c.W === this.W && c.H === this.H && c.kb === kb) return c.x;
+    const Y = this.PULL.YOU, top = this.H * Y.top, bottom = this.H * (1 - Y.bottom), mid = this.W / 2;
+    let x = mid - this.W * Y.x, seen = 0;
+    for (const e of document.querySelectorAll('#joy-base, #hud .action, #btn-ult')) {
+      const r = e.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) continue;
+      seen++;
+      if (r.bottom > top && r.top < bottom) x = Math.min(x, (r.left >= mid ? r.left - mid : mid - r.right) - 18);
+    }
+    x = Math.max(0, x);
+    if (seen || kb) this._youX = { W: this.W, H: this.H, kb, x }; // not laid out yet, or hidden for a replay: don't keep it
+    return x;
+  },
+  // the furthest back the camera can be here without showing past the stands
+  pullMin() {
+    // the camera stops in the middle once the view is bigger than the pitch, so this is twice the
+    // way from the middle to the nearer edge of the pre-drawn stands (buildLayer), less a little
+    const T = CFG.TILT, M = CFG.SIDE_M, cy = (CFG.FIELD_H / 2) * T;
+    const wide = 2 * (CFG.FIELD_W / 2 + 270) - 40, tall = 2 * Math.min(cy + M * T + 230, (CFG.FIELD_H + M) * T + 190 - cy) - 40;
+    return Math.min(1, Math.max(this.PULL.MIN, this.W / this.S / wide, this.H / this.S / tall));
+  },
   updateCamera(m, dt, snap) {
     const h = m.human, b = m.ball;
-    let tx, ty;
+    let tx, ty, pull = 1;
     // an ult cutscene owns the camera while it runs
     const cut = m.ultCut ? UltCut.camera(m) : null;
     const star = !cut && m.phase === 'cele' && m.cele && m.cele.scorer;
     const wide = star && ['airplane', 'pushups', 'sleep', 'backflip', 'worm', 'swim', 'surfer', 'cartwheel', 'matrix', 'scissor'].includes(m.cele.kind);
-    // Leave room for the full pose plus hats, wings, capes and celebration props.
-    const zoomTo = cut ? cut.zoom : star ? (wide || (star.look && star.look.acc) ? 1.58 : 1.7) : 1;
-    this.zoom = snap || cut ? zoomTo : this.zoom + (zoomTo - this.zoom) * (1 - Math.exp(-(star ? 3.2 : 6) * dt));
     if (cut) {
       tx = cut.x; ty = cut.y;
     } else if (star) {
@@ -596,19 +627,58 @@ const Render = {
       tx = h.x + h.vx * 0.35 + TEAMS.blue.dir * 60;
       ty = h.y + h.vy * 0.22;
       const d = dist(h.x, h.y, b.x, b.y);
-      if (d > 120) { const w = clamp((d - 120) / 420, 0, 0.45); tx = lerp(tx, b.x, w); ty = lerp(ty, b.y, w); }
+      if (d > 120) { const w = clamp((d - 120) / 420, 0, 0.5); tx = lerp(tx, b.x, w); ty = lerp(ty, b.y, w); }
+      if (!m.demo) {
+        // persp: the near side of the pitch is drawn a little bigger (see f), so a thing down there
+        // sits further from the middle of the screen than its distance alone says
+        const P = this.PULL, W2 = this.W / 2, H2 = this.H / 2, lx = tx, ly = ty;
+        const persp = (y, cy) => Math.max(1, this.PERSP / (this.PERSP - clamp(y - cy, -2200, 2400)));
+        // the room from the middle of the screen to where e lets a thing go, on its side of the middle
+        const room = (e) => ({ x: Math.max(0, W2 - this.W * e.x), up: Math.max(0, H2 - this.H * e.top), down: Math.max(0, H2 - this.H * e.bottom) });
+        const you = room(P.YOU), ball = room(P.BALL);
+        you.x = Math.min(you.x, this.youRoomX());
+        // how far back to fit you and the ball round that spot, and never further than pullMin
+        const fit = (x, y, r) => Math.min(r.x / Math.max(1, Math.abs(x - lx) * this.S * persp(y, ly)),
+          (y > ly ? r.down : r.up) / Math.max(1, Math.abs(y - ly) * CFG.TILT * this.S * persp(y, ly)));
+        const z = clamp(Math.min(fit(h.x, h.y, you), fit(b.x, b.y, ball)), this.pullMin(), 1);
+        // Where the camera goes at zoom z. When that is not far enough back for both, the ball gives
+        // way and you stay where YOU keeps you: measured at the closer of the zoom now and the zoom
+        // it is heading for, so that holds while it is still on its way out too. Then the stands
+        // stop it, as they always have; out is how many pixels past where YOU keeps you that leaves you.
+        const aim = (z) => {
+          const zs = this.S * Math.max(z, snap ? z : this.zoom) * persp(h.y, ly);
+          const x = clamp(lx, h.x - you.x / zs, h.x + you.x / zs), y = clamp(ly, h.y - you.down / zs / CFG.TILT, h.y + you.up / zs / CFG.TILT);
+          const [cx, cy] = this.arena(x, y * CFG.TILT, this.S * z), k = this.S * z * persp(h.y, cy / CFG.TILT);
+          const sx = (h.x - cx) * k, sy = (h.y * CFG.TILT - cy) * k;
+          return { z, x, y, out: Math.max(0, Math.abs(sx) - you.x) + Math.max(0, sy - you.down) + Math.max(0, -sy - you.up) };
+        };
+        // Near a touchline the stands stop the camera, so pulling back can push you towards the edge
+        // of the screen, onto the stick and the buttons. Come back in until you are where YOU keeps
+        // you; if no zoom manages that, take the one that leaves you least far out.
+        let a = aim(z);
+        for (let n = z + 0.05; a.out > 1 && n < 1.025; n += 0.05) { const t = aim(Math.min(1, n)); if (t.out < a.out - 0.5) a = t; }
+        pull = a.z; tx = a.x; ty = a.y;
+      }
     }
-    const zs = this.S * this.zoom;
-    const halfW = this.W / 2 / zs, halfH = this.H / 2 / zs;
-    const L = this.L;
-    const minX = -CFG.END_M - 90 + halfW, maxX = CFG.FIELD_W + CFG.END_M + 90 - halfW;
-    tx = minX > maxX ? CFG.FIELD_W / 2 : clamp(tx, minX, maxX);
-    let py = ty * CFG.TILT;
-    const minY = -CFG.SIDE_M * CFG.TILT - 95 + halfH, maxY = (CFG.FIELD_H + CFG.SIDE_M) * CFG.TILT + 80 - halfH;
-    py = minY > maxY ? (CFG.FIELD_H / 2) * CFG.TILT : clamp(py, minY, maxY);
+    // Leave room for the full pose plus hats, wings, capes and celebration props.
+    const zoomTo = cut ? cut.zoom : star ? (wide || (star.look && star.look.acc) ? 1.58 : 1.7) : pull;
+    const rate = star ? 3.2 : zoomTo < 1 || this.zoom < 1 ? this.PULL.RATE : 6;
+    this.zoom = snap || cut ? zoomTo : this.zoom + (zoomTo - this.zoom) * (1 - Math.exp(-rate * dt));
+    let py;
+    [tx, py] = this.arena(tx, ty * CFG.TILT, this.S * this.zoom);
     const k = snap || cut ? 1 : 1 - Math.exp(-(star ? 7 : 4.5) * dt);
     this.cam.x += (tx - this.cam.x) * k;
     this.cam.y += (py - this.cam.y) * k;
+  },
+
+  // The camera stops where the stands do: at zs (scale times zoom) the middle of the screen can be no
+  // nearer the edge than this, and once the view is bigger than the pitch it sits in the middle.
+  // x across, py the tilted height (y * TILT); gives back the pair it may have.
+  arena(x, py, zs) {
+    const halfW = this.W / 2 / zs, halfH = this.H / 2 / zs;
+    const minX = -CFG.END_M - 90 + halfW, maxX = CFG.FIELD_W + CFG.END_M + 90 - halfW;
+    const minY = -CFG.SIDE_M * CFG.TILT - 95 + halfH, maxY = (CFG.FIELD_H + CFG.SIDE_M) * CFG.TILT + 80 - halfH;
+    return [minX > maxX ? CFG.FIELD_W / 2 : clamp(x, minX, maxX), minY > maxY ? (CFG.FIELD_H / 2) * CFG.TILT : clamp(py, minY, maxY)];
   },
 
   // ---------------- helpers ----------------

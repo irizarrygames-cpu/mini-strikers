@@ -219,6 +219,23 @@ is under 180px (an upright phone) or something sits across the middle of it (the
 small computer screen, the WATCHING bar) the caption stays under the scoreboard as before. Checked
 with `BS.fitSweep` (touch and keyboard) at phone, iPad and computer sizes.
 
+## The camera pulls back when you are far from the ball (build 107)
+
+The camera used to lean towards the ball and never zoomed out, so running away from the ball took
+your own player off the screen (over half the time once you were 300+ apart). Now `Render.updateCamera`
+pulls back to keep you and the ball both on screen: the further apart, the wider the view, down to
+`PULL.MIN` (55%), and it closes in again as you come back. `PULL.YOU` keeps you in from the edges and
+further from the bottom (the stick and the buttons), `Render.youRoomX` measures where the controls
+really are (a small phone's reach further in), and the ball is allowed nearer the edges
+(`PULL.BALL`). Past what the zoom can show, the ball goes off the edge and you stay in view. Near a
+touchline the stands stop the camera (`Render.arena`), so it picks the zoom that keeps you clear of
+the controls. `Render.pullMin` keeps the view inside the pre-drawn stands; the home screen's demo match
+is never zoomed. Upright phones barely zoom (the view is already as tall as the stands).
+
+Test (browser): `tools/camscan.js`, `CS.run()` at a window size, or `CS.run(otherCamera)` to compare:
+you and the ball at hundreds of distances apart all over the pitch. With the old camera you were off
+the screen 47-70% of the time at every size; with this one, 0%.
+
 ## Tools
 
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).

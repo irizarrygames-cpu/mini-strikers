@@ -69,4 +69,4 @@ Simple touch controls on phones, keyboard or touch on bigger screens.
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.1.0 (11)`
+- Release name: `1.1.1 (12)`
