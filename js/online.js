@@ -24,7 +24,7 @@ const Online = {
 
   init() {
     Net.on('queue', (m) => this.onQueue(m));
-    Net.on('unqueued', (m) => { const was = this.status === 'queue'; this.status = 'idle'; UI.hideQueue(); if (m.msg && was) UI.toast(I18N.server(m.msg).toUpperCase()); });
+    Net.on('unqueued', (m) => { const was = this.status === 'queue'; this.status = 'idle'; UI.hideQueue(); if (m.msg && was) UI.toast(I18N.upper(I18N.server(m.msg))); });
     Net.on('room', (m) => this.onRoom(m));
     Net.on('room.left', () => { this.status = 'idle'; this.room = null; UI.hideLobby(); });
     Net.on('start', (m) => this.start(m));
@@ -37,7 +37,7 @@ const Online = {
     Net.on('end', (m) => this.end(m));
     Net.on('left', () => {});
     Net.on('error', (m) => {
-      UI.toast((m.msg ? I18N.server(m.msg) : tl('Something went wrong')).toUpperCase());
+      UI.toast(I18N.upper(m.msg ? I18N.server(m.msg) : tl('Something went wrong')));
       if (this.status === 'queue') { this.status = 'idle'; UI.hideQueue(); }
       else if (this.status === 'room' && !this.room) this.status = 'idle';
     });
@@ -145,7 +145,7 @@ const Online = {
     Net.send({ t: 'unwatch' });
     $('hud').classList.remove('watching');
     this.abandon();
-    if (msg) UI.toast(I18N.server(msg).toUpperCase());
+    if (msg) UI.toast(I18N.upper(I18N.server(msg)));
   },
 
   // ---------- match start ----------
@@ -278,7 +278,7 @@ const Online = {
       if (c.complete || !(mask & (1 << i))) return;
       c.complete = true;
       if (quiet) return;
-      UI.toast(tl('{0} ✓  ·  +1 RP IF YOU WIN', [tl(c.text).toUpperCase()]));
+      UI.toast(tl('{0} ✓  ·  +1 RP IF YOU WIN', [I18N.upper(tl(c.text))]));
       Sound.powerReady();
     });
   },

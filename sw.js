@@ -22,13 +22,14 @@ const NET_TIMEOUT = 3500; // past this the server is asleep, so show the game an
 const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/i18n.js', './js/lang-es.js', './js/lang-pt.js', './js/lang-fr.js', './js/lang-de.js', './js/lang-it.js',
+  './js/lang-nl.js', './js/lang-tr.js', './js/lang-pl.js', './js/lang-id.js', './js/lang-sv.js', './js/lang-ro.js',
   './js/config.js', './js/products.js', './js/store.js', './js/clubs.js', './js/stadiums.js', './js/celebs.js', './js/save.js', './js/meta.js', './js/crates.js', './js/missions.js', './js/audio.js',
   './js/input.js', './js/fx.js', './js/commentary.js', './js/entities.js', './js/ai.js', './js/match.js',
   './privacy.html',
   './js/pop.js', './js/replay.js', './js/net.js', './js/online.js', './js/sprites.js', './js/render.js', './js/ui.js',
   './js/panels.js', './js/social.js', './js/trophy.js', './js/penalty.js', './js/challenges.js',
   './js/ultcut.js', './js/tutorial.js', './js/main.js',
-  './fonts/LilitaOne-latin.woff2', './fonts/LilitaOne-latin-ext.woff2',
+  './fonts/LilitaOne-latin.woff2', './fonts/LilitaOne-latin-ext.woff2', './fonts/TitanOne-latin-ext.woff2',
   './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
 ];
 

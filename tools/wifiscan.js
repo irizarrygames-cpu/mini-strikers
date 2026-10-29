@@ -22,7 +22,7 @@ const el = () => ({ hidden: true, style: {}, classList: { toggle() {}, add() {},
 const noop = new Proxy({}, { get: () => () => {} });
 const sandbox = {
   // js/i18n.js, in English (the game says everything through tl())
-  tl: (s, a) => (a ? String(s).replace(/\{(\w+)\}/g, (m, k) => (a[k] != null ? String(a[k]) : m)) : s), tlN: (n, one, many, a) => (n === 1 ? one : many).replace(/\{(\w+)\}/g, (m, k) => ((a || [n])[k] != null ? String((a || [n])[k]) : m)), I18N: { lang: 'en', server: (s) => String(s || ''), parts: (s) => s, t: (s) => s },
+  tl: (s, a) => (a ? String(s).replace(/\{(\w+)\}/g, (m, k) => (a[k] != null ? String(a[k]) : m)) : s), tlN: (n, one, many, a) => (n === 1 ? one : many).replace(/\{(\w+)\}/g, (m, k) => ((a || [n])[k] != null ? String((a || [n])[k]) : m)), I18N: { lang: 'en', server: (s) => String(s || ''), parts: (s) => s, t: (s) => s, upper: (s) => String(s).toUpperCase() },
   console, Math, Date, JSON, Object, Array, Number, String, Boolean, Map, Set, Proxy, Symbol, Error, isFinite, parseInt, parseFloat, performance, URLSearchParams, AbortController,
   setTimeout, clearTimeout, setInterval, clearInterval,
   navigator, WebSocket: FakeSocket, location: { hostname: 'localhost', search: '', protocol: 'http:', host: 'localhost:8450' },

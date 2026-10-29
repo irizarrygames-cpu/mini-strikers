@@ -27,6 +27,7 @@ const UI = {
     }, true);
     const offBtn = $('auth-offline');
     if (offBtn) offBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
+    $('auth-lang').addEventListener('click', () => { this.tap(); this.askLanguage('signup'); });
     const guestBtn = $('auth-guest');
     if (guestBtn) guestBtn.addEventListener('click', () => { this.tap(); this.playOffline(true); });
     window.addEventListener('keydown', () => this.leaveSplash(), { once: true });
@@ -111,8 +112,6 @@ const UI = {
   // server woke up there was nothing at all on the screen.
   leaveSplash() {
     if (this._entering || !window.__ready) return;
-    // the first time the game starts on this device: which language, before anything else
-    if (!I18N.chosen) { this.askLanguage(); return; }
     this._entering = true;
     Sound.unlock(); Sound.tap(); Sound.startMusic();
     $('splash').classList.add('loading');
@@ -120,24 +119,38 @@ const UI = {
     $('splash-sub').textContent = '';
     Game.enter();
   },
-  // Which language. Asked the first time the game starts, and from Settings → LANGUAGE. Each name is
-  // in its own language. The one already showing carries on as it is; another reloads the game into
-  // it (I18N.choose), and the game carries on by itself after the reload.
-  askLanguage(fromSettings) {
+  // Which language: the first thing when signing up (from: 'signup'), and Settings → LANGUAGE
+  // ('settings'). Plain rows, each language in its own words with its name in the language in use
+  // under it, and the one in use ticked. The one already showing carries on as it is; another reloads
+  // the game into it (I18N.choose), and the game comes back by itself to where it was: the sign-up
+  // form, or the menu (a guest as a guest). Until then the game is in the phone's own language.
+  askLanguage(from) {
     if ($('lang-pick')) return;
     const el = document.createElement('div');
     el.id = 'lang-pick'; el.className = 'overlay lang-pick';
-    el.innerHTML = `<div class="panel small lang-panel"><h2>${tl('CHOOSE YOUR LANGUAGE')}</h2>
-      <div class="lang-list">${LANGS.map((l) => `<button class="mid-btn${l.id === I18N.lang ? ' sel' : ''}" data-lang="${l.id}" lang="${l.id}">${l.name}</button>`).join('')}</div></div>`;
+    el.innerHTML = `<div class="panel lang-panel"><h2>${tl('CHOOSE YOUR LANGUAGE')}</h2>
+      <p class="lang-sub">${tl('You can change it any time in Settings.')}</p>
+      <div class="lang-list">${LANGS.map((l) => {
+        const said = tl(l.en);
+        return `<button type="button" class="lang-opt${l.id === I18N.lang ? ' sel' : ''}" data-lang="${l.id}"><b lang="${l.id}">${l.name}</b>${said !== l.name ? `<small>${said}</small>` : ''}</button>`;
+      }).join('')}</div>
+      <button type="button" class="lang-back" data-back>${tl('BACK')}</button></div>`;
     document.body.appendChild(el);
+    const done = () => { el.remove(); if (from === 'settings') this.openModal('settings'); };
+    el.querySelector('[data-back]').addEventListener('click', () => { this.tap(); done(); });
     el.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => {
       this.tap();
-      // a guest changing language in Settings comes back as a guest, not to the sign-in page (Game.enterSteps)
-      if (fromSettings && !Net.token && b.dataset.lang !== I18N.lang) { try { sessionStorage.setItem('ms-lang-guest', '1'); } catch (e) { /* no storage */ } }
-      if (I18N.choose(b.dataset.lang)) { el.querySelectorAll('button').forEach((x) => { x.disabled = true; }); return; } // reloading into it
-      el.remove();
-      if (fromSettings) this.openModal('settings');
-      else this.leaveSplash();
+      const id = b.dataset.lang;
+      // where to come back to after the reload (Game.enterSteps): the sign-up form, or a guest's menu
+      if (id !== I18N.lang) {
+        try {
+          if (from === 'signup') sessionStorage.setItem('ms-signup', '1');
+          if (from === 'settings' && !Net.token) sessionStorage.setItem('ms-lang-guest', '1');
+        } catch (e) { /* no storage */ }
+      }
+      if (I18N.choose(id)) { el.querySelectorAll('button').forEach((x) => { x.disabled = true; }); return; } // reloading into it
+      done();
+      if (from === 'signup') this.setAuthMode('signup');
     }));
   },
   splashStatus(text) { if (!$('splash').classList.contains('gone')) $('splash-sub').textContent = text; },
@@ -218,7 +231,7 @@ const UI = {
   // depends on the labels and whether GET THE APP is showing, so it is measured, never guessed
   // A few buttons hold one word side by side, and in some languages that word is longer than the
   // button ("PERSONNALISER"). Those letters shrink just enough to fit, rather than spill out.
-  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board',
+  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board, #r-title, .sig-tag',
   fitWords(root = document) {
     if (!root) return;
     const range = document.createRange();
@@ -474,12 +487,16 @@ const UI = {
   },
 
   setAuthMode(mode) {
+    // signing up starts with the language: picking another reloads the game, so before anything is typed
+    if (mode === 'signup' && !I18N.pickedNow) { this.askLanguage('signup'); return; }
     this._authMode = mode;
     document.querySelectorAll('[data-auth]').forEach((b) => b.classList.toggle('sel', b.dataset.auth === mode));
     $('auth-clubs-wrap').hidden = mode !== 'signup';
     $('auth').classList.toggle('signup', mode === 'signup');
     $('auth-go').textContent = mode === 'signup' ? tl('CREATE ACCOUNT') : tl('LOG IN');
     $('auth-forgot').hidden = mode !== 'login';
+    $('auth-lang').hidden = mode !== 'signup';
+    $('auth-lang').textContent = tl('LANGUAGE: {0}', [I18N.name()]);
     $('auth-pass').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
     $('auth-msg').textContent = mode === 'signup' ? tl('Password: 8+ characters.') : '';
     $('auth-msg').classList.remove('bad');
@@ -519,6 +536,10 @@ const UI = {
     this.closeAll();
     $('home').hidden = true;
     $('auth').hidden = false;
+    // back from picking a language while signing up (askLanguage): straight on with signing up
+    let signup = false;
+    try { signup = sessionStorage.getItem('ms-signup') === '1'; if (signup) sessionStorage.removeItem('ms-signup'); } catch (e) { /* no storage */ }
+    if (signup) { I18N.pickedNow = true; this.setAuthMode('signup'); }
     if (msg) { $('auth-msg').textContent = msg; $('auth-msg').classList.toggle('bad', !calm); }
     else { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); }
     $('auth-logo').innerHTML = $('logo').innerHTML;
@@ -786,7 +807,7 @@ const UI = {
     if (m.net) {
       // who's playing: real names on each side
       const names = (team) => m.players.filter((p) => p.team === team && !p.isKeeper).map((p) => (p === m.human ? tl('YOU') : p.name)).join(' · ');
-      const chal = m.netChal ? m.netChal.map((c) => `<li><i></i><span>${c.text.toUpperCase()}</span><em>+1</em></li>`).join('') : '';
+      const chal = m.netChal ? m.netChal.map((c) => `<li><i></i><span>${I18N.upper(tl(c.text))}</span><em>+1</em></li>`).join('') : '';
       $('intro-challenges').innerHTML = `<li class="done"><span>${names('blue')}</span></li><li><span>${names('red')}</span></li>` + chal;
       $('intro').querySelector('.intro-ch').hidden = false;
       $('intro').querySelector('.intro-ch small').textContent = m.netChal ? tl('PLAYERS · CHALLENGES: A RANK POINT EACH IF YOU WIN') : tl('PLAYERS');
@@ -1029,7 +1050,7 @@ const UI = {
     d.coins += levelCoins;
     if (levelCoins) Save.write();
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
-    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [fresh[0].name.toUpperCase()]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, 900);
+    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [I18N.upper(fresh[0].name)]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, 900);
 
     const title = { win: tl('VICTORY!'), loss: tl('DEFEAT'), draw: tl('DRAW') }[r.outcome];
     $('r-title').textContent = cupResult === 'champion' ? tl('CHAMPIONS!') : title;
@@ -1098,6 +1119,7 @@ const UI = {
       $('r-again').textContent = tl('PLAY AGAIN');
     }
     $('results').hidden = false;
+    this.fitWords($('results'));
     $('hud').hidden = true;
     Input.reset();
     this.resultsFanfare(r.outcome, {
@@ -1153,7 +1175,7 @@ const UI = {
     d.coins += levelCoins;
     Save.write();
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
-    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [fresh[0].name.toUpperCase()]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
+    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [I18N.upper(fresh[0].name)]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
 
     $('r-title').textContent = cup && cup.champion ? tl('WORLD CHAMPIONS!') : cup && !cup.won ? tl('KNOCKED OUT') : { win: tl('VICTORY!'), loss: tl('DEFEAT'), draw: tl('DRAW') }[outcome];
     $('r-title').className = 'r-title ' + (cup && cup.champion ? 'win champ' : outcome);
@@ -1175,7 +1197,7 @@ const UI = {
     const club = Clubs.mine();
     const lg = msg.league;
     const lgText = lg && lg.pos ? (lg.d > 0 ? tl('{0} MOVES UP TO {1} ▲', [club.name, ordinal(lg.pos)]) : lg.d < 0 ? tl('{0} DROPS TO {1} ▼', [club.name, ordinal(lg.pos)]) : tl('{0} STAYS {1}', [club.name, ordinal(lg.pos)])) : `${club.name}: ${outcome === 'win' ? tl('UP A PLACE') : outcome === 'loss' ? tl('DOWN A PLACE') : tl('NO CHANGE')}`;
-    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${tl(c.text).toUpperCase()}</span>${c.done ? `<em>${outcome === 'win' ? tl('+1 RP') : tl('WIN IT NEXT TIME')}</em>` : ''}</li>`).join('');
+    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${I18N.upper(tl(c.text))}</span>${c.done ? `<em>${outcome === 'win' ? tl('+1 RP') : tl('WIN IT NEXT TIME')}</em>` : ''}</li>`).join('');
     $('r-challenges').innerHTML = chalRows + (msg.coop
       ? `<li><i></i><span>${tl('PLAYED TOGETHER AGAINST THE COMPUTER — NOTHING MOVES IN THE LEAGUE')}</span></li>`
       : `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>${tl('LEAGUE: {0}', [lgText])}</span></li>`);
@@ -1223,6 +1245,7 @@ const UI = {
     const party = Social.party;
     if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = tl('HOME');
     $('results').hidden = false;
+    this.fitWords($('results'));
     $('hud').hidden = true;
     Input.reset();
     this.resultsFanfare(outcome, {

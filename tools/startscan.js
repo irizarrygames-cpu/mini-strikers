@@ -11,8 +11,8 @@
 //                                    (these two: tap in and wait for home first; they start signed in)
 //   await SS.run('calm')             a new build never reloads the page in the middle of a match
 //   await SS.run('language')         a device that has never picked a language (load it after
-//                                    localStorage.removeItem('mini-strikers.lang')): the first tap asks, in front of the
-//                                    splash, and picking the language already showing goes straight in
+//                                    localStorage.removeItem('mini-strikers.lang')): the first tap goes straight in,
+//                                    and SIGN UP asks first; picking the language already showing goes on to the form
 // Every other scenario picks the language showing first, so the question never stands in its way.
 // 'asleep-*' fake the server's silence inside the page (requests to /api/ never answer until the
 // scenario lets them through); the rest talk to the real server the page came from.
@@ -60,21 +60,29 @@ const SS = {
         const blank = this.watchBlank();
         this.tap();
         await this.wait(300);
-        const pick = document.getElementById('lang-pick');
-        check('the first tap asks for a language', !!pick && this.vis('lang-pick'));
-        check('with the splash still up behind it', this.vis('splash'));
-        const btns = pick ? [...pick.querySelectorAll('[data-lang]')] : [];
-        check('every language, each in its own words', btns.map((b) => b.textContent).join() === LANGS.map((l) => l.name).join(), btns.map((b) => b.textContent));
-        check('the one showing is picked already', !!pick && pick.querySelector('.sel') && pick.querySelector('.sel').dataset.lang === I18N.lang);
-        const same = pick && pick.querySelector(`[data-lang="${I18N.lang}"]`);
-        if (same) same.click();
-        await this.wait(200);
-        check('picking the language showing: no reload, the question goes', !document.getElementById('lang-pick') && I18N.chosen);
-        check('and it is kept on this device', localStorage.getItem(I18N.KEY) === I18N.lang, localStorage.getItem(I18N.KEY));
-        const inAt = (await this.until(() => (this.vis('home') || this.vis('auth')) && !this.vis('splash'), 9000)) ? ms() : null;
-        check('and the game goes on in, to the menu or the sign-in page', inAt !== null, inAt);
+        check('the first tap does not stop to ask (the phone language is used)', !document.getElementById('lang-pick'));
+        const inAt = (await this.until(() => this.vis('auth') && !this.vis('splash'), 9000)) ? ms() : null;
+        check('the game goes on in, to the sign-in page', inAt !== null, inAt);
         const gaps = blank();
         check('never a moment with nothing on screen', gaps.length === 0, gaps.slice(0, 5));
+        // signing up asks
+        const signup = document.querySelector('[data-auth="signup"]');
+        if (signup) signup.click();
+        await this.wait(250);
+        const pick = document.getElementById('lang-pick');
+        check('tapping SIGN UP asks for a language first', !!pick && this.vis('lang-pick'));
+        const btns = pick ? [...pick.querySelectorAll('[data-lang]')] : [];
+        check('every language, each in its own words', btns.map((b) => b.querySelector('b').textContent).join() === LANGS.map((l) => l.name).join(), btns.length);
+        check('the one showing is ticked', !!pick && !!pick.querySelector('.sel') && pick.querySelector('.sel').dataset.lang === I18N.lang);
+        const same = pick && pick.querySelector(`[data-lang="${I18N.lang}"]`);
+        if (same) same.click();
+        await this.wait(250);
+        check('picking the language showing: no reload, the question goes', !document.getElementById('lang-pick') && I18N.chosen);
+        check('and it is kept on this device', localStorage.getItem(I18N.KEY) === I18N.lang, localStorage.getItem(I18N.KEY));
+        check('the sign-up form is up, with the country list', !document.getElementById('auth-clubs-wrap').hidden && document.getElementById('auth').classList.contains('signup'));
+        check('and a way back to the language on it', this.vis('auth-lang'), document.getElementById('auth-lang').textContent);
+        if (signup) { document.querySelector('[data-auth="login"]').click(); await this.wait(100); signup.click(); await this.wait(200); }
+        check('going back to SIGN UP does not ask again', !document.getElementById('lang-pick'));
       } else if (name === 'ready') {
         check('the game says it is ready', window.__ready === true);
         check('the splash says TAP TO START', document.getElementById('splash-tap').textContent === 'TAP TO START');

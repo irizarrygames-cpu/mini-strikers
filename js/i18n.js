@@ -4,26 +4,34 @@
 //   tl('VS {0}', [club.name])
 // (tl, not t: t is the time in half the game's drawing code)
 //
-// The language is asked for the first time the game starts (UI.askLanguage) and can be changed in
-// Settings; it is kept on this device. Only that language's file is loaded, and it is written into
+// Until it is picked, the phone's own language is used. It is asked when signing up (UI.askLanguage,
+// before anything is typed) and can be changed in Settings; it is kept on this device. Only that language's file is loaded, and it is written into
 // the page right here, ahead of the rest of the game, so every tl() sees it — including the ones in
 // data the game sets up as it loads. Changing language therefore reloads the game, which carries
 // straight on to where it was (the same 'ms-carry-on' a new build uses).
 //
 // The server runs some of the same files (server/sim.js) and has its own tl(): English.
+// name: in its own words, as the list shows it. en: what the list says under it, in the language in use.
 const LANGS = [
-  { id: 'en', name: 'ENGLISH' },
-  { id: 'es', name: 'ESPAÑOL' },
-  { id: 'pt', name: 'PORTUGUÊS' },
-  { id: 'fr', name: 'FRANÇAIS' },
-  { id: 'de', name: 'DEUTSCH' },
-  { id: 'it', name: 'ITALIANO' },
+  { id: 'en', name: 'English', en: 'English' },
+  { id: 'es', name: 'Español', en: 'Spanish' },
+  { id: 'pt', name: 'Português', en: 'Portuguese' },
+  { id: 'fr', name: 'Français', en: 'French' },
+  { id: 'de', name: 'Deutsch', en: 'German' },
+  { id: 'it', name: 'Italiano', en: 'Italian' },
+  { id: 'nl', name: 'Nederlands', en: 'Dutch' },
+  { id: 'tr', name: 'Türkçe', en: 'Turkish' },
+  { id: 'pl', name: 'Polski', en: 'Polish' },
+  { id: 'id', name: 'Bahasa Indonesia', en: 'Indonesian' },
+  { id: 'sv', name: 'Svenska', en: 'Swedish' },
+  { id: 'ro', name: 'Română', en: 'Romanian' },
 ];
 
 const I18N = {
   KEY: 'mini-strikers.lang',
   lang: 'en',
   chosen: false, // picked on this device, rather than guessed from the phone's language
+  pickedNow: false, // picked since this page loaded (signing up asks once, not every time the tab is opened)
   dict: {},
 
   known(id) { return LANGS.some((l) => l.id === id); },
@@ -61,8 +69,12 @@ const I18N = {
     return out;
   },
 
-  // one or many: French counts 0 as one, the others only 1
+  // one or many: French counts 0 as one, the others only 1. (Polish and Romanian have more forms
+  // than two; their lines are worded so the "many" one reads right with any number.)
   one(n) { return this.lang === 'fr' ? Math.abs(n) < 2 : n === 1; },
+
+  // capitals the way this language writes them: Turkish i is İ, not I
+  upper(s) { try { return String(s).toLocaleUpperCase(this.lang); } catch (e) { return String(s).toUpperCase(); } },
 
   // What the server says (in English): the line itself if this language has it, or else a line with
   // holes that it fits, with what the server put in the holes (names) put back. Otherwise as it came.
@@ -136,6 +148,7 @@ const I18N = {
     let kept = true;
     try { localStorage.setItem(this.KEY, id); } catch (e) { kept = false; }
     this.chosen = true;
+    this.pickedNow = true;
     // nowhere to keep it (storage blocked): a reload would only ask again, so stay as we are
     if (id === this.lang || !kept) return false;
     try { sessionStorage.setItem('ms-carry-on', '1'); } catch (e) { /* no storage */ }

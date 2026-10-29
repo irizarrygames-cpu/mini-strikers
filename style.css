@@ -11,6 +11,22 @@
   src: url(fonts/LilitaOne-latin.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+/* Lilita One has no Ş Ğ İ (Turkish), Ł Ą Ę Ś Ź Ż Ń Ć (Polish) or Ă Ș Ț (Romanian). Those letters come
+   from Titan One, a free font drawn in the same chunky style, so a word never mixes in the phone's
+   thin font. Declared last, so for these letters it is the face tried first. */
+@font-face {
+  font-family: 'Lilita One'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/TitanOne-latin-ext.woff2) format('woff2');
+  unicode-range: U+0102-0107, U+0118-0119, U+011E-011F, U+0141-0144, U+015A-015B, U+015E-015F, U+0179-017C;
+}
+/* and neither has İ (Turkish) or Ș Ț (Romanian): those come from the heaviest font the phone has, not
+   its thin everyday one */
+@font-face {
+  font-family: 'Lilita One'; font-style: normal; font-weight: 400;
+  src: local('Arial Black'), local('Arial-Black'), local('Segoe UI Black'), local('SegoeUI-Black'), local('Roboto Black'), local('Roboto-Black'),
+    local('Helvetica Neue Bold'), local('HelveticaNeue-Bold'), local('Arial Bold'), local('Arial-BoldMT');
+  unicode-range: U+0130, U+0162-0163, U+0218-021B;
+}
 
 :root {
   --ink: #161a33;
@@ -2093,14 +2109,27 @@ body.lefty #touch-zone { left: 50%; }
    with a solid yellow ring round it, until another tap or you let go of the stick. */
 .action.sprint.locked .face { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink), 0 0 0 4px var(--yellow); }
 
-/* ===== LANGUAGE (build 109) =====
-   Asked the first time the game starts (UI.askLanguage), over the splash, and from Settings. Each
-   language is named in its own words; the one in use is filled in yellow. */
+/* ===== LANGUAGE (build 109; lighter in 110) =====
+   Asked when signing up (UI.askLanguage) and from Settings. Plain light rows in the phone's own font
+   rather than the game's chunky buttons: each language in its own words, its name in the language in
+   use under it, and the one in use ticked in blue. */
 .overlay.lang-pick { z-index: 70; }
-.lang-panel { text-align: center; }
-.lang-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.lang-list .mid-btn { min-height: 46px; font-size: clamp(14px, 3.6vmin, 18px); white-space: nowrap; }
-.lang-list .mid-btn.sel { background: var(--yellow); color: var(--ink); }
+.lang-panel { width: min(600px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 10px; text-align: center; overflow: hidden; }
+.lang-panel h2 { margin: 0; color: var(--ink); -webkit-text-stroke: 0; font-size: clamp(20px, 4.6vmin, 26px); }
+.lang-sub { margin: 0; font-family: system-ui, sans-serif; font-weight: 500; font-size: 13px; color: #6b7299; }
+.lang-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 40vw), 1fr)); gap: 8px; margin-top: 8px; padding: 2px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.lang-opt { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-height: 48px; padding: 6px 34px 6px 12px; text-align: left;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: #f4f6ff; border: 2px solid #d9def2; border-radius: 12px; }
+.lang-opt b { font-weight: 600; font-size: 15px; line-height: 1.2; }
+.lang-opt small { font-weight: 500; font-size: 12px; line-height: 1.2; color: #6b7299; }
+.lang-opt.sel { background: #e7eeff; border-color: var(--blue); }
+.lang-opt.sel::after { content: '✓'; position: absolute; right: 10px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%;
+  background: var(--blue); color: #fff; font: 700 12px/20px system-ui, sans-serif; text-align: center; }
+.lang-opt:active { background: #e7eeff; }
+.lang-back { align-self: center; min-height: 36px; padding: 6px 14px; border: 0; background: none; font: 600 14px system-ui, sans-serif; color: #6b7299; text-decoration: underline; text-underline-offset: 2px; }
+/* on the sign-up form: which language, and a way back to change it */
+.auth-lang { align-self: flex-start; min-height: 34px; padding: 0 2px; border: 0; background: none; font: 600 13px system-ui, sans-serif; color: #6b7299; text-decoration: underline; text-underline-offset: 2px; }
+.auth-lang[hidden] { display: none; }
 /* two buttons side by side in the grown-up check: in a language with longer words, one above the other */
 .gate-btns { flex-wrap: wrap; }
 /* the customize tabs: less room either side of the word, so a long one (CELEBRACIÓN) keeps its size */
@@ -2113,3 +2142,8 @@ body.lefty #touch-zone { left: 50%; }
 @media (orientation: landscape) {
   .set > span { width: auto; min-width: 120px; flex: 0 0 auto; }
 }
+/* a mode card's title in a language with long words (PENALTYSERIE, ELFMETERSCHIESSEN) breaks inside the
+   word rather than pushing the whole panel wider */
+.mode strong { overflow-wrap: anywhere; hyphens: auto; }
+/* a character card's signature-move tag never wider than its card (UI.fitWords shrinks a long name to fit) */
+.char-card-sm .sig-tag { max-width: 100%; min-width: 0; }

@@ -35,11 +35,11 @@ const Social = {
       this.changed();
     });
     Net.on('challenge.invite', (m) => { this.challenges = this.challenges.filter((i) => i.from !== m.from); this.challenges.push({ id: m.id, from: m.from, club: m.club, until: performance.now() + 58000 }); Sound.tap(); this.changed(); });
-    Net.on('challenge.info', (m) => UI.toast(I18N.server(m.msg || '').toUpperCase()));
-    Net.on('party.info', (m) => UI.toast(I18N.server(m.msg || '').toUpperCase()));
+    Net.on('challenge.info', (m) => UI.toast(I18N.upper(I18N.server(m.msg || ''))));
+    Net.on('party.info', (m) => UI.toast(I18N.upper(I18N.server(m.msg || ''))));
     Net.on('friend.req', (m) => UI.toast(tl('{0} WANTS TO BE FRIENDS', [m.name])));
     Net.on('friend.new', (m) => UI.toast(tl('YOU AND {0} ARE FRIENDS', [m.name])));
-    Net.on('social', (m) => { if (m.msg) UI.toast(I18N.server(m.msg).toUpperCase()); });
+    Net.on('social', (m) => { if (m.msg) UI.toast(I18N.upper(I18N.server(m.msg))); });
     // friend cups
     Net.on('cup', (m) => {
       const was = this.cup && this.cup.state;
@@ -55,8 +55,8 @@ const Social = {
       Sound.tap(); this.changed();
     });
     Net.on('cup.gone', (m) => { this.cupInvites = this.cupInvites.filter((i) => i.id !== m.id); this.changed(); });
-    Net.on('cup.end', (m) => { this.cup = null; this.cupAt = 0; if (m && m.msg) UI.toast(I18N.server(m.msg).toUpperCase()); this.changed(); });
-    Net.on('cup.bye', (m) => UI.toast((m && m.msg ? I18N.server(m.msg) : tl('YOU GO THROUGH')).toUpperCase()));
+    Net.on('cup.end', (m) => { this.cup = null; this.cupAt = 0; if (m && m.msg) UI.toast(I18N.upper(I18N.server(m.msg))); this.changed(); });
+    Net.on('cup.bye', (m) => UI.toast(I18N.upper(m && m.msg ? I18N.server(m.msg) : tl('YOU GO THROUGH'))));
     Net.on('cup.won', () => { if (Game.state !== 'match' && Game.state !== 'results') { Sound.powerReady(); UI.toast(tl('YOU WON THE FRIEND CUP!')); } });
     Net.on('chat', (m) => this.onChat(m));
 

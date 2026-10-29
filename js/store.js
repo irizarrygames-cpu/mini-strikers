@@ -59,6 +59,45 @@ const NUMBER_WORDS = {
     if (!r) return ten;
     return (r === 1 || r === 8 ? ten.slice(0, -1) : ten) + (r === 3 ? 'tré' : u[r]); // ventuno, ventotto, ventitré
   },
+  nl: (n) => {
+    const u = ['nul', 'een', 'twee', 'drie', 'vier', 'vijf', 'zes', 'zeven', 'acht', 'negen', 'tien', 'elf', 'twaalf', 'dertien', 'veertien', 'vijftien', 'zestien', 'zeventien', 'achttien', 'negentien'];
+    const t = ['', '', 'twintig', 'dertig', 'veertig', 'vijftig', 'zestig', 'zeventig', 'tachtig', 'negentig'];
+    if (n < 20) return u[n];
+    const r = n % 10; // the ones come first: eenentwintig, tweeëntwintig
+    return r ? u[r] + (r === 2 || r === 3 ? 'ën' : 'en') + t[Math.floor(n / 10)] : t[Math.floor(n / 10)];
+  },
+  tr: (n) => {
+    const u = ['sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz'];
+    const t = ['', 'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan'];
+    if (n < 10) return u[n];
+    return t[Math.floor(n / 10)] + (n % 10 ? ' ' + u[n % 10] : '');
+  },
+  pl: (n) => {
+    const u = ['zero', 'jeden', 'dwa', 'trzy', 'cztery', 'pięć', 'sześć', 'siedem', 'osiem', 'dziewięć', 'dziesięć', 'jedenaście', 'dwanaście', 'trzynaście', 'czternaście', 'piętnaście', 'szesnaście', 'siedemnaście', 'osiemnaście', 'dziewiętnaście'];
+    const t = ['', '', 'dwadzieścia', 'trzydzieści', 'czterdzieści', 'pięćdziesiąt', 'sześćdziesiąt', 'siedemdziesiąt', 'osiemdziesiąt', 'dziewięćdziesiąt'];
+    if (n < 20) return u[n];
+    return t[Math.floor(n / 10)] + (n % 10 ? ' ' + u[n % 10] : '');
+  },
+  id: (n) => {
+    const u = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'];
+    if (n < 10) return u[n];
+    if (n === 10) return 'sepuluh';
+    if (n === 11) return 'sebelas';
+    if (n < 20) return u[n % 10] + ' belas';
+    return u[Math.floor(n / 10)] + ' puluh' + (n % 10 ? ' ' + u[n % 10] : '');
+  },
+  sv: (n) => {
+    const u = ['noll', 'ett', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta', 'nio', 'tio', 'elva', 'tolv', 'tretton', 'fjorton', 'femton', 'sexton', 'sjutton', 'arton', 'nitton'];
+    const t = ['', '', 'tjugo', 'trettio', 'fyrtio', 'femtio', 'sextio', 'sjuttio', 'åttio', 'nittio'];
+    if (n < 20) return u[n];
+    return t[Math.floor(n / 10)] + (n % 10 ? u[n % 10] : ''); // tjugoett, trettiofem
+  },
+  ro: (n) => {
+    const u = ['zero', 'unu', 'doi', 'trei', 'patru', 'cinci', 'șase', 'șapte', 'opt', 'nouă', 'zece', 'unsprezece', 'doisprezece', 'treisprezece', 'paisprezece', 'cincisprezece', 'șaisprezece', 'șaptesprezece', 'optsprezece', 'nouăsprezece'];
+    const t = ['', '', 'douăzeci', 'treizeci', 'patruzeci', 'cincizeci', 'șaizeci', 'șaptezeci', 'optzeci', 'nouăzeci'];
+    if (n < 20) return u[n];
+    return t[Math.floor(n / 10)] + (n % 10 ? ' și ' + u[n % 10] : ''); // douăzeci și unu
+  },
 };
 
 const Store = {

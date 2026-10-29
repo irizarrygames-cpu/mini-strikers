@@ -42,6 +42,12 @@
       fr: ['CHARGEMENT…', 'Ça démarre dès que le jeu est chargé…', 'Toujours en chargement… connexion lente, ou le serveur se réveille. Ça peut prendre jusqu’à une minute.', 'TOUCHE POUR RECHARGER', 'Le jeu ne s’est pas bien chargé.'],
       de: ['LÄDT…', 'Es geht los, sobald das Spiel geladen ist…', 'Lädt immer noch… langsame Verbindung, oder der Server wacht gerade auf. Das kann bis zu einer Minute dauern.', 'TIPPEN ZUM NEU LADEN', 'Das Spiel wurde nicht richtig geladen.'],
       it: ['CARICAMENTO…', 'Si parte appena il gioco ha finito di caricare…', 'Ancora in caricamento… connessione lenta, o il server si sta svegliando. Può volerci fino a un minuto.', 'TOCCA PER RICARICARE', 'Il gioco non si è caricato bene.'],
+      nl: ['LADEN…', 'We beginnen zodra het spel geladen is…', 'Nog steeds aan het laden… een trage verbinding, of de server wordt wakker. Dit kan tot een minuut duren.', 'TIK OM OPNIEUW TE LADEN', 'Het spel is niet goed geladen.'],
+      tr: ['YÜKLENİYOR…', 'Oyun yüklenir yüklenmez başlıyor…', 'Hâlâ yükleniyor… bağlantı yavaş ya da sunucu uyanıyor. Bu bir dakika kadar sürebilir.', 'YENİDEN YÜKLEMEK İÇİN DOKUN', 'Oyun düzgün yüklenmedi.'],
+      pl: ['WCZYTYWANIE…', 'Zaczynamy, gdy tylko gra się wczyta…', 'Nadal się wczytuje… wolne połączenie albo serwer się budzi. To może potrwać do minuty.', 'DOTKNIJ, BY WCZYTAĆ PONOWNIE', 'Gra nie wczytała się poprawnie.'],
+      id: ['MEMUAT…', 'Mulai begitu game selesai dimuat…', 'Masih memuat… koneksi lambat, atau server sedang bangun. Ini bisa sampai satu menit.', 'KETUK UNTUK MEMUAT ULANG', 'Game tidak termuat dengan benar.'],
+      sv: ['LADDAR…', 'Vi börjar så fort spelet har laddat…', 'Laddar fortfarande… en långsam anslutning, eller så vaknar servern. Det kan ta upp till en minut.', 'TRYCK FÖR ATT LADDA OM', 'Spelet laddades inte ordentligt.'],
+      ro: ['SE ÎNCARCĂ…', 'Pornim imediat ce jocul s-a încărcat…', 'Încă se încarcă… conexiune lentă sau serverul se trezește. Poate dura până la un minut.', 'ATINGE PENTRU A REÎNCĂRCA', 'Jocul nu s-a încărcat cum trebuie.'],
     };
     var lang = null;
     try { lang = localStorage.getItem('mini-strikers.lang'); } catch (e) { /* no storage */ }
@@ -198,6 +204,7 @@
           <label>USERNAME<input id="auth-user" name="username" maxlength="14" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
           <label><span class="auth-lbl">PASSWORD<button id="auth-forgot" type="button" class="auth-forgot">FORGOT IT?</button></span><input id="auth-pass" name="password" type="password" maxlength="200" autocomplete="current-password"></label>
         </form>
+        <button id="auth-lang" type="button" class="auth-lang" hidden></button>
       </div>
       <div id="auth-clubs-wrap" class="auth-right" hidden>
         <div class="auth-clubs-head"><b>PICK YOUR COUNTRY</b><small>You play for them in every match and win them league points online.</small></div>

@@ -163,6 +163,7 @@ window.US = {
       if (!el) continue;
       const was2 = el.hidden;
       el.hidden = false;
+      if (UI.fitWords) UI.fitWords(el); // as the game does when it shows one (the results title)
       await wait(160);
       const panel = el.querySelector('.panel') || el;
       out.hits.push(...this.scan(panel, id, true));
@@ -173,7 +174,17 @@ window.US = {
     // the sign-in screen: log in, sign up (with the country picker) and the way in with no account
     {
       const home = document.getElementById('home'), auth = document.getElementById('auth');
-      const homeWas = home.hidden, authWas = auth.hidden, offered = Net.offlineOffer;
+      const homeWas = home.hidden, authWas = auth.hidden, offered = Net.offlineOffer, picked = I18N.pickedNow;
+      // signing up starts with the language: looked at on its own, then the form behind it
+      UI.showAuth();
+      I18N.pickedNow = false;
+      UI.setAuthMode('signup');
+      await wait(250);
+      const sheet = document.querySelector('#lang-pick .panel');
+      if (sheet) out.hits.push(...this.scan(sheet, 'language (sign up)', true));
+      else out.hits.push('language (sign up) NOT ASKED when signing up');
+      document.querySelectorAll('#lang-pick').forEach((x) => x.remove());
+      I18N.pickedNow = true;
       for (const [label, mode, offer] of [['auth (log in)', 'login', false], ['auth (sign up)', 'signup', false], ['auth (log in, no connection)', 'login', true]]) {
         Net.offlineOffer = offer;
         UI.showAuth();
@@ -183,8 +194,15 @@ window.US = {
         const card = document.querySelector('.auth-card');
         if (card) out.hits.push(...this.scan(card, label, true));
       }
+      I18N.pickedNow = picked;
       Net.offlineOffer = offered;
       auth.hidden = authWas; home.hidden = homeWas;
+      // and the same list from Settings
+      UI.askLanguage('settings');
+      await wait(200);
+      const sheet2 = document.querySelector('#lang-pick .panel');
+      if (sheet2) out.hits.push(...this.scan(sheet2, 'language (settings)', true));
+      document.querySelectorAll('#lang-pick').forEach((x) => x.remove());
     }
     // the grown-up check, which goes in front of a purchase or a link out of the game
     {

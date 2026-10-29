@@ -684,6 +684,15 @@ const Render = {
   // ---------------- helpers ----------------
   chunkyText(ctx, str, x, y, size, color, stroke) {
     ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
+    // never wider than the screen: a longer line in another language comes out smaller instead
+    const t = ctx.getTransform ? ctx.getTransform() : { a: 1, b: 0 }, across = Math.hypot(t.a, t.b) || 1;
+    const room = ctx.canvas ? (ctx.canvas.width / across) * 0.94 : Infinity, wide = ctx.measureText(str).width;
+    if (wide > room) {
+      const k = room / wide;
+      size *= k;
+      if (stroke) stroke *= k;
+      ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
+    }
     ctx.lineJoin = 'round';
     ctx.lineWidth = stroke || Math.max(3, size * 0.2);
     ctx.strokeStyle = OUTLINE;

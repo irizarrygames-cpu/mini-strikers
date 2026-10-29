@@ -9,3 +9,10 @@ redistributed, including inside an app, as long as it is not sold on its own.
 The two .woff2 files here are the unmodified files served by Google Fonts for
 Lilita One (the latin set and the latin-ext set), kept so the game makes no
 request to Google when it runs.
+
+Titan One
+https://fonts.google.com/specimen/Titan+One
+
+Titan One is also licensed under the SIL Open Font License, Version 1.1 (same terms as above).
+TitanOne-latin-ext.woff2 is the unmodified latin-ext file served by Google Fonts for Titan One. The game
+uses it only for the few letters Lilita One does not have (Turkish, Polish and Romanian ones).

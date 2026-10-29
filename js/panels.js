@@ -5,6 +5,7 @@ Object.assign(UI, {
     $('modal').hidden = false;
     $('modal').dataset.kind = kind;
     this['panel_' + kind](body);
+    this.fitWords(body);
   },
 
   closeModal() { $('modal').hidden = true; this.refreshHome(); },
@@ -615,7 +616,7 @@ Object.assign(UI, {
       const r = await Net.report(p.name);
       if (r && r.auth === false) { rep.disabled = false; rep.classList.remove('armed'); rep.textContent = tl('REPORT'); this.toast(tl('LOG IN AGAIN TO REPORT')); return; }
       if (r && r.ok && !S.reported.includes(p.name)) S.reported.push(p.name);
-      this.toast(String(r && r.msg ? I18N.server(r.msg) : tl('THAT DID NOT WORK')).toUpperCase());
+      this.toast(I18N.upper(r && r.msg ? I18N.server(r.msg) : tl('THAT DID NOT WORK')));
       if ($('modal').dataset.kind === 'player' && !$('modal').hidden) this.panel_player(body);
     });
   },
@@ -1293,7 +1294,7 @@ Object.assign(UI, {
         <p id="del-msg" class="note"></p>
       </form>` : ''}`;
     // inside the app a link to the web is behind the grown-up check; on the web it is just a link
-    $('lang-btn').addEventListener('click', () => { this.tap(); this.closeModal(); this.askLanguage(true); });
+    $('lang-btn').addEventListener('click', () => { this.tap(); this.closeModal(); this.askLanguage('settings'); });
     const priv = body.querySelector('a.set-link');
     if (priv && NATIVE) priv.addEventListener('click', async (e) => {
       e.preventDefault();

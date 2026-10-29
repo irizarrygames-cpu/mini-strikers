@@ -251,10 +251,13 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
-## Six languages (build 109)
+## Twelve languages (builds 109 and 110)
 
-English, Spanish, Portuguese (Brazil), French, German and Italian. The first tap on a new device asks
-which one (the phone's own language is picked already), and Settings → LANGUAGE changes it any time.
+English, Spanish, Portuguese (Brazil), French, German and Italian (build 109); Dutch, Turkish, Polish,
+Indonesian, Swedish and Romanian (build 110). Until a player picks one, the phone's own language is
+used. SIGN UP asks first thing (before anything is typed, as picking another reloads the game), the
+sign-up form has a LANGUAGE link back to it, and Settings → LANGUAGE changes it any time. The list is
+plain light rows: each language in its own words, its name in the language in use under it.
 
 - Every word the game shows goes through `tl('THE ENGLISH')` (js/i18n.js; `tl`, not `t`, because `t`
   is the time in the drawing code). Holes are `{0}`, `{1}` or `{name}`; `tlN(n, one, many)` for counts.
@@ -266,7 +269,12 @@ which one (the phone's own language is picked already), and Settings → LANGUAG
   (`I18N.apply`).
 - Names stay as they are: the game's name, players' names, stadium cities and chants, country codes.
   The quick chat is sent in English and shown in each player's own language.
-- A few buttons whose word is long in some language shrink their letters to fit (`UI.fitWords`).
+- A few buttons whose word is long in some language shrink their letters to fit (`UI.fitWords`), and
+  big outlined text drawn on the pitch (`Render.chunkyText`, the KICK OFF banner) shrinks to stay on screen.
+- Lilita One has no Ş Ğ İ Ł Ą Ę Ś Ź Ż Ń Ć Ă Ș Ț. Most come from Titan One (fonts/TitanOne-latin-ext.woff2,
+  free, same chunky style), declared as part of the same font family for just those letters; İ Ș Ț
+  come from the heaviest font the phone has. Polish and Romanian lines are worded so plurals read right
+  with any number (`Gole: {n}`), and Turkish capitals go through `I18N.upper` (i → İ).
 
 Tests: `node tools/i18nscan.js` (every line in every language, the same holes, letters the font has,
 nothing left in English by mistake); `tools/uiscan.js` in the browser now also reports any English

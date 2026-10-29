@@ -7,7 +7,8 @@
 //   * the page: every piece of text, placeholder, title and aria-label in index.html
 //   * the server: every message it sends a player (msg: '…', and the rules a name or a password
 //     breaks), with the names it puts in turned into holes: `${name} is offline` -> '{0} is offline'
-// Plus the quick chat lines (QUICK_CHAT), which are shown through tl() wherever they are drawn.
+// Plus the quick chat lines (QUICK_CHAT), which are shown through tl() wherever they are drawn, and
+// the languages' English names (LANGS in js/i18n.js), shown under each one in the language list.
 //
 // For each language file js/lang-<id>.js it checks: nothing missing; nothing extra that the game no
 // longer says; the same holes ({0}, {n}, {player}…) in the same number; the same spaces at either
@@ -20,7 +21,7 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const LANGS = ['es', 'pt', 'fr', 'de', 'it'];
+const LANGS = ['es', 'pt', 'fr', 'de', 'it', 'nl', 'tr', 'pl', 'id', 'sv', 'ro'];
 
 // Lines that are the same in some or all languages on purpose: keys on a keyboard, codes, "GG"…
 const SAME = new Set(['WASD', 'SHIFT', 'SPACE', 'ESC', 'LMB', 'RMB', 'MMB', 'E', 'Q', 'F', 'T', 'GG', 'OK', 'VS', 'MVP', 'XP', 'RP', 'OVR',
@@ -49,6 +50,9 @@ function clientKeys() {
     const qc = src.match(/const QUICK_CHAT = (\[[^\]]*\])/);
     if (qc) for (const k of lit(qc[1])) add(k, f);
   }
+  // the language list: each language's name in English, shown through tl() under its own name
+  const langs = fs.readFileSync(path.join(dir, 'i18n.js'), 'utf8');
+  for (const m of langs.matchAll(new RegExp(String.raw`\ben: (${STR})`, 'g'))) add(lit(m[1]), 'i18n.js');
   return keys;
 }
 

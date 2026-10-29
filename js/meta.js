@@ -163,7 +163,7 @@ const Challenges = {
     for (const c of m.challenges) {
       if (c.complete || !c.done(m)) continue;
       c.complete = true;
-      if (!Game.headless && m.phase === 'play') { UI.toast(tl('CHALLENGE: {0}  +{1}', [c.text.toUpperCase(), c.coins])); Sound.powerReady(); }
+      if (!Game.headless && m.phase === 'play') { UI.toast(tl('CHALLENGE: {0}  +{1}', [I18N.upper(c.text), c.coins])); Sound.powerReady(); }
     }
   },
 };

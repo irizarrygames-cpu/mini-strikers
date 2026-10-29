@@ -221,7 +221,11 @@ const FX = {
       let sc = u < 0.12 ? easeOut(u / 0.12) * 1.25 : u < 0.2 ? 1.25 - ((u - 0.12) / 0.08) * 0.25 : 1;
       let a = 1;
       if (u > 0.82) { a = (1 - u) / 0.18; sc *= 1 + (u - 0.82) * 0.8; }
-      const size = Math.min(W * 0.14, H * 0.24) * sc;
+      let size = Math.min(W * 0.14, H * 0.24) * sc;
+      // a longer word in another language (LOVITURA DE ÎNCEPERE!) is made smaller to stay on screen
+      ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
+      const wide = ctx.measureText(b.str).width + size * 0.3;
+      if (wide > W * 0.94) size *= (W * 0.94) / wide;
       ctx.globalAlpha = a;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.save();

@@ -537,6 +537,9 @@ const ordinal = (n) => {
   if (lang === 'it') return n + 'º';
   if (lang === 'de') return n + '.';
   if (lang === 'fr') return n + (n === 1 ? 'er' : 'e');
+  if (lang === 'tr' || lang === 'pl') return n + '.';
+  // these say the word for "place" around it in their lines: plaats 3, plats 3, peringkat 3, locul 3
+  if (lang === 'nl' || lang === 'sv' || lang === 'id' || lang === 'ro') return String(n);
   return n + (['th', 'st', 'nd', 'rd'][n % 10 > 3 || (n % 100 > 10 && n % 100 < 14) ? 0 : n % 10]);
 };
 const ULT_COLORS = ['#ff3a3f', '#ff8a1f', '#ffe14d', '#3fcf4a', '#46d9ff', '#b04dff', '#ff4df0'];
