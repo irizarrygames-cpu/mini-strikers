@@ -32,17 +32,37 @@
   (function () {
     var s = document.getElementById('splash'), tap = document.getElementById('splash-tap'), sub = document.getElementById('splash-sub');
     var failed = false;
+    // The few words the splash says before the game (and its words, js/lang-*.js) have arrived, in the
+    // language the game is about to be in: the one picked on this device, or the phone's own (as
+    // js/i18n.js decides it). The page as sent still says LOADING… (tools/startscan.js reads it).
+    var WORDS = {
+      en: ['LOADING…', 'Starting as soon as the game has loaded…', 'Still loading… a slow connection, or the server is waking up. This can take up to a minute.', 'TAP TO RELOAD', 'The game did not load properly.'],
+      es: ['CARGANDO…', 'Empezará en cuanto el juego termine de cargar…', 'Sigue cargando… la conexión es lenta o el servidor se está despertando. Puede tardar hasta un minuto.', 'TOCA PARA RECARGAR', 'El juego no se cargó bien.'],
+      pt: ['CARREGANDO…', 'Vai começar assim que o jogo terminar de carregar…', 'Ainda carregando… a conexão está lenta ou o servidor está acordando. Pode levar até um minuto.', 'TOQUE PARA RECARREGAR', 'O jogo não carregou direito.'],
+      fr: ['CHARGEMENT…', 'Ça démarre dès que le jeu est chargé…', 'Toujours en chargement… connexion lente, ou le serveur se réveille. Ça peut prendre jusqu’à une minute.', 'TOUCHE POUR RECHARGER', 'Le jeu ne s’est pas bien chargé.'],
+      de: ['LÄDT…', 'Es geht los, sobald das Spiel geladen ist…', 'Lädt immer noch… langsame Verbindung, oder der Server wacht gerade auf. Das kann bis zu einer Minute dauern.', 'TIPPEN ZUM NEU LADEN', 'Das Spiel wurde nicht richtig geladen.'],
+      it: ['CARICAMENTO…', 'Si parte appena il gioco ha finito di caricare…', 'Ancora in caricamento… connessione lenta, o il server si sta svegliando. Può volerci fino a un minuto.', 'TOCCA PER RICARICARE', 'Il gioco non si è caricato bene.'],
+    };
+    var lang = null;
+    try { lang = localStorage.getItem('mini-strikers.lang'); } catch (e) { /* no storage */ }
+    if (!WORDS[lang]) {
+      lang = 'en';
+      var asked = navigator.languages || [navigator.language];
+      for (var i = 0; i < asked.length; i++) { var id = String(asked[i] || '').slice(0, 2).toLowerCase(); if (WORDS[id]) { lang = id; break; } }
+    }
+    var w = WORDS[lang];
+    tap.textContent = w[0];
     function early() {
       if (window.__ready) return;
       if (failed) { location.reload(); return; }
       window.__earlyTap = true;
-      sub.textContent = 'Starting as soon as the game has loaded…';
+      sub.textContent = w[1];
     }
     s.addEventListener('pointerdown', early);
     window.addEventListener('keydown', early);
     window.__splashDone = function () { s.removeEventListener('pointerdown', early); window.removeEventListener('keydown', early); };
     setTimeout(function () {
-      if (!window.__ready && !failed) sub.textContent = 'Still loading… a slow connection, or the server is waking up. This can take up to a minute.';
+      if (!window.__ready && !failed) sub.textContent = w[2];
     }, 8000);
     // one of the game's own files failed to load, or crashed before the game could start
     window.addEventListener('error', function (e) {
@@ -51,8 +71,8 @@
       if (!(t && t.tagName === 'SCRIPT') && !e.error) return;
       failed = true;
       s.classList.add('loading');
-      tap.textContent = 'TAP TO RELOAD';
-      sub.textContent = 'The game did not load properly.';
+      tap.textContent = w[3];
+      sub.textContent = w[4];
     }, true);
   })();
   </script>
@@ -327,6 +347,7 @@
     </div>
   </div>
 
+  <script src="js/i18n.js"></script>
   <script src="js/config.js"></script>
   <script src="js/products.js"></script>
   <script src="js/clubs.js"></script>

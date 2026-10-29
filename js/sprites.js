@@ -776,12 +776,12 @@ const Sprites = {
     switch (name) {
       case 'siuu': {
         const pop = clamp((e - 1.1) / 0.18, 0, 1);
-        Render.chunkyText(ctx, 'SIUUU!', sx, headY - 14 * k - pop * 6 * k, 15 * k * (0.5 + 0.5 * pop), '#ffe14d', 4 * k);
+        Render.chunkyText(ctx, tl('SIUUU!'), sx, headY - 14 * k - pop * 6 * k, 15 * k * (0.5 + 0.5 * pop), '#ffe14d', 4 * k);
         break;
       }
       case 'shh': {
         ctx.globalAlpha = 0.6 + Math.sin(e * 6) * 0.4;
-        Render.chunkyText(ctx, 'SHH', sx + 24 * k * flip, headY + 8 * k, 9 * k, '#ffffff', 3 * k);
+        Render.chunkyText(ctx, tl('SHH'), sx + 24 * k * flip, headY + 8 * k, 9 * k, '#ffffff', 3 * k);
         ctx.globalAlpha = 1;
         break;
       }
@@ -846,7 +846,7 @@ const Sprites = {
         break;
       }
       case 'hiya': {
-        Render.chunkyText(ctx, 'HI-YAH!', sx + 6 * k * flip, headY - 8 * k, 11 * k, '#ff5a3c', 3 * k);
+        Render.chunkyText(ctx, tl('HI-YAH!'), sx + 6 * k * flip, headY - 8 * k, 11 * k, '#ff5a3c', 3 * k);
         break;
       }
       case 'bowl': {
@@ -854,7 +854,7 @@ const Sprites = {
         ctx.beginPath(); ctx.arc(x, y, 5.2 * k, 0, Math.PI * 2); ctx.fillStyle = '#2f7bff'; ctx.fill(); ctx.lineWidth = 2.2 * k; ctx.strokeStyle = OUTLINE; ctx.stroke();
         ctx.fillStyle = OUTLINE;
         for (let i = 0; i < 3; i++) { const a = f * 12 * flip + i * 0.7; ctx.beginPath(); ctx.arc(x + Math.cos(a) * 2.4 * k, y + Math.sin(a) * 2.4 * k, 0.8 * k, 0, Math.PI * 2); ctx.fill(); }
-        if (e > 1.7) { const pop = clamp((e - 1.7) / 0.15, 0, 1); Render.chunkyText(ctx, 'STRIKE!', sx, headY - 10 * k, 13 * k * (0.5 + 0.5 * pop), '#ffe14d', 3.5 * k); }
+        if (e > 1.7) { const pop = clamp((e - 1.7) / 0.15, 0, 1); Render.chunkyText(ctx, tl('STRIKE!'), sx, headY - 10 * k, 13 * k * (0.5 + 0.5 * pop), '#ffe14d', 3.5 * k); }
         break;
       }
       case 'golfball': {

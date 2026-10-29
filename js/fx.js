@@ -81,15 +81,18 @@ const FX = {
   stars(x, y, z) {
     this._push(this.air, { k: 'stars', x, y, z, t: 0, life: 0.45 });
   },
+  // In an online match these come from the server, in English: each is put into this language here
+  // (an offline one already is, and stays as it is)
   text(x, y, str, color, size = 18) {
     if (Game.headless) return;
+    str = I18N.parts(str);
     // no spam: replace an identical popup that is still rising
     for (const t of this.texts) if (t.str === str && t.t < 0.3) return;
     this.texts.push({ x, y, z: 60, str, color, size, t: 0, life: 0.9 });
   },
   showBanner(str, color, life = 1.4, sub = '') {
     if (Game.headless) return;
-    this.banner = { str, color, sub, t: 0, life };
+    this.banner = { str: I18N.parts(str), color, sub: I18N.parts(sub), t: 0, life };
   },
   doFlash(color, a) {
     if (Game.headless) return;

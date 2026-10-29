@@ -10,6 +10,10 @@
 //   await SS.run('flush')            leaving the page sends unsaved progress in a request that outlives it
 //                                    (these two: tap in and wait for home first; they start signed in)
 //   await SS.run('calm')             a new build never reloads the page in the middle of a match
+//   await SS.run('language')         a device that has never picked a language (load it after
+//                                    localStorage.removeItem('mini-strikers.lang')): the first tap asks, in front of the
+//                                    splash, and picking the language already showing goes straight in
+// Every other scenario picks the language showing first, so the question never stands in its way.
 // 'asleep-*' fake the server's silence inside the page (requests to /api/ never answer until the
 // scenario lets them through); the rest talk to the real server the page came from.
 const SS = {
@@ -49,8 +53,29 @@ const SS = {
     const check = (what, ok, detail) => checks.push((ok ? 'ok   ' : 'FAIL ') + what + (detail !== undefined ? '  ' + JSON.stringify(detail) : ''));
     const t0 = performance.now(), ms = () => Math.round(performance.now() - t0);
     const toast = () => (document.getElementById('toast') || {}).textContent || '';
+    if (name !== 'language' && !I18N.chosen) { try { localStorage.setItem(I18N.KEY, I18N.lang); } catch (e) { /* no storage */ } I18N.chosen = true; }
     try {
-      if (name === 'ready') {
+      if (name === 'language') {
+        check('precondition: no language picked on this device', !I18N.chosen && localStorage.getItem(I18N.KEY) === null);
+        const blank = this.watchBlank();
+        this.tap();
+        await this.wait(300);
+        const pick = document.getElementById('lang-pick');
+        check('the first tap asks for a language', !!pick && this.vis('lang-pick'));
+        check('with the splash still up behind it', this.vis('splash'));
+        const btns = pick ? [...pick.querySelectorAll('[data-lang]')] : [];
+        check('every language, each in its own words', btns.map((b) => b.textContent).join() === LANGS.map((l) => l.name).join(), btns.map((b) => b.textContent));
+        check('the one showing is picked already', !!pick && pick.querySelector('.sel') && pick.querySelector('.sel').dataset.lang === I18N.lang);
+        const same = pick && pick.querySelector(`[data-lang="${I18N.lang}"]`);
+        if (same) same.click();
+        await this.wait(200);
+        check('picking the language showing: no reload, the question goes', !document.getElementById('lang-pick') && I18N.chosen);
+        check('and it is kept on this device', localStorage.getItem(I18N.KEY) === I18N.lang, localStorage.getItem(I18N.KEY));
+        const inAt = (await this.until(() => (this.vis('home') || this.vis('auth')) && !this.vis('splash'), 9000)) ? ms() : null;
+        check('and the game goes on in, to the menu or the sign-in page', inAt !== null, inAt);
+        const gaps = blank();
+        check('never a moment with nothing on screen', gaps.length === 0, gaps.slice(0, 5));
+      } else if (name === 'ready') {
         check('the game says it is ready', window.__ready === true);
         check('the splash says TAP TO START', document.getElementById('splash-tap').textContent === 'TAP TO START');
         check('and has stopped saying LOADING', !document.getElementById('splash').classList.contains('loading'));

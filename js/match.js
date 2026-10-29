@@ -93,7 +93,7 @@ const Match = {
     if (m.autopilot) m.human.speedMul = 0.95;
     m.humanRarity = m.autopilot ? null : m.human.rarity || (opts.seats ? null : Save.character().rarity);
     this.setupKickoff(m, 'blue');
-    if (!Game.headless && !m.online && m.mode !== 'pens') FX.showBanner('KICK OFF!', '#ffffff', 1.0, `${home.name} vs ${club.name}`);
+    if (!Game.headless && !m.online && m.mode !== 'pens') FX.showBanner(tl('KICK OFF!'), '#ffffff', 1.0, `${home.name} vs ${club.name}`);
     return m;
   },
 
@@ -408,7 +408,7 @@ const Match = {
     m.phase = 'reset'; m.phaseT = 0; m.resetDone = false;
     m.kickoffTeam = m.lastConceded || 'red';
     Sound.whistle('long');
-    FX.showBanner('GOLDEN GOAL!', '#ffe14d', 2.0, m.noDraw ? 'CUP MATCH · NEXT GOAL WINS' : 'NEXT GOAL WINS');
+    FX.showBanner(tl('GOLDEN GOAL!'), '#ffe14d', 2.0, m.noDraw ? tl('CUP MATCH · NEXT GOAL WINS') : tl('NEXT GOAL WINS'));
   },
 
   endMatch(m) {
@@ -416,7 +416,7 @@ const Match = {
     m.ball.owner = null; m.ball.shot = null;
     Sound.whistle('end');
     Sound.setExcitement(0);
-    FX.showBanner('FULL TIME', '#ffffff', 1.6);
+    FX.showBanner(tl('FULL TIME'), '#ffffff', 1.6);
   },
 
   checkGoal(m) {
@@ -471,11 +471,11 @@ const Match = {
     if (m.events) {
       const idx = (p) => (p ? m.players.indexOf(p) : -1);
       let hype = '';
-      if (m.overtime) hype = 'GOLDEN GOAL!';
-      else if (scorer && scorer.stats.goals === 3) hype = 'HAT-TRICK!';
-      else if (m.time < 10) hype = 'LAST-GASP!';
-      else if (wasPower) hype = 'SCREAMER!';
-      else if (how === 'dribble') hype = 'WALKED IT IN!';
+      if (m.overtime) hype = tl('GOLDEN GOAL!');
+      else if (scorer && scorer.stats.goals === 3) hype = tl('HAT-TRICK!');
+      else if (m.time < 10) hype = tl('LAST-GASP!');
+      else if (wasPower) hype = tl('SCREAMER!');
+      else if (how === 'dribble') hype = tl('WALKED IT IN!');
       m.events.push({ e: 'goal', team, scorer: idx(scorer), assist: idx(assist), power: !!wasPower, hype, x: b.x, y: b.y, z: b.z });
       return; // each client plays the goal moment itself (see Online.goalFX)
     }
@@ -487,17 +487,17 @@ const Match = {
     FX.burst(b.x, b.y, b.z + 10, colors[0], wasPower ? 60 : 44, 0.4);
     FX.doFlash(TEAMS[team].jersey, 0.5);
     FX.doShake(wasPower ? 13 : 9, 0.35);
-    let sub = 'OWN GOAL';
-    if (scorer) sub = scorer.isHuman ? 'YOU SCORED!' : `#${scorer.number} ${TEAMS[team].name}`;
+    let sub = tl('OWN GOAL');
+    if (scorer) sub = scorer.isHuman ? tl('YOU SCORED!') : `#${scorer.number} ${TEAMS[team].name}`;
     // hype callouts
     let hype = '';
-    if (m.overtime) hype = 'GOLDEN GOAL!';
-    else if (scorer && scorer.stats.goals === 3) hype = 'HAT-TRICK!';
-    else if (m.time < 10) hype = 'LAST-GASP!';
-    else if (wasPower) hype = 'SCREAMER!';
-    else if (m.trailed && m.trailed[team] && nowLeads && !m.comeback) { hype = 'COMEBACK!'; m.comeback = true; }
-    else if (how === 'dribble') hype = 'WALKED IT IN!';
-    FX.showBanner(hype && scorer && scorer.isHuman ? hype : 'GOAL!', team === 'blue' ? '#ffe14d' : shadeHex(TEAMS.red.jersey, 0.15), 2.0, hype && !(scorer && scorer.isHuman) ? sub + ' · ' + hype : sub);
+    if (m.overtime) hype = tl('GOLDEN GOAL!');
+    else if (scorer && scorer.stats.goals === 3) hype = tl('HAT-TRICK!');
+    else if (m.time < 10) hype = tl('LAST-GASP!');
+    else if (wasPower) hype = tl('SCREAMER!');
+    else if (m.trailed && m.trailed[team] && nowLeads && !m.comeback) { hype = tl('COMEBACK!'); m.comeback = true; }
+    else if (how === 'dribble') hype = tl('WALKED IT IN!');
+    FX.showBanner(hype && scorer && scorer.isHuman ? hype : tl('GOAL!'), team === 'blue' ? '#ffe14d' : shadeHex(TEAMS.red.jersey, 0.15), 2.0, hype && !(scorer && scorer.isHuman) ? sub + ' · ' + hype : sub);
     // A goal should feel like one. Confetti out of the net, rings off the goal line, the ground
     // shaking, and a flash in the scoring side's colour — more of all of it when it is yours.
     {

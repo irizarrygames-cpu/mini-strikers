@@ -11,7 +11,7 @@ Object.assign(UI, {
 
   // ---- PLAY: pick a mode ----
   panel_play(body) {
-    $('modal-title').textContent = 'PLAY';
+    $('modal-title').textContent = tl('PLAY');
     const cup = Cup.state();
     const quickClub = Clubs.random(Clubs.mine());
     const pensClub = Clubs.random(Clubs.mine());
@@ -19,71 +19,71 @@ Object.assign(UI, {
     const club = Clubs.mine();
     const wcRound = Online.wcRound();
     body.innerHTML = `
-      <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
+      <div class="formats"><span>${tl('FORMAT')}</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
       <div class="play-top">
         <button class="mode quick" data-mode="quick">
-          <strong>QUICK MATCH</strong>
-          <p>One match against a random country. Works with no connection.</p>
-          <span class="tag">COINS · XP · 3 CHALLENGES</span>
+          <strong>${tl('QUICK MATCH')}</strong>
+          <p>${tl('One match against a random country. Works with no connection.')}</p>
+          <span class="tag">${tl('COINS · XP · 3 CHALLENGES')}</span>
         </button>
         <button class="mode online" data-needs-net data-mode="online">
-          <strong>PLAY ONLINE</strong>
-          <p>Real people from every country. A win moves ${club.name} up the league.</p>
-          <span class="tag">ONLINE</span>
+          <strong>${tl('PLAY ONLINE')}</strong>
+          <p>${tl('Real people from every country. A win moves {0} up the league.', [club.name])}</p>
+          <span class="tag">${tl('ONLINE')}</span>
         </button>
         <div class="room-box">
-          <small>PLAY WITH FRIENDS</small>
-          <button class="mid-btn" data-needs-net data-room="create">CREATE ROOM</button>
-          <div class="join"><input id="join-code" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="mid-btn" data-needs-net data-room="join">JOIN</button></div>
+          <small>${tl('PLAY WITH FRIENDS')}</small>
+          <button class="mid-btn" data-needs-net data-room="create">${tl('CREATE ROOM')}</button>
+          <div class="join"><input id="join-code" maxlength="5" placeholder="${tl('CODE')}" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="mid-btn" data-needs-net data-room="join">${tl('JOIN')}</button></div>
         </div>
       </div>
-      <p class="note vs-bots">MORE WAYS TO PLAY</p>
+      <p class="note vs-bots">${tl('MORE WAYS TO PLAY')}</p>
       <div class="play-more">
         <button class="mode ranked" data-needs-net data-mode="ranked">
-          <strong>RANKED</strong>
-          <p>1v1 for rank points. Win +10, draw +5, lose -5.</p>
-          <span class="tag">ONLINE · 1V1</span>
+          <strong>${tl('RANKED')}</strong>
+          <p>${tl('1v1 for rank points. Win +10, draw +5, lose -5.')}</p>
+          <span class="tag">${tl('ONLINE · 1V1')}</span>
         </button>
         <button class="mode cup" data-mode="worldcup">
-          <strong>WORLD CUP</strong>
-          <p>Real players online, or bots. Lose once and you are out.</p>
-          <span class="tag">ONLINE: ${WC_ROUNDS[wcRound]} · BOTS: ${cup ? Cup.ROUNDS[cup.round] : 'NEW CUP'}</span>
+          <strong>${tl('WORLD CUP')}</strong>
+          <p>${tl('Real players online, or bots. Lose once and you are out.')}</p>
+          <span class="tag">${tl('ONLINE: {0} · BOTS: {1}', [WC_ROUNDS[wcRound], cup ? Cup.ROUNDS[cup.round] : tl('NEW CUP')])}</span>
         </button>
         <button class="mode pens" data-mode="pens">
-          <strong>PENALTY SHOOTOUT</strong>
-          <p>Five kicks each, then sudden death. Pick your corner, then save theirs.</p>
-          <span class="tag">VS ${pensClub.name}</span>
+          <strong>${tl('PENALTY SHOOTOUT')}</strong>
+          <p>${tl('Five kicks each, then sudden death. Pick your corner, then save theirs.')}</p>
+          <span class="tag">${tl('VS {0}', [pensClub.name])}</span>
         </button>
         <button class="mode fk" data-mode="fk">
-          <strong>FREE KICKS</strong>
-          <p>Bend it over the wall or round it. Five each, then sudden death.</p>
-          <span class="tag">VS ${pensClub.name} · OR ONLINE</span>
+          <strong>${tl('FREE KICKS')}</strong>
+          <p>${tl('Bend it over the wall or round it. Five each, then sudden death.')}</p>
+          <span class="tag">${tl('VS {0} · OR ONLINE', [pensClub.name])}</span>
         </button>
         <button class="mode friendcup" data-needs-net data-mode="friendcup">
-          <strong>FRIEND CUP</strong>
-          <p>A knockout between 4 or 8 friends. No draws.</p>
-          <span class="tag">ONLINE · WITH FRIENDS</span>
+          <strong>${tl('FRIEND CUP')}</strong>
+          <p>${tl('A knockout between 4 or 8 friends. No draws.')}</p>
+          <span class="tag">${tl('ONLINE · WITH FRIENDS')}</span>
         </button>
         <button class="mode chal" data-mode="challenges">
-          <strong>SKILL CHALLENGES</strong>
-          <p>Target practice, keeper mode and a dribble gauntlet.</p>
-          <span class="tag">3 TESTS</span>
+          <strong>${tl('SKILL CHALLENGES')}</strong>
+          <p>${tl('Target practice, keeper mode and a dribble gauntlet.')}</p>
+          <span class="tag">${tl('3 TESTS')}</span>
         </button>
         <button class="mode training" data-mode="training">
-          <strong>TRAINING</strong>
-          <p>No clock, no pressure. Practise shots, skills and tackles.</p>
-          <span class="tag">NO CLOCK</span>
+          <strong>${tl('TRAINING')}</strong>
+          <p>${tl('No clock, no pressure. Practise shots, skills and tackles.')}</p>
+          <span class="tag">${tl('NO CLOCK')}</span>
         </button>
       </div>
-      <button class="mid-btn pick-btn" id="pick-opp" aria-expanded="false">PICK YOUR OPPONENT</button>
-      <div class="clubs-row" id="clubs-row" hidden>${CLUBS.filter((c) => c.id !== Clubs.mine().id).map((c) => `<button class="club-chip" data-club="${c.id}" style="--c:${clubUi(c)}" title="Quick match vs ${c.name}"><canvas width="42" height="28" data-flag="${c.id}"></canvas><b>${c.short}</b><i>${'★'.repeat(c.level + 1)}</i></button>`).join('')}</div>`;
+      <button class="mid-btn pick-btn" id="pick-opp" aria-expanded="false">${tl('PICK YOUR OPPONENT')}</button>
+      <div class="clubs-row" id="clubs-row" hidden>${CLUBS.filter((c) => c.id !== Clubs.mine().id).map((c) => `<button class="club-chip" data-club="${c.id}" style="--c:${clubUi(c)}" title="${tl('Quick match vs {0}', [c.name])}"><canvas width="42" height="28" data-flag="${c.id}"></canvas><b>${c.short}</b><i>${'★'.repeat(c.level + 1)}</i></button>`).join('')}</div>`;
     // ninety-odd flags are a lot to scroll past, so they wait behind a button
     $('pick-opp').addEventListener('click', () => {
       this.tap();
       const row = $('clubs-row'), open = row.hidden;
       row.hidden = !open;
       $('pick-opp').setAttribute('aria-expanded', String(open));
-      $('pick-opp').textContent = open ? 'HIDE OPPONENTS' : 'PICK YOUR OPPONENT';
+      $('pick-opp').textContent = open ? tl('HIDE OPPONENTS') : tl('PICK YOUR OPPONENT');
       if (open) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
     body.querySelectorAll('canvas[data-flag]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.flag)));
@@ -96,7 +96,7 @@ Object.assign(UI, {
     const fmtNow = () => Save.data.format || '4v4';
     body.querySelector('[data-mode="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(fmtNow()); });
     body.querySelector('[data-room="create"]').addEventListener('click', () => { this.tap(); Online.createRoom(fmtNow()); });
-    const join = () => { const code = body.querySelector('#join-code').value.trim().toUpperCase(); if (code.length < 4) { UI.toast('ENTER THE ROOM CODE'); return; } this.tap(); Online.joinRoom(code); };
+    const join = () => { const code = body.querySelector('#join-code').value.trim().toUpperCase(); if (code.length < 4) { UI.toast(tl('ENTER THE ROOM CODE')); return; } this.tap(); Online.joinRoom(code); };
     body.querySelector('[data-room="join"]').addEventListener('click', join);
     body.querySelector('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
     body.querySelector('[data-mode="pens"]').addEventListener('click', () => { this.tap(); this._pensClub = pensClub; this.openModal('pensmode'); });
@@ -110,19 +110,19 @@ Object.assign(UI, {
 
   // ---- PENALTY SHOOTOUT: choose local or online without leaving the game UI ----
   panel_pensmode(body) {
-    $('modal-title').textContent = 'PENALTY SHOOTOUT';
+    $('modal-title').textContent = tl('PENALTY SHOOTOUT');
     const club = this._pensClub || Clubs.random(Clubs.mine());
     body.innerHTML = `
       <div class="modes pen-choice">
         <button class="mode pens" data-pens="offline">
-          <strong>OFFLINE</strong>
-          <p>Play five kicks each against a computer-controlled opponent.</p>
-          <span class="tag">VS ${club.name}</span>
+          <strong>${tl('OFFLINE')}</strong>
+          <p>${tl('Play five kicks each against a computer-controlled opponent.')}</p>
+          <span class="tag">${tl('VS {0}', [club.name])}</span>
         </button>
         <button class="mode online" data-pens="online">
-          <strong>ONLINE</strong>
-          <p>Kick for kick against a real opponent, live.</p>
-          <span class="tag">ONLINE PENALTIES</span>
+          <strong>${tl('ONLINE')}</strong>
+          <p>${tl('Kick for kick against a real opponent, live.')}</p>
+          <span class="tag">${tl('ONLINE PENALTIES')}</span>
         </button>
       </div>`;
     body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
@@ -131,19 +131,19 @@ Object.assign(UI, {
 
   // ---- FREE KICKS: the same choice, for a free-kick shootout ----
   panel_fkmode(body) {
-    $('modal-title').textContent = 'FREE KICKS';
+    $('modal-title').textContent = tl('FREE KICKS');
     const club = this._pensClub || Clubs.random(Clubs.mine());
     body.innerHTML = `
       <div class="modes pen-choice">
         <button class="mode pens fk" data-fk="offline">
-          <strong>OFFLINE</strong>
-          <p>Five free kicks each against a computer-controlled opponent. Soft and high goes over the wall; hard goes round it.</p>
-          <span class="tag">VS ${club.name}</span>
+          <strong>${tl('OFFLINE')}</strong>
+          <p>${tl('Five free kicks each against a computer-controlled opponent. Soft and high goes over the wall; hard goes round it.')}</p>
+          <span class="tag">${tl('VS {0}', [club.name])}</span>
         </button>
         <button class="mode online" data-fk="online">
-          <strong>ONLINE</strong>
-          <p>Free kick for free kick against a real opponent, live.</p>
-          <span class="tag">ONLINE FREE KICKS</span>
+          <strong>${tl('ONLINE')}</strong>
+          <p>${tl('Free kick for free kick against a real opponent, live.')}</p>
+          <span class="tag">${tl('ONLINE FREE KICKS')}</span>
         </button>
       </div>`;
     body.querySelector('[data-fk="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', fk: true, club }); });
@@ -152,48 +152,48 @@ Object.assign(UI, {
 
   // ---- FRIEND CUP: a knockout between four or eight friends ----
   panel_cup(body) {
-    $('modal-title').textContent = 'FRIEND CUP';
+    $('modal-title').textContent = tl('FRIEND CUP');
     const c = Social.cup;
-    if (!Net.user) { body.innerHTML = '<p class="note">Log in to run a cup with your friends.</p>'; return; }
+    if (!Net.user) { body.innerHTML = `<p class="note">${tl('Log in to run a cup with your friends.')}</p>`; return; }
     if (!c) {
       body.innerHTML = `
-        <p class="note">A knockout between your friends. Everyone plays 1v1, the winner of each tie goes through, and the last one standing lifts the cup. No draws: golden goal decides it.</p>
-        <div class="cup-pick"><button class="big-btn" data-size="4">4 PLAYERS</button><button class="big-btn" data-size="8">8 PLAYERS</button></div>
-        <p class="note">You pick the size, then invite friends who are online. The draw is random.</p>`;
+        <p class="note">${tl('A knockout between your friends. Everyone plays 1v1, the winner of each tie goes through, and the last one standing lifts the cup. No draws: golden goal decides it.')}</p>
+        <div class="cup-pick"><button class="big-btn" data-size="4">${tl('4 PLAYERS')}</button><button class="big-btn" data-size="8">${tl('8 PLAYERS')}</button></div>
+        <p class="note">${tl('You pick the size, then invite friends who are online. The draw is random.')}</p>`;
       body.querySelectorAll('[data-size]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.send({ t: 'cup.create', size: Number(b.dataset.size) }); }));
       return;
     }
     const you = Net.user.name, host = c.host === you;
     const slots = [];
-    for (const p of c.players) slots.push(`<div class="cup-slot ${p.out ? 'out' : ''} ${p.name === you ? 'you' : ''}"><canvas width="36" height="24" data-club="${p.club}"></canvas><b>${esc(p.name)}</b>${p.name === c.host ? '<i class="crown"></i>' : ''}${p.gone ? '<small>OFFLINE</small>' : ''}</div>`);
-    for (const nm of c.invited) slots.push(`<div class="cup-slot asked"><b>${esc(nm)}</b><small>ASKED…</small>${host ? `<button class="fr-x" data-drop="${esc(nm)}" aria-label="Cancel">×</button>` : ''}</div>`);
-    while (slots.length < c.size) slots.push('<div class="cup-slot empty"><b>EMPTY</b></div>');
+    for (const p of c.players) slots.push(`<div class="cup-slot ${p.out ? 'out' : ''} ${p.name === you ? 'you' : ''}"><canvas width="36" height="24" data-club="${p.club}"></canvas><b>${esc(p.name)}</b>${p.name === c.host ? '<i class="crown"></i>' : ''}${p.gone ? `<small>${tl('OFFLINE')}</small>` : ''}</div>`);
+    for (const nm of c.invited) slots.push(`<div class="cup-slot asked"><b>${esc(nm)}</b><small>${tl('ASKED…')}</small>${host ? `<button class="fr-x" data-drop="${esc(nm)}" aria-label="${tl('Cancel')}">×</button>` : ''}</div>`);
+    while (slots.length < c.size) slots.push(`<div class="cup-slot empty"><b>${tl('EMPTY')}</b></div>`);
 
     if (c.state === 'lobby') {
       const free = Social.friends.filter((f) => f.status !== 'offline' && !c.players.some((p) => p.name === f.name) && !c.invited.includes(f.name));
       body.innerHTML = `
         <div class="cup-slots">${slots.join('')}</div>
-        ${host ? `<h3 class="fr-h">INVITE FRIENDS</h3>
-          ${free.length ? free.map((f) => `<div class="fr-row"><b>${esc(f.name)}</b><em class="fr-st on">${(FRIEND_STATUS[f.status] || FRIEND_STATUS.online)[0]}</em><button class="mid-btn blue" data-ask="${esc(f.name)}">INVITE</button></div>`).join('')
-            : '<p class="note">No friends online to ask right now.</p>'}` : '<p class="note">Waiting for the host to start it.</p>'}
+        ${host ? `<h3 class="fr-h">${tl('INVITE FRIENDS')}</h3>
+          ${free.length ? free.map((f) => `<div class="fr-row"><b>${esc(f.name)}</b><em class="fr-st on">${(FRIEND_STATUS[f.status] || FRIEND_STATUS.online)[0]}</em><button class="mid-btn blue" data-ask="${esc(f.name)}">${tl('INVITE')}</button></div>`).join('')
+            : `<p class="note">${tl('No friends online to ask right now.')}</p>`}` : `<p class="note">${tl('Waiting for the host to start it.')}</p>`}
         <div class="cup-foot">
-          ${host ? `<button class="big-btn green" data-start ${c.players.length === c.size ? '' : 'disabled'}>${c.players.length === c.size ? 'START THE CUP' : `WAITING · ${c.players.length}/${c.size}`}</button>` : ''}
-          <button class="mid-btn red" data-leave>${host ? 'CALL IT OFF' : 'LEAVE'}</button>
+          ${host ? `<button class="big-btn green" data-start ${c.players.length === c.size ? '' : 'disabled'}>${c.players.length === c.size ? tl('START THE CUP') : tl('WAITING · {0}/{1}', [c.players.length, c.size])}</button>` : ''}
+          <button class="mid-btn red" data-leave>${host ? tl('CALL IT OFF') : tl('LEAVE')}</button>
         </div>`;
     } else {
       const left = Social.cupAt ? Math.max(0, Math.ceil((Social.cupAt - performance.now()) / 1000)) : 0;
       const rounds = c.rounds.map((ties, r) => `
-        <h3 class="fr-h">${CUP_ROUNDS[c.of - 1 - r] || 'ROUND ' + (r + 1)}</h3>
+        <h3 class="fr-h">${CUP_ROUNDS[c.of - 1 - r] || tl('ROUND {0}', [r + 1])}</h3>
         <div class="cup-ties">${ties.map((t) => {
           const line = (nm, sc, won) => `<span class="${won ? 'won' : ''} ${nm === you ? 'you' : ''}"><b>${esc(nm || '—')}</b><em>${sc === null || sc === undefined ? '' : sc}</em></span>`;
-          return `<div class="cup-tie ${t.live ? 'live' : ''}">${line(t.a, t.sa, t.w && t.w === t.a)}${line(t.b, t.sb, t.w && t.w === t.b)}${t.live ? '<i class="tag-live">LIVE</i>' : ''}</div>`;
+          return `<div class="cup-tie ${t.live ? 'live' : ''}">${line(t.a, t.sa, t.w && t.w === t.a)}${line(t.b, t.sb, t.w && t.w === t.b)}${t.live ? `<i class="tag-live">${tl('LIVE')}</i>` : ''}</div>`;
         }).join('')}</div>`).join('');
       body.innerHTML = `
-        ${c.state === 'done' ? `<div class="cup-champ"><small>WINNER</small><strong>${esc(c.champion || 'NOBODY')}</strong></div>`
-        : left ? `<p class="note big-note">${CUP_ROUNDS[c.of - 1 - c.round] || 'THE NEXT ROUND'} STARTS IN ${left}…</p>`
-          : '<p class="note big-note">MATCHES ARE ON</p>'}
+        ${c.state === 'done' ? `<div class="cup-champ"><small>${tl('WINNER')}</small><strong>${esc(c.champion || tl('NOBODY'))}</strong></div>`
+        : left ? `<p class="note big-note">${tl('{0} STARTS IN {1}…', [CUP_ROUNDS[c.of - 1 - c.round] || tl('THE NEXT ROUND'), left])}</p>`
+          : `<p class="note big-note">${tl('MATCHES ARE ON')}</p>`}
         ${rounds}
-        <div class="cup-foot"><button class="mid-btn red" data-leave>${c.state === 'done' ? 'CLOSE THE CUP' : 'GIVE UP'}</button></div>`;
+        <div class="cup-foot"><button class="mid-btn red" data-leave>${c.state === 'done' ? tl('CLOSE THE CUP') : tl('GIVE UP')}</button></div>`;
     }
     body.querySelectorAll('canvas[data-club]').forEach((cv) => UI.flagBadge(cv, Clubs.get(cv.dataset.club)));
     const on = (sel, fn) => body.querySelectorAll(sel).forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); fn(b); }));
@@ -205,11 +205,11 @@ Object.assign(UI, {
 
   // ---- LEADERBOARD: the ranked ladder, best first ----
   async panel_leaderboard(body) {
-    $('modal-title').textContent = 'LEADERBOARD';
-    body.innerHTML = '<p class="note">Loading the ladder…</p>';
+    $('modal-title').textContent = tl('LEADERBOARD');
+    body.innerHTML = `<p class="note">${tl('Loading the ladder…')}</p>`;
     const r = await Net.leaderboard();
     if ($('modal').dataset.kind !== 'leaderboard') return;
-    if (!r || !r.ok) { body.innerHTML = `<p class="note">${(r && r.msg) || "Can't reach the server"}</p>`; return; }
+    if (!r || !r.ok) { body.innerHTML = `<p class="note">${r && r.msg ? I18N.server(r.msg) : tl("Can't reach the server")}</p>`; return; }
     const days = Math.max(0, Math.ceil((r.ends - Date.now()) / 86400000));
     const me = Net.user && Net.user.name;
     const row = (x) => {
@@ -218,15 +218,15 @@ Object.assign(UI, {
         <b>${x.pos}</b><canvas width="42" height="28" data-club="${x.club}"></canvas>
         <span>${esc(x.name)}</span>
         <em style="--t:${t.color}">${x.tierName}</em>
-        <i>${x.rp}<small>RP</small></i></li>`;
+        <i>${x.rp}<small>${tl('RP')}</small></i></li>`;
     };
     const outside = r.you && r.you.pos > r.top.length;
     body.innerHTML = `
-      <p class="note">${r.players} player${r.players === 1 ? '' : 's'} on the board this season · ${days} day${days === 1 ? '' : 's'} left. Rank points come from RANKED matches only.</p>
-      ${r.top.length ? `<ol class="lb-board">${r.top.map(row).join('')}</ol>` : '<p class="note">Nobody has won a ranked match yet. Be the first one on it.</p>'}
-      ${outside ? `<h3 class="fr-h">YOU</h3><ol class="lb-board">${row(r.you)}</ol>` : ''}
-      ${!r.you && Net.user ? '<p class="note">Win a ranked match and you are on it.</p>' : ''}
-      <div class="cup-foot"><button class="mid-btn" data-open2="ranked">YOUR RANK</button><button class="big-btn green" data-rankplay>PLAY RANKED</button></div>`;
+      <p class="note">${tlN(r.players, '{0} player on the board this season', '{0} players on the board this season')} · ${tlN(days, '{0} day left', '{0} days left')}. ${tl('Rank points come from RANKED matches only.')}</p>
+      ${r.top.length ? `<ol class="lb-board">${r.top.map(row).join('')}</ol>` : `<p class="note">${tl('Nobody has won a ranked match yet. Be the first one on it.')}</p>`}
+      ${outside ? `<h3 class="fr-h">${tl('YOU')}</h3><ol class="lb-board">${row(r.you)}</ol>` : ''}
+      ${!r.you && Net.user ? `<p class="note">${tl('Win a ranked match and you are on it.')}</p>` : ''}
+      <div class="cup-foot"><button class="mid-btn" data-open2="ranked">${tl('YOUR RANK')}</button><button class="big-btn green" data-rankplay>${tl('PLAY RANKED')}</button></div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     // tap anyone else on the board to block them or report their name
     body.querySelectorAll('[data-player]').forEach((li) => li.addEventListener('click', () => { this.tap(); this.openPlayer(li.dataset.player, 'leaderboard'); }));
@@ -238,9 +238,9 @@ Object.assign(UI, {
 
   // ---- RANKED: your tier this season and what is left to climb ----
   panel_ranked(body) {
-    $('modal-title').textContent = 'RANKED';
+    $('modal-title').textContent = tl('RANKED');
     const rk = (Net.user && Net.user.rank) || null;
-    if (!rk) { body.innerHTML = '<p class="note">Play an online match and your rank starts here.</p>'; return; }
+    if (!rk) { body.innerHTML = `<p class="note">${tl('Play an online match and your rank starts here.')}</p>`; return; }
     const tier = RANK_TIERS.find((x) => x.id === rk.tier) || RANK_TIERS[0];
     const next = rk.next;
     const into = next ? clamp((rk.rp - tier.at) / (next.at - tier.at), 0, 1) : 1;
@@ -248,16 +248,16 @@ Object.assign(UI, {
     body.innerHTML = `
       <div class="rank-head" style="--t:${tier.color}">
         <div class="rank-badge"><i></i><b>${tier.name}</b></div>
-        <div class="rank-rp"><b>${rk.rp}</b><small>RANK POINTS</small></div>
+        <div class="rank-rp"><b>${rk.rp}</b><small>${tl('RANK POINTS')}</small></div>
       </div>
       <div class="rank-bar"><b style="width:${Math.round(into * 100)}%;background:${tier.color}"></b></div>
-      <p class="note">${next ? `${Math.max(0, next.at - rk.rp)} RP TO ${next.name}` : 'TOP TIER — NOBODY IS ABOVE YOU'} · SEASON ENDS IN ${days} DAY${days === 1 ? '' : 'S'}</p>
-      <div class="rank-stats"><span>WON <b>${rk.wins}</b></span><span>PLAYED <b>${rk.played}</b></span><span>BEST <b>${rk.best}</b></span></div>
-      <h3 class="fr-h">TIERS · WHAT EACH PAYS WHEN THE SEASON ENDS</h3>
-      <div class="rank-tiers">${RANK_TIERS.map((x) => `<div class="rank-tier ${x.id === tier.id ? 'you' : ''}" style="--t:${x.color}"><i></i><b>${x.name}</b><small>${x.at} RP</small><em><span class="coin"></span>${x.reward}</em></div>`).join('')}</div>
-      <div class="rank-how"><b>HOW POINTS WORK</b><span>WIN <em>+10</em></span><span>DRAW <em>+5</em></span><span>LOSE <em>-5</em></span><span>EACH CHALLENGE YOU WIN WITH <em>+1</em></span></div>
-      <p class="note">Only RANKED matches move your rank — 1v1, from PLAY. Every ranked match sets you three challenges, each worth a point if you win the match. A loss costs 5 points (so does leaving a ranked match), but you never drop below 0. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.</p>
-      <div class="cup-foot"><button class="mid-btn" data-board>LEADERBOARD</button><button class="big-btn green rank-play" data-rankplay>PLAY RANKED</button></div>`;
+      <p class="note">${next ? tl('{0} RP TO {1}', [Math.max(0, next.at - rk.rp), next.name]) : tl('TOP TIER — NOBODY IS ABOVE YOU')} · ${tlN(days, 'SEASON ENDS IN {0} DAY', 'SEASON ENDS IN {0} DAYS')}</p>
+      <div class="rank-stats"><span>${tl('WON')} <b>${rk.wins}</b></span><span>${tl('PLAYED')} <b>${rk.played}</b></span><span>${tl('BEST')} <b>${rk.best}</b></span></div>
+      <h3 class="fr-h">${tl('TIERS · WHAT EACH PAYS WHEN THE SEASON ENDS')}</h3>
+      <div class="rank-tiers">${RANK_TIERS.map((x) => `<div class="rank-tier ${x.id === tier.id ? 'you' : ''}" style="--t:${x.color}"><i></i><b>${x.name}</b><small>${tl('{0} RP', [x.at])}</small><em><span class="coin"></span>${x.reward}</em></div>`).join('')}</div>
+      <div class="rank-how"><b>${tl('HOW POINTS WORK')}</b><span>${tl('WIN')} <em>+10</em></span><span>${tl('DRAW')} <em>+5</em></span><span>${tl('LOSE')} <em>-5</em></span><span>${tl('EACH CHALLENGE YOU WIN WITH')} <em>+1</em></span></div>
+      <p class="note">${tl('Only RANKED matches move your rank — 1v1, from PLAY. Every ranked match sets you three challenges, each worth a point if you win the match. A loss costs 5 points (so does leaving a ranked match), but you never drop below 0. When a season ends you are paid for the tier you finished in and the next one starts you part of the way back down.')}</p>
+      <div class="cup-foot"><button class="mid-btn" data-board>${tl('LEADERBOARD')}</button><button class="big-btn green rank-play" data-rankplay>${tl('PLAY RANKED')}</button></div>`;
     const lb = body.querySelector('[data-board]');
     if (lb) lb.addEventListener('click', () => { this.tap(); this.openModal('leaderboard'); });
     const go = body.querySelector('[data-rankplay]');
@@ -266,7 +266,7 @@ Object.assign(UI, {
 
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
   panel_worldcup(body) {
-    $('modal-title').textContent = 'WORLD CUP';
+    $('modal-title').textContent = tl('WORLD CUP');
     const fmt = Save.data.format || '4v4';
     const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="28" data-flag="${c.id}"></canvas>${c.short}</span>`; };
     // online: the round you're in comes from the server; this run's results from your last matches
@@ -276,7 +276,7 @@ Object.assign(UI, {
     const online = WC_ROUNDS.map((name, i) => {
       const r = run[i];
       const cls = i < round ? 'won' : i === round ? 'next' : '';
-      return `<li class="${cls}"><small>${name}</small>${r ? flagCell(r.club) : `<span>${i === round ? 'NEXT' : '—'}</span>`}<em>${r ? `${r.mine}-${r.theirs}` : ''}</em></li>`;
+      return `<li class="${cls}"><small>${name}</small>${r ? flagCell(r.club) : `<span>${i === round ? tl('NEXT') : '—'}</span>`}<em>${r ? `${r.mine}-${r.theirs}` : ''}</em></li>`;
     }).join('');
     // bots: three set opponents per cup
     const cup = Cup.state();
@@ -286,20 +286,20 @@ Object.assign(UI, {
       return `<li class="${cls}"><small>${name}</small>${cup ? flagCell(cup.opponents[i]) : '<span>?</span>'}<em>${res ? `${res.blue}-${res.red}` : ''}</em></li>`;
     }).join('');
     body.innerHTML = `
-      <div class="formats"><span>FORMAT</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
+      <div class="formats"><span>${tl('FORMAT')}</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
       <div class="wc-panels">
         <section class="wc-panel online">
-          <header><strong>ONLINE</strong><small>Against real players from every country, round of 16 to the final.</small></header>
+          <header><strong>${tl('ONLINE')}</strong><small>${tl('Against real players from every country, round of 16 to the final.')}</small></header>
           <ol class="wc-bracket">${online}</ol>
-          <div class="wc-foot"><span class="tag">WIN IT: +${WC_PRIZE} COINS${titles ? ` · WON ${titles}` : ''}</span><button class="mid-btn" data-needs-net data-cup="online">PLAY ${WC_ROUNDS[round]}</button></div>
+          <div class="wc-foot"><span class="tag">${tl('WIN IT: +{0} COINS', [WC_PRIZE])}${titles ? ' · ' + tl('WON {0}', [titles]) : ''}</span><button class="mid-btn" data-needs-net data-cup="online">${tl('PLAY {0}', [WC_ROUNDS[round]])}</button></div>
         </section>
         <section class="wc-panel bots">
-          <header><strong>VS BOTS</strong><small>Three knockout matches offline, each one tougher.</small></header>
+          <header><strong>${tl('VS BOTS')}</strong><small>${tl('Three knockout matches offline, each one tougher.')}</small></header>
           <ol class="wc-bracket">${bots}</ol>
-          <div class="wc-foot"><span class="tag">WIN IT: +300 COINS${Save.data.trophies ? ` · WON ${Save.data.trophies}` : ''}</span><button class="mid-btn" data-cup="bots">${cup ? `PLAY ${Cup.ROUNDS[cup.round]}` : 'START CUP'}</button></div>
+          <div class="wc-foot"><span class="tag">${tl('WIN IT: +{0} COINS', [300])}${Save.data.trophies ? ' · ' + tl('WON {0}', [Save.data.trophies]) : ''}</span><button class="mid-btn" data-cup="bots">${cup ? tl('PLAY {0}', [Cup.ROUNDS[cup.round]]) : tl('START CUP')}</button></div>
         </section>
       </div>
-      <p class="note" style="margin-top:12px">No draws in either cup: level at full time goes to golden goal. Lose once and you're out. Win it and lift the trophy.</p>`;
+      <p class="note" style="margin-top:12px">${tl('No draws in either cup: level at full time goes to golden goal. Lose once and you\'re out. Win it and lift the trophy.')}</p>`;
     body.querySelectorAll('canvas[data-flag]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.flag)));
     body.querySelectorAll('[data-format]').forEach((b) => b.addEventListener('click', () => {
       Save.data.format = b.dataset.format; Save.write(); this.tap();
@@ -346,7 +346,7 @@ Object.assign(UI, {
       if (Shop.owns(kind, id)) { this.tap(); onEquip(); return; }
       Sound.steal();
       el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400);
-      this.toast('OPEN CRATES TO FIND THIS ONE');
+      this.toast(tl('OPEN CRATES TO FIND THIS ONE'));
     });
   },
 
@@ -355,16 +355,16 @@ Object.assign(UI, {
   priceTag(kind, id) {
     if (Shop.owns(kind, id)) return '';
     const rar = Crates.rarity(kind, id);
-    return `<span class="price locked-tag" style="--r:${RARITIES[rar].color}"><i></i>${RARITIES[rar].name}</span><span class="buy">FROM CRATES</span>`;
+    return `<span class="price locked-tag" style="--r:${RARITIES[rar].color}"><i></i>${RARITIES[rar].name}</span><span class="buy">${tl('FROM CRATES')}</span>`;
   },
 
   coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${fmtCoins(Save.data.coins)}</b></div>`; },
 
   // ---- characters ----
   panel_characters(body) {
-    $('modal-title').textContent = 'CHARACTERS';
+    $('modal-title').textContent = tl('CHARACTERS');
     const list = this.charList();
-    body.innerHTML = `${this.coinsLine()}<p class="note">Better players are faster, shoot harder, pass sharper, keep the ball and win tackles. The best ones take days of play to afford.</p><div class="char-grid">${list.map((c) => this.charCard(c)).join('')}</div>`;
+    body.innerHTML = `${this.coinsLine()}<p class="note">${tl('Better players are faster, shoot harder, pass sharper, keep the ball and win tackles. The best ones take days of play to afford.')}</p><div class="char-grid">${list.map((c) => this.charCard(c)).join('')}</div>`;
     body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('.char-card-sm').forEach((el) => this.shopCard(el, 'character', el.dataset.id, () => {
       Save.data.character = el.dataset.id; Save.write();
@@ -375,7 +375,7 @@ Object.assign(UI, {
 
   // ---- missions: jobs worth coins ----
   panel_missions(body) {
-    $('modal-title').textContent = 'MISSIONS';
+    $('modal-title').textContent = tl('MISSIONS');
     const m = Missions.state();
     const row = (job, big) => {
       const def = Missions.def(job.id);
@@ -385,7 +385,7 @@ Object.assign(UI, {
         <div class="m-top"><strong>${def.text.replace('{n}', def.n)}</strong><span class="m-coins"><span class="coin"></span>${fmtCoins(def.coins)}</span></div>
         <i class="m-bar"><b style="width:${Math.min(100, pct)}%"></b></i>
         <div class="m-bot"><em>${Math.min(job.n, def.n)} / ${def.n}</em>
-        ${job.done ? '<span class="m-paid">CLAIMED</span>' : done ? `<button class="m-claim" data-claim="${job.id}">CLAIM</button>` : ''}</div>
+        ${job.done ? `<span class="m-paid">${tl('CLAIMED')}</span>` : done ? `<button class="m-claim" data-claim="${job.id}">${tl('CLAIM')}</button>` : ''}</div>
       </div>`;
     };
     // "day N of your run" only while the run is alive: a new player has no day 0, and after a
@@ -394,10 +394,10 @@ Object.assign(UI, {
     const runAlive = dl.last && dl.streak > 0 && Daily.dayNum(Daily.key()) - Daily.dayNum(dl.last) <= 1;
     const streak = runAlive ? dl.streak : 0;
     body.innerHTML = `${this.coinsLine()}
-      <p class="note">Jobs pay coins, and coins open crates. They swap over at midnight; the big one lasts the week.</p>
-      <div class="m-head">TODAY${streak ? `<small>day ${streak} of your run</small>` : ''}</div>
+      <p class="note">${tl('Jobs pay coins, and coins open crates. They swap over at midnight; the big one lasts the week.')}</p>
+      <div class="m-head">${tl('TODAY')}${streak ? `<small>${tl('day {0} of your run', [streak])}</small>` : ''}</div>
       <div class="mission-list">${m.daily.map((j) => row(j, false)).join('')}</div>
-      <div class="m-head">THIS WEEK</div>
+      <div class="m-head">${tl('THIS WEEK')}</div>
       <div class="mission-list">${m.weekly ? row(m.weekly, true) : ''}</div>`;
     body.querySelectorAll('[data-claim]').forEach((b) => b.addEventListener('click', () => {
       const got = Missions.claim(b.dataset.claim);
@@ -409,7 +409,7 @@ Object.assign(UI, {
       Pop.ring(at.x, at.y, '#ffc21a', 180, 420);
       Pop.shout(at.x, at.y - 24, '+' + fmtCoins(got), '#ffc21a', 900);
       Pop.confetti(at.x, at.y, ['#ffc21a', '#ffffff', '#35c06a'], got >= 5000 ? 34 : 18);
-      this.toast('+' + fmtCoins(got) + ' COINS');
+      this.toast(tl('+{0} COINS', [fmtCoins(got)]));
       this.redraw(body, () => this.panel_missions(body));
       this.refreshHome();
     }));
@@ -417,8 +417,8 @@ Object.assign(UI, {
 
   // ---- collection: everything in the game, and how much of it is yours ----
   panel_collection(body) {
-    $('modal-title').textContent = 'COLLECTION';
-    const kinds = [['character', 'PLAYERS'], ['ball', 'BALLS'], ['trail', 'POWER TRAILS'], ['celebration', 'CELEBRATIONS'], ['accessory', 'ACCESSORIES']];
+    $('modal-title').textContent = tl('COLLECTION');
+    const kinds = [['character', tl('PLAYERS')], ['ball', tl('BALLS')], ['trail', tl('POWER TRAILS')], ['celebration', tl('CELEBRATIONS')], ['accessory', tl('ACCESSORIES')]];
     let own = 0, all = 0;
     const order = ['common', 'rare', 'epic', 'legendary', 'mythic'];
     let best = null, bestRank = -1;
@@ -442,12 +442,12 @@ Object.assign(UI, {
     }).join('');
     const pct = Math.round((own / Math.max(1, all)) * 100);
     body.innerHTML = `<div class="coll-head">
-        <div class="coll-big"><b>${pct}%</b><small>${own} of ${all} things</small><i class="coll-bar wide"><b style="width:${pct}%"></b></i></div>
-        <div class="coll-best"><small>BEST FIND</small><canvas id="coll-best-art" width="120" height="120"></canvas>
+        <div class="coll-big"><b>${pct}%</b><small>${tl('{0} of {1} things', [own, all])}</small><i class="coll-bar wide"><b style="width:${pct}%"></b></i></div>
+        <div class="coll-best"><small>${tl('BEST FIND')}</small><canvas id="coll-best-art" width="120" height="120"></canvas>
           <strong id="coll-best-name">—</strong></div>
       </div>
       <div class="coll-list">${rows}</div>
-      <button class="big-btn green" id="coll-crates">OPEN CRATES</button>`;
+      <button class="big-btn green" id="coll-crates">${tl('OPEN CRATES')}</button>`;
     const art = $('coll-best-art');
     if (best && art) {
       this.itemSwatch(art, best);
@@ -456,7 +456,7 @@ Object.assign(UI, {
       $('coll-best-name').style.color = RARITIES[rar].color;
     } else if (art) {
       art.getContext('2d').clearRect(0, 0, art.width, art.height);
-      $('coll-best-name').textContent = 'NOTHING YET';
+      $('coll-best-name').textContent = tl('NOTHING YET');
     }
     $('coll-crates').addEventListener('click', () => { this.tap(); this.openModal('crates'); });
   },
@@ -472,13 +472,13 @@ Object.assign(UI, {
       el.className = 'overlay grownup';
       el.style.zIndex = 25;
       el.innerHTML = `<div class="panel small"><div class="gate">
-        <strong>ASK A GROWN-UP</strong>
+        <strong>${tl('ASK A GROWN-UP')}</strong>
         <p>${why}</p>
-        <p>To go on, a grown-up types these numbers, with no spaces:</p>
+        <p>${tl('To go on, a grown-up types these numbers, with no spaces:')}</p>
         <div class="gate-words">${Store.gate.words}</div>
-        <input inputmode="numeric" autocomplete="off" maxlength="12" placeholder="THE NUMBERS">
+        <input inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${tl('THE NUMBERS')}">
         <p class="note gate-msg"></p>
-        <div class="gate-btns"><button class="mid-btn" data-no>CANCEL</button><button class="mid-btn green" data-ok>CONTINUE</button></div>
+        <div class="gate-btns"><button class="mid-btn" data-no>${tl('CANCEL')}</button><button class="mid-btn green" data-ok>${tl('CONTINUE')}</button></div>
       </div></div>`;
       document.body.appendChild(el);
       const input = el.querySelector('input');
@@ -487,7 +487,7 @@ Object.assign(UI, {
         if (Store.gatePassed(input.value)) { done(true); return; }
         Store.newGate();
         el.querySelector('.gate-words').textContent = Store.gate.words;
-        el.querySelector('.gate-msg').textContent = 'Not quite. Here are some new numbers.';
+        el.querySelector('.gate-msg').textContent = tl('Not quite. Here are some new numbers.');
         input.value = ''; input.focus();
       };
       el.querySelector('[data-ok]').addEventListener('click', () => { this.tap(); go(); });
@@ -503,15 +503,15 @@ Object.assign(UI, {
     const el = document.createElement('div');
     el.className = 'overlay grownup sheet';
     el.style.zIndex = 45; // over the sign-in page (40) as well as the game
-    const why = kind === 'reset' ? 'Your password is changed, and the code you used is used up. This is your new one.'
-      : kind === 'made' ? 'This is your new code. Any old one stops working.'
-        : 'If you ever forget your password, this code gets you back in.';
+    const why = kind === 'reset' ? tl('Your password is changed, and the code you used is used up. This is your new one.')
+      : kind === 'made' ? tl('This is your new code. Any old one stops working.')
+        : tl('If you ever forget your password, this code gets you back in.');
     el.innerHTML = `<div class="panel small"><div class="gate rcode">
-      <strong>YOUR RECOVERY CODE</strong>
+      <strong>${tl('YOUR RECOVERY CODE')}</strong>
       <p>${why}</p>
       <div class="gate-words rcode-code">${esc(code)}</div>
-      <p>Write it down and keep it somewhere safe. It is only shown this once: nobody can look it up for you later.</p>
-      <div class="gate-btns"><button class="mid-btn" data-copy>COPY</button><button class="mid-btn green" data-no>I WROTE IT DOWN</button></div>
+      <p>${tl('Write it down and keep it somewhere safe. It is only shown this once: nobody can look it up for you later.')}</p>
+      <div class="gate-btns"><button class="mid-btn" data-copy>${tl('COPY')}</button><button class="mid-btn green" data-no>${tl('I WROTE IT DOWN')}</button></div>
     </div></div>`;
     document.body.appendChild(el);
     // the button says how it went: a toast would be under this card's own dimmed backdrop
@@ -520,7 +520,7 @@ Object.assign(UI, {
       this.tap();
       let ok = false;
       try { await navigator.clipboard.writeText(code); ok = true; } catch (e) { /* no clipboard here */ }
-      copy.textContent = ok ? 'COPIED!' : "CAN'T COPY";
+      copy.textContent = ok ? tl('COPIED!') : tl("CAN'T COPY");
     });
     el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); el.remove(); if (Net.user) Net.user.hasRecovery = true; });
   },
@@ -531,15 +531,15 @@ Object.assign(UI, {
     el.className = 'overlay grownup sheet';
     el.style.zIndex = 45; // over the sign-in page (40), where it is opened from
     el.innerHTML = `<div class="panel small fg-panel"><form class="gate forgot" autocomplete="off" novalidate>
-      <strong>FORGOT YOUR PASSWORD?</strong>
-      <p>Type your username and the recovery code you wrote down, then pick a new password.</p>
-      <input data-f="user" maxlength="14" placeholder="USERNAME" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <input data-f="code" maxlength="24" placeholder="RECOVERY CODE" autocapitalize="characters" autocorrect="off" spellcheck="false">
-      <input data-f="pass" type="password" maxlength="200" placeholder="NEW PASSWORD" autocomplete="new-password">
-      <input data-f="pass2" type="password" maxlength="200" placeholder="NEW PASSWORD AGAIN" autocomplete="new-password">
+      <strong>${tl('FORGOT YOUR PASSWORD?')}</strong>
+      <p>${tl('Type your username and the recovery code you wrote down, then pick a new password.')}</p>
+      <input data-f="user" maxlength="14" placeholder="${tl('USERNAME')}" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input data-f="code" maxlength="24" placeholder="${tl('RECOVERY CODE')}" autocapitalize="characters" autocorrect="off" spellcheck="false">
+      <input data-f="pass" type="password" maxlength="200" placeholder="${tl('NEW PASSWORD')}" autocomplete="new-password">
+      <input data-f="pass2" type="password" maxlength="200" placeholder="${tl('NEW PASSWORD AGAIN')}" autocomplete="new-password">
       <p class="note fg-msg"></p>
-      <div class="gate-btns"><button type="button" class="mid-btn" data-no>BACK</button><button type="submit" class="mid-btn green">RESET IT</button></div>
-      <p class="fg-none">No code? Then the password can't be reset: accounts have no email to send anything to.</p>
+      <div class="gate-btns"><button type="button" class="mid-btn" data-no>${tl('BACK')}</button><button type="submit" class="mid-btn green">${tl('RESET IT')}</button></div>
+      <p class="fg-none">${tl('No code? Then the password can\'t be reset: accounts have no email to send anything to.')}</p>
     </form></div>`;
     document.body.appendChild(el);
     const f = (k) => el.querySelector(`[data-f="${k}"]`);
@@ -551,16 +551,16 @@ Object.assign(UI, {
       e.preventDefault();
       const user = f('user').value.trim(), code = f('code').value, pass = f('pass').value;
       msg.classList.add('bad');
-      if (!user || !code.trim() || !pass) { msg.textContent = 'Fill in all four boxes.'; return; }
-      if (pass !== f('pass2').value) { msg.textContent = 'The two new passwords do not match.'; return; }
-      go.disabled = true; msg.classList.remove('bad'); msg.textContent = 'Checking the code…';
+      if (!user || !code.trim() || !pass) { msg.textContent = tl('Fill in all four boxes.'); return; }
+      if (pass !== f('pass2').value) { msg.textContent = tl('The two new passwords do not match.'); return; }
+      go.disabled = true; msg.classList.remove('bad'); msg.textContent = tl('Checking the code…');
       const slow = setTimeout(() => { if (go.disabled) msg.textContent = Net.WAKING_MSG; }, 3000);
       let r = null;
       try { r = await Net.recover(user, code, pass); } catch (err) { r = null; }
       clearTimeout(slow);
       go.disabled = false;
-      if (!r) { msg.classList.add('bad'); msg.textContent = Net.noWifi() ? Net.NO_WIFI_MSG : "Can't reach the server. Try again in a minute."; return; }
-      if (!r.ok) { msg.classList.add('bad'); msg.textContent = r.msg || 'That did not work'; Sound.steal(); return; }
+      if (!r) { msg.classList.add('bad'); msg.textContent = Net.noWifi() ? Net.NO_WIFI_MSG : tl("Can't reach the server. Try again in a minute."); return; }
+      if (!r.ok) { msg.classList.add('bad'); msg.textContent = r.msg ? I18N.server(r.msg) : tl('That did not work'); Sound.steal(); return; }
       el.remove();
       $('auth-pass').value = '';
       $('auth-user').value = r.name || user;
@@ -572,19 +572,19 @@ Object.assign(UI, {
   // back: the window to go back to (friends, leaderboard); a name of null asks for one
   openPlayer(name, back) { this._player = { name: name ? String(name).toUpperCase() : null, back: back || null }; this.openModal('player'); },
   panel_player(body) {
-    $('modal-title').textContent = 'PLAYER';
+    $('modal-title').textContent = tl('PLAYER');
     const p = this._player || { name: null, back: null }, S = Social;
-    const backBtn = p.back ? `<div class="cup-foot"><button class="mid-btn" data-back>BACK</button></div>` : '';
+    const backBtn = p.back ? `<div class="cup-foot"><button class="mid-btn" data-back>${tl('BACK')}</button></div>` : '';
     const wire = () => { const b = body.querySelector('[data-back]'); if (b) b.addEventListener('click', () => { this.tap(); this.openModal(p.back); }); };
-    if (!S.signedIn()) { body.innerHTML = `<p class="note">Log in to block or report players.</p>${backBtn}`; wire(); return; }
+    if (!S.signedIn()) { body.innerHTML = `<p class="note">${tl('Log in to block or report players.')}</p>${backBtn}`; wire(); return; }
     if (!Net.wsReady) Net.openSocket();
     if (!p.name) {
-      body.innerHTML = `<form class="fr-add pl-find" autocomplete="off"><input id="pl-name" maxlength="14" placeholder="THEIR USERNAME" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">FIND</button></form>
-        <p class="note">Type the username of the player you want to block, or whose name you want to report.</p>${backBtn}`;
+      body.innerHTML = `<form class="fr-add pl-find" autocomplete="off"><input id="pl-name" maxlength="14" placeholder="${tl('THEIR USERNAME')}" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">${tl('FIND')}</button></form>
+        <p class="note">${tl('Type the username of the player you want to block, or whose name you want to report.')}</p>${backBtn}`;
       body.querySelector('.pl-find').addEventListener('submit', (e) => {
         e.preventDefault();
         const name = body.querySelector('#pl-name').value.trim();
-        if (name.length < 3) { this.toast('TYPE THEIR USERNAME'); return; }
+        if (name.length < 3) { this.toast(tl('TYPE THEIR USERNAME')); return; }
         this.tap();
         this._player = { name: name.toUpperCase(), back: p.back };
         this.panel_player(body);
@@ -595,13 +595,13 @@ Object.assign(UI, {
     const me = Net.user && String(Net.user.name).toUpperCase();
     const blocked = S.blocked.some((b) => b.name === p.name), reported = S.reported.includes(p.name);
     body.innerHTML = `<div class="pl-card"><b class="pl-name">${esc(p.name)}</b>
-      ${p.name === me ? '<p class="note">That is you.</p>' : `
-      <div class="pl-act"><span><b>${blocked ? 'BLOCKED' : 'BLOCK'}</b><small>${blocked
-        ? 'They can not send you friend requests, their quick chat never reaches you, and you never end up in the same match.'
-        : 'No friend requests from them, none of their quick chat, and you never end up in the same match.'}</small></span>
-        <button class="mid-btn ${blocked ? '' : 'red'}" data-block>${blocked ? 'UNBLOCK' : 'BLOCK'}</button></div>
-      <div class="pl-act"><span><b>REPORT NAME</b><small>Is their username rude or weird? When enough different players report a name, that account is banned.</small></span>
-        <button class="mid-btn gold" data-report ${reported ? 'disabled' : ''}>${reported ? 'REPORTED' : 'REPORT'}</button></div>`}
+      ${p.name === me ? `<p class="note">${tl('That is you.')}</p>` : `
+      <div class="pl-act"><span><b>${blocked ? tl('BLOCKED') : tl('BLOCK')}</b><small>${blocked
+        ? tl('They can not send you friend requests, their quick chat never reaches you, and you never end up in the same match.')
+        : tl('No friend requests from them, none of their quick chat, and you never end up in the same match.')}</small></span>
+        <button class="mid-btn ${blocked ? '' : 'red'}" data-block>${blocked ? tl('UNBLOCK') : tl('BLOCK')}</button></div>
+      <div class="pl-act"><span><b>${tl('REPORT NAME')}</b><small>${tl('Is their username rude or weird? When enough different players report a name, that account is banned.')}</small></span>
+        <button class="mid-btn gold" data-report ${reported ? 'disabled' : ''}>${reported ? tl('REPORTED') : tl('REPORT')}</button></div>`}
     </div>${backBtn}`;
     wire();
     const bl = body.querySelector('[data-block]');
@@ -609,51 +609,51 @@ Object.assign(UI, {
     const rep = body.querySelector('[data-report]');
     if (rep) rep.addEventListener('click', async () => {
       // two taps: REPORT, then TAP AGAIN
-      if (!rep.classList.contains('armed')) { this.tap(); rep.classList.add('armed'); rep.textContent = 'TAP AGAIN'; return; }
+      if (!rep.classList.contains('armed')) { this.tap(); rep.classList.add('armed'); rep.textContent = tl('TAP AGAIN'); return; }
       this.tap();
-      rep.disabled = true; rep.textContent = 'SENDING…';
+      rep.disabled = true; rep.textContent = tl('SENDING…');
       const r = await Net.report(p.name);
-      if (r && r.auth === false) { rep.disabled = false; rep.classList.remove('armed'); rep.textContent = 'REPORT'; this.toast('LOG IN AGAIN TO REPORT'); return; }
+      if (r && r.auth === false) { rep.disabled = false; rep.classList.remove('armed'); rep.textContent = tl('REPORT'); this.toast(tl('LOG IN AGAIN TO REPORT')); return; }
       if (r && r.ok && !S.reported.includes(p.name)) S.reported.push(p.name);
-      this.toast(String((r && r.msg) || 'THAT DID NOT WORK').toUpperCase());
+      this.toast(String(r && r.msg ? I18N.server(r.msg) : tl('THAT DID NOT WORK')).toUpperCase());
       if ($('modal').dataset.kind === 'player' && !$('modal').hidden) this.panel_player(body);
     });
   },
 
   // ---- coins: packs bought with real money, in the app only (js/store.js does the buying) ----
   panel_coins(body) {
-    $('modal-title').textContent = 'GET COINS';
+    $('modal-title').textContent = tl('GET COINS');
     // the shop redraws itself when the store answers, but only while it is the thing on screen
     Store.onChange = () => { if (!$('modal').hidden && $('modal').dataset.kind === 'coins') this.panel_coins($('modal-body')); };
     const note = (t) => `<p class="note">${t}</p>`;
     const st = Store.status;
     let inner;
-    if (!Store.kind) inner = note('Coin packs are sold in the Mini Strikers app, from the App Store or Google Play.');
-    else if (!Net.token) inner = note('Sign in to buy coins, so they follow your account to any device.') + '<div class="coins-go"><button class="mid-btn" id="coins-signin">SIGN IN</button></div>';
-    else if (Net.offline) inner = note('Buying needs a connection. Come back when you are online.');
+    if (!Store.kind) inner = note(tl('Coin packs are sold in the Mini Strikers app, from the App Store or Google Play.'));
+    else if (!Net.token) inner = note(tl('Sign in to buy coins, so they follow your account to any device.')) + `<div class="coins-go"><button class="mid-btn" id="coins-signin">${tl('SIGN IN')}</button></div>`;
+    else if (Net.offline) inner = note(tl('Buying needs a connection. Come back when you are online.'));
     else if (Store.sel) {
       const p = PRODUCTS.find((x) => x.id === Store.sel);
       inner = `<div class="gate">
-        <strong>ASK A GROWN-UP</strong>
+        <strong>${tl('ASK A GROWN-UP')}</strong>
         <p class="gate-pack">${p.name} · <span class="coin"></span>${fmtCoins(p.coins)} · ${Store.priceOf(p)}</p>
-        <p>This costs real money. To go on, a grown-up types these numbers, with no spaces:</p>
+        <p>${tl('This costs real money. To go on, a grown-up types these numbers, with no spaces:')}</p>
         <div class="gate-words">${Store.gate.words}</div>
-        <input id="gate-in" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="THE NUMBERS">
+        <input id="gate-in" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${tl('THE NUMBERS')}">
         <p id="gate-msg" class="note"></p>
-        <div class="gate-btns"><button class="mid-btn" id="gate-no">CANCEL</button><button class="mid-btn green" id="gate-ok">CONTINUE</button></div>
+        <div class="gate-btns"><button class="mid-btn" id="gate-no">${tl('CANCEL')}</button><button class="mid-btn green" id="gate-ok">${tl('CONTINUE')}</button></div>
       </div>`;
     } else {
       const off = !!Store.busy || !st || !st.canBuy;
       const packs = PRODUCTS.map((p) => `<button class="pack ${p.id === Store.busy ? 'busy' : ''}" data-pack="${p.id}" ${off ? 'disabled' : ''}>
           <strong>${p.name}</strong>
           <span class="pack-coins"><span class="coin"></span>${fmtCoins(p.coins)}</span>
-          <em class="pack-bonus">${p.bonus ? '+' + p.bonus + '% EXTRA' : '&nbsp;'}</em>
-          <span class="pack-price">${p.id === Store.busy ? 'WAITING…' : Store.priceOf(p)}</span>
+          <em class="pack-bonus">${p.bonus ? tl('+{0}% EXTRA', [p.bonus]) : '&nbsp;'}</em>
+          <span class="pack-price">${p.id === Store.busy ? tl('WAITING…') : Store.priceOf(p)}</span>
         </button>`).join('');
-      inner = `${st && !st.canBuy && st.enabled ? note('That is enough packs for today. Come back tomorrow.') : ''}
+      inner = `${st && !st.canBuy && st.enabled ? note(tl('That is enough packs for today. Come back tomorrow.')) : ''}
         <div class="pack-grid">${packs}</div>
         ${Store.msg ? note(Store.msg) : ''}
-        <p class="note fine">These cost real money, so ask a grown-up first. Coins cannot be turned back into money. Crates cost coins, and every crate shows its odds on the crate shelf. Refunds are handled by Apple or Google.</p>`;
+        <p class="note fine">${tl('These cost real money, so ask a grown-up first. Coins cannot be turned back into money. Crates cost coins, and every crate shows its odds on the crate shelf. Refunds are handled by Apple or Google.')}</p>`;
     }
     body.innerHTML = `${this.coinsLine()}${inner}`;
 
@@ -664,7 +664,7 @@ Object.assign(UI, {
     if (ok) {
       const go = () => {
         if (Store.gatePassed($('gate-in').value)) { const id = Store.sel; Store.sel = null; Store.gate = null; this.panel_coins(body); Store.buy(id); return; }
-        Store.newGate(); this.panel_coins(body); $('gate-msg').textContent = 'Not quite. Here are some new numbers.';
+        Store.newGate(); this.panel_coins(body); $('gate-msg').textContent = tl('Not quite. Here are some new numbers.');
       };
       ok.addEventListener('click', () => { this.tap(); go(); });
       $('gate-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
@@ -672,7 +672,7 @@ Object.assign(UI, {
   },
 
   panel_crates(body) {
-    $('modal-title').textContent = 'CRATES';
+    $('modal-title').textContent = tl('CRATES');
     const cards = CRATES.map((c) => {
       const odds = CRATE_RARITIES.filter((r) => (c.odds[r] || 0) > 0)
         .map((r) => `<i style="--r:${RARITIES[r].color}"><b>${RARITIES[r].name}</b><em>${c.odds[r]}%</em></i>`).join('');
@@ -681,13 +681,13 @@ Object.assign(UI, {
         <canvas width="150" height="120" data-crateart="${c.id}"></canvas>
         <strong>${c.name}</strong>
         <span class="crate-odds">${odds}</span>
-        <span class="crate-left">${left ? left + ' LEFT INSIDE' : 'EMPTY'}</span>
+        <span class="crate-left">${left ? tl('{0} LEFT INSIDE', [left]) : tl('EMPTY')}</span>
         <span class="crate-price"><span class="coin"></span>${fmtCoins(c.price)}</span>
       </button>`;
     }).join('');
     const left = Crates.anyMissing();
-    body.innerHTML = `<div class="crate-head">${this.coinsLine()}<span class="crate-btns">${Store.canShow() ? '<button class="mid-btn gold" id="to-coins">GET COINS</button>' : ''}<button class="mid-btn" id="to-collection">COLLECTION</button></span></div>
-      <p class="note">${left ? 'Every crate gives you something you have not got yet. The dearer the crate, the better the chances.' : 'You own everything. There is nothing left in any crate.'}</p>
+    body.innerHTML = `<div class="crate-head">${this.coinsLine()}<span class="crate-btns">${Store.canShow() ? `<button class="mid-btn gold" id="to-coins">${tl('GET COINS')}</button>` : ''}<button class="mid-btn" id="to-collection">${tl('COLLECTION')}</button></span></div>
+      <p class="note">${left ? tl('Every crate gives you something you have not got yet. The dearer the crate, the better the chances.') : tl('You own everything. There is nothing left in any crate.')}</p>
       <div class="crate-grid">${cards}</div>`;
     $('to-collection').addEventListener('click', () => { this.tap(); this.openModal('collection'); });
     const toCoins = $('to-coins'); if (toCoins) toCoins.addEventListener('click', () => { this.tap(); this.openModal('coins'); });
@@ -699,7 +699,7 @@ Object.assign(UI, {
         setTimeout(() => el.classList.remove('nope'), 400);
         return;
       }
-      if (!Crates.left(crate)) { Sound.steal(); this.toast('THAT CRATE IS EMPTY — TRY A BIGGER ONE'); return; }
+      if (!Crates.left(crate)) { Sound.steal(); this.toast(tl('THAT CRATE IS EMPTY — TRY A BIGGER ONE')); return; }
       this.tap();
       // you can see what you paid: the coins come off the counter and go into the crate
       const at = Pop.at(el);
@@ -848,7 +848,7 @@ Object.assign(UI, {
   // Opening one: a reel of things it could hand over, running down to the one it does.
   openCrate(body, crate) {
     const win = Crates.open(crate.id);
-    if (!win || win.poor || win.empty) { this.toast(win && win.empty ? 'THAT CRATE CAME UP EMPTY — NOTHING SPENT' : 'NOT ENOUGH COINS'); this.panel_crates(body); return; }
+    if (!win || win.poor || win.empty) { this.toast(win && win.empty ? tl('THAT CRATE CAME UP EMPTY — NOTHING SPENT') : tl('NOT ENOUGH COINS')); this.panel_crates(body); return; }
     const { cells, at } = Crates.reel(crate, win);
     const cell = (c, i) => `<span class="reel-cell rar-${Crates.rarity(c.kind, c.id)}" style="--r:${RARITIES[Crates.rarity(c.kind, c.id)].color}">
       <canvas width="120" height="120" data-cell="${i}"></canvas><b>${Crates.name(c.kind, c.id)}</b></span>`;
@@ -857,8 +857,8 @@ Object.assign(UI, {
       <div class="reel-window"><div class="reel" id="crate-reel">${cells.map(cell).join('')}</div><span class="reel-mark"></span></div>
       <div class="crate-result" id="crate-result" hidden></div>
       <div class="crate-buttons" id="crate-buttons" hidden>
-        <button class="big-btn" id="crate-back">BACK</button>
-        <button class="big-btn green" id="crate-again">OPEN ANOTHER</button>
+        <button class="big-btn" id="crate-back">${tl('BACK')}</button>
+        <button class="big-btn green" id="crate-again">${tl('OPEN ANOTHER')}</button>
       </div>
     </div>`;
     // every cell draws whatever it is holding
@@ -878,13 +878,13 @@ Object.assign(UI, {
     this._crateT = setTimeout(() => {
       if (!$('crate-result')) return;
       const rar = Crates.rarity(win.kind, win.id);
-      const kindName = { character: 'PLAYER', ball: 'BALL', trail: 'POWER TRAIL', celebration: 'CELEBRATION', accessory: 'ACCESSORY', skill: 'SKILL MOVE' }[win.kind] || 'ITEM';
+      const kindName = { character: tl('PLAYER'), ball: tl('BALL'), trail: tl('POWER TRAIL'), celebration: tl('CELEBRATION'), accessory: tl('ACCESSORY'), skill: tl('SKILL MOVE') }[win.kind] || tl('ITEM');
       $('crate-result').innerHTML = `<span class="got" style="--r:${RARITIES[rar].color}">${RARITIES[rar].name}</span>
-        <b>${Crates.name(win.kind, win.id)}</b><em>${kindName} · NEW</em>`;
+        <b>${Crates.name(win.kind, win.id)}</b><em>${tl('{0} · NEW', [kindName])}</em>`;
       $('crate-result').hidden = false;
       $('crate-result').classList.remove('landed'); void $('crate-result').offsetWidth;
       $('crate-buttons').hidden = false;
-      $('crate-again').textContent = Save.data.coins >= crate.price ? 'OPEN ANOTHER' : 'NOT ENOUGH COINS';
+      $('crate-again').textContent = Save.data.coins >= crate.price ? tl('OPEN ANOTHER') : tl('NOT ENOUGH COINS');
       $('crate-again').classList.toggle('off', Save.data.coins < crate.price);
       Sound.powerReady();
       // the fuss is made over the card itself, and scaled to what came out of the crate
@@ -944,7 +944,7 @@ Object.assign(UI, {
     const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
     return `<button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
         <span class="rar-tag">${RARITIES[c.rarity].name}</span>
-        <span class="ovr"><b>${charOvr(c)}</b><small>OVR</small></span>
+        <span class="ovr"><b>${charOvr(c)}</b><small>${tl('OVR')}</small></span>
         <canvas width="96" height="96" data-portrait="${c.id}"></canvas>
         <strong>${c.name}</strong>
         <span class="sig-tag">${sigName(c)}</span>
@@ -954,18 +954,18 @@ Object.assign(UI, {
   },
 
   // ---- customize: your player on the left, everything you can put on them on the right ----
-  CUST_TABS: [['character', 'PLAYER'], ['skill', 'SKILL MOVE'], ['ball', 'BALL'], ['accessory', 'ACCESSORY'], ['celebration', 'CELEBRATION'], ['trail', 'POWER TRAIL']],
+  CUST_TABS: [['character', tl('PLAYER')], ['skill', tl('SKILL MOVE')], ['ball', tl('BALL')], ['accessory', tl('ACCESSORY')], ['celebration', tl('CELEBRATION')], ['trail', tl('POWER TRAIL')]],
   CUST_NOTES: {
-    character: 'Who you play as. Better players are faster, shoot harder and keep the ball.',
-    skill: 'What your SKILL button does. Carry one and it is that move every time, aimed wherever you are pointing.',
-    ball: 'The match ball in every game you play.',
-    accessory: 'Worn by your player in every match — online, everyone sees it.',
-    celebration: 'Score and the camera zooms in on you doing this. Everyone in the match sees it.',
-    trail: 'Shown on power shots. Fill the meter around SHOOT, then fully charge.',
+    character: tl('Who you play as. Better players are faster, shoot harder and keep the ball.'),
+    skill: tl('What your SKILL button does. Carry one and it is that move every time, aimed wherever you are pointing.'),
+    ball: tl('The match ball in every game you play.'),
+    accessory: tl('Worn by your player in every match — online, everyone sees it.'),
+    celebration: tl('Score and the camera zooms in on you doing this. Everyone in the match sees it.'),
+    trail: tl('Shown on power shots. Fill the meter around SHOOT, then fully charge.'),
   },
 
   panel_customize(body) {
-    $('modal-title').textContent = 'CUSTOMIZE';
+    $('modal-title').textContent = tl('CUSTOMIZE');
     const tab = this.CUST_TABS.some(([id]) => id === this._custTab) ? this._custTab : 'character';
     this._custTab = tab;
     let grid = '', gridClass = '';
@@ -986,7 +986,7 @@ Object.assign(UI, {
         <small class="skill-blurb">${k.blurb}</small>${this.priceTag('skill', k.id)}</button>`).join('');
     } else if (tab === 'accessory') {
       const on = Save.accessory();
-      grid = [{ id: 'none', name: 'Nothing' }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on : a.id === on) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}">
+      grid = [{ id: 'none', name: tl('Nothing') }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on : a.id === on) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}">
         <canvas width="120" height="120" data-acc="${a.id}"></canvas><strong>${a.name}</strong>${a.id === 'none' ? '' : this.priceTag('accessory', a.id)}</button>`).join('');
     } else {
       grid = BALLS.map((b) => `<button class="trail-opt ${b.id === Save.ball().id ? 'sel' : ''} ${Shop.owns('ball', b.id) ? '' : 'locked'}" data-id="${b.id}">
@@ -996,7 +996,7 @@ Object.assign(UI, {
     body.innerHTML = `<div class="cust">
       <div class="cust-left">
         <canvas id="cust-view" class="cust-view"></canvas>
-        <div class="cust-ground"><canvas id="cust-ground" width="200" height="90"></canvas><b>HOME · ${ground.name}</b></div>
+        <div class="cust-ground"><canvas id="cust-ground" width="200" height="90"></canvas><b>${tl('HOME · {0}', [ground.name])}</b></div>
       </div>
       <div class="cust-side">
         <div class="cust-top">${this.coinsLine()}<div class="tabs">${this.CUST_TABS.map(([id, label]) => `<button data-tab="${id}" class="${id === tab ? 'sel' : ''}">${label}</button>`).join('')}</div></div>
@@ -1004,6 +1004,7 @@ Object.assign(UI, {
         <div class="trail-grid ${gridClass}">${grid}</div>
       </div>
     </div>`;
+    this.fitWords(body);
     body.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { this.tap(); this._custTab = b.dataset.tab; this.panel_customize(body); }));
     body.querySelectorAll('canvas[data-trail]').forEach((cv) => this.trailSwatch(cv, cv.dataset.trail));
     body.querySelectorAll('canvas[data-ball]').forEach((cv) => this.ballSwatch(cv, cv.dataset.ball));
@@ -1252,55 +1253,57 @@ Object.assign(UI, {
 
   // ---- settings ----
   panel_settings(body) {
-    $('modal-title').textContent = 'SETTINGS';
+    $('modal-title').textContent = tl('SETTINGS');
     const s = Save.data.settings;
     const seg = (key, opts) => `<div class="seg" data-key="${key}">${opts.map(([v, l]) => `<button data-v="${v}" class="${String(s[key]) === String(v) ? 'sel' : ''}">${l}</button>`).join('')}</div>`;
     body.innerHTML = `
-      <label class="set"><span>MUSIC</span><input type="range" min="0" max="1" step="0.05" value="${s.music}" data-key="music"></label>
-      <label class="set"><span>SOUND</span><input type="range" min="0" max="1" step="0.05" value="${s.sfx}" data-key="sfx"></label>
-      <div class="set"><span>VIBRATION</span>${seg('vibration', [[true, 'ON'], [false, 'OFF']])}</div>
-      <div class="set"><span>COMMENTARY</span>${seg('commentary', [[true, 'ON'], [false, 'OFF']])}</div>
-      <div class="set"><span>DIFFICULTY</span>${seg('difficulty', [['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']])}</div>
-      <div class="set"><span>MINIMAP</span>${seg('minimap', [[true, 'ON'], [false, 'OFF']])}</div>
-      <div class="set"><span>REPLAYS</span>${seg('replays', [[true, 'ON'], [false, 'OFF']])}</div>
-      <div class="set"><span>GRAPHICS</span>${seg('graphics', [['auto', 'AUTO'], ['high', 'HIGH'], ['low', 'LOW']])}</div>
-      <div class="set"><span>CONTROLS</span>${seg('controls', [['auto', 'AUTO'], ['touch', 'TOUCH'], ['keyboard', 'KEYBOARD']])}</div>
-      <div class="set"><span>HANDED</span>${seg('lefty', [[false, 'RIGHT'], [true, 'LEFT']])}</div>
+      <div class="set"><span>${tl('LANGUAGE')}</span><button id="lang-btn" class="mid-btn">${I18N.name()}</button></div>
+      <label class="set"><span>${tl('MUSIC')}</span><input type="range" min="0" max="1" step="0.05" value="${s.music}" data-key="music"></label>
+      <label class="set"><span>${tl('SOUND')}</span><input type="range" min="0" max="1" step="0.05" value="${s.sfx}" data-key="sfx"></label>
+      <div class="set"><span>${tl('VIBRATION')}</span>${seg('vibration', [[true, tl('ON')], [false, tl('OFF')]])}</div>
+      <div class="set"><span>${tl('COMMENTARY')}</span>${seg('commentary', [[true, tl('ON')], [false, tl('OFF')]])}</div>
+      <div class="set"><span>${tl('DIFFICULTY')}</span>${seg('difficulty', [['easy', tl('EASY')], ['normal', tl('NORMAL')], ['hard', tl('HARD')]])}</div>
+      <div class="set"><span>${tl('MINIMAP')}</span>${seg('minimap', [[true, tl('ON')], [false, tl('OFF')]])}</div>
+      <div class="set"><span>${tl('REPLAYS')}</span>${seg('replays', [[true, tl('ON')], [false, tl('OFF')]])}</div>
+      <div class="set"><span>${tl('GRAPHICS')}</span>${seg('graphics', [['auto', tl('AUTO')], ['high', tl('HIGH')], ['low', tl('LOW')]])}</div>
+      <div class="set"><span>${tl('CONTROLS')}</span>${seg('controls', [['auto', tl('AUTO')], ['touch', tl('TOUCH')], ['keyboard', tl('KEYBOARD')]])}</div>
+      <div class="set"><span>${tl('HANDED')}</span>${seg('lefty', [[false, tl('RIGHT')], [true, tl('LEFT')]])}</div>
       ${this.controlsRef()}
-      <div class="set account"><span>ACCOUNT</span><em>${Save.account || 'GUEST'} · ${Clubs.mine().name}</em><button id="logout" class="${Save.account ? 'mini-danger' : 'mid-btn'}">${Save.account ? 'LOG OUT' : 'SIGN IN'}</button></div>
-      ${Net.user ? `<div class="set"><span>PASSWORD</span><em>Only you can change it, and only from here</em><button id="chpw" class="mid-btn">CHANGE</button></div>
+      <div class="set account"><span>${tl('ACCOUNT')}</span><em>${Save.account || tl('GUEST')} · ${Clubs.mine().name}</em><button id="logout" class="${Save.account ? 'mini-danger' : 'mid-btn'}">${Save.account ? tl('LOG OUT') : tl('SIGN IN')}</button></div>
+      ${Net.user ? `<div class="set"><span>${tl('PASSWORD')}</span><em>${tl('Only you can change it, and only from here')}</em><button id="chpw" class="mid-btn">${tl('CHANGE')}</button></div>
       <form id="pw-form" class="pw-form" hidden autocomplete="off">
-        <input type="password" id="pw-old" placeholder="CURRENT PASSWORD" autocomplete="current-password" maxlength="200">
-        <input type="password" id="pw-new" placeholder="NEW PASSWORD" autocomplete="new-password" maxlength="200">
-        <input type="password" id="pw-new2" placeholder="NEW PASSWORD AGAIN" autocomplete="new-password" maxlength="200">
-        <button type="submit" class="mid-btn green">SAVE IT</button>
+        <input type="password" id="pw-old" placeholder="${tl('CURRENT PASSWORD')}" autocomplete="current-password" maxlength="200">
+        <input type="password" id="pw-new" placeholder="${tl('NEW PASSWORD')}" autocomplete="new-password" maxlength="200">
+        <input type="password" id="pw-new2" placeholder="${tl('NEW PASSWORD AGAIN')}" autocomplete="new-password" maxlength="200">
+        <button type="submit" class="mid-btn green">${tl('SAVE IT')}</button>
         <p id="pw-msg" class="note"></p>
       </form>` : ''}
-      ${Net.user ? `<div class="set"><span>RECOVERY CODE</span><em id="code-note">${Net.user.hasRecovery === false ? 'You do not have one yet. Make one, in case you ever forget your password' : 'Gets you back in if you forget your password'}</em><button id="mkcode" class="mid-btn">${Net.user.hasRecovery === false ? 'MAKE ONE' : 'NEW CODE'}</button></div>
+      ${Net.user ? `<div class="set"><span>${tl('RECOVERY CODE')}</span><em id="code-note">${Net.user.hasRecovery === false ? tl('You do not have one yet. Make one, in case you ever forget your password') : tl('Gets you back in if you forget your password')}</em><button id="mkcode" class="mid-btn">${Net.user.hasRecovery === false ? tl('MAKE ONE') : tl('NEW CODE')}</button></div>
       <form id="code-form" class="pw-form" hidden autocomplete="off">
-        <input type="password" id="code-pw" placeholder="YOUR PASSWORD" autocomplete="current-password" maxlength="200">
-        <button type="submit" class="mid-btn green">SHOW MY NEW CODE</button>
+        <input type="password" id="code-pw" placeholder="${tl('YOUR PASSWORD')}" autocomplete="current-password" maxlength="200">
+        <button type="submit" class="mid-btn green">${tl('SHOW MY NEW CODE')}</button>
         <p id="code-msg" class="note"></p>
       </form>` : ''}
-      <div class="set"><span>PRIVACY</span><em>What the game keeps, and what it does not</em><a class="mid-btn set-link" href="${API_BASE}/privacy.html" target="_blank" rel="noopener">READ IT</a></div>
-      <div class="set danger"><span>PROGRESS</span><em>Start again from zero.${Net.user ? ' Your account stays.' : ''}</em><button id="reset-progress" class="mini-danger">RESET SAVE</button></div>
-      ${Net.user ? `<div class="set danger"><span>DELETE ACCOUNT</span><em>Your coins, everything you have won, and your record. Gone for good, everywhere.</em><button id="del-acct" class="mini-danger">DELETE</button></div>
+      <div class="set"><span>${tl('PRIVACY')}</span><em>${tl('What the game keeps, and what it does not')}</em><a class="mid-btn set-link" href="${API_BASE}/privacy.html" target="_blank" rel="noopener">${tl('READ IT')}</a></div>
+      <div class="set danger"><span>${tl('PROGRESS')}</span><em>${tl('Start again from zero.')}${Net.user ? ' ' + tl('Your account stays.') : ''}</em><button id="reset-progress" class="mini-danger">${tl('RESET SAVE')}</button></div>
+      ${Net.user ? `<div class="set danger"><span>${tl('DELETE ACCOUNT')}</span><em>${tl('Your coins, everything you have won, and your record. Gone for good, everywhere.')}</em><button id="del-acct" class="mini-danger">${tl('DELETE')}</button></div>
       <form id="del-form" class="pw-form" hidden autocomplete="off">
-        <input type="password" id="del-pw" placeholder="YOUR PASSWORD" autocomplete="current-password" maxlength="200">
-        <button type="submit" class="mini-danger">DELETE IT FOR GOOD</button>
+        <input type="password" id="del-pw" placeholder="${tl('YOUR PASSWORD')}" autocomplete="current-password" maxlength="200">
+        <button type="submit" class="mini-danger">${tl('DELETE IT FOR GOOD')}</button>
         <p id="del-msg" class="note"></p>
       </form>` : ''}`;
     // inside the app a link to the web is behind the grown-up check; on the web it is just a link
+    $('lang-btn').addEventListener('click', () => { this.tap(); this.closeModal(); this.askLanguage(true); });
     const priv = body.querySelector('a.set-link');
     if (priv && NATIVE) priv.addEventListener('click', async (e) => {
       e.preventDefault();
-      if (await this.grownUpCheck('This opens a web page outside the game.')) window.open(priv.href, '_blank', 'noopener');
+      if (await this.grownUpCheck(tl('This opens a web page outside the game.'))) window.open(priv.href, '_blank', 'noopener');
     });
     $('logout').addEventListener('click', async () => {
       this.tap();
       const guest = !Save.account;
       await Net.logout();
-      UI.showAuth(guest ? UI.GUEST_MSG : 'Logged out.');
+      UI.showAuth(guest ? UI.GUEST_MSG : tl('Logged out.'));
       $('auth-msg').classList.remove('bad');
     });
     if ($('chpw')) {
@@ -1309,14 +1312,14 @@ Object.assign(UI, {
         e.preventDefault();
         const msg = $('pw-msg'), save = $('pw-form').querySelector('button[type=submit]');
         msg.classList.remove('bad');
-        if ($('pw-new').value !== $('pw-new2').value) { msg.classList.add('bad'); msg.textContent = 'The two new ones do not match.'; return; }
-        save.disabled = true; msg.textContent = 'Changing it…';
+        if ($('pw-new').value !== $('pw-new2').value) { msg.classList.add('bad'); msg.textContent = tl('The two new ones do not match.'); return; }
+        save.disabled = true; msg.textContent = tl('Changing it…');
         const r = await Net.changePassword($('pw-old').value, $('pw-new').value);
         save.disabled = false;
-        if (!r || !r.ok) { msg.classList.add('bad'); msg.textContent = (r && r.msg) || 'Something went wrong'; return; }
+        if (!r || !r.ok) { msg.classList.add('bad'); msg.textContent = r && r.msg ? I18N.server(r.msg) : tl('Something went wrong'); return; }
         $('pw-old').value = ''; $('pw-new').value = ''; $('pw-new2').value = '';
         $('pw-form').hidden = true;
-        this.toast('PASSWORD CHANGED');
+        this.toast(tl('PASSWORD CHANGED'));
       });
     }
     if ($('mkcode')) {
@@ -1325,16 +1328,16 @@ Object.assign(UI, {
         e.preventDefault();
         const msg = $('code-msg'), btn = $('code-form').querySelector('button[type=submit]');
         msg.classList.remove('bad');
-        if (!$('code-pw').value) { msg.classList.add('bad'); msg.textContent = 'Type your password first.'; return; }
-        btn.disabled = true; msg.textContent = 'Making it…';
+        if (!$('code-pw').value) { msg.classList.add('bad'); msg.textContent = tl('Type your password first.'); return; }
+        btn.disabled = true; msg.textContent = tl('Making it…');
         const had = Net.user && Net.user.hasRecovery !== false;
         const r = await Net.newRecovery($('code-pw').value);
         btn.disabled = false;
-        if (!r || !r.ok) { msg.classList.add('bad'); msg.textContent = (r && r.msg) || 'Something went wrong'; return; }
-        $('code-pw').value = ''; $('code-form').hidden = true;
+        if (!r || !r.ok) { msg.classList.add('bad'); msg.textContent = r && r.msg ? I18N.server(r.msg) : tl('Something went wrong'); return; }
+        $('code-note') = ''; $('code-form').hidden = true;
         if (Net.user) Net.user.hasRecovery = true;
-        $('code-note').textContent = 'Gets you back in if you forget your password';
-        $('mkcode').textContent = 'NEW CODE';
+        $('code-note').textContent = tl('Gets you back in if you forget your password');
+        $('mkcode').textContent = tl('NEW CODE');
         this.showCode(r.recovery, had ? 'made' : 'new');
       });
     }
@@ -1364,23 +1367,23 @@ Object.assign(UI, {
       $('del-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const msg = $('del-msg'), pw = $('del-pw').value;
-        if (!pw) { msg.textContent = 'Type your password first.'; return; }
-        msg.textContent = 'Deleting\u2026';
+        if (!pw) { msg.textContent = tl('Type your password first.'); return; }
+        msg.textContent = tl('Deleting\u2026');
         let r = null;
         try { r = await Net.api('/api/account/delete', { password: pw }); } catch (err) { r = null; }
-        if (!r || !r.ok) { msg.textContent = (r && r.msg) || 'That did not work. Try again.'; return; }
+        if (!r || !r.ok) { msg.textContent = r && r.msg ? I18N.server(r.msg) : tl('That did not work. Try again.'); return; }
         // gone from the server; now gone from this device too, so nothing of it is left behind
         Net.forget();
         Save.data = Save.defaults();
         Save.write();
         UI.closeModal();
-        UI.showAuth('Your account has been deleted.');
+        UI.showAuth(tl('Your account has been deleted.'));
       });
     }
 
     const reset = $('reset-progress');
     reset.addEventListener('click', () => {
-      if (!reset.classList.contains('armed')) { reset.classList.add('armed'); reset.textContent = 'TAP AGAIN TO WIPE'; return; }
+      if (!reset.classList.contains('armed')) { reset.classList.add('armed'); reset.textContent = tl('TAP AGAIN TO WIPE'); return; }
       const settings = Save.data.settings, club = Save.data.club;
       Save.data = Save.defaults();
       Save.data.settings = settings; Save.data.club = club;
@@ -1394,61 +1397,62 @@ Object.assign(UI, {
   controlsRef() {
     const k = (s, wide) => `<span class="kc${wide ? ' wide' : ''}">${s}</span>`;
     return `<div class="controls-ref">
-      <div><h3>PC</h3><ul>
-        <li>${k('WASD', 1)} move (arrows work too)</li>
-        <li>${k('SHIFT', 1)} hold to sprint</li>
-        <li>${k('SPACE', 1)} hold to charge, release to shoot</li>
-        <li>${k('E')} pass &nbsp; ${k('Q')} skill &nbsp; ${k('F')} tackle</li>
-        <li>${k('LMB', 1)} shoot &nbsp; ${k('RMB', 1)} pass &nbsp; ${k('MMB', 1)} skill</li>
-        <li>${k('ESC', 1)} pause</li>
+      <div><h3>${tl('PC')}</h3><ul>
+        <li>${tl('{0} move (arrows work too)', [k(tl('WASD'), 1)])}</li>
+        <li>${tl('{0} hold to sprint', [k(tl('SHIFT'), 1)])}</li>
+        <li>${tl('{0} hold to charge, release to shoot', [k(tl('SPACE'), 1)])}</li>
+        <li>${tl('{0} pass &nbsp; {1} skill &nbsp; {2} tackle', [k('E'), k('Q'), k('F')])}</li>
+        <li>${tl('{0} shoot &nbsp; {1} pass &nbsp; {2} skill', [k(tl('LMB'), 1), k(tl('RMB'), 1), k(tl('MMB'), 1)])}</li>
+        <li>${tl('{0} pause', [k(tl('ESC'), 1)])}</li>
       </ul></div>
-      <div><h3>SKILLS &amp; TACKLES</h3><ul>
-        <li>Skill + no direction: HOP (jumps tackles)</li>
-        <li>Skill + forward: nutmeg / flick / burst</li>
-        <li>Skill + sideways: SPIN · backward: CRUYFF</li>
-        <li>Any skill makes tackles miss for a moment</li>
-        <li>TACKLE near the carrier to lunge and steal it</li>
-        <li>Sprint drains stamina — empty means wait</li>
-        <li>Phone: tap SPRINT to keep sprinting, tap again to stop</li>
+      <div><h3>${tl('SKILLS &amp; TACKLES')}</h3><ul>
+        <li>${tl('Skill + no direction: HOP (jumps tackles)')}</li>
+        <li>${tl('Skill + forward: nutmeg / flick / burst')}</li>
+        <li>${tl('Skill + sideways: SPIN · backward: CRUYFF')}</li>
+        <li>${tl('Any skill makes tackles miss for a moment')}</li>
+        <li>${tl('TACKLE near the carrier to lunge and steal it')}</li>
+        <li>${tl('Sprint drains stamina — empty means wait')}</li>
+        <li>${tl('Phone: tap SPRINT to keep sprinting, tap again to stop')}</li>
       </ul></div>
     </div>`;
   },
 
   // ---- league: every club, points from every online match its players play ----
   async panel_league(body) {
-    $('modal-title').textContent = 'LEAGUE';
-    body.innerHTML = '<p class="note">Loading the table…</p>';
+    $('modal-title').textContent = tl('LEAGUE');
+    body.innerHTML = `<p class="note">${tl('Loading the table…')}</p>`;
     const r = await Net.league();
     if ($('modal').dataset.kind !== 'league') return;
-    if (!r || !r.ok) { body.innerHTML = `<p class="note">${(r && r.msg) || "Can't reach the server"}</p>`; return; }
+    if (!r || !r.ok) { body.innerHTML = `<p class="note">${r && r.msg ? I18N.server(r.msg) : tl("Can't reach the server")}</p>`; return; }
     const mine = Save.data.club;
     const pos = r.table.findIndex((row) => row.club === mine) + 1;
     this._leaguePos = pos;
     body.innerHTML = `
-      <p class="note">${r.table.length} countries, one ladder. Every online win moves your country up a place, every loss moves it down one. You're playing for <b>${Clubs.mine().name}</b>${pos ? ` — ${ordinal(pos)} in the table` : ''}.</p>
+      <p class="note">${tl('{0} countries, one ladder. Every online win moves your country up a place, every loss moves it down one.', [r.table.length])} ${pos ? tl('You are playing for {0} — {1} in the table.', [`<b>${Clubs.mine().name}</b>`, ordinal(pos)]) : tl('You are playing for {0}.', [`<b>${Clubs.mine().name}</b>`])}</p>
       <div class="league-wrap">
         <div class="lg-table-wrap"><table class="lg-table">
-          <thead><tr><th>#</th><th class="lg-club">COUNTRY</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th title="Last move">±</th><th title="Players">👥</th></tr></thead>
+          <thead><tr><th>#</th><th class="lg-club">${tl('COUNTRY')}</th><th>P</th><th>W</th><th>D</th><th>L</th><th>${tl('GD')}</th><th title="${tl('Last move')}">±</th><th title="${tl('Players')}">👥</th></tr></thead>
           <tbody>${r.table.map((row, i) => { const c = Clubs.get(row.club); return `<tr class="${row.club === mine ? 'mine' : ''} ${i < 4 ? 'top' : ''}"><td>${i + 1}</td><td class="lg-club"><span class="lg-name"><canvas width="42" height="28" data-club="${c.id}"></canvas><b>${c.name}</b></span></td><td>${row.p}</td><td>${row.w}</td><td>${row.d}</td><td>${row.l}</td><td>${row.gd > 0 ? '+' : ''}${row.gd}</td><td class="mv ${row.move > 0 ? 'up' : row.move < 0 ? 'down' : ''}">${row.move > 0 ? '▲' : row.move < 0 ? '▼' : '–'}</td><td>${row.players}</td></tr>`; }).join('')}</tbody>
         </table></div>
         <div class="lg-side">
-          <button class="mid-btn lg-board" data-board>PLAYER LEADERBOARD</button>
-          <h3>TOP SCORERS</h3>
-          ${r.scorers.length ? `<ol class="lg-scorers">${r.scorers.map((s) => `<li><canvas width="42" height="28" data-club="${s.club}"></canvas><b>${s.name}</b><em>${s.goals}</em></li>`).join('')}</ol>` : '<p class="note">No online goals yet. Be the first.</p>'}
+          <button class="mid-btn lg-board" data-board>${tl('PLAYER LEADERBOARD')}</button>
+          <h3>${tl('TOP SCORERS')}</h3>
+          ${r.scorers.length ? `<ol class="lg-scorers">${r.scorers.map((s) => `<li><canvas width="42" height="28" data-club="${s.club}"></canvas><b>${s.name}</b><em>${s.goals}</em></li>`).join('')}</ol>` : `<p class="note">${tl('No online goals yet. Be the first.')}</p>`}
         </div>
       </div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
+    this.fitWords(body);
     const lb = body.querySelector('[data-board]');
     if (lb) lb.addEventListener('click', () => { this.tap(); this.openModal('leaderboard'); });
   },
 
   // ---- profile: career stats + achievements ----
   panel_profile(body) {
-    $('modal-title').textContent = 'PROFILE';
+    $('modal-title').textContent = tl('PROFILE');
     const d = Save.data, c = d.career, ch = Save.character(), lv = Levels.info(d.xp || 0);
     const winPct = d.matches ? Math.round((d.wins / d.matches) * 100) : 0;
-    const stats = [['MATCHES', d.matches], ['WINS', d.wins], ['GOALS', d.goals], ['ASSISTS', c.assists], ['TACKLES', c.tackles], ['SKILLS', c.skills],
-      ['DODGES', c.dodges], ['POWER GOALS', c.powerGoals], ['HAT-TRICKS', c.hattricks], ['CLEAN SHEETS', c.cleanSheets], ['BEST STREAK', c.bestStreak], ['ONLINE WINS', c.onlineWins || 0]];
+    const stats = [[tl('MATCHES'), d.matches], [tl('WINS'), d.wins], [tl('GOALS'), d.goals], [tl('ASSISTS'), c.assists], [tl('TACKLES'), c.tackles], [tl('SKILLS'), c.skills],
+      [tl('DODGES'), c.dodges], [tl('POWER GOALS'), c.powerGoals], [tl('HAT-TRICKS'), c.hattricks], [tl('CLEAN SHEETS'), c.cleanSheets], [tl('BEST STREAK'), c.bestStreak], [tl('ONLINE WINS'), c.onlineWins || 0]];
     const rank = (a) => (Achievements.ready(a) ? 0 : Achievements.claimed(a) ? 2 : 1);
     const list = ACHIEVEMENTS.slice().sort((a, b) => rank(a) - rank(b) || Achievements.progress(b) / b.goal - Achievements.progress(a) / a.goal);
     const done = ACHIEVEMENTS.filter((a) => Achievements.claimed(a)).length;
@@ -1457,18 +1461,18 @@ Object.assign(UI, {
         <canvas width="96" height="96" id="prof-canvas"></canvas>
         <div class="prof-id">
           <strong>${ch.name}</strong>
-          <small>${Save.account || 'GUEST'} · ${Clubs.mine().name} · LEVEL ${lv.level} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · OVR ${charOvr(ch)}</small>
-          <small class="ramp-note">Every level makes every match harder — opponents are +${levelRampPct(lv.level)}% sharper than at level 1${lv.level >= LEVEL_RAMP_TOP ? ' (maxed)' : ''}.</small>
-          <span>${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L · ${winPct}% WON</span>
+          <small>${Save.account || tl('GUEST')} · ${Clubs.mine().name} · ${tl('LEVEL {0}', [lv.level])} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · ${tl('OVR {0}', [charOvr(ch)])}</small>
+          <small class="ramp-note">${lv.level >= LEVEL_RAMP_TOP ? tl('Every level makes every match harder — opponents are +{0}% sharper than at level 1 (as sharp as they get).', [levelRampPct(lv.level)]) : tl('Every level makes every match harder — opponents are +{0}% sharper than at level 1.', [levelRampPct(lv.level)])}</small>
+          <span>${tl('{0}W · {1}D · {2}L · {3}% WON', [d.wins, d.draws || 0, d.losses || 0, winPct])}</span>
         </div>
         ${this.coinsLine()}
       </div>
       <div class="prof-stats">${stats.map(([k, v]) => `<div><b>${v || 0}</b><small>${k}</small></div>`).join('')}</div>
-      <h3 class="prof-h">ACHIEVEMENTS <small>${done} / ${ACHIEVEMENTS.length}</small></h3>
+      <h3 class="prof-h">${tl('ACHIEVEMENTS')} <small>${done} / ${ACHIEVEMENTS.length}</small></h3>
       <div class="ach-list">${list.map((a) => {
         const p = Achievements.progress(a), ready = Achievements.ready(a), claimed = Achievements.claimed(a);
-        const right = ready ? `<button class="claim" data-id="${a.id}">CLAIM <span class="coin"></span>${a.coins}</button>`
-          : claimed ? '<span class="ach-done">DONE</span>'
+        const right = ready ? `<button class="claim" data-id="${a.id}">${tl('CLAIM')} <span class="coin"></span>${a.coins}</button>`
+          : claimed ? `<span class="ach-done">${tl('DONE')}</span>`
           : `<span class="ach-prog">${p} / ${a.goal}</span><span class="ach-coins"><span class="coin"></span>${a.coins}</span>`;
         return `<div class="ach ${ready ? 'ready' : claimed ? 'claimed' : ''}"><i class="medal"></i>
           <div class="ach-txt"><strong>${a.name}</strong><small>${a.text}</small><span class="ach-bar"><b style="width:${Math.round((p / a.goal) * 100)}%"></b></span></div>
@@ -1484,7 +1488,7 @@ Object.assign(UI, {
       Pop.ring(at.x, at.y, '#ffc21a', 200, 440);
       Pop.shout(at.x, at.y - 26, '+' + fmtCoins(coins), '#ffc21a', 900);
       Pop.confetti(at.x, at.y, ['#ffc21a', '#ffffff', '#6fd3ff'], 26);
-      this.toast(`+${coins} COINS`);
+      this.toast(tl('+{0} COINS', [coins]));
       this.redraw(body, () => this.panel_profile(body));
       this.refreshHome();
     }));

@@ -115,7 +115,7 @@ function movePlayers(m, dt) {
     if (canSprint) {
       p.stamina -= SPRINT.drain * dt;
       p.staminaDelay = SPRINT.delay;
-      if (p.stamina <= 0) { p.stamina = 0; p.exhausted = true; if (p.isHuman) FX.text(p.x, p.y, 'TIRED!', '#ff8a8e', 14); }
+      if (p.stamina <= 0) { p.stamina = 0; p.exhausted = true; if (p.isHuman) FX.text(p.x, p.y, tl('TIRED!'), '#ff8a8e', 14); }
     } else {
       p.staminaDelay = Math.max(0, p.staminaDelay - dt);
       if (p.staminaDelay <= 0) p.stamina = Math.min(1, p.stamina + SPRINT.regen * dt);
@@ -423,7 +423,7 @@ function keeperContact(m, k, b, sp) {
     k.stats.saves++; m.stats[k.team].saves++;
     Sound.save(); Sound.ooh();
     FX.burst(b.x, b.y, b.z + 10, '#ffe14d', 16);
-    FX.text(k.x, k.y, 'SPILLED!', '#ffffff', 17);
+    FX.text(k.x, k.y, tl('SPILLED!'), '#ffffff', 17);
     return;
   }
   if (!shot || (sp < 950 && !shot.power && Math.random() < 0.75) || sp < 520) {
@@ -433,7 +433,7 @@ function keeperContact(m, k, b, sp) {
       k.stats.saves++; m.stats[k.team].saves++;
       Sound.save();
       FX.burst(b.x, b.y, b.z + 10, '#ffe14d', 22);
-      FX.text(k.x, k.y, 'SAVE!', '#ffe14d', 18);
+      FX.text(k.x, k.y, tl('SAVE!'), '#ffe14d', 18);
       if (shot.level >= 1) FX.doShake(4, 0.14);
     }
     return;
@@ -451,7 +451,7 @@ function keeperContact(m, k, b, sp) {
   Sound.save(); Sound.ooh();
   FX.burst(b.x, b.y, b.z + 12, '#ffe14d', shot.power ? 38 : 28);
   FX.sparks(b.x, b.y, b.z + 12, '#ffffff', 10, 320);
-  FX.text(k.x, k.y, shot.power ? 'HUGE SAVE!' : 'SAVE!', '#ffe14d', shot.power ? 22 : 18);
+  FX.text(k.x, k.y, shot.power ? tl('HUGE SAVE!') : tl('SAVE!'), '#ffe14d', shot.power ? 22 : 18);
   FX.doShake(shot.power ? 9 : 6, 0.2);
   m.slowmo = Math.max(m.slowmo, shot.power ? 0.35 : 0.15);
 }
@@ -468,7 +468,7 @@ function deflectOff(m, p, b, d) {
   p.noPickupT = 0.12; p.stunT = 0.12;
   Sound.kick(0.2);
   FX.sparks(b.x, b.y, b.z + 6, '#ffffff', 6, 200);
-  if (p.isHuman) FX.text(p.x, p.y, 'BLOCK!', '#ffffff', 16);
+  if (p.isHuman) FX.text(p.x, p.y, tl('BLOCK!'), '#ffffff', 16);
 }
 
 function takePossession(m, p) {
@@ -479,7 +479,7 @@ function takePossession(m, p) {
     lp.from.stats.passes++;
     m.stats[p.team].passes++;
     b.assist = { from: lp.from, t: m.clock };
-    if (lp.from.isHuman) { addMeter(m, lp.from, 8); FX.text(p.x, p.y, '+PASS', '#ffffff', 15); }
+    if (lp.from.isHuman) { addMeter(m, lp.from, 8); FX.text(p.x, p.y, tl('+PASS'), '#ffffff', 15); }
     else if (p.isHuman) addMeter(m, p, 3);
     if (p.team === 'red') addMeter(m, p, 5);
   }
@@ -510,7 +510,7 @@ function addUlt(m, p, amt) {
   p.ult = Math.min(CFG.ULT_MAX, p.ult + amt);
   if (before < CFG.ULT_MAX && p.ult >= CFG.ULT_MAX && !Game.headless) {
     Sound.powerReady();
-    FX.text(p.x, p.y, 'ULT READY!', '#ff4df0', 19);
+    FX.text(p.x, p.y, tl('ULT READY!'), '#ff4df0', 19);
     if (p === m.human) vibrate([25, 40, 25]);
   }
 }
@@ -524,7 +524,7 @@ function performUlt(m, p) {
     FX.burst(p.x, p.y, 10, '#ff4df0', 40, 0.4);
     FX.doFlash('#ff4df0', 0.3);
     FX.doShake(7, 0.2);
-    FX.text(p.x, p.y, 'ULT!', '#ff4df0', 24);
+    FX.text(p.x, p.y, tl('ULT!'), '#ff4df0', 24);
     Sound.powerShot();
     if (p === m.human) vibrate(60);
   }
@@ -570,7 +570,7 @@ function ultShot(m, p) {
   p.stats.shots++; m.stats[p.team].shots++;
   m.slowmo = 0.45;
   if (!Game.headless) {
-    const names = { volley: 'VOLLEY!', bicycle: 'BICYCLE KICK!', backflip: 'BACKFLIP KICK!', scissors: 'SCISSOR KICK!' };
+    const names = { volley: tl('VOLLEY!'), bicycle: tl('BICYCLE KICK!'), backflip: tl('BACKFLIP KICK!'), scissors: tl('SCISSOR KICK!') };
     for (let i = 0; i < 7; i++) FX.sparks(b.x, b.y, 8, rainbow(i * 0.1), 7, 300 + i * 40, 0.5);
     FX.burst(b.x, b.y, 10, '#ffffff', 58, 0.35);
     FX.ring(b.x, b.y, '#ff4df0', 10, 90, 0.4, 6);
@@ -591,7 +591,7 @@ function addMeter(m, p, amt) {
   m.meter[team] = Math.min(CFG.POWER_MAX, m.meter[team] + amt);
   if (p.isHuman && before < CFG.POWER_MAX && m.meter[team] >= CFG.POWER_MAX && !Game.headless) {
     Sound.powerReady();
-    FX.text(p.x, p.y, 'POWER READY!', '#46d9ff', 17);
+    FX.text(p.x, p.y, tl('POWER READY!'), '#46d9ff', 17);
   }
 }
 
@@ -770,7 +770,7 @@ function performShot(m, p, chargeT, sideY, noise = 0) {
     FX.ring(b.x, b.y, tr.b, 10, 70, 0.35, 5);
     FX.doFlash(tr.b, 0.35);
     FX.doShake(9, 0.22);
-    FX.text(p.x, p.y, 'POWER SHOT!', tr.a, 20);
+    FX.text(p.x, p.y, tl('POWER SHOT!'), tr.a, 20);
     Sound.powerShot();
     if (p.isHuman) vibrate(45);
   } else {
@@ -872,7 +872,7 @@ function trip(m, tackler, c) {
   FX.burst(b.x, b.y, 6, '#ffffff', 22, 0.22);
   FX.doShake(3, 0.1);
   Sound.tackle();
-  if (tackler.isHuman || c.isHuman) FX.text(tackler.x, tackler.y, 'STEAL!', '#ffb03a', 17);
+  if (tackler.isHuman || c.isHuman) FX.text(tackler.x, tackler.y, tl('STEAL!'), '#ffb03a', 17);
   if (tackler.isHuman || c.isHuman) vibrate(c.isHuman ? 30 : 15);
   addMeter(m, tackler, tackler.isHuman ? 12 : 8);
   addUlt(m, tackler, CFG.ULT_TACKLE);
@@ -882,7 +882,7 @@ function dodged(m, tackler, c) {
   tackler.slideHit = true;
   c.stats.dodges = (c.stats.dodges || 0) + 1;
   m.stats[c.team].dodges = (m.stats[c.team].dodges || 0) + 1;
-  FX.text(c.x, c.y, 'DODGED!', '#46d9ff', 16);
+  FX.text(c.x, c.y, tl('DODGED!'), '#46d9ff', 16);
   FX.ring(c.x, c.y, '#46d9ff', 10, 36, 0.3, 3);
   Sound.skill();
   addMeter(m, c, c.isHuman ? 8 : 5);
@@ -911,7 +911,7 @@ function checkSlides(m) {
       if (Math.random() < chance) trip(m, p, c);
       else {
         p.recoverT = 0.2;
-        if (c.isHuman || p.isHuman) FX.text(c.x, c.y, 'MISSED!', '#ffffff', 14);
+        if (c.isHuman || p.isHuman) FX.text(c.x, c.y, tl('MISSED!'), '#ffffff', 14);
       }
     } else if (!c && hitBall && !ballOverLine(b) && !(p.isKeeper && !inOwnBox(p.team, b.x, b.y))) {
       // lunging onto a loose ball just wins it
@@ -1070,7 +1070,7 @@ function performSkill(m, p, ix, iy) {
   switch (kind) {
     case 'hop':
       p.hopT = 0.42; p.dodgeT = SKILL.hopDodge;
-      say('HOP!', '#ffffff');
+      say(tl('HOP!'), '#ffffff');
       addMeter(m, p, 2);
       break;
     case 'nutmeg':
@@ -1079,7 +1079,7 @@ function performSkill(m, p, ix, iy) {
       front.noPickupT = 0.6; front.stunT = 0.35;
       p.burstT = 0.6; p.noPickupT = 0.22; p.dodgeT = 0.3;
       b.lastTouchTeam = p.team; b.lastPass = null;
-      say('NUTMEG!', '#ff8af0');
+      say(tl('NUTMEG!'), '#ff8af0');
       if (p.isHuman) m.flags.nutmeg = true;
       Sound.ooh();
       addMeter(m, p, 8);
@@ -1089,7 +1089,7 @@ function performSkill(m, p, ix, iy) {
       b.vx = fx * 410; b.vy = fy * 410; b.vz = 460; b.z = 2;
       p.burstT = 0.65; p.noPickupT = 0.3; p.kickT = 0.22; p.kickDur = 0.22; p.dodgeT = 0.35; p.hopT = 0.3;
       b.lastTouchTeam = p.team; b.lastPass = null;
-      say('FLICK!', '#ffe14d');
+      say(tl('FLICK!'), '#ffe14d');
       addMeter(m, p, 6);
       break;
     case 'burst':
@@ -1097,7 +1097,7 @@ function performSkill(m, p, ix, iy) {
       b.vx = fx * 500; b.vy = fy * 500; b.vz = 20;
       p.burstT = 0.7; p.noPickupT = 0.15; p.kickT = 0.14; p.kickDur = 0.14; p.dodgeT = 0.25;
       b.lastTouchTeam = p.team; b.lastPass = null;
-      say('BURST!', '#46d9ff');
+      say(tl('BURST!'), '#46d9ff');
       addMeter(m, p, 2);
       break;
     case 'spin': {
@@ -1109,7 +1109,7 @@ function performSkill(m, p, ix, iy) {
       p.skill = { kind, t: 0, dur: 0.42, dx: sx, dy: sy, a0: Math.atan2(fy, fx), turn: cross >= 0 ? 1 : -1 };
       p.dodgeT = 0.45;
       FX.ring(p.x, p.y, '#ffffff', 10, 30, 0.3, 3);
-      say('SPIN!', '#ffffff');
+      say(tl('SPIN!'), '#ffffff');
       addMeter(m, p, 3);
       break;
     }
@@ -1120,7 +1120,7 @@ function performSkill(m, p, ix, iy) {
       b.x = p.x + dx * (p.r + CFG.BALL_R + 1); b.y = p.y + dy * (p.r + CFG.BALL_R + 1);
       p.kickT = 0.2; p.kickDur = 0.2; p.dodgeT = 0.3;
       FX.ring(b.x, b.y, '#ffffff', 4, 20, 0.25, 2.5);
-      say('CRUYFF!', '#ffffff');
+      say(tl('CRUYFF!'), '#ffffff');
       addMeter(m, p, 3);
       break;
     }

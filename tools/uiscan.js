@@ -55,10 +55,19 @@ window.US = {
       const leaf = !e.children.length;
       // decoration (a coin's shine, an icon) clips itself on purpose — only judge things with words in them
       const hasText = !!(e.textContent && e.textContent.trim());
-      if (leaf && hasText && e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1 && !/auto|scroll/.test(cs.overflowX)) {
+      // how wide the words really are: centred words spill out of both sides, and scrollWidth only
+      // counts the right-hand half of that (a word 8px too wide reads as 4)
+      let wordsW = 0;
+      if (leaf && hasText && e.clientWidth > 0) {
+        const r = document.createRange();
+        r.selectNodeContents(e);
+        wordsW = r.getBoundingClientRect().width / (b.width / e.offsetWidth || 1);
+      }
+      const tooWide = e.scrollWidth > e.clientWidth + 1 || wordsW > e.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 2;
+      if (leaf && hasText && e.clientWidth > 0 && tooWide && !/auto|scroll/.test(cs.overflowX)) {
         // an ellipsis means somebody decided to cut this off; a plain overflow means nobody did
         const onPurpose = cs.textOverflow === 'ellipsis' && /hidden|clip/.test(cs.overflowX);
-        hits.push(`${where} ${onPurpose ? 'ELLIPSIS' : 'OVERFLOW-X'} ${this.name(e)} ${e.scrollWidth} in ${e.clientWidth}`);
+        hits.push(`${where} ${onPurpose ? 'ELLIPSIS' : 'OVERFLOW-X'} ${this.name(e)} ${Math.round(Math.max(e.scrollWidth, wordsW))} in ${e.clientWidth}`);
       }
       if (leaf && hasText && e.clientHeight > 0 && e.scrollHeight > e.clientHeight + 2 && cs.overflowY === 'hidden')
         hits.push(`${where} CLIPPED-Y ${this.name(e)} ${e.scrollHeight} in ${e.clientHeight}`);
@@ -74,12 +83,51 @@ window.US = {
       if (e.tagName === 'BUTTON' && (b.height < this.TAP || b.width < 30))
         hits.push(`${where} TINYTAP ${this.name(e)} ${Math.round(b.width)}x${Math.round(b.height)}`);
     }
+    hits.push(...this.english(root, where));
     return hits;
   },
 
+  // In another language: any words on show that are still the English of a line that language has
+  // (a tl() somebody forgot, or text the page set after I18N.apply ran)
+  english(root, where) {
+    const hits = [];
+    const d = window.I18N && I18N.lang !== 'en' && I18N.dict[I18N.lang];
+    if (!d) return hits;
+    const own = (k) => Object.prototype.hasOwnProperty.call(d, k) && d[k] !== k;
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walk.nextNode()) {
+      const n = walk.currentNode, el = n.parentElement;
+      const k = n.nodeValue.replace(/\s+/g, ' ').trim();
+      if (!k || !el || !this.vis(el) || !own(k)) continue;
+      hits.push(`${where} ENGLISH ${this.name(el)} ${JSON.stringify(k)}`);
+    }
+    for (const el of root.querySelectorAll('[placeholder], [title], [aria-label]')) {
+      for (const a of ['placeholder', 'title', 'aria-label']) {
+        const v = el.getAttribute(a);
+        if (v && own(v)) hits.push(`${where} ENGLISH ${a} ${this.name(el)} ${JSON.stringify(v)}`);
+      }
+    }
+    return hits;
+  },
+
+  // A wait that still takes the time it says in a page nobody is looking at (the Browser pane behind
+  // the chat), where the browser holds timers back to once a second, then once a minute.
+  sleep(ms) {
+    if (!document.hidden) return new Promise((r) => setTimeout(r, ms));
+    return new Promise((r) => {
+      const end = performance.now() + ms, ch = new MessageChannel();
+      ch.port1.onmessage = () => (performance.now() >= end ? r() : ch.port2.postMessage(0));
+      ch.port2.postMessage(0);
+    });
+  },
+
   async run() {
-    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const wait = (ms) => this.sleep(ms);
     const out = { size: innerWidth + 'x' + innerHeight, hits: [] };
+    // how the screen was, to put back at the end: the player card below asks the server about a
+    // made-up sign-in, and the answer can come back after the scan as "signed out" (the sign-in
+    // page), which left every later run in the same page never looking at the home screen
+    const before = { home: document.getElementById('home').hidden, auth: document.getElementById('auth').hidden };
     if (document.documentElement.scrollWidth > innerWidth + 1)
       out.hits.push(`PAGE scrolls sideways ${document.documentElement.scrollWidth} > ${innerWidth}`);
     const home = document.getElementById('home');
@@ -140,7 +188,7 @@ window.US = {
     }
     // the grown-up check, which goes in front of a purchase or a link out of the game
     {
-      UI.grownUpCheck('This opens a web page outside the game.');
+      UI.grownUpCheck(tl('This opens a web page outside the game.'));
       await wait(200);
       const el = document.querySelector('.grownup .panel');
       if (el) out.hits.push(...this.scan(el, 'grown-up check', true));
@@ -170,6 +218,10 @@ window.US = {
     }
 
     Save.data.tutorialSeen = was;
+    await wait(900);
+    document.getElementById('home').hidden = before.home;
+    document.getElementById('auth').hidden = before.auth;
+    if (!before.home) UI.refreshHome();
     out.hits = [...new Set(out.hits)];
     out.count = out.hits.length;
     return out;

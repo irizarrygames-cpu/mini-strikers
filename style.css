@@ -2092,3 +2092,24 @@ body.lefty #touch-zone { left: 50%; }
    On a touch screen a tap on SPRINT keeps you sprinting (Input.sprintLock): it stays pressed in,
    with a solid yellow ring round it, until another tap or you let go of the stick. */
 .action.sprint.locked .face { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink), 0 0 0 4px var(--yellow); }
+
+/* ===== LANGUAGE (build 109) =====
+   Asked the first time the game starts (UI.askLanguage), over the splash, and from Settings. Each
+   language is named in its own words; the one in use is filled in yellow. */
+.overlay.lang-pick { z-index: 70; }
+.lang-panel { text-align: center; }
+.lang-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.lang-list .mid-btn { min-height: 46px; font-size: clamp(14px, 3.6vmin, 18px); white-space: nowrap; }
+.lang-list .mid-btn.sel { background: var(--yellow); color: var(--ink); }
+/* two buttons side by side in the grown-up check: in a language with longer words, one above the other */
+.gate-btns { flex-wrap: wrap; }
+/* the customize tabs: less room either side of the word, so a long one (CELEBRACIÓN) keeps its size */
+#modal[data-kind="customize"] .cust-top .tabs button { padding-inline: 4px; }
+/* "VS" and a country on the shootout cards: a long country name goes onto a second line */
+.mode.pens .tag { white-space: normal; }
+/* the leaderboard button under the league table: a longer name for it goes onto two lines */
+.lg-board { white-space: normal; }
+/* a settings label is at least as wide as before, and wider when its word is (CONFIDENTIALITÉ) */
+@media (orientation: landscape) {
+  .set > span { width: auto; min-width: 120px; flex: 0 0 auto; }
+}

@@ -59,46 +59,46 @@ const PRICES = {
 };
 // base = leather, patch = panels; multi cycles panel colors
 const BALLS = [
-  { id: 'classic', name: 'Classic', base: '#ffffff', patch: '#161a33' },
-  { id: 'beach', name: 'Beach', base: '#ffffff', patch: '#ff3a3f', multi: ['#ff3a3f', '#2f7bff', '#ffe14d'] },
-  { id: 'volt', name: 'Volt', base: '#d8ff3a', patch: '#161a33' },
-  { id: 'fire', name: 'Inferno', base: '#ff8a1f', patch: '#8a1f00', glow: '#ffb03a' },
-  { id: 'gold', name: 'Gold', base: '#ffd23a', patch: '#a86f00', glow: '#fff3a0' },
-  { id: 'galaxy', name: 'Galaxy', base: '#3b2c8f', patch: '#d8c8ff', glow: '#a98bff', stars: true },
-  { id: 'glacier', name: 'Glacier', base: '#dff6ff', patch: '#3f9fd8' },
-  { id: 'camo', name: 'Camo', base: '#6f803d', patch: '#39441f', multi: ['#39441f', '#a08c5a', '#26301a'] },
-  { id: 'neon', name: 'Neon', base: '#1b1d33', patch: '#39ff88', glow: '#39ff88' },
-  { id: 'magma', name: 'Magma', base: '#2b1a1a', patch: '#ff5a1a', glow: '#ff7a1a' },
-  { id: 'diamond', name: 'Diamond', base: '#eafcff', patch: '#7fd0ff', glow: '#ffffff', stars: true },
+  { id: 'classic', name: tl('Classic'), base: '#ffffff', patch: '#161a33' },
+  { id: 'beach', name: tl('Beach'), base: '#ffffff', patch: '#ff3a3f', multi: ['#ff3a3f', '#2f7bff', '#ffe14d'] },
+  { id: 'volt', name: tl('Volt'), base: '#d8ff3a', patch: '#161a33' },
+  { id: 'fire', name: tl('Inferno'), base: '#ff8a1f', patch: '#8a1f00', glow: '#ffb03a' },
+  { id: 'gold', name: tl('Gold'), base: '#ffd23a', patch: '#a86f00', glow: '#fff3a0' },
+  { id: 'galaxy', name: tl('Galaxy'), base: '#3b2c8f', patch: '#d8c8ff', glow: '#a98bff', stars: true },
+  { id: 'glacier', name: tl('Glacier'), base: '#dff6ff', patch: '#3f9fd8' },
+  { id: 'camo', name: tl('Camo'), base: '#6f803d', patch: '#39441f', multi: ['#39441f', '#a08c5a', '#26301a'] },
+  { id: 'neon', name: tl('Neon'), base: '#1b1d33', patch: '#39ff88', glow: '#39ff88' },
+  { id: 'magma', name: tl('Magma'), base: '#2b1a1a', patch: '#ff5a1a', glow: '#ff7a1a' },
+  { id: 'diamond', name: tl('Diamond'), base: '#eafcff', patch: '#7fd0ff', glow: '#ffffff', stars: true },
   // ---- the crate shelf: these only come out of crates
-  { id: 'sunsetball', name: 'Sunset', rarity: 'rare', base: '#ff8a4a', patch: '#ff3f7a', multi: ['#ff3f7a', '#ffd166', '#ff6a3d'] },
-  { id: 'mint', name: 'Mint', rarity: 'rare', base: '#bdf5e2', patch: '#1f8f6a' },
-  { id: 'carbon', name: 'Carbon', rarity: 'rare', base: '#2a2d3a', patch: '#5b6275' },
-  { id: 'candy', name: 'Candy', rarity: 'rare', base: '#ffd9ec', patch: '#ff5fa8', multi: ['#ff5fa8', '#ffffff', '#8bd8ff'] },
-  { id: 'pumpkin', name: 'Pumpkin', rarity: 'rare', base: '#ff8a1f', patch: '#2a1a0a', bolt: '#ffd166' },
-  { id: 'lava', name: 'Lava', rarity: 'epic', base: '#3a0f0f', patch: '#ff5a1a', glow: '#ff7a1a', ring: '#ffb03a' },
-  { id: 'arctic', name: 'Arctic', rarity: 'epic', base: '#eefaff', patch: '#5fb8e8', glow: '#bfe9ff', swirl: '#ffffff' },
-  { id: 'venom', name: 'Venom', rarity: 'epic', base: '#1d2a14', patch: '#7dff3a', glow: '#7dff3a', swirl: '#b6ff8a' },
-  { id: 'ruby', name: 'Ruby', rarity: 'epic', base: '#c2143c', patch: '#78062a', glow: '#ff6a8a', ring: '#ffd7e0' },
-  { id: 'sapphire', name: 'Sapphire', rarity: 'epic', base: '#1e55c8', patch: '#0d2f7a', glow: '#7fb3ff', ring: '#cfe2ff' },
-  { id: 'emeraldball', name: 'Emerald', rarity: 'epic', base: '#0f9b63', patch: '#07563a', glow: '#6ff0b5', ring: '#d6fff0' },
-  { id: 'checker', name: 'Checkmate', rarity: 'epic', base: '#ffffff', patch: '#16171d', multi: ['#16171d', '#ffffff', '#16171d'] },
-  { id: 'thunder', name: 'Thunder', rarity: 'legendary', base: '#1b1d33', patch: '#ffe14d', glow: '#ffe14d', bolt: '#ffffff' },
-  { id: 'royalball', name: 'Royal', rarity: 'legendary', base: '#5b22a8', patch: '#ffc21a', glow: '#c9a0ff', ring: '#ffd86a' },
-  { id: 'phantomball', name: 'Phantom', rarity: 'legendary', base: '#3b4060', patch: '#8d93b8', glow: '#b9bfe8', swirl: '#d8dcff' },
-  { id: 'cyber', name: 'Cyber', rarity: 'legendary', base: '#0d1b2a', patch: '#39ff88', glow: '#39ff88', ring: '#46d9ff' },
-  { id: 'pearl', name: 'Pearl', rarity: 'legendary', base: '#fdf6ff', patch: '#d9c8ff', glow: '#ffffff', swirl: '#c6a8ff' },
-  { id: 'nebula', name: 'Nebula', rarity: 'legendary', base: '#2a1360', patch: '#b04dff', glow: '#b04dff', stars: true },
-  { id: 'comet', name: 'Comet', rarity: 'legendary', base: '#eaf6ff', patch: '#4aa8ff', glow: '#ffffff', stars: true, bolt: '#ffe14d' },
-  { id: 'solar', name: 'Solar Flare', rarity: 'legendary', base: '#ffb400', patch: '#ff5a1a', glow: '#ffd166', stars: true, swirl: '#fff3a0' },
-  { id: 'obsidian', name: 'Obsidian', rarity: 'mythic', base: '#14121f', patch: '#4b2a8a', glow: '#8a3fd8', ring: '#b04dff', stars: true },
-  { id: 'dragonball', name: 'Dragon Egg', rarity: 'mythic', base: '#8c1020', patch: '#ffc21a', glow: '#ff7a1a', ring: '#ffe9a8', swirl: '#ff9a4a' },
-  { id: 'prism', name: 'Prism', rarity: 'mythic', base: '#ffffff', patch: '#46d9ff', multi: ['#ff5fa8', '#ffe14d', '#46d9ff'], glow: '#ffffff', swirl: '#b04dff' },
-  { id: 'voidball', name: 'The Void', rarity: 'mythic', base: '#07060f', patch: '#2a1a4a', glow: '#6a2ad8', stars: true, ring: '#8a3fd8' },
-  { id: 'infinity', name: 'Infinity', rarity: 'mythic', base: '#0a0a16', patch: '#ffffff', multi: ['#ff3a6e', '#ffe14d', '#46d9ff'], glow: '#ff3a6e', stars: true, ring: '#ffffff', swirl: '#ffe14d' },
+  { id: 'sunsetball', name: tl('Sunset'), rarity: 'rare', base: '#ff8a4a', patch: '#ff3f7a', multi: ['#ff3f7a', '#ffd166', '#ff6a3d'] },
+  { id: 'mint', name: tl('Mint'), rarity: 'rare', base: '#bdf5e2', patch: '#1f8f6a' },
+  { id: 'carbon', name: tl('Carbon'), rarity: 'rare', base: '#2a2d3a', patch: '#5b6275' },
+  { id: 'candy', name: tl('Candy'), rarity: 'rare', base: '#ffd9ec', patch: '#ff5fa8', multi: ['#ff5fa8', '#ffffff', '#8bd8ff'] },
+  { id: 'pumpkin', name: tl('Pumpkin'), rarity: 'rare', base: '#ff8a1f', patch: '#2a1a0a', bolt: '#ffd166' },
+  { id: 'lava', name: tl('Lava'), rarity: 'epic', base: '#3a0f0f', patch: '#ff5a1a', glow: '#ff7a1a', ring: '#ffb03a' },
+  { id: 'arctic', name: tl('Arctic'), rarity: 'epic', base: '#eefaff', patch: '#5fb8e8', glow: '#bfe9ff', swirl: '#ffffff' },
+  { id: 'venom', name: tl('Venom'), rarity: 'epic', base: '#1d2a14', patch: '#7dff3a', glow: '#7dff3a', swirl: '#b6ff8a' },
+  { id: 'ruby', name: tl('Ruby'), rarity: 'epic', base: '#c2143c', patch: '#78062a', glow: '#ff6a8a', ring: '#ffd7e0' },
+  { id: 'sapphire', name: tl('Sapphire'), rarity: 'epic', base: '#1e55c8', patch: '#0d2f7a', glow: '#7fb3ff', ring: '#cfe2ff' },
+  { id: 'emeraldball', name: tl('Emerald'), rarity: 'epic', base: '#0f9b63', patch: '#07563a', glow: '#6ff0b5', ring: '#d6fff0' },
+  { id: 'checker', name: tl('Checkmate'), rarity: 'epic', base: '#ffffff', patch: '#16171d', multi: ['#16171d', '#ffffff', '#16171d'] },
+  { id: 'thunder', name: tl('Thunder'), rarity: 'legendary', base: '#1b1d33', patch: '#ffe14d', glow: '#ffe14d', bolt: '#ffffff' },
+  { id: 'royalball', name: tl('Royal'), rarity: 'legendary', base: '#5b22a8', patch: '#ffc21a', glow: '#c9a0ff', ring: '#ffd86a' },
+  { id: 'phantomball', name: tl('Phantom'), rarity: 'legendary', base: '#3b4060', patch: '#8d93b8', glow: '#b9bfe8', swirl: '#d8dcff' },
+  { id: 'cyber', name: tl('Cyber'), rarity: 'legendary', base: '#0d1b2a', patch: '#39ff88', glow: '#39ff88', ring: '#46d9ff' },
+  { id: 'pearl', name: tl('Pearl'), rarity: 'legendary', base: '#fdf6ff', patch: '#d9c8ff', glow: '#ffffff', swirl: '#c6a8ff' },
+  { id: 'nebula', name: tl('Nebula'), rarity: 'legendary', base: '#2a1360', patch: '#b04dff', glow: '#b04dff', stars: true },
+  { id: 'comet', name: tl('Comet'), rarity: 'legendary', base: '#eaf6ff', patch: '#4aa8ff', glow: '#ffffff', stars: true, bolt: '#ffe14d' },
+  { id: 'solar', name: tl('Solar Flare'), rarity: 'legendary', base: '#ffb400', patch: '#ff5a1a', glow: '#ffd166', stars: true, swirl: '#fff3a0' },
+  { id: 'obsidian', name: tl('Obsidian'), rarity: 'mythic', base: '#14121f', patch: '#4b2a8a', glow: '#8a3fd8', ring: '#b04dff', stars: true },
+  { id: 'dragonball', name: tl('Dragon Egg'), rarity: 'mythic', base: '#8c1020', patch: '#ffc21a', glow: '#ff7a1a', ring: '#ffe9a8', swirl: '#ff9a4a' },
+  { id: 'prism', name: tl('Prism'), rarity: 'mythic', base: '#ffffff', patch: '#46d9ff', multi: ['#ff5fa8', '#ffe14d', '#46d9ff'], glow: '#ffffff', swirl: '#b04dff' },
+  { id: 'voidball', name: tl('The Void'), rarity: 'mythic', base: '#07060f', patch: '#2a1a4a', glow: '#6a2ad8', stars: true, ring: '#8a3fd8' },
+  { id: 'infinity', name: tl('Infinity'), rarity: 'mythic', base: '#0a0a16', patch: '#ffffff', multi: ['#ff3a6e', '#ffe14d', '#46d9ff'], glow: '#ff3a6e', stars: true, ring: '#ffffff', swirl: '#ffe14d' },
 ];
 // A plain ground for anything that runs without the country grounds loaded (the server sim).
-const FALLBACK_STADIUM = { id: 'day', kind: 'day', name: 'MINI STRIKERS PARK', grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'], apron: '#8fa0c8', tuft: '#3f9f31', pattern: 'checks', weather: 'clouds', sky: ['#6fc2ff', '#a8dcff'], far: '#7fb8e8', hats: 'day', roof: '#242c63', trim: '#ffe14d', seat: '#34439a', chant: "LET'S GO!", motif: 'skyline' };
+const FALLBACK_STADIUM = { id: 'day', kind: 'day', name: 'MINI STRIKERS PARK', grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'], apron: '#8fa0c8', tuft: '#3f9f31', pattern: 'checks', weather: 'clouds', sky: ['#6fc2ff', '#a8dcff'], far: '#7fb8e8', hats: 'day', roof: '#242c63', trim: '#ffe14d', seat: '#34439a', chant: tl("LET'S GO!"), motif: 'skyline' };
 
 const Shop = {
   owns(kind, id) { return (PRICES[kind][id] || 0) === 0 || ((Save.data.owned || {})[kind] || []).includes(id); },
@@ -133,18 +133,18 @@ const Levels = {
 
 // ===== Match challenges =============================================
 const CHALLENGES = [
-  { id: 'score2', text: 'Score 2 goals', coins: 40, done: (m) => m.human.stats.goals >= 2, net: (st) => st.goals >= 2 },
-  { id: 'hattrick', text: 'Score a hat-trick', coins: 90, done: (m) => m.human.stats.goals >= 3, net: (st) => st.goals >= 3 },
-  { id: 'tackle3', text: 'Win 3 tackles', coins: 30, done: (m) => m.human.stats.tackles >= 3, net: (st) => st.tackles >= 3 },
-  { id: 'skill5', text: 'Pull off 5 skills', coins: 25, done: (m) => m.human.stats.skills >= 5, net: (st) => st.skills >= 5 },
-  { id: 'dodge2', text: 'Dodge 2 tackles', coins: 40, done: (m) => (m.human.stats.dodges || 0) >= 2, net: (st) => (st.dodges || 0) >= 2 },
-  { id: 'power', text: 'Score with a power shot', coins: 50, done: (m) => m.flags.powerGoal },
-  { id: 'nutmeg', text: 'Nutmeg someone', coins: 40, done: (m) => m.flags.nutmeg },
-  { id: 'assist', text: 'Assist a goal', coins: 35, team: true, done: (m) => m.human.stats.assists >= 1, net: (st) => st.assists >= 1 },
-  { id: 'clean', text: 'Keep a clean sheet', coins: 60, done: (m) => m.phase === 'over' && m.score.red === 0, net: (st, mine, theirs, over) => over && theirs === 0 },
-  { id: 'pass8', text: 'Complete 8 passes', coins: 25, team: true, done: (m) => m.human.stats.passes >= 8, net: (st) => st.passes >= 8 },
-  { id: 'curl', text: 'Score a curling shot', coins: 45, done: (m) => m.flags.curlGoal },
-  { id: 'win2', text: 'Win by 2+ goals', coins: 50, done: (m) => m.phase === 'over' && m.score.blue - m.score.red >= 2, net: (st, mine, theirs, over) => over && mine - theirs >= 2 },
+  { id: 'score2', text: tl('Score 2 goals'), coins: 40, done: (m) => m.human.stats.goals >= 2, net: (st) => st.goals >= 2 },
+  { id: 'hattrick', text: tl('Score a hat-trick'), coins: 90, done: (m) => m.human.stats.goals >= 3, net: (st) => st.goals >= 3 },
+  { id: 'tackle3', text: tl('Win 3 tackles'), coins: 30, done: (m) => m.human.stats.tackles >= 3, net: (st) => st.tackles >= 3 },
+  { id: 'skill5', text: tl('Pull off 5 skills'), coins: 25, done: (m) => m.human.stats.skills >= 5, net: (st) => st.skills >= 5 },
+  { id: 'dodge2', text: tl('Dodge 2 tackles'), coins: 40, done: (m) => (m.human.stats.dodges || 0) >= 2, net: (st) => (st.dodges || 0) >= 2 },
+  { id: 'power', text: tl('Score with a power shot'), coins: 50, done: (m) => m.flags.powerGoal },
+  { id: 'nutmeg', text: tl('Nutmeg someone'), coins: 40, done: (m) => m.flags.nutmeg },
+  { id: 'assist', text: tl('Assist a goal'), coins: 35, team: true, done: (m) => m.human.stats.assists >= 1, net: (st) => st.assists >= 1 },
+  { id: 'clean', text: tl('Keep a clean sheet'), coins: 60, done: (m) => m.phase === 'over' && m.score.red === 0, net: (st, mine, theirs, over) => over && theirs === 0 },
+  { id: 'pass8', text: tl('Complete 8 passes'), coins: 25, team: true, done: (m) => m.human.stats.passes >= 8, net: (st) => st.passes >= 8 },
+  { id: 'curl', text: tl('Score a curling shot'), coins: 45, done: (m) => m.flags.curlGoal },
+  { id: 'win2', text: tl('Win by 2+ goals'), coins: 50, done: (m) => m.phase === 'over' && m.score.blue - m.score.red >= 2, net: (st, mine, theirs, over) => over && mine - theirs >= 2 },
 ];
 
 // ranked is 1v1, so the team ones (an assist, eight passes) are out of that pool
@@ -163,14 +163,14 @@ const Challenges = {
     for (const c of m.challenges) {
       if (c.complete || !c.done(m)) continue;
       c.complete = true;
-      if (!Game.headless && m.phase === 'play') { UI.toast(`CHALLENGE: ${c.text.toUpperCase()}  +${c.coins}`); Sound.powerReady(); }
+      if (!Game.headless && m.phase === 'play') { UI.toast(tl('CHALLENGE: {0}  +{1}', [c.text.toUpperCase(), c.coins])); Sound.powerReady(); }
     }
   },
 };
 
 // ===== Cup ==========================================================
 const Cup = {
-  ROUNDS: ['QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'],
+  ROUNDS: [tl('QUARTER-FINAL'), tl('SEMI-FINAL'), tl('FINAL')],
   start() {
     const mine = Clubs.mine().id;
     const at = (lo, hi) => pick(CLUBS.filter((c) => c.level >= lo && c.level <= hi && c.id !== mine));
@@ -197,28 +197,28 @@ const Cup = {
 // stat(d) reads the save; progress is capped at goal; each one pays out once when claimed.
 const ownedCount = (pred) => CHARACTERS.filter((c) => pred(c) && charOk(c) && Shop.owns('character', c.id)).length;
 const ACHIEVEMENTS = [
-  { id: 'goal1', name: 'Off The Mark', text: 'Score your first goal', goal: 1, coins: 50, stat: (d) => d.goals },
-  { id: 'win1', name: 'First Win', text: 'Win a match', goal: 1, coins: 60, stat: (d) => d.wins },
-  { id: 'goal25', name: 'Sharpshooter', text: 'Score 25 goals', goal: 25, coins: 200, stat: (d) => d.goals },
-  { id: 'hattrick', name: 'Hat-trick Hero', text: 'Score 3 goals in one match', goal: 1, coins: 150, stat: (d) => d.career.hattricks },
-  { id: 'tackle25', name: 'Ball Winner', text: 'Win 25 tackles', goal: 25, coins: 150, stat: (d) => d.career.tackles },
-  { id: 'skill50', name: 'Showboat', text: 'Pull off 50 skills', goal: 50, coins: 150, stat: (d) => d.career.skills },
-  { id: 'formats', name: 'All-Rounder', text: 'Play 1v1, 2v2, 3v3 and 4v4', goal: 4, coins: 150, stat: (d) => Object.keys(d.career.formats).length },
-  { id: 'assist15', name: 'Playmaker', text: 'Make 15 assists', goal: 15, coins: 250, stat: (d) => d.career.assists },
-  { id: 'dodge25', name: 'Escape Artist', text: 'Dodge 25 tackles', goal: 25, coins: 200, stat: (d) => d.career.dodges },
-  { id: 'clean5', name: 'Brick Wall', text: 'Keep 5 clean sheets', goal: 5, coins: 200, stat: (d) => d.career.cleanSheets },
-  { id: 'win10', name: 'Winner', text: 'Win 10 matches', goal: 10, coins: 250, stat: (d) => d.wins },
-  { id: 'power10', name: 'Screamers', text: 'Score 10 power-shot goals', goal: 10, coins: 300, stat: (d) => d.career.powerGoals },
-  { id: 'streak5', name: 'On Fire', text: 'Win 5 matches in a row', goal: 5, coins: 400, stat: (d) => d.career.bestStreak },
-  { id: 'cup1', name: 'Silverware', text: 'Win the Cup', goal: 1, coins: 300, stat: (d) => d.trophies },
-  { id: 'squad', name: 'Squad Builder', text: 'Own 6 characters', goal: 6, coins: 400, stat: () => ownedCount(() => true) },
-  { id: 'goal100', name: 'Goal Machine', text: 'Score 100 goals', goal: 100, coins: 600, stat: (d) => d.goals },
-  { id: 'veteran', name: 'Veteran', text: 'Play 100 matches', goal: 100, coins: 800, stat: (d) => d.matches },
-  { id: 'epic', name: 'Epic Signing', text: 'Own an epic character', goal: 1, coins: 500, stat: () => ownedCount((c) => c.rarity === 'epic') },
-  { id: 'win50', name: 'Serial Winner', text: 'Win 50 matches', goal: 50, coins: 1000, stat: (d) => d.wins },
-  { id: 'cup5', name: 'Dynasty', text: 'Win the Cup 5 times', goal: 5, coins: 1200, stat: (d) => d.trophies },
-  { id: 'legend', name: 'Legendary', text: 'Own a legendary character', goal: 1, coins: 1000, stat: () => ownedCount((c) => c.rarity === 'legendary') },
-  { id: 'goal300', name: 'Living Legend', text: 'Score 300 goals', goal: 300, coins: 1500, stat: (d) => d.goals },
+  { id: 'goal1', name: tl('Off The Mark'), text: tl('Score your first goal'), goal: 1, coins: 50, stat: (d) => d.goals },
+  { id: 'win1', name: tl('First Win'), text: tl('Win a match'), goal: 1, coins: 60, stat: (d) => d.wins },
+  { id: 'goal25', name: tl('Sharpshooter'), text: tl('Score 25 goals'), goal: 25, coins: 200, stat: (d) => d.goals },
+  { id: 'hattrick', name: tl('Hat-trick Hero'), text: tl('Score 3 goals in one match'), goal: 1, coins: 150, stat: (d) => d.career.hattricks },
+  { id: 'tackle25', name: tl('Ball Winner'), text: tl('Win 25 tackles'), goal: 25, coins: 150, stat: (d) => d.career.tackles },
+  { id: 'skill50', name: tl('Showboat'), text: tl('Pull off 50 skills'), goal: 50, coins: 150, stat: (d) => d.career.skills },
+  { id: 'formats', name: tl('All-Rounder'), text: tl('Play 1v1, 2v2, 3v3 and 4v4'), goal: 4, coins: 150, stat: (d) => Object.keys(d.career.formats).length },
+  { id: 'assist15', name: tl('Playmaker'), text: tl('Make 15 assists'), goal: 15, coins: 250, stat: (d) => d.career.assists },
+  { id: 'dodge25', name: tl('Escape Artist'), text: tl('Dodge 25 tackles'), goal: 25, coins: 200, stat: (d) => d.career.dodges },
+  { id: 'clean5', name: tl('Brick Wall'), text: tl('Keep 5 clean sheets'), goal: 5, coins: 200, stat: (d) => d.career.cleanSheets },
+  { id: 'win10', name: tl('Winner'), text: tl('Win 10 matches'), goal: 10, coins: 250, stat: (d) => d.wins },
+  { id: 'power10', name: tl('Screamers'), text: tl('Score 10 power-shot goals'), goal: 10, coins: 300, stat: (d) => d.career.powerGoals },
+  { id: 'streak5', name: tl('On Fire'), text: tl('Win 5 matches in a row'), goal: 5, coins: 400, stat: (d) => d.career.bestStreak },
+  { id: 'cup1', name: tl('Silverware'), text: tl('Win the Cup'), goal: 1, coins: 300, stat: (d) => d.trophies },
+  { id: 'squad', name: tl('Squad Builder'), text: tl('Own 6 characters'), goal: 6, coins: 400, stat: () => ownedCount(() => true) },
+  { id: 'goal100', name: tl('Goal Machine'), text: tl('Score 100 goals'), goal: 100, coins: 600, stat: (d) => d.goals },
+  { id: 'veteran', name: tl('Veteran'), text: tl('Play 100 matches'), goal: 100, coins: 800, stat: (d) => d.matches },
+  { id: 'epic', name: tl('Epic Signing'), text: tl('Own an epic character'), goal: 1, coins: 500, stat: () => ownedCount((c) => c.rarity === 'epic') },
+  { id: 'win50', name: tl('Serial Winner'), text: tl('Win 50 matches'), goal: 50, coins: 1000, stat: (d) => d.wins },
+  { id: 'cup5', name: tl('Dynasty'), text: tl('Win the Cup 5 times'), goal: 5, coins: 1200, stat: (d) => d.trophies },
+  { id: 'legend', name: tl('Legendary'), text: tl('Own a legendary character'), goal: 1, coins: 1000, stat: () => ownedCount((c) => c.rarity === 'legendary') },
+  { id: 'goal300', name: tl('Living Legend'), text: tl('Score 300 goals'), goal: 300, coins: 1500, stat: (d) => d.goals },
 ];
 
 const Achievements = {

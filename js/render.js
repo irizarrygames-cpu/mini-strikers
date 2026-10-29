@@ -323,7 +323,7 @@ const Render = {
     const front = topBoard - boardH;
     g.fillStyle = '#c9d2de'; g.strokeStyle = OUTLINE; g.lineWidth = 2;
     g.beginPath(); g.rect(X0, front - 5, X1 - X0, 4); g.fill(); g.stroke();
-    const words = [st.chant || "LET'S GO!", TEAMS.blue.name, st.name || 'GOOOAL!', TEAMS.red.name];
+    const words = [st.chant || tl("LET'S GO!"), TEAMS.blue.name, st.name || tl('GOOOAL!'), TEAMS.red.name];
     g.font = '900 15px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     for (let i = 0; 150 + i * 360 < W; i++) {
       const x = 150 + i * 360, team = x < W / 2 ? TEAMS.blue : TEAMS.red, w = 112;
@@ -839,13 +839,13 @@ const Render = {
     ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
     if (!c || !c.scorer || u < 1) return;
     const s = c.scorer, size = clamp(H * 0.06, 17, 34), y = H - bar / 2, x0 = Math.max(18, W * 0.03);
-    const who = s === m.human && (m.net || s.isHuman) ? 'YOU' : s.name || `#${s.number} ${TEAMS[s.team].name}`;
+    const who = s === m.human && (m.net || s.isHuman) ? tl('YOU') : s.name || `#${s.number} ${TEAMS[s.team].name}`;
     const def = CELEBRATIONS.find((x) => x.id === c.kind);
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    this.chunkyText(ctx, 'GOAL!', x0, y, size, '#ffe14d');
+    this.chunkyText(ctx, tl('GOAL!'), x0, y, size, '#ffe14d');
     ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
-    const gw = ctx.measureText('GOAL! ').width;
+    const gw = ctx.measureText(tl('GOAL!') + ' ').width;
     this.chunkyText(ctx, who, x0 + gw, y, size * 0.8, s.team === 'blue' ? '#ffffff' : '#ffd0d3');
     if (def) {
       ctx.textAlign = 'right';
@@ -866,10 +866,10 @@ const Render = {
       ctx.beginPath(); ctx.arc(x0 + size * 0.3, y, size * 0.26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    this.chunkyText(ctx, 'REPLAY', x0 + size * 0.75, y, size, '#ffffff');
-    const repR = x0 + size * 0.85 + ctx.measureText('REPLAY').width;
+    this.chunkyText(ctx, tl('REPLAY'), x0 + size * 0.75, y, size, '#ffffff');
+    const repR = x0 + size * 0.85 + ctx.measureText(tl('REPLAY')).width;
     ctx.textAlign = 'right';
-    const kb = document.body.classList.contains('kb'), skip = kb ? 'PRESS SPACE TO SKIP' : 'TAP TO SKIP';
+    const kb = document.body.classList.contains('kb'), skip = kb ? tl('PRESS SPACE TO SKIP') : tl('TAP TO SKIP');
     this.chunkyText(ctx, skip, W - x0, y, size * 0.55, '#ffe14d');
     // where those words are, so the commentary along the bottom can keep out of their way
     this.replayBoxes = [[0, H - bar, repR, H], [W - x0 - size * 0.1 - ctx.measureText(skip).width, H - bar, W, H]];
@@ -912,7 +912,7 @@ const Render = {
       const x = this.sx(p.x, p.y), y = this.sy(p.y, 96) - (p.hopT > 0 ? 18 : 0);
       if (x < -60 || x > this.W + 60 || y < -20 || y > this.H + 20) continue;
       const me = p === m.human;
-      this.chunkyText(ctx, me ? 'YOU' : p.name, x, y, size, me ? '#ffe14d' : p.team === 'blue' ? '#ffffff' : '#ffd0d3', Math.max(2.5, size * 0.28));
+      this.chunkyText(ctx, me ? tl('YOU') : p.name, x, y, size, me ? '#ffe14d' : p.team === 'blue' ? '#ffffff' : '#ffd0d3', Math.max(2.5, size * 0.28));
       if (p.chat) this.drawChat(ctx, p.chat, x, y - size * 0.9, size);
     }
   },

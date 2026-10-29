@@ -9,44 +9,44 @@
 // resize or jump chapters and it draws exactly the same frame for the same time.
 const Tutorial = {
   chapters: [
-    { id: 'move', title: 'MOVE', dur: 9, loop: 3 },
-    { id: 'sprint', title: 'SPRINT', dur: 9, loop: 3 },
-    { id: 'pass', title: 'PASS', dur: 9, loop: 3 },
-    { id: 'shoot', title: 'SHOOT', dur: 10, loop: 3.4 },
-    { id: 'curl', title: 'CURL IT', dur: 9, loop: 3 },
-    { id: 'skill', title: 'SKILLS', dur: 10, loop: 3.4 },
-    { id: 'tackle', title: 'TACKLE', dur: 9, loop: 3 },
-    { id: 'ult', title: 'THE ULT', dur: 9, loop: 4.5 },
-    { id: 'penkick', title: 'PENALTIES: TAKE ONE', dur: 8, loop: 4 },
-    { id: 'pensave', title: 'PENALTIES: SAVE ONE', dur: 8, loop: 4 },
+    { id: 'move', title: tl('MOVE'), dur: 9, loop: 3 },
+    { id: 'sprint', title: tl('SPRINT'), dur: 9, loop: 3 },
+    { id: 'pass', title: tl('PASS'), dur: 9, loop: 3 },
+    { id: 'shoot', title: tl('SHOOT'), dur: 10, loop: 3.4 },
+    { id: 'curl', title: tl('CURL IT'), dur: 9, loop: 3 },
+    { id: 'skill', title: tl('SKILLS'), dur: 10, loop: 3.4 },
+    { id: 'tackle', title: tl('TACKLE'), dur: 9, loop: 3 },
+    { id: 'ult', title: tl('THE ULT'), dur: 9, loop: 4.5 },
+    { id: 'penkick', title: tl('PENALTIES: TAKE ONE'), dur: 8, loop: 4 },
+    { id: 'pensave', title: tl('PENALTIES: SAVE ONE'), dur: 8, loop: 4 },
   ],
 
   // the words, with the right keys or buttons for how you are playing
   caption(id, kb) {
     const k = (s) => `<span class="kc">${s}</span>`;
     const btn = (s) => `<span class="kc wide">${s}</span>`;
-    const move = kb ? k('W') + k('A') + k('S') + k('D') : 'the joystick';
+    const move = kb ? k('W') + k('A') + k('S') + k('D') : tl('the joystick');
     const say = {
-      move: kb ? `${move} to run. You always control the player nearest the ball.`
-        : `Drag ${move} to run. You always control the player nearest the ball.`,
-      sprint: kb ? `Hold ${k('SHIFT')} to sprint. It empties the bar above your head, and an empty bar leaves you jogging.`
-        : `Hold ${btn('SPRINT')} to run faster, or tap it to keep sprinting with your thumb free. It empties the bar above your head, and an empty bar leaves you jogging.`,
-      pass: kb ? `${k('E')} passes to the team-mate you are facing. Hold it for a harder ball through the gap.`
-        : `Tap ${btn('PASS')} to the team-mate you are facing. Hold it for a harder ball through the gap.`,
-      shoot: kb ? `Hold ${k('SPACE')} to charge, let go to shoot. The longer you hold, the harder it goes.`
-        : `Hold ${btn('SHOOT')} to charge, let go to shoot. The longer you hold, the harder it goes.`,
-      curl: kb ? `Steer with ${move} as you let the shot go and it bends round the keeper.`
-        : `Steer with ${move} as you let the shot go and it bends round the keeper.`,
-      skill: kb ? `${k('Q')} with a direction: spin, flick, nutmeg, Cruyff. No direction and you hop over the tackle.`
-        : `${btn('SKILL')} with a direction: spin, flick, nutmeg, Cruyff. No direction and you hop over the tackle.`,
-      tackle: kb ? `Without the ball, ${k('F')} slides in and takes it. Time it — a miss leaves you on the floor.`
-        : `Without the ball, ${btn('TACKLE')} slides in and takes it. Time it — a miss leaves you on the floor.`,
-      ult: kb ? `Goals, skills, assists and won tackles fill the ULT bar. Full, and ${k('SPACE')} fires your signature — and its cutscene.`
-        : `Goals, skills, assists and won tackles fill the ULT bar. Full, and ${btn('ULT')} fires your signature — and its cutscene.`,
-      penkick: kb ? `Aim with ${move}, hold ${k('SPACE')} for power, let go to hit it. Corners beat keepers; power alone misses.`
-        : `Aim by dragging, hold ${btn('SHOOT')} for power, let go to hit it. Corners beat keepers; power alone misses.`,
-      pensave: kb ? `Their turn: pick a side with ${move} as the ball leaves their boot. Too early and they change their mind.`
-        : `Their turn: swipe a side as the ball leaves their boot. Too early and they change their mind.`,
+      move: kb ? tl('{0} to run. You always control the player nearest the ball.', [move])
+        : tl('Drag {0} to run. You always control the player nearest the ball.', [move]),
+      sprint: kb ? tl('Hold {0} to sprint. It empties the bar above your head, and an empty bar leaves you jogging.', [k(tl('SHIFT'))])
+        : tl('Hold {0} to run faster, or tap it to keep sprinting with your thumb free. It empties the bar above your head, and an empty bar leaves you jogging.', [btn(tl('SPRINT'))]),
+      pass: kb ? tl('{0} passes to the team-mate you are facing. Hold it for a harder ball through the gap.', [k('E')])
+        : tl('Tap {0} to the team-mate you are facing. Hold it for a harder ball through the gap.', [btn(tl('PASS'))]),
+      shoot: kb ? tl('Hold {0} to charge, let go to shoot. The longer you hold, the harder it goes.', [k(tl('SPACE'))])
+        : tl('Hold {0} to charge, let go to shoot. The longer you hold, the harder it goes.', [btn(tl('SHOOT'))]),
+      curl: kb ? tl('Steer with {0} as you let the shot go and it bends round the keeper.', [move])
+        : tl('Steer with {0} as you let the shot go and it bends round the keeper.', [move]),
+      skill: kb ? tl('{0} with a direction: spin, flick, nutmeg, Cruyff. No direction and you hop over the tackle.', [k('Q')])
+        : tl('{0} with a direction: spin, flick, nutmeg, Cruyff. No direction and you hop over the tackle.', [btn(tl('SKILL'))]),
+      tackle: kb ? tl('Without the ball, {0} slides in and takes it. Time it — a miss leaves you on the floor.', [k('F')])
+        : tl('Without the ball, {0} slides in and takes it. Time it — a miss leaves you on the floor.', [btn(tl('TACKLE'))]),
+      ult: kb ? tl('Goals, skills, assists and won tackles fill the ULT bar. Full, and {0} fires your signature — and its cutscene.', [k(tl('SPACE'))])
+        : tl('Goals, skills, assists and won tackles fill the ULT bar. Full, and {0} fires your signature — and its cutscene.', [btn(tl('ULT'))]),
+      penkick: kb ? tl('Aim with {0}, hold {1} for power, let go to hit it. Corners beat keepers; power alone misses.', [move, k(tl('SPACE'))])
+        : tl('Aim by dragging, hold {0} for power, let go to hit it. Corners beat keepers; power alone misses.', [btn(tl('SHOOT'))]),
+      pensave: kb ? tl('Their turn: pick a side with {0} as the ball leaves their boot. Too early and they change their mind.', [move])
+        : tl('Their turn: swipe a side as the ball leaves their boot. Too early and they change their mind.'),
     };
     return say[id] || '';
   },
@@ -90,8 +90,8 @@ const Tutorial = {
     this.done = true;
     $('tut-next').hidden = true;
     $('howto-ok').hidden = false;
-    $('tut-title').textContent = 'THAT IS THE LOT';
-    $('tut-caption').innerHTML = 'Have a go. Everything here is in the pause menu if you want it again.';
+    $('tut-title').textContent = tl('THAT IS THE LOT');
+    $('tut-caption').innerHTML = tl('Have a go. Everything here is in the pause menu if you want it again.');
     $('tut-time').textContent = '';
     this.bar();
   },
@@ -118,7 +118,7 @@ const Tutorial = {
     let left = -this.t;
     for (let i = this.i; i < this.chapters.length; i++) left += this.chapters[i].dur;
     const s = Math.max(0, Math.ceil(left));
-    $('tut-time').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} LEFT`;
+    $('tut-time').textContent = tl('{0}:{1} LEFT', [Math.floor(s / 60), String(s % 60).padStart(2, '0')]);
     this.draw();
   },
 
@@ -254,7 +254,7 @@ const Tutorial = {
     this.man(g, x, gy, k, { vx: sprinting ? 300 : 60, faceX: 1, runPhase: t * (sprinting ? 22 : 8), sprint: sprinting }, t);
     const bw = W * 0.1, bh = Math.max(6, H * 0.035);
     this.pill(g, x - bw / 2, gy - H * 0.68, bw, bh, stam > 0.25 ? '#3fcf4a' : '#ff3a3f', stam);
-    if (!sprinting) this.label(g, 'EMPTY', x, gy - H * 0.8, Math.max(11, H * 0.085), '#ff8a8a');
+    if (!sprinting) this.label(g, tl('EMPTY'), x, gy - H * 0.8, Math.max(11, H * 0.085), '#ff8a8a');
   },
 
   sc_pass(g, u, W, H, k, gy, t) {
@@ -289,7 +289,7 @@ const Tutorial = {
     this.man(g, goalX + gw * 0.12, gy - gh * 0.06 - dive * gh * 0.2, k * 0.85, { team: 'red', keeper: true, faceX: -1, fx: -1, number: 1, diveT: dive > 0 ? 0.3 : 0, diveDir: -1 }, t);
     this.bal(g, bx, by, shot ? Math.sin(f * 2.4) * H * 0.1 : 0, k, t, { shot: shot ? { level: 2, power: charge > 0.85, team: 'blue' } : null });
     this.man(g, px, gy, k, { faceX: 1, fx: 1, kickT: shot && f < 0.22 ? 0.2 : 0 }, t);
-    if (shot && f > 0.8) this.label(g, 'GOAL!', W * 0.45, H * 0.2, Math.max(16, H * 0.16), '#ffe14d');
+    if (shot && f > 0.8) this.label(g, tl('GOAL!'), W * 0.45, H * 0.2, Math.max(16, H * 0.16), '#ffe14d');
   },
 
   sc_curl(g, u, W, H, k, gy, t) {
@@ -320,7 +320,7 @@ const Tutorial = {
     this.man(g, defX, gy, k, { team: 'red', faceX: -1, fx: -1, number: 5, stunT: past ? 0.3 : 0, runPhase: t * 8, vx: past ? 0 : -40 }, t);
     this.bal(g, x + 12 * k, gy - side * 0.4, 0, k, t);
     this.man(g, x, gy - side, k, { faceX: 1, fx: 1, runPhase: t * 16, vx: 240, hopT: hop, skill: trick ? 'spin' : null }, t);
-    if (trick || past) this.label(g, 'NUTMEG!', defX, gy - H * 0.62, Math.max(12, H * 0.1), '#ffe14d');
+    if (trick || past) this.label(g, tl('NUTMEG!'), defX, gy - H * 0.62, Math.max(12, H * 0.1), '#ffe14d');
   },
 
   sc_tackle(g, u, W, H, k, gy, t) {
@@ -337,8 +337,8 @@ const Tutorial = {
     this.bal(g, bx, gy, bz, k, t);
     this.man(g, carrier, gy, k, { team: 'red', faceX: -1, fx: -1, number: 9, runPhase: t * 15, vx: -260, fallT: won ? 0.4 : 0 }, t);
     this.man(g, mx, gy, k, { faceX: 1, fx: 1, runPhase: t * 15, vx: 300, slideT: slide ? 0.3 : 0 }, t);
-    if (slide) this.label(g, 'SLIDE!', mx, gy - H * 0.5, Math.max(11, H * 0.085), '#ffffff');
-    if (won) this.label(g, 'BALL WON!', W * 0.5, H * 0.14, Math.max(13, H * 0.11), '#46d9ff');
+    if (slide) this.label(g, tl('SLIDE!'), mx, gy - H * 0.5, Math.max(11, H * 0.085), '#ffffff');
+    if (won) this.label(g, tl('BALL WON!'), W * 0.5, H * 0.14, Math.max(13, H * 0.11), '#46d9ff');
   },
 
   sc_ult(g, u, W, H, k, gy, t) {
@@ -350,7 +350,7 @@ const Tutorial = {
     const bh = Math.max(7, H * 0.045);
     this.pill(g, W * 0.05, H * 0.1, W * 0.24, bh, full && Math.sin(t * 18) > 0 ? '#ffffff' : rainbow(t * 0.7), fill);
     g.textAlign = 'left'; g.textBaseline = 'middle';
-    Render.chunkyText(g, full ? 'ULT READY' : 'ULT', W * 0.32, H * 0.1 + bh / 2, Math.max(10, H * 0.08), full ? '#ffe14d' : '#ffffff', 0);
+    Render.chunkyText(g, full ? tl('ULT READY') : tl('ULT'), W * 0.32, H * 0.1 + bh / 2, Math.max(10, H * 0.08), full ? '#ffe14d' : '#ffffff', 0);
     g.textAlign = 'center';
     if (fired) {
       const bx = lerp(px + 12 * k, goalX + gw * 0.6, f), by = lerp(gy - H * 0.1, gy - gh * 0.62, f);
@@ -358,11 +358,11 @@ const Tutorial = {
       g.beginPath(); g.moveTo(px + 12 * k, gy - H * 0.1); g.lineTo(bx, by); g.stroke();
       this.bal(g, bx, by, H * 0.08, k, t, { shot: { level: 2, power: true, team: 'blue' }, trail: 'rainbow' });
       this.man(g, px, gy, k, { faceX: 1, fx: 1, ult: 'bicycle', ultT: clamp(f * 1.2, 0, 1) * 0.8 }, t);
-      if (f > 0.75) this.label(g, 'GOAL!', W * 0.5, H * 0.26, Math.max(16, H * 0.15), '#ffe14d');
+      if (f > 0.75) this.label(g, tl('GOAL!'), W * 0.5, H * 0.26, Math.max(16, H * 0.15), '#ffe14d');
     } else {
       this.bal(g, px + 12 * k, gy, 0, k, t);
       this.man(g, px, gy, k, { faceX: 1, fx: 1, runPhase: t * 10, vx: 80 }, t);
-      if (full) this.label(g, 'PRESS IT', px, gy - H * 0.5, Math.max(12, H * 0.095), '#ffe14d');
+      if (full) this.label(g, tl('PRESS IT'), px, gy - H * 0.5, Math.max(12, H * 0.095), '#ffe14d');
     }
   },
 
@@ -384,7 +384,7 @@ const Tutorial = {
     if (!aiming) {
       const bx = lerp(cx, target[0], f), by = lerp(H * 0.86, target[1], f);
       this.bal(g, bx, by, 0, k * (1 - f * 0.45), t, { shot: { level: 2, power: true, team: 'blue' } });
-      if (f > 0.85) this.label(g, 'IN THE CORNER', cx, H * 0.14, Math.max(12, H * 0.1), '#ffe14d');
+      if (f > 0.85) this.label(g, tl('IN THE CORNER'), cx, H * 0.14, Math.max(12, H * 0.1), '#ffe14d');
     } else {
       this.bal(g, cx, H * 0.86, 0, k, t);
     }
@@ -407,7 +407,7 @@ const Tutorial = {
     } else if (saved) {
       const sv = clamp((u - 0.7) / 0.3, 0, 1);
       this.bal(g, lerp(target[0], target[0] - side * gw * 0.55, sv), lerp(target[1], top - gh * 0.08, sv), 0, k * 0.8, t);
-      this.label(g, 'SAVED!', cx, H * 0.14, Math.max(14, H * 0.12), '#46d9ff');
+      this.label(g, tl('SAVED!'), cx, H * 0.14, Math.max(14, H * 0.12), '#46d9ff');
     } else {
       this.bal(g, cx + W * 0.12, H * 0.88, 0, k, t);
     }

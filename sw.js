@@ -21,6 +21,7 @@ const NET_TIMEOUT = 3500; // past this the server is asleep, so show the game an
 
 const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
+  './js/i18n.js', './js/lang-es.js', './js/lang-pt.js', './js/lang-fr.js', './js/lang-de.js', './js/lang-it.js',
   './js/config.js', './js/products.js', './js/store.js', './js/clubs.js', './js/stadiums.js', './js/celebs.js', './js/save.js', './js/meta.js', './js/crates.js', './js/missions.js', './js/audio.js',
   './js/input.js', './js/fx.js', './js/commentary.js', './js/entities.js', './js/ai.js', './js/match.js',
   './privacy.html',

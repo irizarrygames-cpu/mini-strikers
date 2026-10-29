@@ -34,6 +34,8 @@ let spokeCount = 0;
 const speechSynthesis = new Proxy({}, { get: () => { spokeCount++; return () => { spokeCount++; }; } });
 
 const sandbox = {
+  // js/i18n.js, in English (the game says everything through tl())
+  tl: (s, a) => (a ? String(s).replace(/\{(\w+)\}/g, (m, k) => (a[k] != null ? String(a[k]) : m)) : s), tlN: (n, one, many, a) => (n === 1 ? one : many).replace(/\{(\w+)\}/g, (m, k) => ((a || [n])[k] != null ? String((a || [n])[k]) : m)), I18N: { lang: 'en', server: (s) => String(s || ''), parts: (s) => s, t: (s) => s },
   console, Math, Set, Map, String, Number, Object, Array, Date, JSON,
   clearTimeout, setTimeout, clearInterval, setInterval,
   Save: { data: { settings: { commentary: true, sfx: 0.8 } }, write() {} },

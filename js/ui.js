@@ -88,9 +88,9 @@ const UI = {
 
   tap() { Sound.unlock(); Sound.tap(); },
 
-  GUEST_MSG: 'Make an account to play online. Everything you have won as a guest comes with you.',
-  AUTH_WAKING: 'Waking the server up… this can take up to a minute. You can play as a guest while you wait.',
-  AUTH_UNREACHABLE: "Can't reach the server. Check your connection, or play offline as a guest.",
+  GUEST_MSG: tl('Make an account to play online. Everything you have won as a guest comes with you.'),
+  AUTH_WAKING: tl('Waking the server up… this can take up to a minute. You can play as a guest while you wait.'),
+  AUTH_UNREACHABLE: tl("Can't reach the server. Check your connection, or play offline as a guest."),
 
   // ---- the splash ----
   // Everything is loaded and listening: the splash can say TAP TO START and mean it. A tap made while
@@ -100,7 +100,7 @@ const UI = {
     window.__ready = true;
     if (window.__splashDone) window.__splashDone();
     $('splash').classList.remove('loading');
-    $('splash-tap').textContent = 'TAP TO START';
+    $('splash-tap').textContent = tl('TAP TO START');
     $('splash-sub').textContent = '';
     let carryOn = false;
     try { carryOn = sessionStorage.getItem('ms-carry-on') === '1'; sessionStorage.removeItem('ms-carry-on'); } catch (e) { /* no storage */ }
@@ -111,12 +111,34 @@ const UI = {
   // server woke up there was nothing at all on the screen.
   leaveSplash() {
     if (this._entering || !window.__ready) return;
+    // the first time the game starts on this device: which language, before anything else
+    if (!I18N.chosen) { this.askLanguage(); return; }
     this._entering = true;
     Sound.unlock(); Sound.tap(); Sound.startMusic();
     $('splash').classList.add('loading');
-    $('splash-tap').textContent = 'STARTING…';
+    $('splash-tap').textContent = tl('STARTING…');
     $('splash-sub').textContent = '';
     Game.enter();
+  },
+  // Which language. Asked the first time the game starts, and from Settings → LANGUAGE. Each name is
+  // in its own language. The one already showing carries on as it is; another reloads the game into
+  // it (I18N.choose), and the game carries on by itself after the reload.
+  askLanguage(fromSettings) {
+    if ($('lang-pick')) return;
+    const el = document.createElement('div');
+    el.id = 'lang-pick'; el.className = 'overlay lang-pick';
+    el.innerHTML = `<div class="panel small lang-panel"><h2>${tl('CHOOSE YOUR LANGUAGE')}</h2>
+      <div class="lang-list">${LANGS.map((l) => `<button class="mid-btn${l.id === I18N.lang ? ' sel' : ''}" data-lang="${l.id}" lang="${l.id}">${l.name}</button>`).join('')}</div></div>`;
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+      this.tap();
+      // a guest changing language in Settings comes back as a guest, not to the sign-in page (Game.enterSteps)
+      if (fromSettings && !Net.token && b.dataset.lang !== I18N.lang) { try { sessionStorage.setItem('ms-lang-guest', '1'); } catch (e) { /* no storage */ } }
+      if (I18N.choose(b.dataset.lang)) { el.querySelectorAll('button').forEach((x) => { x.disabled = true; }); return; } // reloading into it
+      el.remove();
+      if (fromSettings) this.openModal('settings');
+      else this.leaveSplash();
+    }));
   },
   splashStatus(text) { if (!$('splash').classList.contains('gone')) $('splash-sub').textContent = text; },
   dropSplash() {
@@ -142,10 +164,10 @@ const UI = {
 
   // rotating control tips while training
   TIPS: {
-    touch: ['Drag the joystick to move · hold SPRINT to run faster', 'Hold SHOOT to charge, release to shoot', 'Push the joystick sideways while shooting to curl it', 'SKILL with no direction = HOP over a tackle',
-      'SKILL toward a defender = nutmeg or flick', 'No ball? TACKLE near the carrier to steal it', 'Fill the ring around SHOOT, then fully charge = POWER SHOT', 'Tap PASS when a teammate has it to call for the ball', 'Hold PASS for a harder through ball · full charge lofts it'],
-    kb: ['WASD to move · hold SHIFT to sprint', 'Hold SPACE to charge, release to shoot', 'Hold A or D while shooting to curl it', 'Q with no direction = HOP over a tackle',
-      'Q toward a defender = nutmeg or flick', 'No ball? F near the carrier to tackle', 'Fill the power meter, then fully charge = POWER SHOT', 'E passes to the teammate you face', 'Hold E for a harder through ball · full charge lofts it'],
+    touch: [tl('Drag the joystick to move · hold SPRINT to run faster'), tl('Hold SHOOT to charge, release to shoot'), tl('Push the joystick sideways while shooting to curl it'), tl('SKILL with no direction = HOP over a tackle'),
+      tl('SKILL toward a defender = nutmeg or flick'), tl('No ball? TACKLE near the carrier to steal it'), tl('Fill the ring around SHOOT, then fully charge = POWER SHOT'), tl('Tap PASS when a teammate has it to call for the ball'), tl('Hold PASS for a harder through ball · full charge lofts it')],
+    kb: [tl('WASD to move · hold SHIFT to sprint'), tl('Hold SPACE to charge, release to shoot'), tl('Hold A or D while shooting to curl it'), tl('Q with no direction = HOP over a tackle'),
+      tl('Q toward a defender = nutmeg or flick'), tl('No ball? F near the carrier to tackle'), tl('Fill the power meter, then fully charge = POWER SHOT'), tl('E passes to the teammate you face'), tl('Hold E for a harder through ball · full charge lofts it')],
   },
   tickTips(dt) {
     const m = Game.match, show = !!(m && m.training && Game.state === 'match' && m.phase !== 'replay');
@@ -168,7 +190,7 @@ const UI = {
       const before = Math.floor(this._queueT || 0);
       this._queueT = (this._queueT || 0) + dt;
       const s = Math.floor(this._queueT);
-      if (s !== before) $('q-note').textContent = `Searching… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      if (s !== before) $('q-note').textContent = tl('Searching… {0}:{1}', [Math.floor(s / 60), String(s % 60).padStart(2, '0')]);
     }
     if (this._toastT > 0) {
       this._toastT -= dt;
@@ -194,7 +216,27 @@ const UI = {
 
   // the PLAY block sits above the HOW TO PLAY / FRIENDS / PROFILE row: how tall that row is
   // depends on the labels and whether GET THE APP is showing, so it is measured, never guessed
+  // A few buttons hold one word side by side, and in some languages that word is longer than the
+  // button ("PERSONNALISER"). Those letters shrink just enough to fit, rather than spill out.
+  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board',
+  fitWords(root = document) {
+    if (!root) return;
+    const range = document.createRange();
+    for (const el of root.querySelectorAll(this.FIT_WORDS)) {
+      el.style.fontSize = '';
+      if (!el.clientWidth) continue;
+      // the words themselves, measured: centred words spill out of both sides, and scrollWidth only
+      // counts the right-hand half of that
+      range.selectNodeContents(el);
+      const scale = el.getBoundingClientRect().width / el.offsetWidth || 1;
+      const cs = getComputedStyle(el), pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const room = el.clientWidth - pad, need = range.getBoundingClientRect().width / scale;
+      if (room > 0 && need > room) el.style.fontSize = Math.max(8, Math.floor(parseFloat(cs.fontSize) * (room / need) * 0.97 * 10) / 10) + 'px';
+    }
+  },
+
   measureHome() {
+    this.fitWords();
     const root = document.documentElement.style;
     const bl = document.querySelector('.home-bl');
     if (bl && bl.offsetHeight) root.setProperty('--bl-h', bl.offsetHeight + 'px');
@@ -283,7 +325,7 @@ const UI = {
     const lv = Levels.info(d.xp || 0);
     $('home-level').textContent = lv.level;
     $('home-xp').style.width = Math.round((lv.into / lv.need) * 100) + '%';
-    $('home-record').textContent = `${d.wins}W · ${d.draws || 0}D · ${d.losses || 0}L` + (d.career.streak >= 2 ? ` · ${d.career.streak} WIN STREAK` : '');
+    $('home-record').textContent = tl('{0}W · {1}D · {2}L', [d.wins, d.draws || 0, d.losses || 0]) + (d.career.streak >= 2 ? ' · ' + tl('{0} WIN STREAK', [d.career.streak]) : '');
     this.portrait($('home-char-canvas'), Save.look());
     const ovr = $('home-ovr');
     ovr.querySelector('b').textContent = charOvr(ch);
@@ -294,7 +336,7 @@ const UI = {
     const club = Clubs.mine();
     // menus and portraits wear your club's kit
     if (!Clubs.home || Clubs.home.id !== club.id) Clubs.setMatch(club, Clubs.current && Clubs.current.id !== club.id ? Clubs.current : Clubs.random(club));
-    $('home-user').textContent = Save.account || 'GUEST';
+    $('home-user').textContent = Save.account || tl('GUEST');
     $('home-club-name').textContent = club.name;
     this.flagBadge($('home-club-badge'), club);
     $('home-club-pos').textContent = this._leaguePos ? '#' + this._leaguePos : '';
@@ -436,10 +478,10 @@ const UI = {
     document.querySelectorAll('[data-auth]').forEach((b) => b.classList.toggle('sel', b.dataset.auth === mode));
     $('auth-clubs-wrap').hidden = mode !== 'signup';
     $('auth').classList.toggle('signup', mode === 'signup');
-    $('auth-go').textContent = mode === 'signup' ? 'CREATE ACCOUNT' : 'LOG IN';
+    $('auth-go').textContent = mode === 'signup' ? tl('CREATE ACCOUNT') : tl('LOG IN');
     $('auth-forgot').hidden = mode !== 'login';
     $('auth-pass').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
-    $('auth-msg').textContent = mode === 'signup' ? 'Password: 8+ characters.' : '';
+    $('auth-msg').textContent = mode === 'signup' ? tl('Password: 8+ characters.') : '';
     $('auth-msg').classList.remove('bad');
   },
 
@@ -466,8 +508,8 @@ const UI = {
     Render.buildLayer();   // Clubs.mine() reads the country straight out of the save
     this.show('home');
     // with a connection this is the server still waking up, and it comes online by itself
-    this.toast(!name ? (Net.noWifi() ? 'PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE' : 'PLAYING AS A GUEST. SIGN IN ANY TIME TO PLAY ONLINE')
-      : Net.noWifi() ? 'NO WI-FI — PLAYING ON THIS DEVICE' : 'THE SERVER IS WAKING UP — ONLINE IN A MOMENT');
+    this.toast(!name ? (Net.noWifi() ? tl('PLAYING OFFLINE — PROGRESS STAYS ON THIS DEVICE') : tl('PLAYING AS A GUEST. SIGN IN ANY TIME TO PLAY ONLINE'))
+      : Net.noWifi() ? tl('NO WI-FI — PLAYING ON THIS DEVICE') : tl('THE SERVER IS WAKING UP — ONLINE IN A MOMENT'));
     return true;
   },
 
@@ -502,10 +544,10 @@ const UI = {
     const user = $('auth-user').value.trim(), pass = $('auth-pass').value;
     const msg = $('auth-msg');
     msg.classList.add('bad');
-    if (!user || !pass) { msg.textContent = 'Enter a username and password.'; return; }
-    if (this._authMode === 'signup' && !this._authClub) { msg.textContent = 'Pick your country first.'; return; }
+    if (!user || !pass) { msg.textContent = tl('Enter a username and password.'); return; }
+    if (this._authMode === 'signup' && !this._authClub) { msg.textContent = tl('Pick your country first.'); return; }
     const go = $('auth-go');
-    go.disabled = true; msg.classList.remove('bad'); msg.textContent = this._authMode === 'signup' ? 'Creating your account…' : 'Logging in…';
+    go.disabled = true; msg.classList.remove('bad'); msg.textContent = this._authMode === 'signup' ? tl('Creating your account…') : tl('Logging in…');
     let r;
     // a sleeping server holds the answer back for up to a minute: say so, rather than sit on "Logging in…"
     const slow = setTimeout(() => { if (go.disabled) msg.textContent = Net.WAKING_MSG; }, 3000);
@@ -520,17 +562,17 @@ const UI = {
     // no answer at all: the host was asleep. Wake it and have one more go before saying anything.
     if (!r) {
       msg.classList.remove('bad');
-      msg.textContent = 'Waking the server up…';
-      const up = await Net.wake((n, of) => { msg.textContent = `Waking the server up… (${n}/${of})`; });
+      msg.textContent = tl('Waking the server up…');
+      const up = await Net.wake((n, of) => { msg.textContent = tl('Waking the server up… ({0}/{1})', [n, of]); });
       if (up) {
         try { r = this._authMode === 'signup' ? await Net.signup(user, pass, this._authClub) : await Net.login(user, pass); }
-        catch (e2) { r = { ok: false, msg: "Can't reach the server. Try again in a minute." }; }
+        catch (e2) { r = { ok: false, msg: tl("Can't reach the server. Try again in a minute.") }; }
       } else {
-        r = { ok: false, msg: "Can't reach the server. Try again in a minute." };
+        r = { ok: false, msg: tl("Can't reach the server. Try again in a minute.") };
       }
     }
     go.disabled = false;
-    if (!r.ok) { msg.classList.add('bad'); msg.textContent = r.msg || 'Something went wrong'; Sound.steal(); return; }
+    if (!r.ok) { msg.classList.add('bad'); msg.textContent = r.msg ? I18N.server(r.msg) : tl('Something went wrong'); Sound.steal(); return; }
     $('auth-pass').value = '';
     this.tap();
     this.signedIn(this._authMode === 'signup');
@@ -554,7 +596,7 @@ const UI = {
     Game.state = 'home';
     Render.buildLayer();
     this.show('home');
-    if (fresh) this.toast(`YOU PLAY FOR ${Clubs.mine().name}!`);
+    if (fresh) this.toast(tl('YOU PLAY FOR {0}!', [Clubs.mine().name]));
     Net.openSocket(); // puts you straight back into an online match you were still in
     this.fetchLeaguePos();
   },
@@ -585,17 +627,17 @@ const UI = {
   showQueue(msg) {
     this.closeAll();
     $('queue').hidden = false;
-    $('q-format').textContent = msg.format === 'ranked' ? 'RANKED · 1v1' : msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? 'PENALTY WORLD CUP' : 'WORLD CUP'} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : 'ONLINE · ' + (msg.format === 'fk' ? 'FREE KICKS' : msg.format === 'pens' ? 'PENALTIES' : msg.format);
+    $('q-format').textContent = msg.format === 'ranked' ? tl('RANKED · 1v1') : msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? tl('PENALTY WORLD CUP') : tl('WORLD CUP')} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : tl('ONLINE · {0}', [msg.format === 'fk' ? tl('FREE KICKS') : msg.format === 'pens' ? tl('PENALTIES') : msg.format]);
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
-    $('q-note').textContent = 'Searching… 0:00';
+    $('q-note').textContent = tl('Searching… 0:00');
     this.queueParty(null);
   },
   hideQueue() { $('queue').hidden = true; },
   queueParty(names) {
     const el = $('q-party');
     el.hidden = !names || names.length < 2;
-    if (!el.hidden) el.textContent = 'PARTY: ' + names.join(' · ');
+    if (!el.hidden) el.textContent = tl('PARTY: {0}', [names.join(' · ')]);
   },
 
   showLobby(msg) {
@@ -603,25 +645,25 @@ const UI = {
     $('lobby').hidden = false;
     $('lb-code').textContent = msg.code;
     const size = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 }[msg.format];
-    $('lb-formats').innerHTML = '<span>FORMAT</span>' + ['pens', 'fk', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
+    $('lb-formats').innerHTML = `<span>${tl('FORMAT')}</span>` + ['pens', 'fk', '1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-f="${f}" class="${f === msg.format ? 'sel' : ''}" ${msg.isHost ? '' : 'disabled'}>${f}</button>`).join('');
     $('lb-formats').querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.format', format: b.dataset.f }); }));
     const side = (team, el) => {
       const list = msg.players.filter((p) => p.team === team);
       const rows = [];
       for (let i = 0; i < size; i++) {
         const p = list[i];
-        rows.push(p ? `<div class="lb-p ${p.name === msg.you ? 'me' : ''}"><canvas width="48" height="32" data-club="${p.club}"></canvas><b>${p.name}</b>${p.name === msg.host ? '<em>HOST</em>' : ''}</div>` : `<div class="lb-p empty"><b>${msg.coop ? 'FILLED IN' : 'OPEN'}</b></div>`);
+        rows.push(p ? `<div class="lb-p ${p.name === msg.you ? 'me' : ''}"><canvas width="48" height="32" data-club="${p.club}"></canvas><b>${p.name}</b>${p.name === msg.host ? `<em>${tl('HOST')}</em>` : ''}</div>` : `<div class="lb-p empty"><b>${msg.coop ? tl('FILLED IN') : tl('OPEN')}</b></div>`);
       }
-      const label = msg.coop ? (team === 'blue' ? 'YOUR TEAM' : 'THE COMPUTER') : team === 'blue' ? 'SIDE A' : 'SIDE B';
+      const label = msg.coop ? (team === 'blue' ? tl('YOUR TEAM') : tl('THE COMPUTER')) : team === 'blue' ? tl('SIDE A') : tl('SIDE B');
       el.innerHTML = `<small>${label}</small>` + rows.join('');
       el.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     };
     side('blue', $('lb-blue')); side('red', $('lb-red'));
     $('lb-start').hidden = !msg.isHost;
-    $('lb-note').textContent = msg.isHost ? 'Send the code to your friends, then press START.' : `Waiting for ${msg.host} to start…`;
+    $('lb-note').textContent = msg.isHost ? tl('Send the code to your friends, then press START.') : tl('Waiting for {0} to start…', [msg.host]);
     const coop = !!msg.coop;
     $('lb-coop').hidden = !msg.isHost;
-    $('lb-coop').textContent = coop ? 'SAME TEAM · ON' : 'SAME TEAM · OFF';
+    $('lb-coop').textContent = coop ? tl('SAME TEAM · ON') : tl('SAME TEAM · OFF');
     $('lb-coop').classList.toggle('on', coop);
     $('lb-switch').hidden = coop;
     $('lb-coop-note').hidden = !coop;
@@ -646,9 +688,9 @@ const UI = {
     if (!p) return;
     $('daily-days').innerHTML = DAILY.map((c, i) => {
       const n = i + 1, cls = n < p.day ? 'done' : n === p.day ? 'today' : '';
-      return `<div class="dday ${cls}${n === 7 ? ' jackpot' : ''}"><small>DAY ${n}</small><span class="coin"></span><b>${c}</b></div>`;
+      return `<div class="dday ${cls}${n === 7 ? ' jackpot' : ''}"><small>${tl('DAY {0}', [n])}</small><span class="coin"></span><b>${c}</b></div>`;
     }).join('');
-    $('daily-claim').innerHTML = `CLAIM <span class="coin"></span> ${p.coins}`;
+    $('daily-claim').innerHTML = `${tl('CLAIM')} <span class="coin"></span> ${p.coins}`;
     $('daily').hidden = false;
     Sound.powerReady();
   },
@@ -659,7 +701,7 @@ const UI = {
     if (!p) return;
     Sound.goalJingle(true);
     vibrate(30);
-    this.toast(`DAY ${p.day} REWARD  +${p.coins} COINS`);
+    this.toast(tl('DAY {0} REWARD  +{1} COINS', [p.day, p.coins]));
     this.refreshHome();
   },
 
@@ -713,8 +755,8 @@ const UI = {
     const el = document.createElement('div');
     el.className = 'overlay grownup leave';
     el.style.zIndex = 46; // over everything a press of Back can be made on, the sign-in page (40) too
-    el.innerHTML = `<div class="panel small"><div class="gate"><strong>LEAVE THE GAME?</strong>
-      <div class="gate-btns"><button class="mid-btn" data-no>STAY</button><button class="mid-btn red" data-yes>LEAVE</button></div></div></div>`;
+    el.innerHTML = `<div class="panel small"><div class="gate"><strong>${tl('LEAVE THE GAME?')}</strong>
+      <div class="gate-btns"><button class="mid-btn" data-no>${tl('STAY')}</button><button class="mid-btn red" data-yes>${tl('LEAVE')}</button></div></div></div>`;
     document.body.appendChild(el);
     el.querySelector('[data-no]').addEventListener('click', () => { this.tap(); el.remove(); });
     el.querySelector('[data-yes]').addEventListener('click', () => { el.remove(); this.leaveApp(); });
@@ -730,7 +772,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.pens.fk ? 'FREE KICKS · 5 EACH, OVER OR ROUND THE WALL' : 'PENALTY SHOOTOUT · 5 KICKS EACH') : m.net ? (m.ranked ? 'RANKED · 1v1' : m.fcup ? `FRIEND CUP · ${(CUP_ROUNDS[m.fcup.of - 1 - m.fcup.round] || 'CUP').replace('THE ', '')}` : m.wc !== null && m.wc !== undefined ? `WORLD CUP · ${WC_ROUNDS[m.wc]} · ${m.format}` : `ONLINE · ${m.format}`) : m.training ? 'TRAINING · NO CLOCK' : (cup ? `CUP · ${Cup.ROUNDS[cup.round]}` : 'QUICK MATCH') + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('ONLINE · {0}', [m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? tl('CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('QUICK MATCH')) + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -743,12 +785,12 @@ const UI = {
     $('intro-challenges').innerHTML = this.challengeList(m);
     if (m.net) {
       // who's playing: real names on each side
-      const names = (team) => m.players.filter((p) => p.team === team && !p.isKeeper).map((p) => (p === m.human ? 'YOU' : p.name)).join(' · ');
+      const names = (team) => m.players.filter((p) => p.team === team && !p.isKeeper).map((p) => (p === m.human ? tl('YOU') : p.name)).join(' · ');
       const chal = m.netChal ? m.netChal.map((c) => `<li><i></i><span>${c.text.toUpperCase()}</span><em>+1</em></li>`).join('') : '';
       $('intro-challenges').innerHTML = `<li class="done"><span>${names('blue')}</span></li><li><span>${names('red')}</span></li>` + chal;
       $('intro').querySelector('.intro-ch').hidden = false;
-      $('intro').querySelector('.intro-ch small').textContent = m.netChal ? 'PLAYERS · CHALLENGES: A RANK POINT EACH IF YOU WIN' : 'PLAYERS';
-    } else $('intro').querySelector('.intro-ch small').textContent = 'CHALLENGES';
+      $('intro').querySelector('.intro-ch small').textContent = m.netChal ? tl('PLAYERS · CHALLENGES: A RANK POINT EACH IF YOU WIN') : tl('PLAYERS');
+    } else $('intro').querySelector('.intro-ch small').textContent = tl('CHALLENGES');
     $('intro').hidden = false;
     this._introT = m.net ? 999 : 6;
   },
@@ -780,8 +822,8 @@ const UI = {
     $('sb-blue').textContent = m.score.blue;
     $('sb-red').textContent = m.score.red;
     let label;
-    if (m.training) label = 'PRACTICE';
-    else if (m.overtime) label = 'GOLDEN';
+    if (m.training) label = tl('PRACTICE');
+    else if (m.overtime) label = tl('GOLDEN');
     else { const s = Math.ceil(m.time); label = `${String((s / 60) | 0).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
     if (this._lastTime !== label) {
       $('sb-time').textContent = label;
@@ -813,7 +855,7 @@ const UI = {
       if (this._ultU !== u) { ult.querySelector('.ult-fill').style.width = Math.round(u * 100) + '%'; this._ultU = u; }
       ult.classList.toggle('ready', ready);
       ult.classList.toggle('on', !!h.ultOn);
-      const label = h.ultOn ? 'ULT ON' : ready ? 'ULT READY' : 'ULT';
+      const label = h.ultOn ? tl('ULT ON') : ready ? tl('ULT READY') : tl('ULT');
       if (this._ultLabel !== label) { ult.querySelector('b').textContent = label; this._ultLabel = label; }
     }
 
@@ -891,8 +933,8 @@ const UI = {
       $('p-challenges').innerHTML = this.challengeList(Game.match);
       $('p-restart').hidden = !!Game.match.net;
       const fan = !!(typeof Online !== 'undefined' && Online.watching);
-      $('pause').querySelector('h2').textContent = fan ? 'WATCHING' : Game.match.net ? 'MENU' : 'PAUSED';
-      $('p-quit').textContent = fan ? 'STOP WATCHING' : Game.match.net ? 'LEAVE MATCH (LOSS)' : 'QUIT';
+      $('pause').querySelector('h2').textContent = fan ? tl('WATCHING') : Game.match.net ? tl('MENU') : tl('PAUSED');
+      $('p-quit').textContent = fan ? tl('STOP WATCHING') : Game.match.net ? tl('LEAVE MATCH (LOSS)') : tl('QUIT');
       document.querySelector('.p-ch').hidden = !(Game.match.challenges && Game.match.challenges.length);
       $('pause').hidden = false;
     } else if (Game.state === 'paused') {
@@ -939,14 +981,14 @@ const UI = {
     if (levelUp) setTimeout(() => {
       const el = $('r-xp');
       const at = Pop.at(el);
-      Pop.shout(at.x, at.y - 30, 'LEVEL UP!', '#6fd3ff', 1100);
+      Pop.shout(at.x, at.y - 30, tl('LEVEL UP!'), '#6fd3ff', 1100);
       Pop.ring(at.x, at.y, '#6fd3ff', 200, 460);
       Pop.confetti(at.x, at.y, ['#6fd3ff', '#ffffff'], 24);
     }, 1100);
     if (rankUp) setTimeout(() => {
       const el = $('r-rank') || card;
       const at = Pop.at(el);
-      Pop.shout(at.x, at.y - 30, 'RANK UP!', '#ff8a1f', 1100);
+      Pop.shout(at.x, at.y - 30, tl('RANK UP!'), '#ff8a1f', 1100);
       Pop.confetti(at.x, at.y, ['#ff8a1f', '#ffe14d', '#ffffff'], 30);
     }, levelUp ? 1900 : 1100);
     if (champion) setTimeout(() => Pop.confetti(top.x, top.y, gold, 50, 1.4), 900);
@@ -987,38 +1029,38 @@ const UI = {
     d.coins += levelCoins;
     if (levelCoins) Save.write();
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
-    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? `ACHIEVEMENT: ${fresh[0].name.toUpperCase()}  ·  CLAIM IN PROFILE` : `${fresh.length} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE`); Sound.powerReady(); } }, 900);
+    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [fresh[0].name.toUpperCase()]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, 900);
 
-    const title = { win: 'VICTORY!', loss: 'DEFEAT', draw: 'DRAW' }[r.outcome];
-    $('r-title').textContent = cupResult === 'champion' ? 'CHAMPIONS!' : title;
+    const title = { win: tl('VICTORY!'), loss: tl('DEFEAT'), draw: tl('DRAW') }[r.outcome];
+    $('r-title').textContent = cupResult === 'champion' ? tl('CHAMPIONS!') : title;
     $('r-title').className = 'r-title ' + (cupResult === 'champion' ? 'win champ' : r.outcome);
     $('r-blue').textContent = m.score.blue;
     $('r-red').textContent = m.score.red;
     const pt = m.poss.blue + m.poss.red, pb = pt ? Math.round((m.poss.blue / pt) * 100) : 50;
     const pk = pens ? m.pens.kicks : null;
     const rows = pens ? [
-      ['SCORED', m.score.blue, m.score.red],
-      ['MISSED', pk.blue.length - m.score.blue - m.pens.theirSaves, pk.red.length - m.score.red - m.pens.saves],
-      ['SAVES', m.pens.saves, m.pens.theirSaves],
-      ['KICKS', pk.blue.length, pk.red.length],
+      [tl('SCORED'), m.score.blue, m.score.red],
+      [tl('MISSED'), pk.blue.length - m.score.blue - m.pens.theirSaves, pk.red.length - m.score.red - m.pens.saves],
+      [tl('SAVES'), m.pens.saves, m.pens.theirSaves],
+      [tl('KICKS'), pk.blue.length, pk.red.length],
     ] : [
-      ['GOALS', m.score.blue, m.score.red],
-      ['POSS %', pb, 100 - pb],
-      ['SHOTS', m.stats.blue.shots, m.stats.red.shots],
-      ['PASSES', m.stats.blue.passes, m.stats.red.passes],
-      ['TACKLES', m.stats.blue.tackles || 0, m.stats.red.tackles || 0],
-      ['SAVES', m.stats.blue.saves, m.stats.red.saves],
+      [tl('GOALS'), m.score.blue, m.score.red],
+      [tl('POSS %'), pb, 100 - pb],
+      [tl('SHOTS'), m.stats.blue.shots, m.stats.red.shots],
+      [tl('PASSES'), m.stats.blue.passes, m.stats.red.passes],
+      [tl('TACKLES'), m.stats.blue.tackles || 0, m.stats.red.tackles || 0],
+      [tl('SAVES'), m.stats.blue.saves, m.stats.red.saves],
     ];
     $('r-stats').innerHTML = rows.map(([k, a, b]) =>
       `<div class="r-row"><b class="${a > b ? 'lead' : ''}">${a}</b><span>${k}</span><b class="${b > a ? 'lead' : ''}">${b}</b></div>`).join('');
     const h = m.human.stats;
-    $('r-you').innerHTML = pens ? `<span><b>${h.goals}</b> of ${h.shots} penalties scored</span><span><b>${m.pens.saves}</b> saves</span>`
-      : `<span><b>${h.goals}</b> goals</span><span><b>${h.shots}</b> shots</span><span><b>${h.tackles}</b> tackles</span><span><b>${h.skills}</b> skills</span>`;
+    $('r-you').innerHTML = pens ? `<span><b>${h.goals}</b> ${tl('of {0} penalties scored', [h.shots])}</span><span><b>${m.pens.saves}</b> ${tl('saves')}</span>`
+      : `<span><b>${h.goals}</b> ${tl('goals')}</span><span><b>${h.shots}</b> ${tl('shots')}</span><span><b>${h.tackles}</b> ${tl('tackles')}</span><span><b>${h.skills}</b> ${tl('skills')}</span>`;
     const mvp = r.mvp;
-    const mvpName = mvp.isHuman ? 'YOU' : `${TEAMS[mvp.team].name} #${mvp.number}${mvp.isKeeper ? ' (GK)' : ''}`;
+    const mvpName = mvp.isHuman ? tl('YOU') : `${TEAMS[mvp.team].name} #${mvp.number}${mvp.isKeeper ? ' ' + tl('(GK)') : ''}`;
     const s = mvp.stats;
-    const line = mvp.isKeeper ? `${s.saves} saves` : pens ? `${s.goals} penalties · ${m.pens.saves} saves` : `${s.goals} G · ${s.assists} A · ${s.tackles} tackles`;
-    $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>MVP</small><strong>${mvpName}</strong><em>${line}</em></div>`;
+    const line = mvp.isKeeper ? tl('{0} saves', [s.saves]) : pens ? tl('{0} penalties · {1} saves', [s.goals, m.pens.saves]) : tl('{0} G · {1} A · {2} tackles', [s.goals, s.assists, s.tackles]);
+    $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>${tl('MVP')}</small><strong>${mvpName}</strong><em>${line}</em></div>`;
     this.portrait($('r-mvp-canvas'), mvp.look, mvp.team, mvp.isKeeper, mvp.number);
     $('r-challenges').innerHTML = this.challengeList(m);
     $('r-coins').textContent = `+${r.coins + streakBonus + levelCoins + cupPrize}`;
@@ -1028,11 +1070,11 @@ const UI = {
     multTag.textContent = `${Save.data.settings.difficulty.toUpperCase()} ×${r.mult}`;
     multTag.classList.toggle('hard', r.mult > 1);
     $('r-streak').hidden = c.streak < 2;
-    $('r-streak').innerHTML = `<b>${c.streak}</b> WIN STREAK${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
+    $('r-streak').innerHTML = `<b>${c.streak}</b> ${tl('WIN STREAK')}${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
     const lv = Levels.info(d.xp);
     $('r-level').textContent = lv.level;
     $('r-xpbar').style.width = Math.round((lv.into / lv.need) * 100) + '%';
-    $('r-xp').textContent = lv.level > levelBefore ? `LEVEL UP! +${xp} XP · +${levelCoins} COINS` : `+${xp} XP`;
+    $('r-xp').textContent = lv.level > levelBefore ? tl('LEVEL UP! +{0} XP · +{1} COINS', [xp, levelCoins]) : tl('+{0} XP', [xp]);
     $('r-xp').classList.toggle('lvup', lv.level > levelBefore);
 
     // cup progress + what the big button does next
@@ -1048,12 +1090,12 @@ const UI = {
         return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${clubUi(club)}">${club.name}</b><em>${res ? `${res.blue}-${res.red}` : '—'}</em></div>`;
       }).join('');
       this._againMode = cupResult === 'next' ? 'cup' : 'newcup';
-      $('r-again').textContent = cupResult === 'next' ? `PLAY ${Cup.ROUNDS[c.round]}` : cupResult === 'champion' ? 'NEW CUP' : 'TRY AGAIN';
-      if (cupResult === 'champion') Trophy.show({ title: 'CUP WINNERS!', sub: 'BOT WORLD CUP · +300 COINS', club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
+      $('r-again').textContent = cupResult === 'next' ? tl('PLAY {0}', [Cup.ROUNDS[c.round]]) : cupResult === 'champion' ? tl('NEW CUP') : tl('TRY AGAIN');
+      if (cupResult === 'champion') Trophy.show({ title: tl('CUP WINNERS!'), sub: tl('BOT WORLD CUP · +300 COINS'), club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
       this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : 'quick';
-      $('r-again').textContent = 'PLAY AGAIN';
+      $('r-again').textContent = tl('PLAY AGAIN');
     }
     $('results').hidden = false;
     $('hud').hidden = true;
@@ -1111,34 +1153,34 @@ const UI = {
     d.coins += levelCoins;
     Save.write();
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
-    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? `ACHIEVEMENT: ${fresh[0].name.toUpperCase()}  ·  CLAIM IN PROFILE` : `${fresh.length} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE`); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
+    if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [fresh[0].name.toUpperCase()]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
 
-    $('r-title').textContent = cup && cup.champion ? 'WORLD CHAMPIONS!' : cup && !cup.won ? 'KNOCKED OUT' : { win: 'VICTORY!', loss: 'DEFEAT', draw: 'DRAW' }[outcome];
+    $('r-title').textContent = cup && cup.champion ? tl('WORLD CHAMPIONS!') : cup && !cup.won ? tl('KNOCKED OUT') : { win: tl('VICTORY!'), loss: tl('DEFEAT'), draw: tl('DRAW') }[outcome];
     $('r-title').className = 'r-title ' + (cup && cup.champion ? 'win champ' : outcome);
     $('r-blue').textContent = mine; $('r-red').textContent = theirs;
-    if (msg.forfeit && outcome === 'win') setTimeout(() => { if (Game.state === 'results') this.toast('THE OTHER TEAM LEFT · YOU WIN'); }, 400);
+    if (msg.forfeit && outcome === 'win') setTimeout(() => { if (Game.state === 'results') this.toast(tl('THE OTHER TEAM LEFT · YOU WIN')); }, 400);
     const S = msg.stats, poss = mirror ? 100 - msg.poss : msg.poss;
     const rows = [
-      ['GOALS', mine, theirs], ['POSS %', poss, 100 - poss],
-      ['SHOTS', S[side].shots || 0, S[other].shots || 0], ['PASSES', S[side].passes || 0, S[other].passes || 0],
-      ['TACKLES', S[side].tackles || 0, S[other].tackles || 0], ['SAVES', S[side].saves || 0, S[other].saves || 0],
+      [tl('GOALS'), mine, theirs], [tl('POSS %'), poss, 100 - poss],
+      [tl('SHOTS'), S[side].shots || 0, S[other].shots || 0], [tl('PASSES'), S[side].passes || 0, S[other].passes || 0],
+      [tl('TACKLES'), S[side].tackles || 0, S[other].tackles || 0], [tl('SAVES'), S[side].saves || 0, S[other].saves || 0],
     ];
     $('r-stats').innerHTML = rows.map(([k, a, b]) => `<div class="r-row"><b class="${a > b ? 'lead' : ''}">${a}</b><span>${k}</span><b class="${b > a ? 'lead' : ''}">${b}</b></div>`).join('');
-    $('r-you').innerHTML = `<span><b>${st.goals}</b> goals</span><span><b>${st.assists}</b> assists</span><span><b>${st.tackles}</b> tackles</span><span><b>${st.skills}</b> skills</span>`;
+    $('r-you').innerHTML = `<span><b>${st.goals}</b> ${tl('goals')}</span><span><b>${st.assists}</b> ${tl('assists')}</span><span><b>${st.tackles}</b> ${tl('tackles')}</span><span><b>${st.skills}</b> ${tl('skills')}</span>`;
     const mvp = msg.mvp, mvpPlayer = m.players[mvp.index];
-    const mvpName = mvp.index === msg.you ? 'YOU' : mvp.keeper ? `${(mvp.team === side ? TEAMS.blue : TEAMS.red).name} GK` : mvp.name;
+    const mvpName = mvp.index === msg.you ? tl('YOU') : mvp.keeper ? tl('{0} GK', [(mvp.team === side ? TEAMS.blue : TEAMS.red).name]) : mvp.name;
     const ms = mvp.stats || {};
-    $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>MVP</small><strong>${mvpName}</strong><em>${mvp.keeper ? `${ms.saves || 0} saves` : `${ms.goals || 0} G · ${ms.assists || 0} A · ${ms.tackles || 0} tackles`}</em></div>`;
+    $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>${tl('MVP')}</small><strong>${mvpName}</strong><em>${mvp.keeper ? tl('{0} saves', [ms.saves || 0]) : tl('{0} G · {1} A · {2} tackles', [ms.goals || 0, ms.assists || 0, ms.tackles || 0])}</em></div>`;
     if (mvpPlayer) this.portrait($('r-mvp-canvas'), mvpPlayer.look, mvpPlayer.team, mvpPlayer.isKeeper, mvpPlayer.number);
     const club = Clubs.mine();
     const lg = msg.league;
-    const lgText = lg && lg.pos ? (lg.d > 0 ? `${club.name} MOVES UP TO ${ordinal(lg.pos)} ▲` : lg.d < 0 ? `${club.name} DROPS TO ${ordinal(lg.pos)} ▼` : `${club.name} STAYS ${ordinal(lg.pos)}`) : `${club.name}: ${outcome === 'win' ? 'UP A PLACE' : outcome === 'loss' ? 'DOWN A PLACE' : 'NO CHANGE'}`;
-    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${c.text.toUpperCase()}</span>${c.done ? `<em>${outcome === 'win' ? '+1 RP' : 'WIN IT NEXT TIME'}</em>` : ''}</li>`).join('');
+    const lgText = lg && lg.pos ? (lg.d > 0 ? tl('{0} MOVES UP TO {1} ▲', [club.name, ordinal(lg.pos)]) : lg.d < 0 ? tl('{0} DROPS TO {1} ▼', [club.name, ordinal(lg.pos)]) : tl('{0} STAYS {1}', [club.name, ordinal(lg.pos)])) : `${club.name}: ${outcome === 'win' ? tl('UP A PLACE') : outcome === 'loss' ? tl('DOWN A PLACE') : tl('NO CHANGE')}`;
+    const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${tl(c.text).toUpperCase()}</span>${c.done ? `<em>${outcome === 'win' ? tl('+1 RP') : tl('WIN IT NEXT TIME')}</em>` : ''}</li>`).join('');
     $('r-challenges').innerHTML = chalRows + (msg.coop
-      ? '<li><i></i><span>PLAYED TOGETHER AGAINST THE COMPUTER — NOTHING MOVES IN THE LEAGUE</span></li>'
-      : `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>LEAGUE: ${lgText}</span></li>`);
+      ? `<li><i></i><span>${tl('PLAYED TOGETHER AGAINST THE COMPUTER — NOTHING MOVES IN THE LEAGUE')}</span></li>`
+      : `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>${tl('LEAGUE: {0}', [lgText])}</span></li>`);
     $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize}`;
-    $('r-mult').hidden = false; $('r-mult').textContent = msg.coop ? 'PLAYING TOGETHER' : msg.ranked ? 'RANKED' : fcup ? 'FRIEND CUP · ' + (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'CUP').replace('THE ', '') : cup ? 'WORLD CUP' : 'ONLINE'; $('r-mult').classList.add('hard');
+    $('r-mult').hidden = false; $('r-mult').textContent = msg.coop ? tl('PLAYING TOGETHER') : msg.ranked ? tl('RANKED') : fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[fcup.of - 1 - fcup.round] || tl('CUP')]) : cup ? tl('WORLD CUP') : tl('ONLINE'); $('r-mult').classList.add('hard');
     // what this match did to your rank
     const rankBox = $('r-rank'), rk = msg.rank;
     rankBox.hidden = !rk;
@@ -1147,15 +1189,15 @@ const UI = {
       const tierBefore = (Net.user && Net.user.rank && Net.user.rank.tier) || null;
       this._rankedUp = !!(tierBefore && tierBefore !== rk.tier && rd > 0);
       rankBox.style.setProperty('--t', tier.color);
-      rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${rk.rp} RP</b><em class="${rd > 0 ? 'up' : rd < 0 ? 'down' : 'flat'}">${rd > 0 ? '+' + rd : rd < 0 ? rd : 'NO CHANGE'}</em>`;
+      rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${tl('{0} RP', [rk.rp])}</b><em class="${rd > 0 ? 'up' : rd < 0 ? 'down' : 'flat'}">${rd > 0 ? '+' + rd : rd < 0 ? rd : tl('NO CHANGE')}</em>`;
       if (Net.user) Net.user.rank = rk;
     }
     $('r-streak').hidden = c.streak < 2;
-    $('r-streak').innerHTML = `<b>${c.streak}</b> WIN STREAK${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
+    $('r-streak').innerHTML = `<b>${c.streak}</b> ${tl('WIN STREAK')}${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
     const lv = Levels.info(d.xp);
     $('r-level').textContent = lv.level;
     $('r-xpbar').style.width = Math.round((lv.into / lv.need) * 100) + '%';
-    $('r-xp').textContent = lv.level > levelBefore ? `LEVEL UP! +${xp} XP · +${levelCoins} COINS` : `+${xp} XP`;
+    $('r-xp').textContent = lv.level > levelBefore ? tl('LEVEL UP! +{0} XP · +{1} COINS', [xp, levelCoins]) : tl('+{0} XP', [xp]);
     $('r-xp').classList.toggle('lvup', lv.level > levelBefore);
     $('r-cup').hidden = !cup;
     if (cup) {
@@ -1166,20 +1208,20 @@ const UI = {
         const club = r ? Clubs.get(r.club) : null;
         return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${club ? clubUi(club) : '#8a90b8'}">${club ? club.short : '?'}</b><em>${r ? `${r.mine}-${r.theirs}` : '—'}</em></div>`;
       }).join('');
-      if (cup.champion) Trophy.show({ title: 'WORLD CHAMPIONS!', sub: `ONLINE WORLD CUP · +${WC_PRIZE} COINS`, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
+      if (cup.champion) Trophy.show({ title: tl('WORLD CHAMPIONS!'), sub: tl('ONLINE WORLD CUP · +{0} COINS', [WC_PRIZE]), club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     }
     if (fcup) {
-      const round = (CUP_ROUNDS[fcup.of - 1 - fcup.round] || 'THE CUP').replace('THE ', ''), next = CUP_ROUNDS[fcup.of - 2 - fcup.round] || 'THE NEXT ROUND';
-      $('r-title').textContent = fcup.champion ? 'CUP WINNER!' : fcup.won ? 'THROUGH!' : 'KNOCKED OUT';
+      const round = CUP_ROUND_NAMES[fcup.of - 1 - fcup.round] || tl('CUP'), next = CUP_ROUNDS[fcup.of - 2 - fcup.round] || tl('THE NEXT ROUND');
+      $('r-title').textContent = fcup.champion ? tl('CUP WINNER!') : fcup.won ? tl('THROUGH!') : tl('KNOCKED OUT');
       $('r-title').className = 'r-title ' + (fcup.champion ? 'win champ' : fcup.won ? 'win' : 'loss');
-      setTimeout(() => { if (Game.state === 'results') this.toast(fcup.champion ? `YOU WON THE FRIEND CUP · +${FCUP_PRIZE} COINS` : fcup.won ? `YOU ARE THROUGH TO ${next}` : `OUT OF THE CUP IN THE ${round}`); }, 1400);
-      if (fcup.champion) Trophy.show({ title: 'CUP WINNER!', sub: `FRIEND CUP · ${fcup.size} PLAYERS · +${FCUP_PRIZE} COINS`, club: Clubs.mine(), mates: [] });
+      setTimeout(() => { if (Game.state === 'results') this.toast(fcup.champion ? tl('YOU WON THE FRIEND CUP · +{0} COINS', [FCUP_PRIZE]) : fcup.won ? tl('YOU ARE THROUGH TO {0}', [next]) : tl('OUT OF THE CUP IN THE {0}', [round])); }, 1400);
+      if (fcup.champion) Trophy.show({ title: tl('CUP WINNER!'), sub: tl('FRIEND CUP · {0} PLAYERS · +{1} COINS', [fcup.size, FCUP_PRIZE]), club: Clubs.mine(), mates: [] });
     }
     this._againMode = 'online';
-    $('r-again').textContent = fcup ? 'SEE THE BOARD' : !cup ? 'PLAY AGAIN' : cup.champion ? 'NEW WORLD CUP' : cup.won ? `PLAY ${WC_ROUNDS[cup.next]}` : 'TRY AGAIN';
+    $('r-again').textContent = fcup ? tl('SEE THE BOARD') : !cup ? tl('PLAY AGAIN') : cup.champion ? tl('NEW WORLD CUP') : cup.won ? tl('PLAY {0}', [WC_ROUNDS[cup.next]]) : tl('TRY AGAIN');
     // in a party, the leader starts the next one (and brings you with them)
     const party = Social.party;
-    if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = 'HOME';
+    if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = tl('HOME');
     $('results').hidden = false;
     $('hud').hidden = true;
     Input.reset();
@@ -1222,7 +1264,7 @@ const Install = {
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); this.event = e; this.refresh(); });
     window.addEventListener('appinstalled', () => {
       this.event = null; this.refresh();
-      UI.toast('INSTALLED! LOOK FOR MINI STRIKERS ON YOUR HOME SCREEN');
+      UI.toast(tl('INSTALLED! LOOK FOR MINI STRIKERS ON YOUR HOME SCREEN'));
     });
     // Inside a store app the game's files are the app's own: there is no offline copy to keep and
     // no newer build to reload for (a new version arrives as an app update).
@@ -1324,8 +1366,8 @@ const Install = {
     }
     // no API here: show where the button they need actually is
     $('install-how').innerHTML = this.ios()
-      ? '<b>1. Tap the Share button</b>the square with an arrow coming out of it, at the bottom of Safari<b>2. Scroll down and tap "Add to Home Screen"</b><b>3. Tap Add</b>Mini Strikers lands on your home screen and opens fullscreen, like any other game.'
-      : '<b>Open your browser menu</b>the three dots in the corner<b>Tap "Install app" or "Add to Home screen"</b>then confirm. The game opens fullscreen with no browser around it.';
+      ? `<b>${tl('1. Tap the Share button')}</b>${tl('the square with an arrow coming out of it, at the bottom of Safari')}<b>${tl('2. Scroll down and tap "Add to Home Screen"')}</b><b>${tl('3. Tap Add')}</b>${tl('Mini Strikers lands on your home screen and opens fullscreen, like any other game.')}`
+      : `<b>${tl('Open your browser menu')}</b>${tl('the three dots in the corner')}<b>${tl('Tap "Install app" or "Add to Home screen"')}</b>${tl('then confirm. The game opens fullscreen with no browser around it.')}`;
     $('install-steps').hidden = false;
   },
 };

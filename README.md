@@ -251,6 +251,27 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Six languages (build 109)
+
+English, Spanish, Portuguese (Brazil), French, German and Italian. The first tap on a new device asks
+which one (the phone's own language is picked already), and Settings → LANGUAGE changes it any time.
+
+- Every word the game shows goes through `tl('THE ENGLISH')` (js/i18n.js; `tl`, not `t`, because `t`
+  is the time in the drawing code). Holes are `{0}`, `{1}` or `{name}`; `tlN(n, one, many)` for counts.
+  `js/lang-<id>.js` holds each language, with the English as the key; anything missing stays English.
+- Only the chosen language's file loads, written into the page by i18n.js before the rest of the game.
+  Changing language therefore reloads, and the game carries on where it was (a guest stays a guest).
+- The server still speaks English: its messages are matched to a line (holes and all) on the phone
+  (`I18N.server`), and online popups piece by piece (`I18N.parts`). index.html is translated in place
+  (`I18N.apply`).
+- Names stay as they are: the game's name, players' names, stadium cities and chants, country codes.
+  The quick chat is sent in English and shown in each player's own language.
+- A few buttons whose word is long in some language shrink their letters to fit (`UI.fitWords`).
+
+Tests: `node tools/i18nscan.js` (every line in every language, the same holes, letters the font has,
+nothing left in English by mistake); `tools/uiscan.js` in the browser now also reports any English
+still showing on a screen in another language; `tools/startscan.js` has a `language` scenario.
+
 ## Tools
 
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).

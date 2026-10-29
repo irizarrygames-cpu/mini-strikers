@@ -6,8 +6,8 @@
 //   Quick chat: preset lines only (QUICK_CHAT), a bubble over whoever said it.
 const CHAT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
 const FRIEND_STATUS = {
-  online: ['ONLINE', 'on'], queue: ['FINDING A MATCH', 'busy'], room: ['IN A ROOM', 'busy'],
-  busy: ['PLAYING', 'busy'], match: ['IN A MATCH', 'busy'], offline: ['OFFLINE', 'off'],
+  online: [tl('ONLINE'), 'on'], queue: [tl('FINDING A MATCH'), 'busy'], room: [tl('IN A ROOM'), 'busy'],
+  busy: [tl('PLAYING'), 'busy'], match: [tl('IN A MATCH'), 'busy'], offline: [tl('OFFLINE'), 'off'],
 };
 
 const Social = {
@@ -35,11 +35,11 @@ const Social = {
       this.changed();
     });
     Net.on('challenge.invite', (m) => { this.challenges = this.challenges.filter((i) => i.from !== m.from); this.challenges.push({ id: m.id, from: m.from, club: m.club, until: performance.now() + 58000 }); Sound.tap(); this.changed(); });
-    Net.on('challenge.info', (m) => UI.toast(String(m.msg || '').toUpperCase()));
-    Net.on('party.info', (m) => UI.toast(String(m.msg || '').toUpperCase()));
-    Net.on('friend.req', (m) => UI.toast(`${m.name} WANTS TO BE FRIENDS`));
-    Net.on('friend.new', (m) => UI.toast(`YOU AND ${m.name} ARE FRIENDS`));
-    Net.on('social', (m) => { if (m.msg) UI.toast(String(m.msg).toUpperCase()); });
+    Net.on('challenge.info', (m) => UI.toast(I18N.server(m.msg || '').toUpperCase()));
+    Net.on('party.info', (m) => UI.toast(I18N.server(m.msg || '').toUpperCase()));
+    Net.on('friend.req', (m) => UI.toast(tl('{0} WANTS TO BE FRIENDS', [m.name])));
+    Net.on('friend.new', (m) => UI.toast(tl('YOU AND {0} ARE FRIENDS', [m.name])));
+    Net.on('social', (m) => { if (m.msg) UI.toast(I18N.server(m.msg).toUpperCase()); });
     // friend cups
     Net.on('cup', (m) => {
       const was = this.cup && this.cup.state;
@@ -55,9 +55,9 @@ const Social = {
       Sound.tap(); this.changed();
     });
     Net.on('cup.gone', (m) => { this.cupInvites = this.cupInvites.filter((i) => i.id !== m.id); this.changed(); });
-    Net.on('cup.end', (m) => { this.cup = null; this.cupAt = 0; if (m && m.msg) UI.toast(String(m.msg).toUpperCase()); this.changed(); });
-    Net.on('cup.bye', (m) => UI.toast(String((m && m.msg) || 'YOU GO THROUGH').toUpperCase()));
-    Net.on('cup.won', () => { if (Game.state !== 'match' && Game.state !== 'results') { Sound.powerReady(); UI.toast('YOU WON THE FRIEND CUP!'); } });
+    Net.on('cup.end', (m) => { this.cup = null; this.cupAt = 0; if (m && m.msg) UI.toast(I18N.server(m.msg).toUpperCase()); this.changed(); });
+    Net.on('cup.bye', (m) => UI.toast((m && m.msg ? I18N.server(m.msg) : tl('YOU GO THROUGH')).toUpperCase()));
+    Net.on('cup.won', () => { if (Game.state !== 'match' && Game.state !== 'results') { Sound.powerReady(); UI.toast(tl('YOU WON THE FRIEND CUP!')); } });
     Net.on('chat', (m) => this.onChat(m));
 
     $('btn-friends').addEventListener('click', () => { UI.tap(); UI.openModal('friends'); });
@@ -115,18 +115,18 @@ const Social = {
     const bar = $('party-bar'), p = this.party;
     bar.hidden = !p || p.members.length < 2;
     if (!bar.hidden) {
-      bar.innerHTML = `<small>PARTY</small>${p.members.map((m) => `<span class="${m.you ? 'me' : ''}"><canvas width="36" height="24" data-club="${m.club}"></canvas>${m.leader ? '<i class="crown"></i>' : ''}${esc(m.you ? 'YOU' : m.name)}</span>`).join('')}<em>${p.lead ? 'YOU START THE MATCH' : `${esc(p.leader)} STARTS THE MATCH`}</em>`;
+      bar.innerHTML = `<small>${tl('PARTY')}</small>${p.members.map((m) => `<span class="${m.you ? 'me' : ''}"><canvas width="36" height="24" data-club="${m.club}"></canvas>${m.leader ? '<i class="crown"></i>' : ''}${esc(m.you ? tl('YOU') : m.name)}</span>`).join('')}<em>${p.lead ? tl('YOU START THE MATCH') : tl('{0} STARTS THE MATCH', [esc(p.leader)])}</em>`;
       bar.querySelectorAll('canvas[data-club]').forEach((cv) => UI.flagBadge(cv, Clubs.get(cv.dataset.club)));
     }
     const cupBar = $('cup-bar'), c = this.cup;
     cupBar.hidden = !c;
     if (c) {
       const left = this.cupAt ? Math.max(0, Math.ceil((this.cupAt - performance.now()) / 1000)) : 0;
-      const where = c.state === 'done' ? (c.champion ? `${esc(c.champion)} WON IT` : 'OVER')
-        : c.state === 'lobby' ? `${c.players.length}/${c.size} PLAYERS`
-          : left ? `${CUP_ROUNDS[c.of - 1 - c.round] || 'NEXT ROUND'} IN ${left}`
-            : CUP_ROUNDS[c.of - 1 - c.round] || 'PLAYING';
-      cupBar.innerHTML = `<small>FRIEND CUP</small><span>${where}</span><em>SEE THE BOARD</em>`;
+      const where = c.state === 'done' ? (c.champion ? tl('{0} WON IT', [esc(c.champion)]) : tl('OVER'))
+        : c.state === 'lobby' ? tl('{0}/{1} PLAYERS', [c.players.length, c.size])
+          : left ? tl('{0} IN {1}', [CUP_ROUNDS[c.of - 1 - c.round] || tl('NEXT ROUND'), left])
+            : CUP_ROUNDS[c.of - 1 - c.round] || tl('PLAYING');
+      cupBar.innerHTML = `<small>${tl('FRIEND CUP')}</small><span>${where}</span><em>${tl('SEE THE BOARD')}</em>`;
     }
     this.showInvite();
   },
@@ -154,8 +154,8 @@ const Social = {
     card.classList.toggle('low', !$('modal').hidden || !$('results').hidden || !$('queue').hidden || !$('lobby').hidden);
     if (card.dataset.id === kind + String(inv.id) + inv.from && !card.hidden) return;
     card.dataset.id = kind + String(inv.id) + inv.from;
-    const what = challenge ? 'challenged you to a 1v1' : cupAsk ? `invited you to a ${inv.size}-player cup` : 'invited you to their party';
-    card.innerHTML = `<canvas width="48" height="32"></canvas><p><b>${esc(inv.from)}</b> ${what}</p><button class="mid-btn green" data-a="join">${challenge ? 'PLAY' : 'JOIN'}</button><button class="mid-btn red" data-a="no">NO</button>`;
+    const what = challenge ? tl('challenged you to a 1v1') : cupAsk ? tl('invited you to a {0}-player cup', [inv.size]) : tl('invited you to their party');
+    card.innerHTML = `<canvas width="48" height="32"></canvas><p><b>${esc(inv.from)}</b> ${what}</p><button class="mid-btn green" data-a="join">${challenge ? tl('PLAY') : tl('JOIN')}</button><button class="mid-btn red" data-a="no">${tl('NO')}</button>`;
     UI.flagBadge(card.querySelector('canvas'), Clubs.get(inv.club));
     card.hidden = false;
     const answer = (yes) => { UI.tap(); if (challenge) this.answerChallenge(inv, yes); else if (cupAsk) this.answerCup(inv, yes); else this.answerInvite(inv, yes); };
@@ -265,10 +265,10 @@ const Social = {
 
   buildChat() {
     const menu = $('chat-menu');
-    menu.innerHTML = QUICK_CHAT.map((line, i) => `<button data-i="${i}"><kbd>${CHAT_KEYS[i]}</kbd>${esc(line)}</button>`).join('') + '<button class="mute" data-mute="1"></button>';
+    menu.innerHTML = QUICK_CHAT.map((line, i) => `<button data-i="${i}"><kbd>${CHAT_KEYS[i]}</kbd>${esc(tl(line))}</button>`).join('') + '<button class="mute" data-mute="1"></button>';
     menu.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.say(Number(b.dataset.i)); }));
     const mute = menu.querySelector('[data-mute]');
-    const label = () => { mute.textContent = Save.data.settings.chatMute ? 'CHAT OFF · TAP FOR ON' : 'HIDE OTHERS’ CHAT'; };
+    const label = () => { mute.textContent = Save.data.settings.chatMute ? tl('CHAT OFF · TAP FOR ON') : tl('HIDE OTHERS’ CHAT'); };
     mute.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); UI.tap(); Save.data.settings.chatMute = !Save.data.settings.chatMute; Save.write(); label(); });
     this._muteLabel = label;
     $('btn-chat').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.toggleChat(); });
@@ -315,8 +315,8 @@ const Social = {
 
   bubble(p, i, mine) {
     if (!p) return;
-    p.chat = { text: QUICK_CHAT[i], at: performance.now() };
-    this.feed.push({ who: mine ? 'YOU' : p.name || '', mine, team: p.team, text: QUICK_CHAT[i], until: performance.now() + 4500 });
+    p.chat = { text: tl(QUICK_CHAT[i]), at: performance.now() };
+    this.feed.push({ who: mine ? tl('YOU') : p.name || '', mine, team: p.team, text: tl(QUICK_CHAT[i]), until: performance.now() + 4500 });
     while (this.feed.length > 3) this.feed.shift();
     this.drawFeed();
   },
@@ -331,60 +331,60 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 /* ---------------- the FRIENDS panel ---------------- */
 Object.assign(UI, {
   panel_friends(body, redraw = false) {
-    $('modal-title').textContent = 'FRIENDS';
+    $('modal-title').textContent = tl('FRIENDS');
     const S = Social;
     // keep what you were typing when the list updates under you
     const typed = redraw && body.querySelector('#fr-name') ? body.querySelector('#fr-name').value : '';
     const focused = redraw && document.activeElement && document.activeElement.id === 'fr-name';
     if (!S.signedIn()) {
-      body.innerHTML = '<p class="note fr-empty">Log in to add friends and team up with them.</p>';
+      body.innerHTML = `<p class="note fr-empty">${tl('Log in to add friends and team up with them.')}</p>`;
       return;
     }
     if (!Net.wsReady) { Net.openSocket(); S._connectNudge(body); }
     const p = S.party, lead = !p || p.lead, inParty = (name) => !!p && p.members.some((m) => m.name === name);
     const flag = (club) => `<canvas width="42" height="28" data-club="${club}"></canvas>`;
     const status = (st) => { const s = FRIEND_STATUS[st] || FRIEND_STATUS.offline; return `<em class="fr-st ${s[1]}">${s[0]}</em>`; };
-    const connecting = '<p class="note fr-connecting">Connecting… the server has a nap when nobody is playing, so give it a few seconds.</p>';
+    const connecting = `<p class="note fr-connecting">${tl('Connecting… the server has a nap when nobody is playing, so give it a few seconds.')}</p>`;
     const partyHtml = p && (p.members.length > 1 || p.invited.length) ? `
       <section class="fr-party">
-        <header><strong>YOUR PARTY</strong><small>${p.lead ? 'You start it. Everyone plays on your side.' : `${esc(p.leader)} starts it. You all play on the same side.`}</small></header>
-        <div class="fr-members">${p.members.map((m) => `<div class="fr-member ${m.you ? 'me' : ''}">${flag(m.club)}${m.leader ? '<i class="crown"></i>' : ''}<b>${esc(m.you ? 'YOU' : m.name)}</b>${p.lead && !m.you ? `<button class="fr-x" data-kick="${esc(m.name)}" aria-label="Take out">×</button>` : ''}</div>`).join('')}
-          ${p.invited.map((n) => `<div class="fr-member invited"><b>${esc(n)}</b><small>INVITED…</small>${p.lead ? `<button class="fr-x" data-kick="${esc(n)}" aria-label="Cancel invite">×</button>` : ''}</div>`).join('')}</div>
-        ${p.lead ? `<div class="fr-coop"><b>PLAY TOGETHER</b><small>All of you on the same side, every time.</small>
-          <div class="fr-coop-line"><em>AGAINST THE COMPUTER</em><div class="fr-coop-row">${['2v2', '3v3', '4v4'].filter((f) => p.members.length <= Number(f[0])).map((f) => `<button class="mid-btn green" data-coop="${f}">${f}</button>`).join('')}</div></div>
-          <div class="fr-coop-line"><em>AGAINST OTHER PEOPLE</em><div class="fr-coop-row">${['2v2', '3v3', '4v4'].filter((f) => p.members.length <= Number(f[0])).map((f) => `<button class="mid-btn blue" data-vs="${f}">${f}</button>`).join('')}</div></div></div>` : ''}
-        <button class="mid-btn red fr-leave" data-leave="1">LEAVE PARTY</button>
+        <header><strong>${tl('YOUR PARTY')}</strong><small>${p.lead ? tl('You start it. Everyone plays on your side.') : tl('{0} starts it. You all play on the same side.', [esc(p.leader)])}</small></header>
+        <div class="fr-members">${p.members.map((m) => `<div class="fr-member ${m.you ? 'me' : ''}">${flag(m.club)}${m.leader ? '<i class="crown"></i>' : ''}<b>${esc(m.you ? tl('YOU') : m.name)}</b>${p.lead && !m.you ? `<button class="fr-x" data-kick="${esc(m.name)}" aria-label="${tl('Take out')}">×</button>` : ''}</div>`).join('')}
+          ${p.invited.map((n) => `<div class="fr-member invited"><b>${esc(n)}</b><small>${tl('INVITED…')}</small>${p.lead ? `<button class="fr-x" data-kick="${esc(n)}" aria-label="${tl('Cancel invite')}">×</button>` : ''}</div>`).join('')}</div>
+        ${p.lead ? `<div class="fr-coop"><b>${tl('PLAY TOGETHER')}</b><small>${tl('All of you on the same side, every time.')}</small>
+          <div class="fr-coop-line"><em>${tl('AGAINST THE COMPUTER')}</em><div class="fr-coop-row">${['2v2', '3v3', '4v4'].filter((f) => p.members.length <= Number(f[0])).map((f) => `<button class="mid-btn green" data-coop="${f}">${f}</button>`).join('')}</div></div>
+          <div class="fr-coop-line"><em>${tl('AGAINST OTHER PEOPLE')}</em><div class="fr-coop-row">${['2v2', '3v3', '4v4'].filter((f) => p.members.length <= Number(f[0])).map((f) => `<button class="mid-btn blue" data-vs="${f}">${f}</button>`).join('')}</div></div></div>` : ''}
+        <button class="mid-btn red fr-leave" data-leave="1">${tl('LEAVE PARTY')}</button>
       </section>` : '';
-    const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>CHALLENGED YOU TO A 1V1</small><button class="mid-btn green" data-accept-challenge="${i.id}">PLAY</button><button class="mid-btn red" data-decline-challenge="${i.id}">NO</button></div>`).join('');
-    const invites = S.liveInvites().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>INVITED YOU TO THEIR PARTY</small><button class="mid-btn green" data-join="${i.id}">JOIN</button><button class="mid-btn red" data-nojoin="${i.id}">NO</button></div>`).join('');
-    const cupBtn = `<div class="fr-row cup-row"><b>FRIEND CUP</b><small>${S.cup ? 'YOU ARE IN ONE' : '4 OR 8 FRIENDS, KNOCKOUT'}</small><button class="mid-btn gold" data-cup="1">${S.cup ? 'SEE THE BOARD' : 'START ONE'}</button></div>`;
+    const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>${tl('CHALLENGED YOU TO A 1V1')}</small><button class="mid-btn green" data-accept-challenge="${i.id}">${tl('PLAY')}</button><button class="mid-btn red" data-decline-challenge="${i.id}">${tl('NO')}</button></div>`).join('');
+    const invites = S.liveInvites().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>${tl('INVITED YOU TO THEIR PARTY')}</small><button class="mid-btn green" data-join="${i.id}">${tl('JOIN')}</button><button class="mid-btn red" data-nojoin="${i.id}">${tl('NO')}</button></div>`).join('');
+    const cupBtn = `<div class="fr-row cup-row"><b>${tl('FRIEND CUP')}</b><small>${S.cup ? tl('YOU ARE IN ONE') : tl('4 OR 8 FRIENDS, KNOCKOUT')}</small><button class="mid-btn gold" data-cup="1">${S.cup ? tl('SEE THE BOARD') : tl('START ONE')}</button></div>`;
     // a name is a button: it opens that player, to block them or report their name
     const who = (name) => `<button type="button" class="fr-name" data-player="${esc(name)}">${esc(name)}</button>`;
-    const asks = S.incoming.map((f) => `<div class="fr-row ask">${flag(f.club)}${who(f.name)}<small>WANTS TO BE FRIENDS</small><button class="mid-btn green" data-accept="${esc(f.name)}">ACCEPT</button><button class="mid-btn red" data-decline="${esc(f.name)}">NO</button></div>`).join('');
+    const asks = S.incoming.map((f) => `<div class="fr-row ask">${flag(f.club)}${who(f.name)}<small>${tl('WANTS TO BE FRIENDS')}</small><button class="mid-btn green" data-accept="${esc(f.name)}">${tl('ACCEPT')}</button><button class="mid-btn red" data-decline="${esc(f.name)}">${tl('NO')}</button></div>`).join('');
     const partyFull = p && p.members.length + p.invited.length >= 4;
     const rows = S.friends.map((f) => {
       let act = '';
-      if (inParty(f.name)) act = '<span class="fr-tag">IN YOUR PARTY</span>';
-      else if (p && p.invited.includes(f.name)) act = '<span class="fr-tag">INVITED</span>';
-      else if (lead && f.status !== 'offline' && !partyFull) act = `<button class="mid-btn blue" data-invite="${esc(f.name)}">INVITE</button>`;
+      if (inParty(f.name)) act = `<span class="fr-tag">${tl('IN YOUR PARTY')}</span>`;
+      else if (p && p.invited.includes(f.name)) act = `<span class="fr-tag">${tl('INVITED')}</span>`;
+      else if (lead && f.status !== 'offline' && !partyFull) act = `<button class="mid-btn blue" data-invite="${esc(f.name)}">${tl('INVITE')}</button>`;
       if (f.status === 'online') act += `<button class="mid-btn green" data-challenge="${esc(f.name)}">1V1</button>`;
-      if (f.status === 'match') act += `<button class="mid-btn gold" data-watch="${esc(f.name)}">WATCH</button>`;
+      if (f.status === 'match') act += `<button class="mid-btn gold" data-watch="${esc(f.name)}">${tl('WATCH')}</button>`;
       const armed = S._armed === f.name;
-      return `<div class="fr-row">${flag(f.club)}${who(f.name)}${status(f.status)}${act}<button class="fr-x ${armed ? 'armed' : ''}" data-remove="${esc(f.name)}" aria-label="Remove friend">${armed ? 'REMOVE?' : '×'}</button></div>`;
+      return `<div class="fr-row">${flag(f.club)}${who(f.name)}${status(f.status)}${act}<button class="fr-x ${armed ? 'armed' : ''}" data-remove="${esc(f.name)}" aria-label="${tl('Remove friend')}">${armed ? tl('REMOVE?') : '×'}</button></div>`;
     }).join('');
-    const sent = S.outgoing.map((f) => `<div class="fr-row sent">${who(f.name)}<small>REQUEST SENT</small><button class="fr-x" data-cancel="${esc(f.name)}" aria-label="Cancel request">×</button></div>`).join('');
+    const sent = S.outgoing.map((f) => `<div class="fr-row sent">${who(f.name)}<small>${tl('REQUEST SENT')}</small><button class="fr-x" data-cancel="${esc(f.name)}" aria-label="${tl('Cancel request')}">×</button></div>`).join('');
     body.innerHTML = `
-      <form class="fr-add" autocomplete="off"><input id="fr-name" maxlength="14" placeholder="THEIR USERNAME" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">ADD FRIEND</button></form>
+      <form class="fr-add" autocomplete="off"><input id="fr-name" maxlength="14" placeholder="${tl('THEIR USERNAME')}" autocapitalize="off" spellcheck="false"><button class="mid-btn green" type="submit">${tl('ADD FRIEND')}</button></form>
       ${Net.wsReady ? '' : connecting}
       ${partyHtml}
-      ${challenges || invites || asks ? `<h3 class="fr-h">WAITING FOR YOU</h3>${challenges}${invites}${asks}` : ''}
+      ${challenges || invites || asks ? `<h3 class="fr-h">${tl('WAITING FOR YOU')}</h3>${challenges}${invites}${asks}` : ''}
       ${cupBtn}
-      <h3 class="fr-h">FRIENDS${S.friends.length ? ` · ${S.friends.length}` : ''}</h3>
-      ${rows || `<p class="note fr-empty">${S.loaded ? 'No friends yet. Ask your mates for their username and add them here.' : 'Connecting…'}</p>`}
-      ${sent ? `<h3 class="fr-h">SENT</h3>${sent}` : ''}
-      ${S.blocked.length ? `<h3 class="fr-h">BLOCKED · ${S.blocked.length}</h3>${S.blocked.map((b) => `<div class="fr-row blocked"><b>${esc(b.name)}</b><small>BLOCKED</small><button class="mid-btn" data-unblock="${esc(b.name)}">UNBLOCK</button></div>`).join('')}` : ''}
-      <p class="note fr-foot">Challenge an online friend to a 1v1, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match. Tap a name to block that player or report their name.</p>
-      <div class="fr-safety"><button type="button" class="auth-guest" data-findplayer>BLOCK OR REPORT A PLAYER</button></div>`;
+      <h3 class="fr-h">${tl('FRIENDS')}${S.friends.length ? ` · ${S.friends.length}` : ''}</h3>
+      ${rows || `<p class="note fr-empty">${S.loaded ? tl('No friends yet. Ask your mates for their username and add them here.') : tl('Connecting…')}</p>`}
+      ${sent ? `<h3 class="fr-h">${tl('SENT')}</h3>${sent}` : ''}
+      ${S.blocked.length ? `<h3 class="fr-h">${tl('BLOCKED · {0}', [S.blocked.length])}</h3>${S.blocked.map((b) => `<div class="fr-row blocked"><b>${esc(b.name)}</b><small>${tl('BLOCKED')}</small><button class="mid-btn" data-unblock="${esc(b.name)}">${tl('UNBLOCK')}</button></div>`).join('')}` : ''}
+      <p class="note fr-foot">${tl('Challenge an online friend to a 1v1, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match. Tap a name to block that player or report their name.')}</p>
+      <div class="fr-safety"><button type="button" class="auth-guest" data-findplayer>${tl('BLOCK OR REPORT A PLAYER')}</button></div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     const input = body.querySelector('#fr-name');
     input.value = typed;
@@ -393,7 +393,7 @@ Object.assign(UI, {
     body.querySelector('.fr-add').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = input.value.trim();
-      if (name.length < 3) { this.toast('TYPE THEIR USERNAME'); return; }
+      if (name.length < 3) { this.toast(tl('TYPE THEIR USERNAME')); return; }
       go({ t: 'friend.add', name });
       input.value = '';
     });
@@ -418,7 +418,7 @@ Object.assign(UI, {
     on('[data-player]', (b) => { this.tap(); this.openPlayer(b.dataset.player, 'friends'); });
     on('[data-findplayer]', () => { this.tap(); this.openPlayer(null, 'friends'); });
     on('[data-leave]', () => go({ t: 'party.leave' }));
-    on('[data-coop]', (b2) => { this.tap(); Net.sendSoon({ t: 'party.coop', format: b2.dataset.coop }); this.closeAll(); this.toast('STARTING ' + b2.dataset.coop + ' WITH YOUR PARTY…'); });
+    on('[data-coop]', (b2) => { this.tap(); Net.sendSoon({ t: 'party.coop', format: b2.dataset.coop }); this.closeAll(); this.toast(tl('STARTING {0} WITH YOUR PARTY…', [b2.dataset.coop])); });
     on('[data-vs]', (b2) => { this.tap(); this.closeAll(); Online.findMatch(b2.dataset.vs); });
     on('[data-join]', (b) => { const inv = S.invites.find((i) => String(i.id) === b.dataset.join); if (inv) S.answerInvite(inv, true); });
     on('[data-nojoin]', (b) => { const inv = S.invites.find((i) => String(i.id) === b.dataset.nojoin); if (inv) S.answerInvite(inv, false); });

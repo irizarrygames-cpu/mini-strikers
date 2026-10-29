@@ -161,9 +161,9 @@ const PEN_LEVELS = {
   hard: { read: 0.15, q: 0.34, aim: 0.375, sw: 0.325 },
 };
 const PEN_SAY = {
-  goal: ['GOAL!', '#ffe14d'], save: ['SAVED!', '#46d9ff'], wide: ['WIDE!', '#ffffff'], over: ['OVER THE BAR!', '#ffffff'],
-  post: ['OFF THE POST!', '#ffffff'], bar: ['OFF THE BAR!', '#ffffff'], postIn: ['IN OFF THE POST!', '#ffe14d'], barIn: ['IN OFF THE BAR!', '#ffe14d'],
-  wall: ['OFF THE WALL!', '#ffffff'],
+  goal: [tl('GOAL!'), '#ffe14d'], save: [tl('SAVED!'), '#46d9ff'], wide: [tl('WIDE!'), '#ffffff'], over: [tl('OVER THE BAR!'), '#ffffff'],
+  post: [tl('OFF THE POST!'), '#ffffff'], bar: [tl('OFF THE BAR!'), '#ffffff'], postIn: [tl('IN OFF THE POST!'), '#ffe14d'], barIn: [tl('IN OFF THE BAR!'), '#ffe14d'],
+  wall: [tl('OFF THE WALL!'), '#ffffff'],
 };
 
 const Pens = {
@@ -219,7 +219,7 @@ const Pens = {
     if (P.chal) return SkillRun.nextKick(m, first);
     if (!first) {
       P.winner = PEN.decided(P.kicks);
-      if (P.winner) { P.phase = 'end'; P.t = 0; this.label('SHOOT'); if (P.winner === 'blue') { Sound.cheer(true); Sound.goalJingle(true); } else Sound.ooh(); return; }
+      if (P.winner) { P.phase = 'end'; P.t = 0; this.label(tl('SHOOT')); if (P.winner === 'blue') { Sound.cheer(true); Sound.goalJingle(true); } else Sound.ooh(); return; }
       P.n++;
     }
     const other = P.first === 'blue' ? 'red' : 'blue';
@@ -232,7 +232,7 @@ const Pens = {
     for (const k of Object.values(P.keeper)) Object.assign(k, { diveT: 0, celebrateT: 0, sad: false, hopT: 0 });
     P.runup = rand(0.9, 1.3);
     if (P.fk && !P.net) this.setWall(P, PEN.fkWall());
-    this.label(P.team === 'blue' ? 'SHOOT' : 'DIVE');
+    this.label(P.team === 'blue' ? tl('SHOOT') : tl('DIVE'));
     this.flushInput();
   },
 
@@ -395,7 +395,7 @@ const Pens = {
     // you took every kick and kept goal: a win is all yours, a loss goes to their keeper
     m.result = { outcome: won ? 'win' : 'loss', mvp: won ? m.human : m.keepers.red, coins, base: coins, challengeCoins: 0, cupBonus: 0, mult };
     m.phase = 'over';
-    this.label('SHOOT');
+    this.label(tl('SHOOT'));
     if (!Game.headless) UI.showResults(m);
   },
 
@@ -410,7 +410,7 @@ const Pens = {
     m.score = P.serverSide === 'blue' ? { ...msg.score } : { blue: msg.score.red, red: msg.score.blue };
     if (P.team === 'red') P.them = this.actor('red', false, P.takers[Math.floor(msg.n / 2) % 5].look, P.takers[Math.floor(msg.n / 2) % 5].number);
     if (P.fk) this.setWall(P, msg.wall || null);
-    this.label(P.watch ? 'WATCHING' : P.team === 'blue' ? 'SHOOT' : 'DIVE'); this.flushInput(); if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
+    this.label(P.watch ? tl('WATCHING') : P.team === 'blue' ? tl('SHOOT') : tl('DIVE')); this.flushInput(); if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
   },
   netResult(m, msg) {
     const P = m.pens; P.team = this.netTeam(P, msg.team); P.shot = msg.shot; P.dive = msg.dive; P.netResultData = msg; P.phase = 'flight'; P.t = 0;
@@ -593,7 +593,7 @@ const Pens = {
     ctx.fillStyle = OUTLINE; ctx.fillRect(0, by - 3, L.W, 3); ctx.fillRect(0, L.gy - 3, L.W, 3);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const fs = L.board * 0.5;
-    const words = [st.name || 'MINI STRIKERS', st.chant || "LET'S GO!"];
+    const words = [st.name || 'MINI STRIKERS', st.chant || tl("LET'S GO!")];
     ctx.font = `400 ${fs}px "Lilita One", system-ui, sans-serif`;
     let bx = -((t * 20) % 900);
     for (let i = 0; bx < L.W + 400; i++) {
@@ -885,18 +885,19 @@ const Pens = {
     if (P.phase === 'start' || P.phase === 'ready') {
       const u = clamp(P.t / 0.3, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.55); ctx.scale(z, z);
-      if (chal) Render.chunkyText(ctx, P.chal.id === 'targets' ? 'HIT A TARGET' : 'SAVE IT!', 0, 0, big, P.chal.id === 'targets' ? '#ffe14d' : '#46d9ff');
+      if (chal) Render.chunkyText(ctx, P.chal.id === 'targets' ? tl('HIT A TARGET') : tl('SAVE IT!'), 0, 0, big, P.chal.id === 'targets' ? '#ffe14d' : '#46d9ff');
       else {
-      const mine = P.watch ? `${P.watchName || 'THEY'} KICKS` : P.fk ? 'YOUR FREE KICK' : 'YOUR KICK';
-      const shout = this.sudden(P) && P.team === P.first ? 'SUDDEN DEATH' : P.team === 'blue' ? mine : P.watch ? `${TEAMS.red.name} KICK` : 'SAVE IT!';
-      if (P.phase === 'start') Render.chunkyText(ctx, P.first === 'blue' ? (P.watch ? mine + ' FIRST' : 'YOU KICK FIRST') : `${TEAMS.red.name} KICK FIRST`, 0, -big * 0.8, big * 0.55 * this.fit(mine + ' FIRST', 17), '#ffffff');
+      const mine = P.watch ? tl('{0} KICKS', [P.watchName || tl('THEY')]) : P.fk ? tl('YOUR FREE KICK') : tl('YOUR KICK');
+      const shout = this.sudden(P) && P.team === P.first ? tl('SUDDEN DEATH') : P.team === 'blue' ? mine : P.watch ? tl('{0} KICK', [TEAMS.red.name]) : tl('SAVE IT!');
+      const first = P.first === 'blue' ? (P.watch ? tl('{0} KICKS FIRST', [P.watchName || tl('THEY')]) : tl('YOU KICK FIRST')) : tl('{0} KICK FIRST', [TEAMS.red.name]);
+      if (P.phase === 'start') Render.chunkyText(ctx, first, 0, -big * 0.8, big * 0.55 * this.fit(first, 17), '#ffffff');
       const sh = big * this.fit(shout, 12), sw = sh * 0.56 * shout.length;
       boxes.shout = [W / 2 - sw / 2, L.gy - L.gh * 0.55 - sh * 0.6, W / 2 + sw / 2, L.gy - L.gh * 0.55 + sh * 0.6];
       Render.chunkyText(ctx, shout, 0, 0, sh, P.team === 'blue' ? '#ffe14d' : '#46d9ff');
       }
       ctx.restore();
     } else if (P.phase !== 'after' && P.phase !== 'end' && this.sudden(P)) {
-      Render.chunkyText(ctx, 'SUDDEN DEATH', W / 2, cy, sub, '#ff8a8e');
+      Render.chunkyText(ctx, tl('SUDDEN DEATH'), W / 2, cy, sub, '#ff8a8e');
     }
     // your aim
     if (P.phase === 'aim') {
@@ -929,7 +930,7 @@ const Pens = {
       if (fh > 0) { Sprites.rr(ctx, bx + 2, by + bh - 2 - fh, bw - 4, fh, Math.min(bw / 2 - 2, fh / 2)); ctx.fill(); }
       ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3; Sprites.rr(ctx, bx, by, bw, bh, bw / 2); ctx.stroke();
       boxes.power = [bx, by, bx + bw, by + bh + sub * 1.2];
-      Render.chunkyText(ctx, 'POWER', bx + bw / 2, by + bh + sub * 0.8, sub * 0.6, '#ffffff', 3);
+      Render.chunkyText(ctx, tl('POWER'), bx + bw / 2, by + bh + sub * 0.8, sub * 0.6, '#ffffff', 3);
       if (P.clock < 3.5) Render.chunkyText(ctx, String(Math.ceil(P.clock)), c.x, c.y - r * 2.4, sub * 1.1, '#ff8a8e');
     }
     // you in goal: where the stick points is where you'll go
@@ -954,17 +955,17 @@ const Pens = {
     if (P.phase === 'end' && !chal) {
       const u = clamp(P.t / 0.35, 0, 1), z = easeOut(u);
       ctx.save(); ctx.translate(W / 2, L.gy - L.gh * 0.5); ctx.scale(z, z);
-      const won = P.watch ? `${P.watchName || 'THEY'} WINS IT!` : P.fk ? 'YOU WIN THE FREE KICKS!' : 'YOU WIN THE SHOOTOUT!';
-      Render.chunkyText(ctx, P.winner === 'blue' ? won : `${TEAMS.red.name} WIN IT`, 0, 0, big * 0.8, P.winner === 'blue' ? '#ffe14d' : '#ffffff');
+      const won = P.watch ? tl('{0} WINS IT!', [P.watchName || tl('THEY')]) : P.fk ? tl('YOU WIN THE FREE KICKS!') : tl('YOU WIN THE SHOOTOUT!');
+      Render.chunkyText(ctx, P.winner === 'blue' ? won : tl('{0} WIN IT', [TEAMS.red.name]), 0, 0, big * 0.8, P.winner === 'blue' ? '#ffe14d' : '#ffffff');
       ctx.restore();
     }
     // what to press
     const kb = document.body.classList.contains('kb');
     let hint = null;
     if (P.watch) hint = null; // nobody tells a viewer to press anything
-    else if (P.phase === 'aim' && P.fk && !P.holding) hint = 'SOFT AND HIGH GOES OVER THE WALL  ·  HARD GOES ROUND IT';
-    else if (P.phase === 'aim') hint = P.holding ? 'LET GO TO SHOOT' : kb ? 'AIM: WASD OR MOUSE  ·  HOLD SPACE OR CLICK FOR POWER' : 'AIM WITH THE STICK  ·  HOLD SHOOT FOR POWER';
-    else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? 'WATCH THE KICK  ·  WASD + SPACE TO DIVE' : 'WATCH THE KICK  ·  STICK + DIVE';
+    else if (P.phase === 'aim' && P.fk && !P.holding) hint = tl('SOFT AND HIGH GOES OVER THE WALL  ·  HARD GOES ROUND IT');
+    else if (P.phase === 'aim') hint = P.holding ? tl('LET GO TO SHOOT') : kb ? tl('AIM: WASD OR MOUSE  ·  HOLD SPACE OR CLICK FOR POWER') : tl('AIM WITH THE STICK  ·  HOLD SHOOT FOR POWER');
+    else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? tl('WATCH THE KICK  ·  WASD + SPACE TO DIVE') : tl('WATCH THE KICK  ·  STICK + DIVE');
     if (hint) {
       const hs = clamp(Math.min(W, H) * 0.034, 12, 18);
       ctx.font = `400 ${hs}px "Lilita One", system-ui, sans-serif`;

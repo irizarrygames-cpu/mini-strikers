@@ -14,11 +14,11 @@
 // you pay a fixed price for a fixed number of coins. Crates are still bought with coins, and their
 // odds are shown on the crate shelf.
 const PRODUCTS = [
-  { id: 'coins_pack_1', name: 'POCKET MONEY', coins: 5000, price: '$0.99', bonus: 0 },
-  { id: 'coins_pack_2', name: 'COIN BAG', coins: 11000, price: '$1.99', bonus: 10 },
-  { id: 'coins_pack_3', name: 'COIN SACK', coins: 30000, price: '$4.99', bonus: 20 },
-  { id: 'coins_pack_4', name: 'COIN CHEST', coins: 65000, price: '$9.99', bonus: 30 },
-  { id: 'coins_pack_5', name: 'COIN VAULT', coins: 140000, price: '$19.99', bonus: 40 },
+  { id: 'coins_pack_1', name: tl('POCKET MONEY'), coins: 5000, price: '$0.99', bonus: 0 },
+  { id: 'coins_pack_2', name: tl('COIN BAG'), coins: 11000, price: '$1.99', bonus: 10 },
+  { id: 'coins_pack_3', name: tl('COIN SACK'), coins: 30000, price: '$4.99', bonus: 20 },
+  { id: 'coins_pack_4', name: tl('COIN CHEST'), coins: 65000, price: '$9.99', bonus: 30 },
+  { id: 'coins_pack_5', name: tl('COIN VAULT'), coins: 140000, price: '$19.99', bonus: 40 },
 ];
 
 // How many packs one account can buy in a day through the game's own shop. A guard against a late

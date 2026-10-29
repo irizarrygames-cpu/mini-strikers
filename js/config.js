@@ -1,8 +1,8 @@
 // ===== Name & identity ==============================================
 // Temporary title. Change GAME_NAME to rename every visible title.
 // STORAGE_KEY stays fixed so saved progress survives a rename.
-const GAME_NAME = 'Mini Strikers';
-const GAME_SLOGANS = ['SMALL PLAYERS', 'BIG MOMENTS!', 'PLAY TOGETHER!', 'GOAL!'];
+const GAME_NAME = tl('Mini Strikers');
+const GAME_SLOGANS = [tl('SMALL PLAYERS'), tl('BIG MOMENTS!'), tl('PLAY TOGETHER!'), tl('GOAL!')];
 const STORAGE_KEY = 'arcade-soccer.v1';
 
 const CFG = {
@@ -82,8 +82,8 @@ const GOAL_Y2 = GOAL_Y1 + CFG.GOAL_W;
 const OUTLINE = '#161a33';
 
 const TEAMS = {
-  blue: { name: 'BLUE', dir: 1, jersey: '#2f7bff', shade: '#1b56d8', accent: '#ffffff', shorts: '#1a2350', socks: '#ffffff', shoes: '#1b1d33', fx: '#46d9ff', board: '#2464e8', lip: '#6aa2ff' },
-  red:  { name: 'RED', dir: -1, jersey: '#ff3a3f', shade: '#c81f2b', accent: '#1b1d33', shorts: '#1b1d33', socks: '#ff3a3f', shoes: '#1b1d33', fx: '#ff5a3c', board: '#e3303a', lip: '#ff8a8e' },
+  blue: { name: tl('BLUE'), dir: 1, jersey: '#2f7bff', shade: '#1b56d8', accent: '#ffffff', shorts: '#1a2350', socks: '#ffffff', shoes: '#1b1d33', fx: '#46d9ff', board: '#2464e8', lip: '#6aa2ff' },
+  red:  { name: tl('RED'), dir: -1, jersey: '#ff3a3f', shade: '#c81f2b', accent: '#1b1d33', shorts: '#1b1d33', socks: '#ff3a3f', shoes: '#1b1d33', fx: '#ff5a3c', board: '#e3303a', lip: '#ff8a8e' },
 };
 const KEEPER_KITS = {
   blue: { jersey: '#a35cff', shade: '#7a3ad8', accent: '#ffffff', shorts: '#2a1f4d', socks: '#a35cff', shoes: '#1b1d33', gloves: '#ffffff' },
@@ -109,188 +109,188 @@ const HAIR_COLORS = ['#2b1d14', '#4a2e1c', '#6b3f22', '#1b1b2a', '#f2c230', '#b8
 // Nothing here can score, pass or tackle for you — a signature move buys you a moment, and what
 // you do with the moment is still yours.
 const SKILLS = [
-  { id: 'classic', name: 'Classic', rarity: 'starter', read: true,
-    blurb: 'Reads the stick: nutmeg, flick, burst, Cruyff turn or hop, whichever the moment wants.' },
+  { id: 'classic', name: tl('Classic'), rarity: 'starter', read: true,
+    blurb: tl('Reads the stick: nutmeg, flick, burst, Cruyff turn or hop, whichever the moment wants.') },
 
   // ---- rare: a trick, cleanly done
-  { id: 'rainbow', name: 'Rainbow Flick', rarity: 'rare', say: 'RAINBOW!', color: '#ffc21a',
+  { id: 'rainbow', name: tl('Rainbow Flick'), rarity: 'rare', say: tl('RAINBOW!'), color: '#ffc21a',
     ball: { speed: 300, lift: 620, over: true }, self: { hop: 0.34, dodge: 0.4, burst: 0.5, kick: 0.2 },
     fx: { kind: 'ring', color: '#ffc21a', r0: 8, r1: 34, life: 0.3 }, meter: 6,
-    blurb: 'Scoop it up over your own head and run onto it.' },
-  { id: 'stepover', name: 'Stepover', rarity: 'rare', say: 'STEPOVER!', color: '#ffffff',
+    blurb: tl('Scoop it up over your own head and run onto it.') },
+  { id: 'stepover', name: tl('Stepover'), rarity: 'rare', say: tl('STEPOVER!'), color: '#ffffff',
     ball: { keep: true }, self: { dodge: 0.52, turn: 'aim' }, hit: { radius: 46, stun: 0.3 },
     fx: { kind: 'ring', color: '#ffffff', r0: 6, r1: 30, life: 0.26 }, meter: 4,
-    blurb: 'Feet over the ball until whoever is watching them stops believing you.' },
-  { id: 'dragback', name: 'Drag Back', rarity: 'rare', say: 'DRAG BACK!', color: '#86e8e2',
+    blurb: tl('Feet over the ball until whoever is watching them stops believing you.') },
+  { id: 'dragback', name: tl('Drag Back'), rarity: 'rare', say: tl('DRAG BACK!'), color: '#86e8e2',
     ball: { keep: true, back: true }, self: { dodge: 0.45, turn: 'reverse', kick: 0.2 },
     fx: { kind: 'ring', color: '#86e8e2', r0: 4, r1: 22, life: 0.24 }, meter: 4,
-    blurb: 'Pull it back under your foot and leave them going the other way.' },
-  { id: 'heelflick', name: 'Heel Flick', rarity: 'rare', say: 'HEEL!', color: '#ff8af0',
+    blurb: tl('Pull it back under your foot and leave them going the other way.') },
+  { id: 'heelflick', name: tl('Heel Flick'), rarity: 'rare', say: tl('HEEL!'), color: '#ff8af0',
     ball: { speed: 420, lift: 180 }, self: { burst: 0.6, dodge: 0.3, kick: 0.18 }, hit: { radius: 40, stun: 0.25 },
     fx: { kind: 'sparks', color: '#ff8af0', n: 10, speed: 120 }, meter: 5,
-    blurb: 'Flick it on with the back of your boot without breaking stride.' },
-  { id: 'roulette', name: 'Roulette', rarity: 'rare', say: 'ROULETTE!', color: '#9ad1ff',
+    blurb: tl('Flick it on with the back of your boot without breaking stride.') },
+  { id: 'roulette', name: tl('Roulette'), rarity: 'rare', say: tl('ROULETTE!'), color: '#9ad1ff',
     ball: { keep: true }, self: { dodge: 0.5, spin: 1, turn: 'aim' },
     fx: { kind: 'ring', color: '#9ad1ff', r0: 6, r1: 28, life: 0.26 }, meter: 5,
-    blurb: 'Turn right through the tackle with the ball under your foot.' },
-  { id: 'scoopturn', name: 'Scoop Turn', rarity: 'rare', say: 'SCOOP!', color: '#ffd166',
+    blurb: tl('Turn right through the tackle with the ball under your foot.') },
+  { id: 'scoopturn', name: tl('Scoop Turn'), rarity: 'rare', say: tl('SCOOP!'), color: '#ffd166',
     ball: { keep: true, back: true }, self: { dodge: 0.46, turn: 'reverse', kick: 0.2 },
     fx: { kind: 'ring', color: '#ffd166', r0: 5, r1: 24, life: 0.24 }, meter: 4,
-    blurb: 'Lift it back behind you and go and get it yourself.' },
-  { id: 'toepoke', name: 'Toe Poke', rarity: 'rare', say: 'TOE POKE!', color: '#ff8a1f',
+    blurb: tl('Lift it back behind you and go and get it yourself.') },
+  { id: 'toepoke', name: tl('Toe Poke'), rarity: 'rare', say: tl('TOE POKE!'), color: '#ff8a1f',
     ball: { speed: 480, lift: 90 }, self: { burst: 0.55, dodge: 0.28, kick: 0.16 }, hit: { radius: 38, stun: 0.22 },
     fx: { kind: 'sparks', color: '#ff8a1f', n: 9, speed: 130 }, meter: 5,
-    blurb: 'No backlift, no warning, gone.' },
-  { id: 'shoulderdrop', name: 'Shoulder Drop', rarity: 'rare', say: 'DROPPED HIM!', color: '#c2f5f1',
+    blurb: tl('No backlift, no warning, gone.') },
+  { id: 'shoulderdrop', name: tl('Shoulder Drop'), rarity: 'rare', say: tl('DROPPED HIM!'), color: '#c2f5f1',
     ball: { keep: true }, self: { dodge: 0.55, turn: 'aim' }, hit: { radius: 44, stun: 0.28 },
     fx: { kind: 'burst', color: '#c2f5f1', size: 20 }, meter: 5,
-    blurb: 'Lean one way hard enough that they buy it, then go the other.' },
-  { id: 'chopcut', name: 'Chop Cut', rarity: 'rare', say: 'CHOP!', color: '#86e8e2',
+    blurb: tl('Lean one way hard enough that they buy it, then go the other.') },
+  { id: 'chopcut', name: tl('Chop Cut'), rarity: 'rare', say: tl('CHOP!'), color: '#86e8e2',
     ball: { keep: true }, self: { dodge: 0.5, burst: 0.35, turn: 'aim', kick: 0.18 },
     fx: { kind: 'ring', color: '#86e8e2', r0: 5, r1: 26, life: 0.25 }, meter: 5,
-    blurb: 'Chop it back across your own body and set off again.' },
+    blurb: tl('Chop it back across your own body and set off again.') },
 
   // ---- epic: the ones that make people stand up
-  { id: 'elastico', name: 'Elastico', rarity: 'epic', say: 'ELASTICO!', color: '#b04dff',
+  { id: 'elastico', name: tl('Elastico'), rarity: 'epic', say: tl('ELASTICO!'), color: '#b04dff',
     ball: { keep: true }, self: { dodge: 0.62, burst: 0.45, turn: 'aim' }, hit: { radius: 54, stun: 0.34 },
     fx: { kind: 'ring', color: '#b04dff', r0: 6, r1: 38, life: 0.3, width: 4 }, meter: 7,
-    blurb: 'Snap it one way, take it the other, all in the same touch.' },
-  { id: 'sombrero', name: 'Sombrero', rarity: 'epic', say: 'SOMBRERO!', color: '#ffe14d',
+    blurb: tl('Snap it one way, take it the other, all in the same touch.') },
+  { id: 'sombrero', name: tl('Sombrero'), rarity: 'epic', say: tl('SOMBRERO!'), color: '#ffe14d',
     ball: { speed: 360, lift: 760, over: true }, self: { burst: 0.75, dodge: 0.45, hop: 0.3 }, hit: { radius: 52, stun: 0.3 },
     fx: { kind: 'stars' }, meter: 8,
-    blurb: 'Straight over their head, and you are past before it lands.' },
-  { id: 'spincycle', name: 'Spin Cycle', rarity: 'epic', say: 'SPIN CYCLE!', color: '#46d9ff',
+    blurb: tl('Straight over their head, and you are past before it lands.') },
+  { id: 'spincycle', name: tl('Spin Cycle'), rarity: 'epic', say: tl('SPIN CYCLE!'), color: '#46d9ff',
     ball: { keep: true }, self: { dodge: 0.7, spin: 2, turn: 'aim' },
     fx: { kind: 'ring', color: '#46d9ff', r0: 10, r1: 44, life: 0.36, width: 4 }, meter: 7,
-    blurb: 'Two turns, not one. Nobody follows the second.' },
-  { id: 'ghoststep', name: 'Ghost Step', rarity: 'epic', say: 'GHOST!', color: '#c2f5f1',
+    blurb: tl('Two turns, not one. Nobody follows the second.') },
+  { id: 'ghoststep', name: tl('Ghost Step'), rarity: 'epic', say: tl('GHOST!'), color: '#c2f5f1',
     ball: { keep: true }, self: { dodge: 0.85, burst: 0.6, ghost: true },
     fx: { kind: 'burst', color: '#c2f5f1', size: 26 }, meter: 8,
-    blurb: 'For a moment there is nothing there to tackle.' },
-  { id: 'blindturn', name: 'Blind Turn', rarity: 'epic', say: 'BLIND TURN!', color: '#ffffff',
+    blurb: tl('For a moment there is nothing there to tackle.') },
+  { id: 'blindturn', name: tl('Blind Turn'), rarity: 'epic', say: tl('BLIND TURN!'), color: '#ffffff',
     ball: { keep: true, back: true }, self: { dodge: 0.55, burst: 0.7, turn: 'reverse' }, hit: { radius: 48, stun: 0.3 },
     fx: { kind: 'ring', color: '#ffffff', r0: 8, r1: 36, life: 0.3 }, meter: 7,
-    blurb: 'Turn without looking and go back the way you came, faster.' },
-  { id: 'akka', name: 'Akka Flick', rarity: 'epic', say: 'AKKA!', color: '#ffb0f0',
+    blurb: tl('Turn without looking and go back the way you came, faster.') },
+  { id: 'akka', name: tl('Akka Flick'), rarity: 'epic', say: tl('AKKA!'), color: '#ffb0f0',
     ball: { speed: 340, lift: 700, over: true }, self: { hop: 0.32, burst: 0.7, dodge: 0.42 }, hit: { radius: 48, stun: 0.28 },
     fx: { kind: 'stars' }, meter: 8,
-    blurb: 'Both feet round it and up over the lot of them.' },
-  { id: 'crossover', name: 'Crossover', rarity: 'epic', say: 'CROSSOVER!', color: '#7fdcff',
+    blurb: tl('Both feet round it and up over the lot of them.') },
+  { id: 'crossover', name: tl('Crossover'), rarity: 'epic', say: tl('CROSSOVER!'), color: '#7fdcff',
     ball: { keep: true }, self: { dodge: 0.65, burst: 0.5, turn: 'aim' }, hit: { radius: 50, stun: 0.32 },
     fx: { kind: 'ring', color: '#7fdcff', r0: 6, r1: 36, life: 0.28, width: 4 }, meter: 7,
-    blurb: 'Across your body and away, before the first foot has landed.' },
-  { id: 'pendulum', name: 'Pendulum', rarity: 'epic', say: 'PENDULUM!', color: '#b04dff',
+    blurb: tl('Across your body and away, before the first foot has landed.') },
+  { id: 'pendulum', name: tl('Pendulum'), rarity: 'epic', say: tl('PENDULUM!'), color: '#b04dff',
     ball: { keep: true }, self: { dodge: 0.68, spin: 1.5, turn: 'aim' }, hit: { radius: 46, stun: 0.3 },
     fx: { kind: 'ring', color: '#b04dff', r0: 8, r1: 40, life: 0.34, width: 4 }, meter: 8,
-    blurb: 'Swing it one way, then all the way back through where they are standing.' },
-  { id: 'slipstream', name: 'Slipstream', rarity: 'epic', say: 'SLIPSTREAM!', color: '#46d9ff',
+    blurb: tl('Swing it one way, then all the way back through where they are standing.') },
+  { id: 'slipstream', name: tl('Slipstream'), rarity: 'epic', say: tl('SLIPSTREAM!'), color: '#46d9ff',
     ball: { keep: true }, self: { burst: 0.95, dodge: 0.4 },
     fx: { kind: 'sparks', color: '#46d9ff', n: 16, speed: 170, life: 0.34 }, meter: 7,
-    blurb: 'Tuck in behind them and come out the other side at speed.' },
-  { id: 'flipflap', name: 'Flip Flap', rarity: 'epic', say: 'FLIP FLAP!', color: '#ffe14d',
+    blurb: tl('Tuck in behind them and come out the other side at speed.') },
+  { id: 'flipflap', name: tl('Flip Flap'), rarity: 'epic', say: tl('FLIP FLAP!'), color: '#ffe14d',
     ball: { keep: true }, self: { dodge: 0.7, burst: 0.45, turn: 'aim' }, hit: { radius: 52, stun: 0.3 },
     fx: { kind: 'burst', color: '#ffe14d', size: 26 }, meter: 8,
-    blurb: 'Out and back in one touch. The second one is the one that does it.' },
+    blurb: tl('Out and back in one touch. The second one is the one that does it.') },
 
   // ---- legendary: now it is a weapon
-  { id: 'tornado', name: 'Tornado', rarity: 'legendary', say: 'TORNADO!', color: '#7fdcff',
+  { id: 'tornado', name: tl('Tornado'), rarity: 'legendary', say: tl('TORNADO!'), color: '#7fdcff',
     ball: { keep: true }, self: { dodge: 0.7, spin: 2, turn: 'aim' }, hit: { radius: 76, stun: 0.5, push: 170 },
     fx: { kind: 'ring', color: '#7fdcff', r0: 12, r1: 76, life: 0.42, width: 5, shake: 3 }, meter: 10,
-    blurb: 'Spin hard enough and everyone near you goes with it.' },
-  { id: 'blink', name: 'Blink', rarity: 'legendary', say: 'BLINK!', color: '#b04dff',
+    blurb: tl('Spin hard enough and everyone near you goes with it.') },
+  { id: 'blink', name: tl('Blink'), rarity: 'legendary', say: tl('BLINK!'), color: '#b04dff',
     ball: { keep: true }, self: { dodge: 0.5, burst: 0.8, dash: 86 },
     fx: { kind: 'burst', color: '#b04dff', size: 30, shake: 2 }, meter: 10,
-    blurb: 'Gone from here, already there, ball and all.' },
-  { id: 'afterburn', name: 'Afterburn', rarity: 'legendary', say: 'AFTERBURN!', color: '#ff5a1f',
+    blurb: tl('Gone from here, already there, ball and all.') },
+  { id: 'afterburn', name: tl('Afterburn'), rarity: 'legendary', say: tl('AFTERBURN!'), color: '#ff5a1f',
     ball: { keep: true }, self: { burst: 1.25, dodge: 0.45 },
     fx: { kind: 'sparks', color: '#ff5a1f', n: 22, speed: 200, life: 0.4 }, meter: 9,
-    blurb: 'Light it up and simply leave.' },
-  { id: 'matador', name: 'Matador', rarity: 'legendary', say: 'OLE!', color: '#f0343f',
+    blurb: tl('Light it up and simply leave.') },
+  { id: 'matador', name: tl('Matador'), rarity: 'legendary', say: tl('OLE!'), color: '#f0343f',
     ball: { keep: true }, self: { dodge: 0.95, turn: 'aim' }, hit: { radius: 66, stun: 0.4, fall: true },
     fx: { kind: 'ring', color: '#f0343f', r0: 10, r1: 58, life: 0.36, width: 4 }, meter: 10,
-    blurb: 'Step aside and let them go past you into the floor.' },
-  { id: 'shadowstep', name: 'Shadow Step', rarity: 'legendary', say: 'SHADOW!', color: '#8b4dff',
+    blurb: tl('Step aside and let them go past you into the floor.') },
+  { id: 'shadowstep', name: tl('Shadow Step'), rarity: 'legendary', say: tl('SHADOW!'), color: '#8b4dff',
     ball: { keep: true }, self: { dodge: 0.8, burst: 0.8, ghost: true, decoy: true },
     fx: { kind: 'burst', color: '#8b4dff', size: 28 }, meter: 10,
-    blurb: 'Leave something behind for them to chase.' },
-  { id: 'whirlpool', name: 'Whirlpool', rarity: 'legendary', say: 'WHIRLPOOL!', color: '#2f7bff',
+    blurb: tl('Leave something behind for them to chase.') },
+  { id: 'whirlpool', name: tl('Whirlpool'), rarity: 'legendary', say: tl('WHIRLPOOL!'), color: '#2f7bff',
     ball: { keep: true }, self: { dodge: 0.7, spin: 2, turn: 'aim' }, hit: { radius: 72, stun: 0.48, push: 150 },
     fx: { kind: 'ring', color: '#2f7bff', r0: 12, r1: 72, life: 0.4, width: 5, shake: 3 }, meter: 10,
-    blurb: 'Everything near you gets pulled round and spat back out.' },
-  { id: 'mirage', name: 'Mirage', rarity: 'legendary', say: 'MIRAGE!', color: '#ffd166',
+    blurb: tl('Everything near you gets pulled round and spat back out.') },
+  { id: 'mirage', name: tl('Mirage'), rarity: 'legendary', say: tl('MIRAGE!'), color: '#ffd166',
     ball: { keep: true }, self: { dodge: 0.9, burst: 0.7, ghost: true },
     fx: { kind: 'burst', color: '#ffd166', size: 30 }, meter: 10,
-    blurb: 'They commit to where you look like you are. You are not there.' },
-  { id: 'thunderclap', name: 'Thunderclap', rarity: 'legendary', say: 'CLAP!', color: '#ffffff',
+    blurb: tl('They commit to where you look like you are. You are not there.') },
+  { id: 'thunderclap', name: tl('Thunderclap'), rarity: 'legendary', say: tl('CLAP!'), color: '#ffffff',
     ball: { keep: true }, self: { dodge: 0.6, burst: 0.5 }, hit: { radius: 80, stun: 0.5, push: 190, fall: true },
     fx: { kind: 'ring', color: '#ffffff', r0: 14, r1: 80, life: 0.4, width: 6, shake: 4 }, meter: 11,
-    blurb: 'One sound, and everyone within range is on the floor.' },
-  { id: 'rocketheel', name: 'Rocket Heel', rarity: 'legendary', say: 'ROCKET!', color: '#ff5a1f',
+    blurb: tl('One sound, and everyone within range is on the floor.') },
+  { id: 'rocketheel', name: tl('Rocket Heel'), rarity: 'legendary', say: tl('ROCKET!'), color: '#ff5a1f',
     ball: { speed: 560, lift: 240 }, self: { burst: 1, dodge: 0.4, kick: 0.2 }, hit: { radius: 56, stun: 0.35 },
     fx: { kind: 'sparks', color: '#ff5a1f', n: 24, speed: 220, life: 0.4, shake: 2 }, meter: 10,
-    blurb: 'Backheel it like you meant to hurt it, then go and catch it.' },
-  { id: 'frostbite', name: 'Frostbite', rarity: 'legendary', say: 'FROZEN!', color: '#bfe0ff',
+    blurb: tl('Backheel it like you meant to hurt it, then go and catch it.') },
+  { id: 'frostbite', name: tl('Frostbite'), rarity: 'legendary', say: tl('FROZEN!'), color: '#bfe0ff',
     ball: { keep: true }, self: { dodge: 0.65, burst: 0.4 }, hit: { radius: 84, stun: 0.62 },
     fx: { kind: 'ring', color: '#bfe0ff', r0: 12, r1: 84, life: 0.46, width: 5 }, meter: 11,
-    blurb: 'Nobody around you moves for a moment. You do.' },
+    blurb: tl('Nobody around you moves for a moment. You do.') },
 
   // ---- mythic: the ones people talk about afterwards
-  { id: 'thunderstep', name: 'Thunder Step', rarity: 'mythic', say: 'THUNDER!', color: '#ffe14d',
+  { id: 'thunderstep', name: tl('Thunder Step'), rarity: 'mythic', say: tl('THUNDER!'), color: '#ffe14d',
     ball: { keep: true }, self: { dodge: 0.7, burst: 0.7 }, hit: { radius: 96, stun: 0.6, push: 230, fall: true },
     fx: { kind: 'ring', color: '#ffe14d', r0: 14, r1: 96, life: 0.44, width: 6, shake: 5, flash: 0.18 }, meter: 12,
-    blurb: 'Put your foot down and the ground answers.' },
-  { id: 'zerog', name: 'Zero Gravity', rarity: 'mythic', say: 'ZERO G!', color: '#86e8e2',
+    blurb: tl('Put your foot down and the ground answers.') },
+  { id: 'zerog', name: tl('Zero Gravity'), rarity: 'mythic', say: tl('ZERO G!'), color: '#86e8e2',
     ball: { keep: true, float: 220 }, self: { dodge: 0.8, hop: 0.6, burst: 0.7 }, hit: { radius: 70, stun: 0.45 },
     fx: { kind: 'ring', color: '#86e8e2', r0: 10, r1: 70, life: 0.5, width: 4 }, meter: 12,
-    blurb: 'You and the ball stop obeying the usual rules for a second.' },
-  { id: 'timeskip', name: 'Time Skip', rarity: 'mythic', say: 'TIME SKIP!', color: '#c2f5f1',
+    blurb: tl('You and the ball stop obeying the usual rules for a second.') },
+  { id: 'timeskip', name: tl('Time Skip'), rarity: 'mythic', say: tl('TIME SKIP!'), color: '#c2f5f1',
     ball: { keep: true }, self: { dodge: 0.9, burst: 0.9, dash: 54 }, hit: { radius: 110, stun: 0.7 },
     fx: { kind: 'ring', color: '#c2f5f1', r0: 16, r1: 110, life: 0.5, width: 5, flash: 0.14 }, meter: 13,
-    blurb: 'Everyone else takes a moment to catch up with where you went.' },
-  { id: 'phoenix', name: 'Phoenix Dash', rarity: 'mythic', say: 'PHOENIX!', color: '#ff8a1f',
+    blurb: tl('Everyone else takes a moment to catch up with where you went.') },
+  { id: 'phoenix', name: tl('Phoenix Dash'), rarity: 'mythic', say: tl('PHOENIX!'), color: '#ff8a1f',
     ball: { keep: true }, self: { dodge: 0.75, burst: 1.1, dash: 60 }, hit: { radius: 86, stun: 0.5, push: 200 },
     fx: { kind: 'sparks', color: '#ff8a1f', n: 28, speed: 240, life: 0.45, shake: 4, flash: 0.14 }, meter: 13,
-    blurb: 'Go up in flames and come out of them already running.' },
-  { id: 'starfall', name: 'Starfall', rarity: 'mythic', say: 'STARFALL!', color: '#ffffff',
+    blurb: tl('Go up in flames and come out of them already running.') },
+  { id: 'starfall', name: tl('Starfall'), rarity: 'mythic', say: tl('STARFALL!'), color: '#ffffff',
     ball: { speed: 520, lift: 900, over: true }, self: { burst: 1.0, dodge: 0.6, hop: 0.4 }, hit: { radius: 80, stun: 0.45 },
     fx: { kind: 'stars', shake: 3 }, meter: 13,
-    blurb: 'Send it up into the lights and be waiting where it comes down.' },
-  { id: 'goatwalk', name: 'GOAT Walk', rarity: 'mythic', say: 'GOAT!', color: '#ffc21a',
+    blurb: tl('Send it up into the lights and be waiting where it comes down.') },
+  { id: 'goatwalk', name: tl('GOAT Walk'), rarity: 'mythic', say: tl('GOAT!'), color: '#ffc21a',
     ball: { keep: true, glue: true }, self: { dodge: 1.15, burst: 1.0, turn: 'aim' }, hit: { radius: 92, stun: 0.55, push: 150 },
     fx: { kind: 'ring', color: '#ffc21a', r0: 12, r1: 92, life: 0.5, width: 6, shake: 4, flash: 0.2 }, meter: 14,
-    blurb: 'Walk. Nobody takes it off you. That is the whole move.' },
-  { id: 'novastep', name: 'Nova Step', rarity: 'mythic', say: 'NOVA!', color: '#ffb0f0',
+    blurb: tl('Walk. Nobody takes it off you. That is the whole move.') },
+  { id: 'novastep', name: tl('Nova Step'), rarity: 'mythic', say: tl('NOVA!'), color: '#ffb0f0',
     ball: { keep: true }, self: { dodge: 0.8, burst: 0.9, dash: 64 }, hit: { radius: 100, stun: 0.6, push: 210 },
     fx: { kind: 'sparks', color: '#ffb0f0', n: 30, speed: 250, life: 0.46, shake: 4, flash: 0.16 }, meter: 13,
-    blurb: 'Go off like something in the sky and arrive somewhere else entirely.' },
-  { id: 'blackout', name: 'Blackout', rarity: 'mythic', say: 'BLACKOUT!', color: '#8b4dff',
+    blurb: tl('Go off like something in the sky and arrive somewhere else entirely.') },
+  { id: 'blackout', name: tl('Blackout'), rarity: 'mythic', say: tl('BLACKOUT!'), color: '#8b4dff',
     ball: { keep: true, glue: true }, self: { dodge: 1, burst: 0.8, ghost: true }, hit: { radius: 90, stun: 0.58 },
     fx: { kind: 'burst', color: '#8b4dff', size: 34, shake: 3, flash: 0.18 }, meter: 13,
-    blurb: 'The lights go out. When they come back you are through on goal.' },
-  { id: 'riptide', name: 'Riptide', rarity: 'mythic', say: 'RIPTIDE!', color: '#2f7bff',
+    blurb: tl('The lights go out. When they come back you are through on goal.') },
+  { id: 'riptide', name: tl('Riptide'), rarity: 'mythic', say: tl('RIPTIDE!'), color: '#2f7bff',
     ball: { keep: true, float: 200 }, self: { dodge: 0.85, hop: 0.5, burst: 0.8 }, hit: { radius: 96, stun: 0.5, push: 240, fall: true },
     fx: { kind: 'ring', color: '#2f7bff', r0: 14, r1: 96, life: 0.5, width: 6, shake: 4 }, meter: 13,
-    blurb: 'The ground goes out from under everybody but you.' },
-  { id: 'eclipsestep', name: 'Eclipse Step', rarity: 'mythic', say: 'ECLIPSE!', color: '#c2f5f1',
+    blurb: tl('The ground goes out from under everybody but you.') },
+  { id: 'eclipsestep', name: tl('Eclipse Step'), rarity: 'mythic', say: tl('ECLIPSE!'), color: '#c2f5f1',
     ball: { keep: true, glue: true }, self: { dodge: 1.1, burst: 0.9, dash: 50 }, hit: { radius: 94, stun: 0.56, push: 170 },
     fx: { kind: 'ring', color: '#c2f5f1', r0: 16, r1: 94, life: 0.5, width: 6, flash: 0.16 }, meter: 14,
-    blurb: 'Everything goes quiet and dark, and then you are past.' },
-  { id: 'infinityturn', name: 'Infinity Turn', rarity: 'mythic', say: 'INFINITY!', color: '#ff3a6e',
+    blurb: tl('Everything goes quiet and dark, and then you are past.') },
+  { id: 'infinityturn', name: tl('Infinity Turn'), rarity: 'mythic', say: tl('INFINITY!'), color: '#ff3a6e',
     ball: { keep: true, glue: true }, self: { dodge: 1.2, spin: 2, burst: 0.8, turn: 'aim' }, hit: { radius: 100, stun: 0.6, push: 180, fall: true },
     fx: { kind: 'ring', color: '#ff3a6e', r0: 14, r1: 100, life: 0.52, width: 6, shake: 5, flash: 0.2 }, meter: 14,
-    blurb: 'Turn, and keep turning, and come out of it still holding the ball.' },
+    blurb: tl('Turn, and keep turning, and come out of it still holding the ball.') },
 ];
 const SKILL_IDS = new Set(SKILLS.map((s) => s.id));
 const skillDef = (id) => SKILLS.find((s) => s.id === id) || SKILLS[0];
 
 const RARITIES = {
-  starter:   { name: 'STARTER',   color: '#8a90b8' },
-  common:    { name: 'COMMON',    color: '#3fcf4a' },
-  rare:      { name: 'RARE',      color: '#2f7bff' },
-  epic:      { name: 'EPIC',      color: '#a35cff' },
-  legendary: { name: 'LEGENDARY', color: '#ffb400' },
-  mythic:    { name: 'MYTHIC',    color: '#ff3a6e' },
-  oneofone:  { name: 'ONE OF ONE', color: '#ffe14d' },
+  starter:   { name: tl('STARTER'),   color: '#8a90b8' },
+  common:    { name: tl('COMMON'),    color: '#3fcf4a' },
+  rare:      { name: tl('RARE'),      color: '#2f7bff' },
+  epic:      { name: tl('EPIC'),      color: '#a35cff' },
+  legendary: { name: tl('LEGENDARY'), color: '#ffb400' },
+  mythic:    { name: tl('MYTHIC'),    color: '#ff3a6e' },
+  oneofone:  { name: tl('ONE OF ONE'), color: '#ffe14d' },
 };
 const CHARACTERS = [
   { id: 'street',     name: 'Street',      rarity: 'starter',   r: { spd: 62, sht: 58, pas: 60, ctl: 60, def: 56 }, hair: 'cap',      hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#2f7bff' },
@@ -380,95 +380,95 @@ const CHARACTERS = [
   // Jacob: LILOTTER and irizarrygamez1 only. The card shows his own six stats; the three that
   // mean anything on the pitch (pace, ball control, crossing) are what he actually plays at.
   { id: 'jacob', name: 'Jacob', rarity: 'oneofone', only: ['lilotter', 'irizarrygamez1'], thin: 0.55, ovr: 98,
-    stats: [['SKINNY', 99], ['PACE', 21], ['BALL CONTROL', 67], ['YAP', 200], ['EXCUSES', 200], ['CROSSING', 0]],
+    stats: [[tl('SKINNY'), 99], [tl('PACE'), 21], [tl('BALL CONTROL'), 67], [tl('YAP'), 200], [tl('EXCUSES'), 200], [tl('CROSSING'), 0]],
     r: { spd: 98, sht: 98, pas: 96, ctl: 99, def: 92 }, hair: 'anime', hairColor: '#3aa0ff', skin: '#f6cfa6', anime: true, mewing: true },
   // LILOTTER's own one-of-one. The card says 200; the attributes below are the ceiling the game
   // has (ratingAttr caps at 99, so 200 there would play exactly the same and only break the maths).
   { id: 'flow', name: 'Flow', rarity: 'oneofone', only: ['lilotter'], thin: 0.82, ovr: 200,
-    stats: [['PACE', 188], ['SHOOTING', 200], ['FIRST TOUCH', 200], ['BALL CONTROL', 200], ['PASSING', 176], ['DEFENDING', 142]],
+    stats: [[tl('PACE'), 188], [tl('SHOOTING'), 200], [tl('FIRST TOUCH'), 200], [tl('BALL CONTROL'), 200], [tl('PASSING'), 176], [tl('DEFENDING'), 142]],
     r: { spd: 99, sht: 99, pas: 99, ctl: 99, def: 99 }, hair: 'anime', hairColor: '#e9e9f2', skin: '#f7dcc6', anime: true },
   // Matt: MattHidalgoCR7 only. The card shows the five numbers he was given; the game has one touch
   // stat, so his 99 dribbling is what ctl plays at (the 69 ball control is on the card). Passing 0 is
   // real: ratingAttr floors it at a pass 10% weaker than an average player's. Overall is set, not worked out.
   { id: 'matt', name: 'Matt', rarity: 'oneofone', only: ['matthidalgocr7'], buff: 1, ovr: 99,
-    stats: [['PACE', 99], ['DRIBBLING', 99], ['SHOOTING', 99], ['BALL CONTROL', 69], ['PASSING', 0]],
+    stats: [[tl('PACE'), 99], [tl('DRIBBLING'), 99], [tl('SHOOTING'), 99], [tl('BALL CONTROL'), 69], [tl('PASSING'), 0]],
     r: { spd: 99, sht: 99, pas: 0, ctl: 99, def: 70 }, hair: 'buzz', hairColor: '#15161c', skin: '#c98b5e' },
 ];
 // Accessories: one slot, worn over any character. slot says where it's drawn on the body.
 const ACCESSORIES = [
-  { id: 'clownnose',   name: 'Clown Nose',      slot: 'face', price: 6000 },
-  { id: 'wristbands',  name: 'Sweatbands',      slot: 'arm',  price: 7000 },
-  { id: 'mustache',    name: 'Mustache',        slot: 'face', price: 7500 },
-  { id: 'shades',      name: 'Shades',          slot: 'face', price: 8000 },
-  { id: 'partyhat',    name: 'Party Hat',       slot: 'head', price: 8500 },
-  { id: 'eyepatch',    name: 'Eye Patch',       slot: 'face', price: 9000 },
-  { id: 'bowtie',      name: 'Bow Tie',         slot: 'neck', price: 9500 },
-  { id: 'warpaint',    name: 'War Paint',       slot: 'face', price: 10000 },
-  { id: 'scarf',       name: 'Scarf',           slot: 'neck', price: 11000 },
-  { id: 'monocle',     name: 'Monocle',         slot: 'face', price: 12000 },
-  { id: 'armband',     name: 'Captain Armband', slot: 'arm',  price: 13000 },
-  { id: 'starshades',  name: 'Star Shades',     slot: 'face', price: 14000 },
-  { id: 'flowercrown', name: 'Flower Crown',    slot: 'head', price: 15000 },
-  { id: 'heromask',    name: 'Hero Mask',       slot: 'face', price: 16000 },
-  { id: 'headphones',  name: 'Headphones',      slot: 'head', price: 18000 },
-  { id: 'propeller',   name: 'Propeller Cap',   slot: 'head', price: 20000 },
-  { id: 'visor',       name: 'Cyber Visor',     slot: 'face', price: 22000 },
-  { id: 'chain',       name: 'Gold Chain',      slot: 'neck', price: 25000 },
-  { id: 'medal',       name: 'Gold Medal',      slot: 'neck', price: 30000 },
-  { id: 'horns',       name: 'Devil Horns',     slot: 'head', price: 35000 },
-  { id: 'halo',        name: 'Halo',            slot: 'head', price: 40000 },
-  { id: 'cape',        name: 'Hero Cape',       slot: 'back', price: 45000 },
-  { id: 'goldboots',   name: 'Golden Boots',    slot: 'feet', price: 50000 },
-  { id: 'wings',       name: 'Angel Wings',     slot: 'back', price: 60000 },
-  { id: 'jetpack',       name: 'Jetpack',          slot: 'back', price: 75000 },
-  { id: 'royalcrown',    name: 'Royal Crown',      slot: 'head', price: 80000 },
-  { id: 'diamondshades', name: 'Diamond Shades',   slot: 'face', price: 90000 },
-  { id: 'lightningvisor',name: 'Lightning Visor',  slot: 'face', price: 100000 },
-  { id: 'neonhalo',      name: 'Neon Halo',        slot: 'head', price: 110000 },
-  { id: 'dragonwings',   name: 'Dragon Wings',     slot: 'back', price: 125000 },
-  { id: 'royalcape',     name: 'Royal Cape',       slot: 'back', price: 140000 },
-  { id: 'diamondchain',  name: 'Diamond Chain',    slot: 'neck', price: 150000 },
-  { id: 'worldmedal',    name: 'World Medal',      slot: 'neck', price: 160000 },
-  { id: 'galaxyboots',   name: 'Galaxy Boots',     slot: 'feet', price: 175000 },
-  { id: 'flameboots',    name: 'Flame Boots',      slot: 'feet', price: 185000 },
-  { id: 'robotarm',      name: 'Robot Arm',        slot: 'arm',  price: 195000 },
-  { id: 'kingmantle',    name: "King's Mantle",   slot: 'back', price: 210000 },
-  { id: 'spacehelmet',   name: 'Space Helmet',     slot: 'head', price: 225000 },
-  { id: 'dragonmask',    name: 'Dragon Mask',      slot: 'face', price: 240000 },
-  { id: 'championbelt',  name: 'Champion Belt',    slot: 'neck', price: 260000 },
+  { id: 'clownnose',   name: tl('Clown Nose'),      slot: 'face', price: 6000 },
+  { id: 'wristbands',  name: tl('Sweatbands'),      slot: 'arm',  price: 7000 },
+  { id: 'mustache',    name: tl('Mustache'),        slot: 'face', price: 7500 },
+  { id: 'shades',      name: tl('Shades'),          slot: 'face', price: 8000 },
+  { id: 'partyhat',    name: tl('Party Hat'),       slot: 'head', price: 8500 },
+  { id: 'eyepatch',    name: tl('Eye Patch'),       slot: 'face', price: 9000 },
+  { id: 'bowtie',      name: tl('Bow Tie'),         slot: 'neck', price: 9500 },
+  { id: 'warpaint',    name: tl('War Paint'),       slot: 'face', price: 10000 },
+  { id: 'scarf',       name: tl('Scarf'),           slot: 'neck', price: 11000 },
+  { id: 'monocle',     name: tl('Monocle'),         slot: 'face', price: 12000 },
+  { id: 'armband',     name: tl('Captain Armband'), slot: 'arm',  price: 13000 },
+  { id: 'starshades',  name: tl('Star Shades'),     slot: 'face', price: 14000 },
+  { id: 'flowercrown', name: tl('Flower Crown'),    slot: 'head', price: 15000 },
+  { id: 'heromask',    name: tl('Hero Mask'),       slot: 'face', price: 16000 },
+  { id: 'headphones',  name: tl('Headphones'),      slot: 'head', price: 18000 },
+  { id: 'propeller',   name: tl('Propeller Cap'),   slot: 'head', price: 20000 },
+  { id: 'visor',       name: tl('Cyber Visor'),     slot: 'face', price: 22000 },
+  { id: 'chain',       name: tl('Gold Chain'),      slot: 'neck', price: 25000 },
+  { id: 'medal',       name: tl('Gold Medal'),      slot: 'neck', price: 30000 },
+  { id: 'horns',       name: tl('Devil Horns'),     slot: 'head', price: 35000 },
+  { id: 'halo',        name: tl('Halo'),            slot: 'head', price: 40000 },
+  { id: 'cape',        name: tl('Hero Cape'),       slot: 'back', price: 45000 },
+  { id: 'goldboots',   name: tl('Golden Boots'),    slot: 'feet', price: 50000 },
+  { id: 'wings',       name: tl('Angel Wings'),     slot: 'back', price: 60000 },
+  { id: 'jetpack',       name: tl('Jetpack'),          slot: 'back', price: 75000 },
+  { id: 'royalcrown',    name: tl('Royal Crown'),      slot: 'head', price: 80000 },
+  { id: 'diamondshades', name: tl('Diamond Shades'),   slot: 'face', price: 90000 },
+  { id: 'lightningvisor',name: tl('Lightning Visor'),  slot: 'face', price: 100000 },
+  { id: 'neonhalo',      name: tl('Neon Halo'),        slot: 'head', price: 110000 },
+  { id: 'dragonwings',   name: tl('Dragon Wings'),     slot: 'back', price: 125000 },
+  { id: 'royalcape',     name: tl('Royal Cape'),       slot: 'back', price: 140000 },
+  { id: 'diamondchain',  name: tl('Diamond Chain'),    slot: 'neck', price: 150000 },
+  { id: 'worldmedal',    name: tl('World Medal'),      slot: 'neck', price: 160000 },
+  { id: 'galaxyboots',   name: tl('Galaxy Boots'),     slot: 'feet', price: 175000 },
+  { id: 'flameboots',    name: tl('Flame Boots'),      slot: 'feet', price: 185000 },
+  { id: 'robotarm',      name: tl('Robot Arm'),        slot: 'arm',  price: 195000 },
+  { id: 'kingmantle',    name: tl("King's Mantle"),   slot: 'back', price: 210000 },
+  { id: 'spacehelmet',   name: tl('Space Helmet'),     slot: 'head', price: 225000 },
+  { id: 'dragonmask',    name: tl('Dragon Mask'),      slot: 'face', price: 240000 },
+  { id: 'championbelt',  name: tl('Champion Belt'),    slot: 'neck', price: 260000 },
   // ---- the crate shelf: these only come out of crates
-  { id: 'beret',        name: 'Beret',           slot: 'head', rarity: 'rare',      price: 12000 },
-  { id: 'bucket',       name: 'Bucket Hat',      slot: 'head', rarity: 'rare',      price: 14000 },
-  { id: 'cowboyhat',    name: 'Cowboy Hat',      slot: 'head', rarity: 'rare',      price: 16000 },
-  { id: 'maskbandit',   name: 'Bandit Mask',     slot: 'face', rarity: 'rare',      price: 18000 },
-  { id: 'swimgoggles',  name: 'Swim Goggles',    slot: 'face', rarity: 'rare',      price: 20000 },
-  { id: 'wraps',        name: 'Hand Wraps',      slot: 'arm',  rarity: 'rare',      price: 22000 },
-  { id: 'backpack',     name: 'Backpack',        slot: 'back', rarity: 'rare',      price: 24000 },
-  { id: 'antlers',      name: 'Antlers',         slot: 'head', rarity: 'epic',      price: 34000 },
-  { id: 'tophat',       name: 'Top Hat',         slot: 'head', rarity: 'epic',      price: 38000 },
-  { id: 'scanvisor',    name: 'Scan Visor',      slot: 'face', rarity: 'epic',      price: 42000 },
-  { id: 'warstripes',   name: 'War Stripes',     slot: 'face', rarity: 'epic',      price: 46000 },
-  { id: 'beads',        name: 'Lucky Beads',     slot: 'neck', rarity: 'epic',      price: 50000 },
-  { id: 'powerband',    name: 'Power Band',      slot: 'arm',  rarity: 'epic',      price: 56000 },
-  { id: 'neonboots',    name: 'Neon Boots',      slot: 'feet', rarity: 'epic',      price: 62000 },
-  { id: 'firecrown',    name: 'Crown of Fire',   slot: 'head', rarity: 'legendary', price: 90000 },
-  { id: 'icecrown',     name: 'Frost Crown',     slot: 'head', rarity: 'legendary', price: 100000 },
-  { id: 'phantommask',  name: 'Phantom Mask',    slot: 'face', rarity: 'legendary', price: 115000 },
-  { id: 'rubypendant',  name: 'Ruby Pendant',    slot: 'neck', rarity: 'legendary', price: 130000 },
-  { id: 'gauntlet',     name: 'Gauntlet',        slot: 'arm',  rarity: 'legendary', price: 145000 },
-  { id: 'icewings',     name: 'Ice Wings',       slot: 'back', rarity: 'legendary', price: 165000 },
-  { id: 'frostboots',   name: 'Frost Boots',     slot: 'feet', rarity: 'legendary', price: 185000 },
-  { id: 'stormcloud',   name: 'Storm Cloud',     slot: 'head', rarity: 'mythic',    price: 280000 },
-  { id: 'voidmask',     name: 'Void Mask',       slot: 'face', rarity: 'mythic',    price: 330000 },
-  { id: 'cosmicchain',  name: 'Cosmic Chain',    slot: 'neck', rarity: 'mythic',    price: 390000 },
-  { id: 'phoenixwings', name: 'Phoenix Wings',   slot: 'back', rarity: 'mythic',    price: 480000 },
+  { id: 'beret',        name: tl('Beret'),           slot: 'head', rarity: 'rare',      price: 12000 },
+  { id: 'bucket',       name: tl('Bucket Hat'),      slot: 'head', rarity: 'rare',      price: 14000 },
+  { id: 'cowboyhat',    name: tl('Cowboy Hat'),      slot: 'head', rarity: 'rare',      price: 16000 },
+  { id: 'maskbandit',   name: tl('Bandit Mask'),     slot: 'face', rarity: 'rare',      price: 18000 },
+  { id: 'swimgoggles',  name: tl('Swim Goggles'),    slot: 'face', rarity: 'rare',      price: 20000 },
+  { id: 'wraps',        name: tl('Hand Wraps'),      slot: 'arm',  rarity: 'rare',      price: 22000 },
+  { id: 'backpack',     name: tl('Backpack'),        slot: 'back', rarity: 'rare',      price: 24000 },
+  { id: 'antlers',      name: tl('Antlers'),         slot: 'head', rarity: 'epic',      price: 34000 },
+  { id: 'tophat',       name: tl('Top Hat'),         slot: 'head', rarity: 'epic',      price: 38000 },
+  { id: 'scanvisor',    name: tl('Scan Visor'),      slot: 'face', rarity: 'epic',      price: 42000 },
+  { id: 'warstripes',   name: tl('War Stripes'),     slot: 'face', rarity: 'epic',      price: 46000 },
+  { id: 'beads',        name: tl('Lucky Beads'),     slot: 'neck', rarity: 'epic',      price: 50000 },
+  { id: 'powerband',    name: tl('Power Band'),      slot: 'arm',  rarity: 'epic',      price: 56000 },
+  { id: 'neonboots',    name: tl('Neon Boots'),      slot: 'feet', rarity: 'epic',      price: 62000 },
+  { id: 'firecrown',    name: tl('Crown of Fire'),   slot: 'head', rarity: 'legendary', price: 90000 },
+  { id: 'icecrown',     name: tl('Frost Crown'),     slot: 'head', rarity: 'legendary', price: 100000 },
+  { id: 'phantommask',  name: tl('Phantom Mask'),    slot: 'face', rarity: 'legendary', price: 115000 },
+  { id: 'rubypendant',  name: tl('Ruby Pendant'),    slot: 'neck', rarity: 'legendary', price: 130000 },
+  { id: 'gauntlet',     name: tl('Gauntlet'),        slot: 'arm',  rarity: 'legendary', price: 145000 },
+  { id: 'icewings',     name: tl('Ice Wings'),       slot: 'back', rarity: 'legendary', price: 165000 },
+  { id: 'frostboots',   name: tl('Frost Boots'),     slot: 'feet', rarity: 'legendary', price: 185000 },
+  { id: 'stormcloud',   name: tl('Storm Cloud'),     slot: 'head', rarity: 'mythic',    price: 280000 },
+  { id: 'voidmask',     name: tl('Void Mask'),       slot: 'face', rarity: 'mythic',    price: 330000 },
+  { id: 'cosmicchain',  name: tl('Cosmic Chain'),    slot: 'neck', rarity: 'mythic',    price: 390000 },
+  { id: 'phoenixwings', name: tl('Phoenix Wings'),   slot: 'back', rarity: 'mythic',    price: 480000 },
 ];
 const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
 const ACCESSORY_FACE_IDS = new Set(ACCESSORIES.filter((a) => a.slot === 'face').map((a) => a.id));
 
 // the four ways an ult shot can be struck, picked at random
 const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scissors'];
-const ULT_NAMES = { volley: 'VOLLEY', bicycle: 'BICYCLE KICK', backflip: 'BACKFLIP KICK', scissors: 'SCISSOR KICK' };
+const ULT_NAMES = { volley: tl('VOLLEY'), bicycle: tl('BICYCLE KICK'), backflip: tl('BACKFLIP KICK'), scissors: tl('SCISSOR KICK') };
 // Every character has a signature finish: the kick they always pull out when their ult goes off.
 // A handful are hand-picked, the rest are spread evenly and never change for that character.
 const SIGNATURES = {
@@ -488,22 +488,23 @@ function sigKind(c) {
 }
 const sigName = (c) => ULT_NAMES[sigKind(c)];
 // the online World Cup's rounds (the server keeps which one you're in)
-const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
+const WC_ROUNDS = [tl('ROUND OF 16'), tl('QUARTER-FINAL'), tl('SEMI-FINAL'), tl('FINAL')];
 const WC_PRIZE = 1000;
 // RANKED: online results move your rank points. Tiers are pure thresholds so both sides agree.
 // A season lasts SEASON_DAYS and pays out by the tier you finished in.
-const CUP_ROUNDS = ['THE FINAL', 'THE SEMI-FINALS', 'THE QUARTER-FINALS']; // named from the end backwards
+const CUP_ROUNDS = [tl('THE FINAL'), tl('THE SEMI-FINALS'), tl('THE QUARTER-FINALS')]; // named from the end backwards
+const CUP_ROUND_NAMES = [tl('FINAL'), tl('SEMI-FINALS'), tl('QUARTER-FINALS')]; // the same, on their own: "FRIEND CUP · FINAL"
 const FCUP_PRIZE = 500; // winning a friend cup
 
 // The thresholds are set against what a ranked match pays (about 11 for a win with a challenge
 // or two), so the climb takes the same number of matches it always did.
 const RANK_TIERS = [
-  { id: 'bronze', name: 'BRONZE', at: 0, color: '#c87d3a', reward: 200 },
-  { id: 'silver', name: 'SILVER', at: 60, color: '#c9d2e4', reward: 500 },
-  { id: 'gold', name: 'GOLD', at: 150, color: '#ffc21a', reward: 1200 },
-  { id: 'platinum', name: 'PLATINUM', at: 300, color: '#46d9ff', reward: 2500 },
-  { id: 'diamond', name: 'DIAMOND', at: 500, color: '#b04dff', reward: 5000 },
-  { id: 'legend', name: 'LEGEND', at: 800, color: '#ff3a6e', reward: 10000 },
+  { id: 'bronze', name: tl('BRONZE'), at: 0, color: '#c87d3a', reward: 200 },
+  { id: 'silver', name: tl('SILVER'), at: 60, color: '#c9d2e4', reward: 500 },
+  { id: 'gold', name: tl('GOLD'), at: 150, color: '#ffc21a', reward: 1200 },
+  { id: 'platinum', name: tl('PLATINUM'), at: 300, color: '#46d9ff', reward: 2500 },
+  { id: 'diamond', name: tl('DIAMOND'), at: 500, color: '#b04dff', reward: 5000 },
+  { id: 'legend', name: tl('LEGEND'), at: 800, color: '#ff3a6e', reward: 10000 },
 ];
 const SEASON_DAYS = 14;
 const SEASON_START = Date.UTC(2026, 8, 21); // seasons have counted from here
@@ -530,7 +531,14 @@ function rankDelta(outcome, challenges = 0) {
 }
 // quick chat: the only things anyone can say in a match (no typing, so nothing nasty gets through)
 const QUICK_CHAT = ['HI!', 'NICE ONE!', 'PASS!', 'SHOOT!', 'DEFEND!', 'WHAT A GOAL!', 'THANKS!', 'SORRY!', 'UNLUCKY', 'WOW!', "LET'S GO!", 'GG'];
-const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][n % 10 > 3 || (n % 100 > 10 && n % 100 < 14) ? 0 : n % 10]);
+const ordinal = (n) => {
+  const lang = typeof I18N !== 'undefined' ? I18N.lang : 'en';
+  if (lang === 'es' || lang === 'pt') return n + '.º';
+  if (lang === 'it') return n + 'º';
+  if (lang === 'de') return n + '.';
+  if (lang === 'fr') return n + (n === 1 ? 'er' : 'e');
+  return n + (['th', 'st', 'nd', 'rd'][n % 10 > 3 || (n % 100 > 10 && n % 100 < 14) ? 0 : n % 10]);
+};
 const ULT_COLORS = ['#ff3a3f', '#ff8a1f', '#ffe14d', '#3fcf4a', '#46d9ff', '#b04dff', '#ff4df0'];
 const rainbow = (t, i = 0) => ULT_COLORS[(Math.floor(t * 9 + i) % ULT_COLORS.length + ULT_COLORS.length) % ULT_COLORS.length];
 
@@ -555,7 +563,7 @@ function pickBotCharacter(rand = Math.random, share = BOT_RARITY_SHARE) {
 const overall = (r) => Math.round((r.spd + r.sht + r.pas + r.ctl + r.def) / 5);
 // characters can be locked to certain accounts, and can show their own stat lines
 const charOk = (c) => !c.only || (typeof Save !== 'undefined' && c.only.includes(String(Save.account || '').toLowerCase()));
-const charStats = (c) => c.stats || [['SPD', c.r.spd], ['SHT', c.r.sht], ['PAS', c.r.pas], ['CTL', c.r.ctl], ['DEF', c.r.def]];
+const charStats = (c) => c.stats || [[tl('SPD'), c.r.spd], [tl('SHT'), c.r.sht], [tl('PAS'), c.r.pas], [tl('CTL'), c.r.ctl], [tl('DEF'), c.r.def]];
 const charOvr = (c) => (c.ovr !== undefined ? c.ovr : overall(c.r));
 // rating 70 = 0; 95 ≈ +1; 99 ≈ +1.16; 45 ≈ -1. Kept small on purpose: better, not unfair.
 const NEUTRAL_ATTR = { speed: 1, shot: 1, pass: 1, finish: 0, ctl: 0, def: 0 };
@@ -611,7 +619,7 @@ function fmtCoins(n) {
 // YOUR level makes every match harder: level 1 plays as before, level 50+ is the full ramp.
 // Ranks are just a name for where you are on it.
 const LEVEL_RAMP_TOP = 50;
-const RANKS = [[1, 'ROOKIE'], [6, 'PRO'], [12, 'STAR'], [20, 'ELITE'], [30, 'WORLD CLASS'], [40, 'LEGEND'], [50, 'GOAT']];
+const RANKS = [[1, tl('ROOKIE')], [6, tl('PRO')], [12, tl('STAR')], [20, tl('ELITE')], [30, tl('WORLD CLASS')], [40, tl('LEGEND')], [50, tl('GOAT')]];
 const rankFor = (level) => { let n = RANKS[0][1]; for (const [lv, name] of RANKS) if (level >= lv) n = name; return n; };
 const levelRampPct = (level) => Math.round(clamp((level - 1) / (LEVEL_RAMP_TOP - 1), 0, 1) * 100);
 // The bigger the format, the more room an attacker gets and the less each bot can cover, so the
@@ -707,41 +715,41 @@ const BOT_MISTAKES = {
 };
 
 const TRAILS = [
-  { id: 'electric', name: 'Electric', a: '#46d9ff', b: '#ffffff' },
-  { id: 'fire',     name: 'Fire',     a: '#ff7a1a', b: '#ffe14d' },
-  { id: 'plasma',   name: 'Plasma Spin', a: '#b04dff', b: '#f3d2ff' },
-  { id: 'blast',    name: 'White Blast', a: '#ffffff', b: '#bff3ff' },
-  { id: 'frost',    name: 'Frostbite', a: '#8fe3ff', b: '#ffffff' },
-  { id: 'toxic',    name: 'Toxic',     a: '#7dff3a', b: '#e8ffc2' },
-  { id: 'shadow',   name: 'Shadow',    a: '#7b3bff', b: '#1b1033' },
-  { id: 'rainbow',  name: 'Rainbow',   a: '#ff5fa8', b: '#ffe14d' },
-  { id: 'golden',   name: 'Golden',    a: '#ffc21a', b: '#fff3a0' },
+  { id: 'electric', name: tl('Electric'), a: '#46d9ff', b: '#ffffff' },
+  { id: 'fire',     name: tl('Fire'),     a: '#ff7a1a', b: '#ffe14d' },
+  { id: 'plasma',   name: tl('Plasma Spin'), a: '#b04dff', b: '#f3d2ff' },
+  { id: 'blast',    name: tl('White Blast'), a: '#ffffff', b: '#bff3ff' },
+  { id: 'frost',    name: tl('Frostbite'), a: '#8fe3ff', b: '#ffffff' },
+  { id: 'toxic',    name: tl('Toxic'),     a: '#7dff3a', b: '#e8ffc2' },
+  { id: 'shadow',   name: tl('Shadow'),    a: '#7b3bff', b: '#1b1033' },
+  { id: 'rainbow',  name: tl('Rainbow'),   a: '#ff5fa8', b: '#ffe14d' },
+  { id: 'golden',   name: tl('Golden'),    a: '#ffc21a', b: '#fff3a0' },
   // ---- the crate shelf. bands = [colour, width] from the outside in, spark = what spins off it
-  { id: 'sunrise', name: 'Sunrise', rarity: 'rare', a: '#ff9a3c', b: '#ffe9a8', bands: [['#ff6a1a', 2.3], ['#ffb03a', 1.4], ['#fff3a0', 0.6]] },
-  { id: 'mintfizz', name: 'Mint Fizz', rarity: 'rare', a: '#4fe0b0', b: '#eafff7', bands: [['#1f8f6a', 2.2], ['#4fe0b0', 1.2]], spark: 'bubble', sparkA: '#eafff7', sparkB: '#9ff5da' },
-  { id: 'bubblegum', name: 'Bubblegum', rarity: 'rare', a: '#ff5fa8', b: '#ffd9ec', bands: [['#e03a84', 2.3], ['#ff8ec4', 1.3], ['#ffd9ec', 0.6]], spark: 'bubble', sparkA: '#ffd9ec', sparkB: '#ff8ec4' },
-  { id: 'inkwell', name: 'Inkwell', rarity: 'rare', a: '#3b4060', b: '#aab0d0', bands: [['#15182a', 2.5], ['#3b4060', 1.4], ['#8d93b8', 0.5]] },
-  { id: 'cherry', name: 'Cherry Blossom', rarity: 'rare', a: '#ff9ac4', b: '#ffffff', bands: [['#d85a8a', 2.0], ['#ffc8dd', 1.2]], spark: 'petal', sparkA: '#ffd9e8', sparkB: '#ff9ac4' },
-  { id: 'lagoon', name: 'Lagoon', rarity: 'epic', a: '#2fd0e0', b: '#dffcff', bands: [['#0d7b8f', 2.4], ['#2fd0e0', 1.4], ['#dffcff', 0.6]], spark: 'bubble', sparkA: '#dffcff', sparkB: '#7fe8f5' },
-  { id: 'sandstorm', name: 'Sandstorm', rarity: 'epic', a: '#d8a95a', b: '#f6e3bd', bands: [['#8a6a2a', 2.5], ['#d8a95a', 1.5], ['#f6e3bd', 0.7]], spark: 'dust', sparkA: '#f6e3bd', sparkB: '#d8a95a' },
-  { id: 'bloodmoon', name: 'Blood Moon', rarity: 'epic', a: '#c2143c', b: '#ff8a6a', bands: [['#5a0a1a', 2.6], ['#c2143c', 1.5], ['#ff8a6a', 0.6]], spark: 'ring', sparkA: '#ff8a6a', sparkB: '#c2143c' },
-  { id: 'circuit', name: 'Circuit', rarity: 'epic', a: '#39ff88', b: '#0d1b2a', bands: [['#0d1b2a', 2.4], ['#1f8f5a', 1.4], ['#39ff88', 0.6]], spark: 'cube', sparkA: '#39ff88', sparkB: '#aaffcf' },
-  { id: 'starlight', name: 'Starlight', rarity: 'epic', a: '#bfe9ff', b: '#ffffff', bands: [['#4a7fd8', 2.2], ['#bfe9ff', 1.2], ['#ffffff', 0.5]], spark: 'star', sparkA: '#ffffff', sparkB: '#bfe9ff' },
-  { id: 'aurora', name: 'Aurora', rarity: 'epic', a: '#5fffc4', b: '#b04dff', bands: [['#2a7fd8', 2.6], ['#5fffc4', 1.7], ['#b04dff', 0.9], ['#ffffff', 0.4]], spark: 'star', sparkA: '#eaffff', sparkB: '#b04dff' },
-  { id: 'honey', name: 'Honeycomb', rarity: 'epic', a: '#ffb400', b: '#fff0b8', bands: [['#a86f00', 2.3], ['#ffb400', 1.4], ['#fff0b8', 0.6]], spark: 'cube', sparkA: '#ffd166', sparkB: '#fff0b8' },
-  { id: 'nightfall', name: 'Nightfall', rarity: 'legendary', a: '#6a2ad8', b: '#1b1033', bands: [['#0d0820', 2.8], ['#4b1f9a', 1.7], ['#8a3fd8', 0.8]], spark: 'star', sparkA: '#d8c8ff', sparkB: '#8a3fd8' },
-  { id: 'firework', name: 'Firework', rarity: 'legendary', a: '#ff3a6e', b: '#ffe14d', bands: [['#ff3a6e', 2.4], ['#ffe14d', 1.5], ['#46d9ff', 0.8], ['#ffffff', 0.4]], spark: 'burstspark', sparkA: '#ffffff', sparkB: '#ffe14d' },
-  { id: 'tsunami', name: 'Tsunami', rarity: 'legendary', a: '#1e6fd8', b: '#dff6ff', bands: [['#0a3a7a', 2.7], ['#1e6fd8', 1.7], ['#7fc8ff', 0.9], ['#ffffff', 0.4]], spark: 'bubble', sparkA: '#ffffff', sparkB: '#7fc8ff' },
-  { id: 'magmatrail', name: 'Magma', rarity: 'legendary', a: '#ff5a1a', b: '#2b1a1a', bands: [['#2b1a1a', 2.7], ['#c2300a', 1.8], ['#ff7a1a', 1.0], ['#ffd166', 0.4]], spark: 'ember', sparkA: '#ff7a1a', sparkB: '#ffd166' },
-  { id: 'spectre', name: 'Spectre', rarity: 'legendary', a: '#b9bfe8', b: '#3b4060', bands: [['#2a2d45', 2.6], ['#6a71a0', 1.6], ['#d8dcff', 0.7]], spark: 'ghost', sparkA: '#d8dcff', sparkB: '#8d93b8' },
-  { id: 'jetstream', name: 'Jetstream', rarity: 'legendary', a: '#ffffff', b: '#46d9ff', bands: [['#1f8fd8', 2.5], ['#7fe0ff', 1.5], ['#ffffff', 0.7]], spark: 'bolt', sparkA: '#ffffff', sparkB: '#46d9ff' },
-  { id: 'confetti', name: 'Confetti', rarity: 'legendary', a: '#ffe14d', b: '#ff5fa8', bands: [['#ffffff', 2.2], ['#ffe14d', 1.2]], spark: 'confetti', sparkA: '#ff5fa8', sparkB: '#46d9ff' },
-  { id: 'hologram', name: 'Hologram', rarity: 'legendary', a: '#46d9ff', b: '#ff5fa8', bands: [['#46d9ff', 2.5], ['#ff5fa8', 1.6], ['#ffffff', 0.7]], spark: 'cube', sparkA: '#46d9ff', sparkB: '#ff5fa8' },
-  { id: 'supernova', name: 'Supernova', rarity: 'mythic', a: '#fff3a0', b: '#ff8a1f', bands: [['#ff8a1f', 3.0], ['#ffd166', 2.0], ['#fff3a0', 1.1], ['#ffffff', 0.5]], spark: 'ring', sparkA: '#ffffff', sparkB: '#ffd166' },
-  { id: 'blackhole', name: 'Black Hole', rarity: 'mythic', a: '#8a3fd8', b: '#07060f', bands: [['#07060f', 3.2], ['#2a1a4a', 2.1], ['#6a2ad8', 1.1], ['#d8c8ff', 0.4]], spark: 'ring', sparkA: '#b04dff', sparkB: '#07060f' },
-  { id: 'dragonfire', name: 'Dragonfire', rarity: 'mythic', a: '#ff7a1a', b: '#ffc21a', bands: [['#8c1020', 3.0], ['#ff5a1a', 2.0], ['#ffb03a', 1.1], ['#fff3a0', 0.5]], spark: 'ember', sparkA: '#ffc21a', sparkB: '#ff5a1a' },
-  { id: 'celestial', name: 'Celestial', rarity: 'mythic', a: '#ffffff', b: '#ffd166', bands: [['#2a3f8a', 3.0], ['#7fb3ff', 2.0], ['#ffffff', 1.1], ['#ffd166', 0.5]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffd166' },
-  { id: 'infinitytrail', name: 'Infinity', rarity: 'mythic', a: '#ff3a6e', b: '#46d9ff', bands: [['#ff3a6e', 3.1], ['#ff8a1f', 2.4], ['#ffe14d', 1.8], ['#3fcf4a', 1.3], ['#46d9ff', 0.8], ['#b04dff', 0.4]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffe14d' },
+  { id: 'sunrise', name: tl('Sunrise'), rarity: 'rare', a: '#ff9a3c', b: '#ffe9a8', bands: [['#ff6a1a', 2.3], ['#ffb03a', 1.4], ['#fff3a0', 0.6]] },
+  { id: 'mintfizz', name: tl('Mint Fizz'), rarity: 'rare', a: '#4fe0b0', b: '#eafff7', bands: [['#1f8f6a', 2.2], ['#4fe0b0', 1.2]], spark: 'bubble', sparkA: '#eafff7', sparkB: '#9ff5da' },
+  { id: 'bubblegum', name: tl('Bubblegum'), rarity: 'rare', a: '#ff5fa8', b: '#ffd9ec', bands: [['#e03a84', 2.3], ['#ff8ec4', 1.3], ['#ffd9ec', 0.6]], spark: 'bubble', sparkA: '#ffd9ec', sparkB: '#ff8ec4' },
+  { id: 'inkwell', name: tl('Inkwell'), rarity: 'rare', a: '#3b4060', b: '#aab0d0', bands: [['#15182a', 2.5], ['#3b4060', 1.4], ['#8d93b8', 0.5]] },
+  { id: 'cherry', name: tl('Cherry Blossom'), rarity: 'rare', a: '#ff9ac4', b: '#ffffff', bands: [['#d85a8a', 2.0], ['#ffc8dd', 1.2]], spark: 'petal', sparkA: '#ffd9e8', sparkB: '#ff9ac4' },
+  { id: 'lagoon', name: tl('Lagoon'), rarity: 'epic', a: '#2fd0e0', b: '#dffcff', bands: [['#0d7b8f', 2.4], ['#2fd0e0', 1.4], ['#dffcff', 0.6]], spark: 'bubble', sparkA: '#dffcff', sparkB: '#7fe8f5' },
+  { id: 'sandstorm', name: tl('Sandstorm'), rarity: 'epic', a: '#d8a95a', b: '#f6e3bd', bands: [['#8a6a2a', 2.5], ['#d8a95a', 1.5], ['#f6e3bd', 0.7]], spark: 'dust', sparkA: '#f6e3bd', sparkB: '#d8a95a' },
+  { id: 'bloodmoon', name: tl('Blood Moon'), rarity: 'epic', a: '#c2143c', b: '#ff8a6a', bands: [['#5a0a1a', 2.6], ['#c2143c', 1.5], ['#ff8a6a', 0.6]], spark: 'ring', sparkA: '#ff8a6a', sparkB: '#c2143c' },
+  { id: 'circuit', name: tl('Circuit'), rarity: 'epic', a: '#39ff88', b: '#0d1b2a', bands: [['#0d1b2a', 2.4], ['#1f8f5a', 1.4], ['#39ff88', 0.6]], spark: 'cube', sparkA: '#39ff88', sparkB: '#aaffcf' },
+  { id: 'starlight', name: tl('Starlight'), rarity: 'epic', a: '#bfe9ff', b: '#ffffff', bands: [['#4a7fd8', 2.2], ['#bfe9ff', 1.2], ['#ffffff', 0.5]], spark: 'star', sparkA: '#ffffff', sparkB: '#bfe9ff' },
+  { id: 'aurora', name: tl('Aurora'), rarity: 'epic', a: '#5fffc4', b: '#b04dff', bands: [['#2a7fd8', 2.6], ['#5fffc4', 1.7], ['#b04dff', 0.9], ['#ffffff', 0.4]], spark: 'star', sparkA: '#eaffff', sparkB: '#b04dff' },
+  { id: 'honey', name: tl('Honeycomb'), rarity: 'epic', a: '#ffb400', b: '#fff0b8', bands: [['#a86f00', 2.3], ['#ffb400', 1.4], ['#fff0b8', 0.6]], spark: 'cube', sparkA: '#ffd166', sparkB: '#fff0b8' },
+  { id: 'nightfall', name: tl('Nightfall'), rarity: 'legendary', a: '#6a2ad8', b: '#1b1033', bands: [['#0d0820', 2.8], ['#4b1f9a', 1.7], ['#8a3fd8', 0.8]], spark: 'star', sparkA: '#d8c8ff', sparkB: '#8a3fd8' },
+  { id: 'firework', name: tl('Firework'), rarity: 'legendary', a: '#ff3a6e', b: '#ffe14d', bands: [['#ff3a6e', 2.4], ['#ffe14d', 1.5], ['#46d9ff', 0.8], ['#ffffff', 0.4]], spark: 'burstspark', sparkA: '#ffffff', sparkB: '#ffe14d' },
+  { id: 'tsunami', name: tl('Tsunami'), rarity: 'legendary', a: '#1e6fd8', b: '#dff6ff', bands: [['#0a3a7a', 2.7], ['#1e6fd8', 1.7], ['#7fc8ff', 0.9], ['#ffffff', 0.4]], spark: 'bubble', sparkA: '#ffffff', sparkB: '#7fc8ff' },
+  { id: 'magmatrail', name: tl('Magma'), rarity: 'legendary', a: '#ff5a1a', b: '#2b1a1a', bands: [['#2b1a1a', 2.7], ['#c2300a', 1.8], ['#ff7a1a', 1.0], ['#ffd166', 0.4]], spark: 'ember', sparkA: '#ff7a1a', sparkB: '#ffd166' },
+  { id: 'spectre', name: tl('Spectre'), rarity: 'legendary', a: '#b9bfe8', b: '#3b4060', bands: [['#2a2d45', 2.6], ['#6a71a0', 1.6], ['#d8dcff', 0.7]], spark: 'ghost', sparkA: '#d8dcff', sparkB: '#8d93b8' },
+  { id: 'jetstream', name: tl('Jetstream'), rarity: 'legendary', a: '#ffffff', b: '#46d9ff', bands: [['#1f8fd8', 2.5], ['#7fe0ff', 1.5], ['#ffffff', 0.7]], spark: 'bolt', sparkA: '#ffffff', sparkB: '#46d9ff' },
+  { id: 'confetti', name: tl('Confetti'), rarity: 'legendary', a: '#ffe14d', b: '#ff5fa8', bands: [['#ffffff', 2.2], ['#ffe14d', 1.2]], spark: 'confetti', sparkA: '#ff5fa8', sparkB: '#46d9ff' },
+  { id: 'hologram', name: tl('Hologram'), rarity: 'legendary', a: '#46d9ff', b: '#ff5fa8', bands: [['#46d9ff', 2.5], ['#ff5fa8', 1.6], ['#ffffff', 0.7]], spark: 'cube', sparkA: '#46d9ff', sparkB: '#ff5fa8' },
+  { id: 'supernova', name: tl('Supernova'), rarity: 'mythic', a: '#fff3a0', b: '#ff8a1f', bands: [['#ff8a1f', 3.0], ['#ffd166', 2.0], ['#fff3a0', 1.1], ['#ffffff', 0.5]], spark: 'ring', sparkA: '#ffffff', sparkB: '#ffd166' },
+  { id: 'blackhole', name: tl('Black Hole'), rarity: 'mythic', a: '#8a3fd8', b: '#07060f', bands: [['#07060f', 3.2], ['#2a1a4a', 2.1], ['#6a2ad8', 1.1], ['#d8c8ff', 0.4]], spark: 'ring', sparkA: '#b04dff', sparkB: '#07060f' },
+  { id: 'dragonfire', name: tl('Dragonfire'), rarity: 'mythic', a: '#ff7a1a', b: '#ffc21a', bands: [['#8c1020', 3.0], ['#ff5a1a', 2.0], ['#ffb03a', 1.1], ['#fff3a0', 0.5]], spark: 'ember', sparkA: '#ffc21a', sparkB: '#ff5a1a' },
+  { id: 'celestial', name: tl('Celestial'), rarity: 'mythic', a: '#ffffff', b: '#ffd166', bands: [['#2a3f8a', 3.0], ['#7fb3ff', 2.0], ['#ffffff', 1.1], ['#ffd166', 0.5]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffd166' },
+  { id: 'infinitytrail', name: tl('Infinity'), rarity: 'mythic', a: '#ff3a6e', b: '#46d9ff', bands: [['#ff3a6e', 3.1], ['#ff8a1f', 2.4], ['#ffe14d', 1.8], ['#3fcf4a', 1.3], ['#46d9ff', 0.8], ['#b04dff', 0.4]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffe14d' },
 ];
 
 // how many samples of ball path each trail keeps (the shop trails are the long ones)

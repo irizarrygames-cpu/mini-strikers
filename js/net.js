@@ -36,8 +36,8 @@ const Net = {
   unsaved: false,      // progress changed here that the server has not taken yet
   // how long starting up waits on the server before going on without it (it sleeps: see Game.enter)
   RESUME_WAIT: 5000,
-  WAKING_MSG: 'Waking the server up… this can take up to a minute.',
-  NO_WIFI_MSG: 'No Wi-Fi. Connect to log in or sign up, or play offline as a guest.',
+  WAKING_MSG: tl('Waking the server up… this can take up to a minute.'),
+  NO_WIFI_MSG: tl('No Wi-Fi. Connect to log in or sign up, or play offline as a guest.'),
 
   init() {
     try { this.token = localStorage.getItem(TOKEN_KEY); } catch (e) { this.token = null; }
@@ -55,10 +55,10 @@ const Net = {
   // for the things that start a match; the rest (league, friends, rank) say "use this".
   offlineWhy(play = true) {
     if (!this.noWifi() && !this.offline) return null;
-    if (this.noWifi()) return 'NO WI-FI — CONNECT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS');
+    if (this.noWifi()) return play ? tl('NO WI-FI — CONNECT TO PLAY ONLINE') : tl('NO WI-FI — CONNECT TO USE THIS');
     // a guest is not short of a connection, they are short of an account
-    if (typeof Save !== 'undefined' && !Save.account) return 'MAKE AN ACCOUNT TO ' + (play ? 'PLAY ONLINE' : 'USE THIS') + ' — IT IS FREE';
-    return 'STILL CONNECTING TO THE SERVER — TRY AGAIN IN A MOMENT';
+    if (typeof Save !== 'undefined' && !Save.account) return play ? tl('MAKE AN ACCOUNT TO PLAY ONLINE — IT IS FREE') : tl('MAKE AN ACCOUNT TO USE THIS — IT IS FREE');
+    return tl('STILL CONNECTING TO THE SERVER — TRY AGAIN IN A MOMENT');
   },
 
   // While offline, look now and then for the connection coming back: every few seconds at first (a
@@ -80,7 +80,7 @@ const Net = {
         if (r === null) return;             // reachable, but this device is not signed in: leave it alone
         if (!r) return again();
         this.goOnline();
-        if (typeof UI !== 'undefined') { UI.signedIn(); UI.toast('BACK ONLINE — PROGRESS SAVED'); }
+        if (typeof UI !== 'undefined') { UI.signedIn(); UI.toast(tl('BACK ONLINE — PROGRESS SAVED')); }
       } finally { this._looking = false; }
     };
     this._tick = tick;
@@ -121,7 +121,7 @@ const Net = {
         signal: stop ? stop.signal : undefined, keepalive: !!opts.keepalive,
       });
       let data = null;
-      try { data = await res.json(); } catch (e) { data = { ok: false, msg: 'Bad response from the server' }; }
+      try { data = await res.json(); } catch (e) { data = { ok: false, msg: tl('Bad response from the server') }; }
       if (res.status === 401) data.auth = false;
       return data;
     } finally { if (timer) clearTimeout(timer); }
@@ -172,10 +172,10 @@ const Net = {
     return r;
   },
   async newRecovery(password) {
-    try { return await this.api('/api/account/recovery', { password }); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+    try { return await this.api('/api/account/recovery', { password }); } catch (e) { return { ok: false, msg: tl("Can't reach the server") }; }
   },
   async report(name) {
-    try { return await this.api('/api/report', { name }); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+    try { return await this.api('/api/report', { name }); } catch (e) { return { ok: false, msg: tl("Can't reach the server") }; }
   },
   async login(username, password) {
     const r = await this.api('/api/auth/login', { username, password });
@@ -203,7 +203,7 @@ const Net = {
     Store.onSignedIn();
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
   },
-  giftToast(n) { setTimeout(() => { UI.refreshHome(); UI.toast(`GIFT  +${fmtCoins(n)} COINS`); }, 900); },
+  giftToast(n) { setTimeout(() => { UI.refreshHome(); UI.toast(tl('GIFT  +{0} COINS', [fmtCoins(n)])); }, 900); },
   // forNow: the sign-in expired, but this is still the same player on the same device, so the
   // name stays and they can keep playing offline. Only a real log out clears it.
   forget(forNow) {
@@ -240,8 +240,8 @@ const Net = {
       if (r.auth === false) {
         this.forget(true);
         // mid-game is no moment to be thrown out: carry on offline and say so
-        if (Game.state === 'match' || !$('home').hidden) { UI.playOffline(); UI.toast('SIGNED OUT — PLAYING ON THIS DEVICE'); }
-        else UI.showAuth('You were signed out. Log in again.');
+        if (Game.state === 'match' || !$('home').hidden) { UI.playOffline(); UI.toast(tl('SIGNED OUT — PLAYING ON THIS DEVICE')); }
+        else UI.showAuth(tl('You were signed out. Log in again.'));
         return;
       }
       if (!r.ok) throw new Error(r.msg || 'not saved');
@@ -264,15 +264,15 @@ const Net = {
   },
 
   async changePassword(password, newPassword) {
-    try { return await this.api('/api/account/password', { password, newPassword }); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+    try { return await this.api('/api/account/password', { password, newPassword }); } catch (e) { return { ok: false, msg: tl("Can't reach the server") }; }
   },
 
   async leaderboard() {
-    try { return await this.api('/api/leaderboard'); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+    try { return await this.api('/api/leaderboard'); } catch (e) { return { ok: false, msg: tl("Can't reach the server") }; }
   },
 
   async league() {
-    try { return await this.api('/api/league'); } catch (e) { return { ok: false, msg: "Can't reach the server" }; }
+    try { return await this.api('/api/league'); } catch (e) { return { ok: false, msg: tl("Can't reach the server") }; }
   },
 
   // ---- live socket ----
@@ -332,7 +332,7 @@ const Net = {
       if (this.wsReady) { this.send(obj); done(); return; }
       if (this.noWifi()) {
         this._waking = false;
-        if (this.handlers.error) this.handlers.error({ msg: 'No Wi-Fi — connect and try again' });
+        if (this.handlers.error) this.handlers.error({ msg: tl('No Wi-Fi — connect and try again') });
         return;
       }
       const waited = Date.now() - started;
@@ -343,7 +343,7 @@ const Net = {
       }
       if (waited > this.GIVE_UP_AFTER) {
         this._waking = false;
-        if (this.handlers.error) this.handlers.error({ msg: 'The server is still waking up — try that again in a moment' });
+        if (this.handlers.error) this.handlers.error({ msg: tl('The server is still waking up — try that again in a moment') });
         return;
       }
       setTimeout(tryIt, 250);

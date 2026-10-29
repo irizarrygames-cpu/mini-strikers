@@ -24,6 +24,7 @@ const Game = {
     // Each part starts on its own: one that throws (a browser missing something) is logged and the
     // rest still start, instead of the whole game sitting dead behind its splash.
     const part = (name, fn) => { try { fn(); } catch (e) { console.error('starting ' + name + ':', e); } };
+    part('words', () => I18N.apply(document.body)); // the page's own words, in this language
     part('render', () => Render.init($('game')));
     part('input', () => Input.init());
     part('net', () => Net.init());
@@ -128,7 +129,7 @@ const Game = {
     $('intro').hidden = true;
     this.state = 'match';
     this.last = performance.now();
-    if (!(this.match && this.match.pens)) FX.showBanner('KICK OFF!', '#ffffff', 1.0, `${TEAMS.blue.name} vs ${TEAMS.red.name}`);
+    if (!(this.match && this.match.pens)) FX.showBanner(tl('KICK OFF!'), '#ffffff', 1.0, `${TEAMS.blue.name} vs ${TEAMS.red.name}`);
     Sound.countdown(true);
   },
 
@@ -142,7 +143,7 @@ const Game = {
   async enter() {
     try { await this.enterSteps(); } catch (e) { console.error('starting up:', e); }
     // whatever happened, nobody is left looking at a splash that has stopped answering
-    if (!$('splash').classList.contains('gone') && !UI.playOffline()) UI.showAuth('Something went wrong starting up. Try again.', true);
+    if (!$('splash').classList.contains('gone') && !UI.playOffline()) UI.showAuth(tl('Something went wrong starting up. Try again.'), true);
   },
   async enterSteps() {
     if (Net.token) {
@@ -164,13 +165,17 @@ const Game = {
       }
       // null: the sign-in has run out, so the sign-in page it is
     }
-    UI.showAuth('Connecting\u2026', true);
-    if (await Net.reachable(4000)) { UI.authNote('', false, 'Connecting\u2026'); return; }
+    // back from changing language in Settings as a guest: a guest again, where they were
+    let guest = false;
+    try { guest = sessionStorage.getItem('ms-lang-guest') === '1'; sessionStorage.removeItem('ms-lang-guest'); } catch (e) { /* no storage */ }
+    if (guest && UI.playOffline(true)) return;
+    UI.showAuth(tl('Connecting\u2026'), true);
+    if (await Net.reachable(4000)) { UI.authNote('', false, tl('Connecting\u2026')); return; }
     // signed in here before (the sign-in just ran out): carry on as them for now
     if (UI.playOffline()) return;
-    if (Net.noWifi()) { Net.offlineOffer = true; UI.authButtons(); UI.authNote(Net.NO_WIFI_MSG, true, 'Connecting\u2026'); return; }
+    if (Net.noWifi()) { Net.offlineOffer = true; UI.authButtons(); UI.authNote(Net.NO_WIFI_MSG, true, tl('Connecting\u2026')); return; }
     // asleep: they can type, or play as a guest, while it wakes; the note goes once it is up
-    UI.authNote(UI.AUTH_WAKING, false, 'Connecting\u2026');
+    UI.authNote(UI.AUTH_WAKING, false, tl('Connecting\u2026'));
     const up = await Net.wake();
     if (!up) { Net.offlineOffer = true; UI.authButtons(); }
     UI.authNote(up ? '' : UI.AUTH_UNREACHABLE, !up, UI.AUTH_WAKING);
@@ -181,7 +186,7 @@ const Game = {
     if (this.match && this.match.net) { Online.status = 'idle'; Online.m = null; }
     this.state = 'home';
     this.match = null;
-    $('hud').classList.remove('pens'); Pens.label('SHOOT');
+    $('hud').classList.remove('pens'); Pens.label(tl('SHOOT'));
     Render.zoom = 1;
     FX.clear();
     Input.reset();

@@ -6,12 +6,12 @@
 const MEDALS = ['bronze', 'silver', 'gold'];
 const MEDAL_COLORS = { bronze: '#c87d3a', silver: '#c9d2e4', gold: '#ffc21a' };
 const CHALLENGE_LIST = [
-  { id: 'targets', name: 'TARGET PRACTICE', kind: 'pens', icon: 'target',
-    blurb: 'Ten kicks. Hit the targets hanging in the goal.', unit: 'HIT', cuts: [4, 6, 8], coins: [80, 150, 300] },
-  { id: 'keeper', name: 'KEEPER MODE', kind: 'pens', icon: 'gloves',
-    blurb: 'Ten penalties come at you. Keep them out.', unit: 'SAVED', cuts: [3, 5, 7], coins: [80, 150, 300] },
-  { id: 'gauntlet', name: 'DRIBBLE GAUNTLET', kind: 'match', icon: 'boot',
-    blurb: 'Beat two defenders and their keeper. The clock is running.', unit: 'SEC', lower: true, cuts: [34, 24, 16], coins: [80, 150, 300] },
+  { id: 'targets', name: tl('TARGET PRACTICE'), kind: 'pens', icon: 'target',
+    blurb: tl('Ten kicks. Hit the targets hanging in the goal.'), unit: tl('HIT'), cuts: [4, 6, 8], coins: [80, 150, 300] },
+  { id: 'keeper', name: tl('KEEPER MODE'), kind: 'pens', icon: 'gloves',
+    blurb: tl('Ten penalties come at you. Keep them out.'), unit: tl('SAVED'), cuts: [3, 5, 7], coins: [80, 150, 300] },
+  { id: 'gauntlet', name: tl('DRIBBLE GAUNTLET'), kind: 'match', icon: 'boot',
+    blurb: tl('Beat two defenders and their keeper. The clock is running.'), unit: tl('SEC'), lower: true, cuts: [34, 24, 16], coins: [80, 150, 300] },
 ];
 const challengeById = (id) => CHALLENGE_LIST.find((c) => c.id === id);
 // which medal a score earns (time challenges want a LOW score)
@@ -119,7 +119,7 @@ const SkillRun = {
     Game.state = 'match';
     UI.show('match');
     Render.updateCamera(m, 0, true);
-    FX.showBanner('GO!', '#ffe14d', 0.9, 'BEAT THE DEFENDERS AND SCORE');
+    FX.showBanner(tl('GO!'), '#ffe14d', 0.9, tl('BEAT THE DEFENDERS AND SCORE'));
     Sound.startMusic(); Sound.startAmbience();
   },
 
@@ -129,7 +129,7 @@ const SkillRun = {
     const P = m.pens, C = P.chal;
     if (!first) {
       C.kicks++;
-      if (C.kicks >= C.total) { P.phase = 'end'; P.t = 0; Pens.label('SHOOT'); this.show(C.score); return; }
+      if (C.kicks >= C.total) { P.phase = 'end'; P.t = 0; Pens.label(tl('SHOOT')); this.show(C.score); return; }
     }
     P.team = C.id === 'targets' ? 'blue' : 'red';
     P.phase = first ? 'start' : 'ready'; P.t = 0;
@@ -143,7 +143,7 @@ const SkillRun = {
     for (const k of Object.values(P.keeper)) Object.assign(k, { diveT: 0, celebrateT: 0, sad: false, hopT: 0 });
     P.runup = rand(0.9, 1.3);
     this.newTargets(P);
-    Pens.label(P.team === 'blue' ? 'SHOOT' : 'DIVE');
+    Pens.label(P.team === 'blue' ? tl('SHOOT') : tl('DIVE'));
     Pens.flushInput();
   },
 
@@ -157,17 +157,17 @@ const SkillRun = {
       const hit = (P.targets || []).find((tg) => !tg.hit && Math.hypot(tg.x - s.x, tg.z - s.z) < 0.6);
       if (hit && s.out === 'in') {
         hit.hit = true; C.score++; good = true;
-        P.say = ['TARGET!', '#3fcf4a'];
+        P.say = [tl('TARGET!'), '#3fcf4a'];
         Sound.net();
         taker.celebrateT = CELE_TIME; taker.celebKind = Save.celebration(); taker.fy = -1;
       } else {
-        P.say = s.out === 'in' ? ['MISSED THE TARGETS', '#ffffff'] : PEN_SAY[res];
+        P.say = s.out === 'in' ? [tl('MISSED THE TARGETS'), '#ffffff'] : PEN_SAY[res];
         taker.sad = true;
         if (s.out === 'post' || s.out === 'bar') Sound.post();
       }
     } else {
       good = res === 'save';
-      P.say = good ? ['SAVED!', '#46d9ff'] : PEN_SAY[res] || ['GOAL!', '#ffe14d'];
+      P.say = good ? [tl('SAVED!'), '#46d9ff'] : PEN_SAY[res] || [tl('GOAL!'), '#ffe14d'];
       if (good) { C.score++; Sound.save(); gk.celebrateT = 1.4; }
       else if (res === 'goal' || res === 'postIn' || res === 'barIn') { Sound.net(); taker.celebrateT = CELE_TIME; taker.fy = -1; }
       else taker.sad = true;
@@ -203,7 +203,7 @@ const SkillRun = {
       p.vx = 0; p.vy = 0; p.stunT = 0; p.slideT = 0; p.slideWindT = 0;
       i++;
     }
-    if (!Game.headless) { FX.showBanner('BALL LOST  +3s', '#ff8a8e', 0.7); Sound.whistle(); }
+    if (!Game.headless) { FX.showBanner(tl('BALL LOST  +3s'), '#ff8a8e', 0.7); Sound.whistle(); }
   },
 
   finishGauntlet(m, seconds) {
@@ -224,18 +224,18 @@ const SkillRun = {
     const res = failed ? { coins: 0, medal: null, best: this.best(ch.id), better: false } : this.record(ch.id, score);
     Game.state = 'results';
     const medal = res.medal;
-    const line = failed ? 'NO SCORE' : ch.lower ? `${score.toFixed(1)}s` : `${score} / 10 ${ch.unit}`;
+    const line = failed ? tl('NO SCORE') : ch.lower ? `${score.toFixed(1)}s` : `${score} / 10 ${ch.unit}`;
     const bestLine = res.best === null ? '' : ch.lower ? `${(+res.best).toFixed(1)}s` : `${res.best} ${ch.unit}`;
     const el = $('challenge-end');
     el.innerHTML = `
       <div class="panel small chal-end">
         <h2>${ch.name}</h2>
-        ${medal ? `<div class="chal-medal ${medal}" style="--m:${MEDAL_COLORS[medal]}"><span></span><b>${medal.toUpperCase()}</b></div>` : '<div class="chal-medal none"><b>NO MEDAL</b></div>'}
+        ${medal ? `<div class="chal-medal ${medal}" style="--m:${MEDAL_COLORS[medal]}"><span></span><b>${tl(medal.toUpperCase())}</b></div>` : `<div class="chal-medal none"><b>${tl('NO MEDAL')}</b></div>`}
         <div class="chal-score">${line}</div>
-        ${res.better && !failed ? '<div class="chal-new">NEW BEST!</div>' : bestLine ? `<div class="note">BEST: ${bestLine}</div>` : ''}
+        ${res.better && !failed ? `<div class="chal-new">${tl('NEW BEST!')}</div>` : bestLine ? `<div class="note">${tl('BEST: {0}', [bestLine])}</div>` : ''}
         ${res.coins ? `<div class="chal-coins"><span class="coin"></span>+${res.coins}</div>` : ''}
         <div class="chal-cuts">${ch.cuts.map((cut, i) => `<span class="${MEDALS[i]}"><i style="background:${MEDAL_COLORS[MEDALS[i]]}"></i>${ch.lower ? `${cut}s` : cut}</span>`).join('')}</div>
-        <div class="chal-buttons"><button class="big-btn green" data-a="again">TRY AGAIN</button><button class="mid-btn" data-a="home">BACK</button></div>
+        <div class="chal-buttons"><button class="big-btn green" data-a="again">${tl('TRY AGAIN')}</button><button class="mid-btn" data-a="home">${tl('BACK')}</button></div>
       </div>`;
     el.hidden = false;
     el.querySelector('[data-a="again"]').addEventListener('click', () => { UI.tap(); el.hidden = true; this.start(ch.id); });
@@ -247,7 +247,7 @@ const SkillRun = {
     $('challenge-end').hidden = true;
     this.run = null;
     $('hud').classList.remove('pens');
-    Pens.label('SHOOT');
+    Pens.label(tl('SHOOT'));
     Game.goHome();
   },
 
@@ -277,7 +277,7 @@ const SkillRun = {
     }
     // the scoreline at the top, where the shootout keeps its tally: name on top, score and kick under
     const big = clamp(Math.min(L.W, L.H) * 0.038, 12, 20), small = big * 0.62;
-    const score = `${P.chal.score} ${ch.unit}`, kick = `KICK ${Math.min(P.chal.total, P.chal.kicks + 1)}/${P.chal.total}`;
+    const score = `${P.chal.score} ${ch.unit}`, kick = tl('KICK {0}/{1}', [Math.min(P.chal.total, P.chal.kicks + 1), P.chal.total]);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `400 ${big}px "Lilita One", system-ui, sans-serif`;
     const wScore = ctx.measureText(score + '   ' + kick).width;
@@ -314,16 +314,16 @@ const SkillRun = {
 /* ---------------- the menu ---------------- */
 Object.assign(UI, {
   panel_challenges(body) {
-    $('modal-title').textContent = 'SKILL CHALLENGES';
+    $('modal-title').textContent = tl('SKILL CHALLENGES');
     body.innerHTML = `
-      <p class="note">Three tests on your own. Beat the marks for a medal — each medal pays out once.</p>
+      <p class="note">${tl('Three tests on your own. Beat the marks for a medal — each medal pays out once.')}</p>
       <div class="chal-grid">${CHALLENGE_LIST.map((ch) => {
         const best = SkillRun.best(ch.id), medal = SkillRun.medal(ch.id);
-        const bestTxt = best === null ? 'NOT PLAYED' : ch.lower ? `BEST ${(+best).toFixed(1)}s` : `BEST ${best} ${ch.unit}`;
+        const bestTxt = best === null ? tl('NOT PLAYED') : ch.lower ? tl('BEST {0}s', [(+best).toFixed(1)]) : tl('BEST {0} {1}', [best, ch.unit]);
         return `<button class="chal-card ${medal || ''}" data-chal="${ch.id}">
           <strong>${ch.name}</strong>
           <p>${ch.blurb}</p>
-          <div class="chal-row"><span class="chal-best">${bestTxt}</span>${medal ? `<span class="chal-badge" style="--m:${MEDAL_COLORS[medal]}">${medal.toUpperCase()}</span>` : ''}</div>
+          <div class="chal-row"><span class="chal-best">${bestTxt}</span>${medal ? `<span class="chal-badge" style="--m:${MEDAL_COLORS[medal]}">${tl(medal.toUpperCase())}</span>` : ''}</div>
           <div class="chal-cuts">${ch.cuts.map((cut, i) => `<span><i style="background:${MEDAL_COLORS[MEDALS[i]]}"></i>${ch.lower ? `${cut}s` : cut}</span>`).join('')}</div>
         </button>`;
       }).join('')}</div>`;

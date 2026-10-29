@@ -20,6 +20,8 @@
 // database, so it can never be on for the live game.
 
 const crypto = require('crypto');
+// js/products.js names its packs through tl() (js/i18n.js); here they are English
+if (typeof global.tl !== 'function') global.tl = (s) => s;
 const { PRODUCTS, IAP_DAILY_PACKS } = require('../js/products.js');
 
 const b64u = (b) => Buffer.from(b).toString('base64url');

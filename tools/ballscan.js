@@ -37,6 +37,8 @@ const handlers = {};
 let toServer = null;
 const Net = { rtt: LAG * 2, on: (t, fn) => { handlers[t] = fn; }, send: (o) => toServer(o), whenReady: (o) => toServer(o), user: null };
 const sandbox = {
+  // js/i18n.js, in English (the game says everything through tl())
+  tl: (s, a) => (a ? String(s).replace(/\{(\w+)\}/g, (m, k) => (a[k] != null ? String(a[k]) : m)) : s), tlN: (n, one, many, a) => (n === 1 ? one : many).replace(/\{(\w+)\}/g, (m, k) => ((a || [n])[k] != null ? String((a || [n])[k]) : m)), I18N: { lang: 'en', server: (s) => String(s || ''), parts: (s) => s, t: (s) => s },
   console, Math, Date, JSON, Object, Array, Number, String, Boolean, Map, Set, Proxy, Symbol, Error, isFinite, parseInt, parseFloat, performance,
   setTimeout, clearTimeout,
   Sound: noopProxy(), FX: noopProxy({ banner: null }), UI: noopProxy(), Render: noopProxy(), Pens: noopProxy(),

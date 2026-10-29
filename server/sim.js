@@ -40,6 +40,9 @@ function createSim() {
     Render: {},
     Input: { move: { x: 0, y: 0 }, sprintHeld: false, consumePass: () => false, consumeSkill: () => false, consumeSlide: () => false, consumeShootPress: () => false, consumeShootRelease: () => false },
     vibrate: noop,
+    // js/i18n.js's tl(), in English: what the server says goes to every player, and each of their
+    // games puts it into their own language when it shows it (FX.text, FX.showBanner, toasts)
+    tl: (s, args) => (args ? String(s).replace(/\{(\w+)\}/g, (m, k) => (args[k] !== undefined && args[k] !== null ? String(args[k]) : m)) : s),
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);

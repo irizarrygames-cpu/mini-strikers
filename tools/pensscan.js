@@ -7,7 +7,7 @@ const vm = require('vm');
 const path = require('path');
 
 const N = Number(process.argv[2]) || 20000;
-const ctx = { console, Math, Object, Array, Number, String, JSON, Set, Map };
+const ctx = { tl: (s, a) => (a ? String(s).replace(/\{(\w+)\}/g, (m, k) => (a[k] != null ? String(a[k]) : m)) : s), console, Math, Object, Array, Number, String, JSON, Set, Map };
 vm.createContext(ctx);
 for (const f of ['js/config.js', 'js/penalty.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8') + '\n;this.PEN = typeof PEN !== "undefined" ? PEN : this.PEN; this.PEN_LEVELS = typeof PEN_LEVELS !== "undefined" ? PEN_LEVELS : this.PEN_LEVELS; this.rand = rand;', ctx, { filename: f });
 const { PEN, PEN_LEVELS, rand } = ctx;

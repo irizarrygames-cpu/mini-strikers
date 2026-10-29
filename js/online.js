@@ -24,7 +24,7 @@ const Online = {
 
   init() {
     Net.on('queue', (m) => this.onQueue(m));
-    Net.on('unqueued', (m) => { const was = this.status === 'queue'; this.status = 'idle'; UI.hideQueue(); if (m.msg && was) UI.toast(String(m.msg).toUpperCase()); });
+    Net.on('unqueued', (m) => { const was = this.status === 'queue'; this.status = 'idle'; UI.hideQueue(); if (m.msg && was) UI.toast(I18N.server(m.msg).toUpperCase()); });
     Net.on('room', (m) => this.onRoom(m));
     Net.on('room.left', () => { this.status = 'idle'; this.room = null; UI.hideLobby(); });
     Net.on('start', (m) => this.start(m));
@@ -37,17 +37,17 @@ const Online = {
     Net.on('end', (m) => this.end(m));
     Net.on('left', () => {});
     Net.on('error', (m) => {
-      UI.toast((m.msg || 'Something went wrong').toUpperCase());
+      UI.toast((m.msg ? I18N.server(m.msg) : tl('Something went wrong')).toUpperCase());
       if (this.status === 'queue') { this.status = 'idle'; UI.hideQueue(); }
       else if (this.status === 'room' && !this.room) this.status = 'idle';
     });
-    Net.on('kicked', () => { this.abandon(); UI.toast('SIGNED IN ON ANOTHER DEVICE'); });
+    Net.on('kicked', () => { this.abandon(); UI.toast(tl('SIGNED IN ON ANOTHER DEVICE')); });
     // the sign-in ran out, not a log out: keep the name so this device can still play offline
-    Net.on('authLost', () => { this.abandon(); Net.forget(true); UI.showAuth('Your session ended. Log in again.'); });
-    Net.on('disconnected', () => { if (this.status === 'match') UI.toast('CONNECTION LOST · RECONNECTING…'); });
+    Net.on('authLost', () => { this.abandon(); Net.forget(true); UI.showAuth(tl('Your session ended. Log in again.')); });
+    Net.on('disconnected', () => { if (this.status === 'match') UI.toast(tl('CONNECTION LOST · RECONNECTING…')); });
     // the host naps when it is quiet: say so rather than looking broken
-    Net.on('waking', () => UI.toast('WAKING THE SERVER UP…'));
-    Net.on('awake', () => UI.toast('CONNECTED'));
+    Net.on('waking', () => UI.toast(tl('WAKING THE SERVER UP…')));
+    Net.on('awake', () => UI.toast(tl('CONNECTED')));
   },
 
   // ---------- finding a match ----------
@@ -64,10 +64,10 @@ const Online = {
     // in a party the leader starts, and the format has to fit everyone on one side
     const p = Social.party;
     if (p && p.members.length > 1) {
-      if (format === 'ranked') { UI.toast('RANKED IS 1V1 — LEAVE YOUR PARTY FIRST'); return; }
-      if (!p.lead) { UI.toast(`${p.leader} STARTS THE MATCH FOR YOUR PARTY`); return; }
+      if (format === 'ranked') { UI.toast(tl('RANKED IS 1V1 — LEAVE YOUR PARTY FIRST')); return; }
+      if (!p.lead) { UI.toast(tl('{0} STARTS THE MATCH FOR YOUR PARTY', [p.leader])); return; }
       const n = p.members.length;
-      if (FORMAT_SIZE_NET[format] < n) { UI.toast(`PICK ${n}v${n} OR BIGGER FOR YOUR PARTY OF ${n}`); return; }
+      if (FORMAT_SIZE_NET[format] < n) { UI.toast(tl('PICK {0}v{1} OR BIGGER FOR YOUR PARTY OF {2}', [n, n, n])); return; }
     }
     this.format = format;
     this.worldCup = !!worldCup;
@@ -134,9 +134,9 @@ const Online = {
   nobody: { x: 0, y: 0, vx: 0, vy: 0, fx: 0, fy: 0, r: 0 }, // stands in for "you" when there is no you
   watch(name) {
     if (this.noWifi(false)) return;
-    if (this.status !== 'idle') { UI.toast('FINISH WHAT YOU ARE DOING FIRST'); return; }
+    if (this.status !== 'idle') { UI.toast(tl('FINISH WHAT YOU ARE DOING FIRST')); return; }
     Sound.unlock();
-    UI.toast('WATCHING ' + String(name).toUpperCase() + '…');
+    UI.toast(tl('WATCHING {0}…', [String(name).toUpperCase()]));
     Net.whenReady({ t: 'watch', name });
   },
   stopWatching(msg) {
@@ -145,7 +145,7 @@ const Online = {
     Net.send({ t: 'unwatch' });
     $('hud').classList.remove('watching');
     this.abandon();
-    if (msg) UI.toast(String(msg).toUpperCase());
+    if (msg) UI.toast(I18N.server(msg).toUpperCase());
   },
 
   // ---------- match start ----------
@@ -195,7 +195,7 @@ const Online = {
     UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
     const fromQueue = !$('queue').hidden;
     UI.closeAll(); UI.hideQueue(); UI.hideLobby();
-    $('hud').classList.remove('pens'); Pens.label('SHOOT');
+    $('hud').classList.remove('pens'); Pens.label(tl('SHOOT'));
     $('hud').classList.toggle('watching', !!this.watching);
     $('watch-bar').hidden = !this.watching;
     if (this.watching) $('watch-name').textContent = this.watching;
@@ -278,7 +278,7 @@ const Online = {
       if (c.complete || !(mask & (1 << i))) return;
       c.complete = true;
       if (quiet) return;
-      UI.toast(`${c.text.toUpperCase()} ✓  ·  +1 RP IF YOU WIN`);
+      UI.toast(tl('{0} ✓  ·  +1 RP IF YOU WIN', [tl(c.text).toUpperCase()]));
       Sound.powerReady();
     });
   },
@@ -847,9 +847,9 @@ const Online = {
     FX.burst(e.x, e.y, e.z + 10, colors[0], e.power ? 60 : 44, 0.4);
     FX.doFlash(TEAMS[team].jersey, 0.5);
     FX.doShake(e.power ? 13 : 9, 0.35);
-    let sub = 'OWN GOAL';
-    if (scorer) sub = mineScored ? 'YOU SCORED!' : scorer.name ? scorer.name : `#${scorer.number} ${TEAMS[team].name}`;
-    const big = team === 'blue' ? (mineScored && e.hype ? e.hype : 'GOAL!') : 'GOAL!';
+    let sub = tl('OWN GOAL');
+    if (scorer) sub = mineScored ? tl('YOU SCORED!') : scorer.name ? scorer.name : `#${scorer.number} ${TEAMS[team].name}`;
+    const big = team === 'blue' ? (mineScored && e.hype ? e.hype : tl('GOAL!')) : tl('GOAL!');
     if (m.phase !== 'cele') FX.showBanner(big, team === 'blue' ? '#ffe14d' : shadeHex(TEAMS.red.jersey, 0.15), 2.0, e.hype && !mineScored ? sub + ' · ' + e.hype : sub);
     Sound.net(); Sound.cheer(true); Sound.goalJingle(team === 'blue');
     if (team === 'blue') vibrate([30, 40, 30]);
@@ -874,12 +874,12 @@ const Online = {
       const party = Social.party, f = this.format;
       Game.goHome(); this.m = null;
       if (party && party.lead) Net.send({ t: 'party.coop', format: f });
-      else if (party) UI.toast(party.leader.toUpperCase() + ' STARTS THE NEXT ONE');
-      else UI.toast('MAKE A ROOM TO PLAY ANOTHER');
+      else if (party) UI.toast(tl('{0} STARTS THE NEXT ONE', [party.leader.toUpperCase()]));
+      else UI.toast(tl('MAKE A ROOM TO PLAY ANOTHER'));
       return;
     }
     const p = Social.party;
-    if (p && p.members.length > 1 && !p.lead) { Game.goHome(); this.m = null; UI.toast(`${p.leader} STARTS THE NEXT MATCH`); return; }
+    if (p && p.members.length > 1 && !p.lead) { Game.goHome(); this.m = null; UI.toast(tl('{0} STARTS THE NEXT MATCH', [p.leader])); return; }
     const f = this.format;
     Game.goHome();
     this.m = null;

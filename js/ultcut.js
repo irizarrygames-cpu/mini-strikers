@@ -34,8 +34,8 @@ const UltCut = {
       short: !!net || !p.isHuman,
       dur: net || !p.isHuman ? this.NET : this.DUR,
       // (an offline fill-in has no name of its own, so its shirt number does the job)
-      name: p.isHuman ? 'YOU' : String(p.name || '').toUpperCase() || ('#' + p.number),
-      move: ULT_NAMES[kind] || 'ULT',
+      name: p.isHuman ? tl('YOU') : String(p.name || '').toUpperCase() || ('#' + p.number),
+      move: ULT_NAMES[kind] || tl('ULT'),
       look: p.look, team: p.team, number: p.number,
     };
   },
@@ -186,7 +186,7 @@ const UltCut = {
       ctx.save();
       ctx.globalAlpha = 1 - u * 0.15;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      Render.chunkyText(ctx, 'ULT', W / 2, H / 2, size, col, 0);
+      Render.chunkyText(ctx, tl('ULT'), W / 2, H / 2, size, col, 0);
       ctx.restore();
     }
   },

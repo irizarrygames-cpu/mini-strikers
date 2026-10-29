@@ -37,6 +37,8 @@ SAFE AND SIMPLE
 - Delete your account any time from Settings
 
 Simple touch controls on phones, keyboard or touch on bigger screens.
+
+Play in English, Spanish, Portuguese, French, German or Italian. Change it any time in Settings.
 ```
 
 **App category**: Games, Sports
@@ -69,4 +71,4 @@ Simple touch controls on phones, keyboard or touch on bigger screens.
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.1.2 (13)`
+- Release name: `1.1.3 (14)`

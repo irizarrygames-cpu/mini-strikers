@@ -21,6 +21,7 @@ const os = require('os');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+if (typeof global.tl !== 'function') global.tl = (s) => s; // js/products.js names its packs through tl()
 const { PRODUCTS, IAP_DAILY_PACKS } = require('../js/products.js');
 const coinsOf = (id) => PRODUCTS.find((p) => p.id === id).coins;
 

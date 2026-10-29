@@ -6,28 +6,28 @@
 // ---------------------------------------------------------------- missions
 // kind: what counts. n: how many. coins: what it pays.
 const MISSION_POOL = [
-  { id: 'play3', kind: 'play', n: 3, coins: 300, text: 'Play {n} matches' },
-  { id: 'win2', kind: 'win', n: 2, coins: 450, text: 'Win {n} matches' },
-  { id: 'win4', kind: 'win', n: 4, coins: 800, text: 'Win {n} matches' },
-  { id: 'goals6', kind: 'goals', n: 6, coins: 420, text: 'Score {n} goals' },
-  { id: 'goals12', kind: 'goals', n: 12, coins: 750, text: 'Score {n} goals' },
-  { id: 'online2', kind: 'onlineWin', n: 2, coins: 700, text: 'Win {n} online matches' },
-  { id: 'skills8', kind: 'skills', n: 8, coins: 380, text: 'Pull off {n} skills' },
-  { id: 'tackles10', kind: 'tackles', n: 10, coins: 360, text: 'Win {n} tackles' },
-  { id: 'assists3', kind: 'assists', n: 3, coins: 480, text: 'Set up {n} goals' },
-  { id: 'power2', kind: 'powerGoal', n: 2, coins: 520, text: 'Score {n} power-shot goals' },
-  { id: 'clean1', kind: 'cleanSheet', n: 1, coins: 500, text: 'Win without letting one in' },
-  { id: 'pens1', kind: 'pensWin', n: 1, coins: 550, text: 'Win a shootout' },
-  { id: 'hat1', kind: 'hattrick', n: 1, coins: 650, text: 'Score a hat-trick' },
-  { id: 'saves6', kind: 'saves', n: 6, coins: 400, text: 'Keep {n} shots out' },
+  { id: 'play3', kind: 'play', n: 3, coins: 300, text: tl('Play {n} matches') },
+  { id: 'win2', kind: 'win', n: 2, coins: 450, text: tl('Win {n} matches') },
+  { id: 'win4', kind: 'win', n: 4, coins: 800, text: tl('Win {n} matches') },
+  { id: 'goals6', kind: 'goals', n: 6, coins: 420, text: tl('Score {n} goals') },
+  { id: 'goals12', kind: 'goals', n: 12, coins: 750, text: tl('Score {n} goals') },
+  { id: 'online2', kind: 'onlineWin', n: 2, coins: 700, text: tl('Win {n} online matches') },
+  { id: 'skills8', kind: 'skills', n: 8, coins: 380, text: tl('Pull off {n} skills') },
+  { id: 'tackles10', kind: 'tackles', n: 10, coins: 360, text: tl('Win {n} tackles') },
+  { id: 'assists3', kind: 'assists', n: 3, coins: 480, text: tl('Set up {n} goals') },
+  { id: 'power2', kind: 'powerGoal', n: 2, coins: 520, text: tl('Score {n} power-shot goals') },
+  { id: 'clean1', kind: 'cleanSheet', n: 1, coins: 500, text: tl('Win without letting one in') },
+  { id: 'pens1', kind: 'pensWin', n: 1, coins: 550, text: tl('Win a shootout') },
+  { id: 'hat1', kind: 'hattrick', n: 1, coins: 650, text: tl('Score a hat-trick') },
+  { id: 'saves6', kind: 'saves', n: 6, coins: 400, text: tl('Keep {n} shots out') },
 ];
 
 const WEEKLY_POOL = [
-  { id: 'w-win10', kind: 'win', n: 10, coins: 12000, text: 'Win {n} matches this week' },
-  { id: 'w-goals40', kind: 'goals', n: 40, coins: 13000, text: 'Score {n} goals this week' },
-  { id: 'w-online6', kind: 'onlineWin', n: 6, coins: 15000, text: 'Win {n} online matches this week' },
-  { id: 'w-play20', kind: 'play', n: 20, coins: 10000, text: 'Play {n} matches this week' },
-  { id: 'w-skills40', kind: 'skills', n: 40, coins: 11000, text: 'Pull off {n} skills this week' },
+  { id: 'w-win10', kind: 'win', n: 10, coins: 12000, text: tl('Win {n} matches this week') },
+  { id: 'w-goals40', kind: 'goals', n: 40, coins: 13000, text: tl('Score {n} goals this week') },
+  { id: 'w-online6', kind: 'onlineWin', n: 6, coins: 15000, text: tl('Win {n} online matches this week') },
+  { id: 'w-play20', kind: 'play', n: 20, coins: 10000, text: tl('Play {n} matches this week') },
+  { id: 'w-skills40', kind: 'skills', n: 40, coins: 11000, text: tl('Pull off {n} skills this week') },
 ];
 
 const Missions = {
