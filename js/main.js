@@ -33,7 +33,7 @@ const Game = {
     part('ui', () => UI.init());
     part('social', () => Social.init());
     // penalty shootout on PC: point at the goal to aim
-    for (const ev of ['pointermove', 'pointerdown']) $('game').addEventListener(ev, (e) => Pens.mouseAim(e));
+    for (const ev of ['pointermove', 'pointerdown']) window.addEventListener(ev, (e) => Pens.mouseAim(e), true);
     UI.show('home');
     $('home').hidden = true; // nothing but the splash until we know who you are
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { Render.buildLayer(); Render.homeCrowd = null; Render._homeSpot = null; });

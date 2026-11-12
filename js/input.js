@@ -98,6 +98,19 @@ const Input = {
       if (e.button === 2) { this._mousePass = true; this._syncHold('pass'); }
       if (e.button === 1) { e.preventDefault(); this._skillQueued = true; }
     });
+    // A shootout with a mouse, whatever the controls are set to: the left button is SHOOT (hold it
+    // for power) or DIVE, anywhere on the pitch. With touch controls showing, the joystick's half of
+    // the screen used to catch the click first, so half the goal could not be aimed at or shot at.
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0 || Game.state !== 'match') return;
+      const m = Game.match;
+      if (!m || !m.pens || m.pens.watch) return;
+      const onZone = this.zone && this.zone.contains(e.target);
+      if (e.target !== canvas && !onZone) return;
+      Sound.unlock();
+      this._mouseShoot = true; this._syncHold('shoot');
+      if (onZone) { e.preventDefault(); e.stopPropagation(); } // not the joystick's
+    }, true);
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0 && this._mouseShoot) { this._mouseShoot = false; this._syncHold('shoot'); }
       if (e.button === 2 && this._mousePass) { this._mousePass = false; this._syncHold('pass'); }

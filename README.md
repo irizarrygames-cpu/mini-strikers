@@ -251,6 +251,15 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Shootouts with a mouse (build 112)
+
+In penalties and free kicks the mouse now works whatever Controls is set to: point at the goal to
+aim and hold the left button for power, and in goal point where you want to dive and click (a blue
+ring shows where). With touch controls showing (a touchscreen laptop, or Controls set to touch) the
+joystick's half of the screen used to catch the mouse, so half the goal could not be aimed at and
+the click never charged. Both now listen on the whole window (`Pens.mouseAim`, and a capture
+listener in `Input.init` that only acts during a shootout).
+
 ## Club Career, one player of your own (build 111)
 
 PLAY now opens with two tabs: INTERNATIONAL (your country, as before) and CLUBS. Clubs is a second

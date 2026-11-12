@@ -337,9 +337,19 @@ const Pens = {
     const press = Input.consumeShootPress() | Input.consumeSkill() | Input.consumeSlide() | (Input.consumePassPress ? Input.consumePassPress() : false);
     Input.consumeShootRelease(); Input.consumePass();
     if (!press || P.dive) return;
-    const mv = Input.move, l = Math.hypot(mv.x, mv.y);
-    P.dive = l < 0.25 ? { dx: 0, dz: 1, td: tSinceKick, v: PEN.PLAYER_DIVE } : { dx: mv.x / l, dz: -mv.y / l, td: tSinceKick, v: PEN.PLAYER_DIVE };
+    P.dive = this.diveFrom(P, tSinceKick);
     Sound.whoosh(true);
+  },
+  // Which way you dive: the stick (or WASD) if you are pushing it, otherwise wherever the mouse
+  // is pointing in the goal — point at a corner and click. Nothing at all: you stay up.
+  diveFrom(P, td) {
+    const mv = Input.move, l = Math.hypot(mv.x, mv.y);
+    if (l >= 0.25) return { dx: mv.x / l, dz: -mv.y / l, td, v: PEN.PLAYER_DIVE };
+    if (P.mouse) {
+      const dx = P.mouse.x, dz = (P.mouse.z - 0.45) * 1.6, d = Math.hypot(dx, dz);
+      if (d >= 0.3) return { dx: dx / d, dz: dz / d, td, v: PEN.PLAYER_DIVE };
+    }
+    return { dx: 0, dz: 1, td, v: PEN.PLAYER_DIVE };
   },
 
   strike(m) {
@@ -439,7 +449,7 @@ const Pens = {
     if (P.phase === 'wait') { taker.run = Math.min(1, P.t / 0.24); return; }
     if (P.phase === 'runup') {
       taker.run = Math.min(1, P.t / 1.1); const press = Input.consumeShootPress() | Input.consumeSkill() | Input.consumeSlide() | (Input.consumePassPress ? Input.consumePassPress() : false); Input.consumeShootRelease(); Input.consumePass();
-      if (press && !P.dive && !P.netSent && !P.watch) { const mv = Input.move, l = Math.hypot(mv.x, mv.y); P.dive = l < 0.25 ? { dx: 0, dz: 1, td: P.t, v: PEN.PLAYER_DIVE } : { dx: mv.x / l, dz: -mv.y / l, td: P.t, v: PEN.PLAYER_DIVE }; P.netSent = true; Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz }); Sound.whoosh(true); }
+      if (press && !P.dive && !P.netSent && !P.watch) { P.dive = this.diveFrom(P, P.t); P.netSent = true; Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz }); Sound.whoosh(true); }
       return;
     }
     if (P.phase === 'flight') { this.pose(gk, P.dive, P.t); if (P.t >= PEN.flightT(P.shot)) this.netApply(m); return; }
@@ -899,6 +909,15 @@ const Pens = {
     } else if (P.phase !== 'after' && P.phase !== 'end' && this.sudden(P)) {
       Render.chunkyText(ctx, tl('SUDDEN DEATH'), W / 2, cy, sub, '#ff8a8e');
     }
+    // in goal with a mouse: a glove-sized ring where you are pointing, the way you will dive
+    if (P.team === 'red' && !P.dive && !P.watch && P.mouse && (P.phase === 'runup' || P.phase === 'flight' || P.phase === 'ready')) {
+      const c = this.gp(L, P.mouse.x * PEN.HW, P.mouse.z * PEN.HT), r = Math.max(9, L.s * 0.26);
+      ctx.save();
+      ctx.lineWidth = 7; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 4; ctx.strokeStyle = '#46d9ff'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.32, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     // your aim
     if (P.phase === 'aim') {
       const sw = P.sway || { x: 0, z: 0 };
@@ -965,7 +984,7 @@ const Pens = {
     if (P.watch) hint = null; // nobody tells a viewer to press anything
     else if (P.phase === 'aim' && P.fk && !P.holding) hint = tl('SOFT AND HIGH GOES OVER THE WALL  ·  HARD GOES ROUND IT');
     else if (P.phase === 'aim') hint = P.holding ? tl('LET GO TO SHOOT') : kb ? tl('AIM: WASD OR MOUSE  ·  HOLD SPACE OR CLICK FOR POWER') : tl('AIM WITH THE STICK  ·  HOLD SHOOT FOR POWER');
-    else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? tl('WATCH THE KICK  ·  WASD + SPACE TO DIVE') : tl('WATCH THE KICK  ·  STICK + DIVE');
+    else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? tl('WATCH THE KICK  ·  CLICK WHERE TO DIVE, OR WASD + SPACE') : tl('WATCH THE KICK  ·  STICK + DIVE');
     if (hint) {
       const hs = clamp(Math.min(W, H) * 0.034, 12, 18);
       ctx.font = `400 ${hs}px "Lilita One", system-ui, sans-serif`;
@@ -989,10 +1008,15 @@ const Pens = {
     return this._flags[key];
   },
 
-  // mouse aiming on PC: point at the goal
+  // Mouse on PC: point at the goal. Taking a kick it aims; in goal it picks where you dive. It is
+  // listened for on the whole window, so the joystick's half of a touch layout (a touchscreen
+  // laptop, or Controls set to touch) no longer swallows it.
   mouseAim(e) {
     const m = Game.match;
-    if (!m || !m.pens || m.pens.phase !== 'aim' || e.pointerType !== 'mouse') return;
+    if (!m || !m.pens || e.pointerType !== 'mouse' || Game.state !== 'match') return;
+    const P = m.pens;
+    const keeping = P.team === 'red' && !P.dive && (P.phase === 'ready' || P.phase === 'runup' || P.phase === 'flight');
+    if (P.phase !== 'aim' && !keeping) return;
     const L = this.layout(Render.W, Render.H, !!m.pens.fk);
     const x = (e.clientX - L.gx) / L.s / PEN.HW, z = (L.gy - e.clientY) / L.s / PEN.HT;
     if (x < -1.6 || x > 1.6 || z < -0.4 || z > 1.8) return;
