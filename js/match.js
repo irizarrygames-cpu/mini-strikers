@@ -42,23 +42,28 @@ const Match = {
         sides[team].forEach(([role, n], i) => {
           const s = mine[i];
           if (s && s.human) {
-            const ch = CHARACTERS.find((c) => c.id === s.character) || CHARACTERS[0];
-            const p = new Player({ team, human: true, role, number: n, attr: ratingAttr(ch.r), look: lookOf(ch, s.accessory) });
-            Object.assign(p, { seat: s.seat, name: s.name, trailId: s.trail, celebId: s.celebration, skillId: s.skill || 'classic', rarity: ch.rarity, sig: sigKind(ch), input: s.input });
+            // a real player is their own player: their look, everything they have on, their stats
+            // (a seat from an older server still names a character)
+            const custom = !!(s.look && typeof s.look === 'object');
+            const ch = custom ? null : CHARACTERS.find((c) => c.id === s.character) || CHARACTERS[0];
+            const r = custom ? statRatings(s.stats) : ch.r;
+            const p = new Player({ team, human: true, role, number: n, attr: ratingAttr(r), look: custom ? lookFromCustom(s.look, s.accessories) : lookOf(ch, s.accessory) });
+            Object.assign(p, { seat: s.seat, name: s.name, trailId: s.trail, celebId: s.celebration, skillId: s.skill || 'classic', rarity: custom ? ovrGrade(overall(r)) : ch.rarity, input: s.input });
             m.players.push(p); m.humans.push(p);
           } else {
             const ch = s && s.character && CHARACTERS.find((c) => c.id === s.character);
             const p = new Player({ team, role, number: n, look: ch ? lookOf(ch, s.accessory) : aiLook(), attr: ch ? ratingAttr(ch.r) : null });
-            p.speedMul = diff.redSpeed; p.seat = s ? s.seat : null; p.name = s ? s.name : null; p.celebId = s ? s.celebration : null; p.skillId = (s && s.skill) || 'classic'; p.sig = sigKind(ch || CHARACTERS[0]);
+            p.speedMul = diff.redSpeed; p.seat = s ? s.seat : null; p.name = s ? s.name : null; p.celebId = s ? s.celebration : null; p.skillId = (s && s.skill) || 'classic';
             m.players.push(p);
           }
         });
       }
       m.human = m.humans[0] || m.players[0];
     } else {
-      const ch = Save.character();
-      const human = new Player({ team: 'blue', human: true, role: 'att', number: 10, attr: m.autopilot ? null : ratingAttr(ch.r), look: lookOf(ch, m.autopilot ? null : Save.accessory()) });
-      human.sig = sigKind(ch);
+      // you: your own player, with your stats and everything you have on
+      const me = Save.character();
+      const human = new Player({ team: 'blue', human: true, role: 'att', number: 10, attr: m.autopilot ? null : ratingAttr(me.r), look: m.autopilot ? lookFromCustom(Save.data.look, []) : Save.look() });
+      human.rarity = me.rarity;
       // the signature move you have equipped (autopilot plays plain, so a fuzzed run is comparable)
       human.skillId = m.autopilot ? 'classic' : Save.skill();
       m.human = human;
@@ -70,7 +75,7 @@ const Match = {
         const pool = SKILLS.filter((k) => k.rarity === 'rare' || k.rarity === 'epic');
         return pool.length ? pool[(rng() * pool.length) | 0].id : 'classic';
       };
-      const botChar = () => { const bc = pickBotCharacter(rng); return { look: lookOf(bc, null), attr: ratingAttr(bc.r), sig: sigKind(bc) }; };
+      const botChar = () => { const bc = pickBotCharacter(rng); return { look: lookOf(bc, null), attr: ratingAttr(bc.r) }; };
       roster.blue.forEach(([role, n]) => {
         const p = new Player({ team: 'blue', role, number: n, ...botChar() });
         p.skillId = botSkill();
@@ -91,7 +96,7 @@ const Match = {
       m.players.push(k);
     }
     if (m.autopilot) m.human.speedMul = 0.95;
-    m.humanRarity = m.autopilot ? null : m.human.rarity || (opts.seats ? null : Save.character().rarity);
+    m.humanRarity = m.autopilot ? null : m.human.rarity || null;
     this.setupKickoff(m, 'blue');
     if (!Game.headless && !m.online && m.mode !== 'pens') FX.showBanner(tl('KICK OFF!'), '#ffffff', 1.0, `${home.name} vs ${club.name}`);
     return m;

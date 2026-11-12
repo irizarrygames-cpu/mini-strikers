@@ -300,6 +300,85 @@ const CLUBS = [
     home: makeKit(W_, '#00966e', W_, '#d62612'), away: makeKit('#00966e', '#00966e', '#00966e', W_),
     flag: [['h', ['#ffffff', '#00966e', '#d62612']]] },
 ];
+// ===== CLUB CAREER: fifty European clubs ==============================
+// Made up, on purpose. Real club names and badges belong to the clubs, so these are named after
+// their cities (with a colour or a nickname in the local language) and wear similar colours, the
+// way football games without a licence have always done it. Every badge is drawn from shapes
+// (UI.crestBadge): a shape, how it is split, three colours and an emblem — none of them is a copy
+// of a real one. `stars` (2..5) is how big the club is: it sets what it pays and how hard its
+// bots play (`level` 0..3, like a country's).
+// crest: [shape, split, [main, second, trim], emblem]
+function euroClub(id, name, short, city, country, stars, home, away, crest) {
+  const [shape, split, cols, emblem] = crest;
+  return { id, name, short, city, country, stars, level: Math.max(0, Math.min(3, stars - 2)), home, away, euro: true, crest: { shape, split, cols, emblem } };
+}
+const NV = '#1b2a5a', GD = '#c9a64b';
+const EURO_CLUBS = [
+  // Spain
+  euroClub('madridblanco', 'Madrid Blanco', 'MDB', 'MADRID', 'spain', 5, makeKit(W_, W_, W_, GD), makeKit('#2a2a6e', '#2a2a6e', '#2a2a6e', GD), ['round', 'ring', [W_, GD, '#2a2a6e'], 'star']),
+  euroClub('barcelonablau', 'Barcelona Blaugrana', 'BCN', 'BARCELONA', 'spain', 5, makeKit('#a50044', NV, NV, '#ffd23f', { stripes: '#1d4a9e' }), makeKit('#f7d04a', '#f7d04a', '#f7d04a', '#a50044'), ['shield', 'vstripes', ['#a50044', '#1d4a9e', '#ffd23f'], 'ball']),
+  euroClub('madridrojiblanco', 'Madrid Rojiblanco', 'MDR', 'MADRID', 'spain', 4, makeKit(W_, NV, '#cb3524', '#cb3524', { stripes: '#cb3524' }), makeKit(NV, NV, NV, '#cb3524'), ['pointed', 'vstripes', ['#cb3524', W_, NV], 'tower']),
+  euroClub('bilbaozurigorri', 'Bilbao Zurigorri', 'BIL', 'BILBAO', 'spain', 3, makeKit(W_, B_, B_, B_, { stripes: '#ee2523' }), makeKit(B_, B_, B_, '#ee2523'), ['shield', 'hstripes', ['#ee2523', W_, B_], 'cross']),
+  euroClub('sevillablanco', 'Sevilla Blancorrojo', 'SEV', 'SEVILLA', 'spain', 3, makeKit(W_, W_, W_, '#d6001c'), makeKit('#d6001c', '#d6001c', '#d6001c', W_), ['pointed', 'diag', [W_, '#d6001c', B_], 'crown']),
+  euroClub('vilarealgroc', 'Vila-real Groc', 'VIL', 'VILA-REAL', 'spain', 3, makeKit('#ffe667', '#ffe667', '#ffe667', '#004a9e'), makeKit('#004a9e', '#004a9e', '#004a9e', '#ffe667'), ['round', 'plain', ['#ffe667', '#004a9e', W_], 'wave']),
+  // England
+  euroClub('manchesterblue', 'Manchester Blue', 'MCB', 'MANCHESTER', 'england', 5, makeKit('#6cabdd', W_, '#6cabdd', '#1c2c5b'), makeKit('#1c2c5b', '#1c2c5b', '#1c2c5b', '#6cabdd'), ['round', 'ring', ['#6cabdd', '#1c2c5b', '#ffc659'], 'sun']),
+  euroClub('manchesterred', 'Manchester Red', 'MCR', 'MANCHESTER', 'england', 5, makeKit('#da291c', W_, B_, B_), makeKit(W_, W_, W_, '#da291c'), ['shield', 'band', ['#da291c', '#fbe122', B_], 'flame']),
+  euroClub('merseysidered', 'Merseyside Red', 'MSR', 'LIVERPOOL', 'england', 5, makeKit('#c8102e', '#c8102e', '#c8102e', W_), makeKit(W_, W_, W_, '#c8102e'), ['pointed', 'chevron', ['#c8102e', '#00b2a9', W_], 'star']),
+  euroClub('northlondonred', 'North London Red', 'NLR', 'LONDON', 'england', 5, makeKit('#ef0107', W_, W_, W_, { sleeves: W_ }), makeKit('#023474', '#023474', '#023474', '#ef0107'), ['shield', 'halves', ['#ef0107', '#023474', W_], 'tower']),
+  euroClub('westlondonblue', 'West London Blue', 'WLB', 'LONDON', 'england', 4, makeKit('#034694', '#034694', W_, W_), makeKit(W_, W_, W_, '#034694'), ['round', 'ring', ['#034694', '#dba111', W_], 'crown']),
+  euroClub('northlondonwhite', 'North London White', 'NLW', 'LONDON', 'england', 4, makeKit(W_, '#132257', W_, '#132257'), makeKit('#132257', '#132257', '#132257', W_), ['shield', 'plain', [W_, '#132257', '#132257'], 'bolt']),
+  euroClub('tynesidestripes', 'Tyneside Stripes', 'TYN', 'NEWCASTLE', 'england', 4, makeKit(B_, B_, B_, W_, { stripes: W_ }), makeKit('#41b6e6', '#41b6e6', '#41b6e6', B_), ['round', 'vstripes', [B_, W_, '#41b6e6'], 'tower']),
+  euroClub('birminghamclaret', 'Birmingham Claret', 'BIR', 'BIRMINGHAM', 'england', 3, makeKit('#670e36', W_, '#95bfe5', '#95bfe5', { sleeves: '#95bfe5' }), makeKit(W_, W_, W_, '#670e36'), ['shield', 'halves', ['#670e36', '#95bfe5', '#ffe14d'], 'star']),
+  // Germany
+  euroClub('munchenrot', 'München Rot', 'MUN', 'MÜNCHEN', 'germany', 5, makeKit('#dc052d', '#dc052d', '#dc052d', W_), makeKit(W_, W_, W_, '#dc052d'), ['round', 'quarters', ['#dc052d', W_, '#0066b2'], 'star']),
+  euroClub('dortmundgelb', 'Dortmund Gelb', 'DOR', 'DORTMUND', 'germany', 4, makeKit('#fde100', B_, '#fde100', B_), makeKit(B_, B_, B_, '#fde100'), ['round', 'ring', ['#fde100', B_, W_], 'bolt']),
+  euroClub('leverkusenschwarzrot', 'Leverkusen Schwarzrot', 'LEV', 'LEVERKUSEN', 'germany', 4, makeKit('#e32221', B_, B_, B_, { sleeves: B_ }), makeKit(W_, W_, W_, '#e32221'), ['hex', 'diag', ['#e32221', B_, W_], 'flame']),
+  euroClub('leipzigweiss', 'Leipzig Weiß', 'LEI', 'LEIPZIG', 'germany', 4, makeKit(W_, W_, W_, '#dd0741'), makeKit('#0c2043', '#0c2043', '#0c2043', '#dd0741'), ['badge', 'band', [W_, '#dd0741', '#0c2043'], 'sun']),
+  euroClub('frankfurtadler', 'Frankfurt Adler', 'FFM', 'FRANKFURT', 'germany', 3, makeKit(B_, B_, B_, '#e1000f'), makeKit(W_, W_, W_, '#e1000f'), ['round', 'plain', [B_, '#e1000f', W_], 'wing']),
+  // Italy
+  euroClub('milanorossonero', 'Milano Rossonero', 'MIR', 'MILANO', 'italy', 5, makeKit('#fb090b', B_, B_, W_, { stripes: B_ }), makeKit(W_, W_, W_, '#fb090b'), ['pointed', 'vstripes', ['#fb090b', B_, W_], 'cross']),
+  euroClub('milanonerazzurro', 'Milano Nerazzurro', 'MIN', 'MILANO', 'italy', 5, makeKit('#0068a8', B_, B_, GD, { stripes: B_ }), makeKit(W_, W_, W_, '#0068a8'), ['round', 'ring', ['#0068a8', B_, GD], 'moon']),
+  euroClub('torinobianconero', 'Torino Bianconero', 'TOR', 'TORINO', 'italy', 5, makeKit(W_, B_, W_, B_, { stripes: B_ }), makeKit('#f2a7c3', B_, '#f2a7c3', B_), ['badge', 'vstripes', [B_, W_, GD], 'crown']),
+  euroClub('napoliazzurro', 'Napoli Azzurro', 'NAP', 'NAPOLI', 'italy', 5, makeKit('#12a0d7', W_, '#12a0d7', W_), makeKit(W_, W_, W_, '#12a0d7'), ['round', 'ring', ['#12a0d7', W_, '#003c82'], 'wave']),
+  euroClub('romagiallorosso', 'Roma Giallorosso', 'ROM', 'ROMA', 'italy', 4, makeKit('#8e1f2f', W_, B_, '#f0bc42'), makeKit(W_, W_, W_, '#8e1f2f'), ['pointed', 'halves', ['#8e1f2f', '#f0bc42', W_], 'flame']),
+  euroClub('romabiancoceleste', 'Roma Biancoceleste', 'ROC', 'ROMA', 'italy', 4, makeKit('#87d8f7', W_, W_, NV), makeKit(NV, NV, NV, '#87d8f7'), ['shield', 'chevron', ['#87d8f7', W_, GD], 'wing']),
+  euroClub('bergamonerazzurro', 'Bergamo Nerazzurro', 'BGM', 'BERGAMO', 'italy', 4, makeKit('#1e71b8', B_, B_, W_, { stripes: B_ }), makeKit(W_, W_, W_, '#1e71b8'), ['hex', 'halves', ['#1e71b8', B_, W_], 'tower']),
+  euroClub('firenzeviola', 'Firenze Viola', 'FIR', 'FIRENZE', 'italy', 3, makeKit('#5b2a86', W_, '#5b2a86', W_), makeKit(W_, W_, W_, '#5b2a86'), ['diamond', 'plain', ['#5b2a86', W_, '#d6001c'], 'sun']),
+  // France
+  euroClub('parisbleu', 'Paris Bleu', 'PRS', 'PARIS', 'france', 5, makeKit('#0a1d4f', '#0a1d4f', '#0a1d4f', '#da291c', { center: '#da291c' }), makeKit(W_, W_, W_, '#0a1d4f'), ['round', 'band', ['#0a1d4f', '#da291c', W_], 'tower']),
+  euroClub('marseilleciel', 'Marseille Ciel', 'MRS', 'MARSEILLE', 'france', 3, makeKit(W_, W_, W_, '#2faee0'), makeKit('#2faee0', '#2faee0', '#2faee0', W_), ['pointed', 'chevron', [W_, '#2faee0', GD], 'star']),
+  euroClub('lyonrougebleu', 'Lyon Rouge-Bleu', 'LYO', 'LYON', 'france', 3, makeKit(W_, W_, W_, '#da0812', { sleeves: '#0b3d91' }), makeKit('#0b3d91', '#0b3d91', '#0b3d91', '#da0812'), ['round', 'diag', [W_, '#da0812', '#0b3d91'], 'flame']),
+  euroClub('monacorouge', 'Monaco Rouge-Blanc', 'MON', 'MONACO', 'france', 4, makeKit(W_, W_, W_, '#e51b22', { diag: '#e51b22' }), makeKit(B_, B_, B_, '#e51b22'), ['shield', 'diag', ['#e51b22', W_, GD], 'crown']),
+  euroClub('lillerouge', 'Lille Rouge', 'LIL', 'LILLE', 'france', 3, makeKit('#e01e13', '#20325f', '#e01e13', W_), makeKit(W_, W_, W_, '#20325f'), ['round', 'quarters', ['#e01e13', '#20325f', W_], 'key']),
+  // Portugal
+  euroClub('lisboaencarnado', 'Lisboa Encarnado', 'LIS', 'LISBOA', 'portugal', 4, makeKit('#e20e0e', W_, '#e20e0e', W_), makeKit(B_, B_, B_, '#e20e0e'), ['round', 'ring', ['#e20e0e', W_, '#ffd23f'], 'wing']),
+  euroClub('lisboaverde', 'Lisboa Verde', 'LSV', 'LISBOA', 'portugal', 4, makeKit(W_, B_, '#008057', '#008057', { hoops: '#008057' }), makeKit(B_, B_, B_, '#008057'), ['shield', 'hstripes', ['#008057', W_, '#ffd23f'], 'star']),
+  euroClub('portodragao', 'Porto Dragão', 'OPO', 'PORTO', 'portugal', 4, makeKit(W_, '#003893', W_, '#003893', { stripes: '#1a5bb5' }), makeKit('#ff8a1f', B_, '#ff8a1f', B_), ['round', 'quarters', ['#003893', W_, '#ffd23f'], 'flame']),
+  // the Netherlands
+  euroClub('amsterdamroodwit', 'Amsterdam Rood-Wit', 'AMS', 'AMSTERDAM', 'netherlands', 4, makeKit(W_, W_, W_, '#d2122e', { center: '#d2122e' }), makeKit(NV, NV, NV, GD), ['round', 'ring', [W_, '#d2122e', GD], 'star']),
+  euroClub('eindhovenrood', 'Eindhoven Rood', 'EIN', 'EINDHOVEN', 'netherlands', 3, makeKit('#ed1c24', B_, W_, W_, { stripes: W_ }), makeKit(B_, B_, B_, '#ed1c24'), ['round', 'vstripes', ['#ed1c24', W_, B_], 'bolt']),
+  euroClub('rotterdamhaven', 'Rotterdam Haven', 'ROT', 'ROTTERDAM', 'netherlands', 3, makeKit(W_, B_, B_, B_, { halves: '#e1000f' }), makeKit(B_, B_, B_, '#e1000f'), ['shield', 'halves', ['#e1000f', W_, B_], 'wave']),
+  // Scotland
+  euroClub('glasgowhoops', 'Glasgow Hoops', 'GLH', 'GLASGOW', 'scotland', 3, makeKit(W_, W_, W_, '#018749', { hoops: '#018749' }), makeKit('#ffd23f', B_, '#ffd23f', B_), ['round', 'ring', ['#018749', W_, '#ffd23f'], 'star']),
+  euroClub('glasgowblues', 'Glasgow Blues', 'GLB', 'GLASGOW', 'scotland', 3, makeKit('#1b458f', W_, B_, '#ce1126'), makeKit(W_, W_, W_, '#1b458f'), ['badge', 'band', ['#1b458f', '#ce1126', W_], 'crown']),
+  // Türkiye
+  euroClub('istanbulaslan', 'Istanbul Aslan', 'IAS', 'ISTANBUL', 'turkey', 4, makeKit('#a90432', '#a90432', '#a90432', '#fdb912', { halves: '#fdb912' }), makeKit(W_, W_, W_, '#a90432'), ['round', 'halves', ['#a90432', '#fdb912', W_], 'sun']),
+  euroClub('istanbulkanarya', 'Istanbul Kanarya', 'IKN', 'ISTANBUL', 'turkey', 3, makeKit('#fff200', W_, '#fff200', '#002d72', { stripes: '#002d72' }), makeKit('#002d72', '#002d72', '#002d72', '#fff200'), ['round', 'vstripes', ['#fff200', '#002d72', W_], 'wing']),
+  euroClub('istanbulkartal', 'Istanbul Kartal', 'IKR', 'ISTANBUL', 'turkey', 3, makeKit(W_, B_, B_, B_), makeKit(B_, B_, B_, W_), ['shield', 'vstripes', [B_, W_, '#e30a17'], 'wing']),
+  // Belgium
+  euroClub('bruggeblauwzwart', 'Brugge Blauw-Zwart', 'BRU', 'BRUGGE', 'belgium', 3, makeKit('#0068b2', B_, B_, B_, { stripes: B_ }), makeKit(W_, W_, W_, '#0068b2'), ['badge', 'vstripes', ['#0068b2', B_, GD], 'key']),
+  euroClub('brusselmauve', 'Brussel Mauve', 'BXL', 'BRUSSEL', 'belgium', 3, makeKit('#4c2a85', W_, W_, W_), makeKit(W_, '#4c2a85', W_, '#4c2a85'), ['round', 'quarters', ['#4c2a85', W_, GD], 'crown']),
+  // and five more
+  euroClub('salzburgweiss', 'Salzburg Weiß', 'SAL', 'SALZBURG', 'austria', 3, makeKit(W_, '#d1003f', W_, '#d1003f'), makeKit('#d1003f', '#d1003f', '#d1003f', W_), ['hex', 'band', [W_, '#d1003f', '#ffd23f'], 'peak']),
+  euroClub('donetskorange', 'Donetsk Orange', 'DON', 'DONETSK', 'ukraine', 3, makeKit('#f68b1f', B_, '#f68b1f', B_, { stripes: B_ }), makeKit(W_, W_, W_, '#f68b1f'), ['round', 'vstripes', ['#f68b1f', B_, W_], 'tower']),
+  euroClub('zagrebplavi', 'Zagreb Plavi', 'ZAG', 'ZAGREB', 'croatia', 2, makeKit('#0b4ea2', '#0b4ea2', '#0b4ea2', W_), makeKit(W_, W_, W_, '#0b4ea2'), ['round', 'checks', ['#0b4ea2', W_, '#e30613'], 'none']),
+  euroClub('beogradcrveni', 'Beograd Crveni', 'BEO', 'BEOGRAD', 'serbia', 3, makeKit('#e10a17', W_, W_, W_, { stripes: W_ }), makeKit(NV, NV, NV, '#e10a17'), ['shield', 'vstripes', ['#e10a17', W_, NV], 'star']),
+  euroClub('piraeusreds', 'Piraeus Reds', 'PIR', 'PIRAEUS', 'greece', 3, makeKit('#e2001a', W_, '#e2001a', W_, { hoops: W_ }), makeKit(W_, W_, W_, '#e2001a'), ['round', 'plain', ['#e2001a', W_, NV], 'peak']),
+];
+const EURO_IDS = new Set(EURO_CLUBS.map((c) => c.id));
+const isEuro = (id) => EURO_IDS.has(typeof id === 'string' ? id : id && id.id);
+
 const DEFAULT_CLUB = 'argentina';
 // accounts made when the league was clubs play for that club's country
 const OLD_CLUB_COUNTRY = {
@@ -317,21 +396,34 @@ const KEEPER_COLORS = ['#3fcf4a', '#ffc21a', '#ff8a1f', '#a35cff', '#46d9ff', '#
 
 const Clubs = {
   current: null, home: null,
-  get(id) { return CLUBS.find((c) => c.id === id) || CLUBS[0]; },
-  valid(id) { return CLUBS.some((c) => c.id === id); },
-  mine() { return this.get((typeof Save !== 'undefined' && Save.data && Save.data.club) || DEFAULT_CLUB); },
-  random(...except) { const ids = new Set(except.filter(Boolean).map((c) => typeof c === 'string' ? c : c.id)); const pool = CLUBS.filter((c) => !ids.has(c.id)); return pick(pool.length ? pool : CLUBS); },
+  // a country or a club: everything that draws a team takes either
+  get(id) { return CLUBS.find((c) => c.id === id) || EURO_CLUBS.find((c) => c.id === id) || CLUBS[0]; },
+  valid(id) { return CLUBS.some((c) => c.id === id) || EURO_IDS.has(id); },
+  // Club Career is switched on (Save.data.arena 'club') and there is a club you play for
+  clubMode() { return typeof Save !== 'undefined' && !!Save.data && Save.data.arena === 'club' && !!this.career(); },
+  career() { const c = typeof Save !== 'undefined' && Save.data && Save.data.cc; return c && EURO_IDS.has(c.club) ? EURO_CLUBS.find((x) => x.id === c.club) : null; },
+  // the country your account plays for (the league, the World Cup), whichever side you are on
+  country() { return CLUBS.find((c) => c.id === ((typeof Save !== 'undefined' && Save.data && Save.data.club) || DEFAULT_CLUB)) || CLUBS[0]; },
+  // who you are on the pitch right now: your club in Club Career, otherwise your country
+  mine() { return (this.clubMode() && this.career()) || this.country(); },
+  // the teams there are to play against right now: the clubs in Club Career, otherwise the countries
+  pool() { return this.clubMode() ? EURO_CLUBS : CLUBS; },
+  random(...except) { const ids = new Set(except.filter(Boolean).map((c) => typeof c === 'string' ? c : c.id)); const all = this.pool(); const pool = all.filter((c) => !ids.has(c.id)); return pick(pool.length ? pool : all); },
 
   // Kits for two clubs on one pitch: the home side wears its home kit, the away side
   // switches to its away kit when the two would be hard to tell apart.
   kitsFor(home, away) {
     const hk = home.home;
     let ak = away.home;
-    const clash = (a, b) => colorDist(a.jersey, b.jersey) < 110 || (a.stripes && b.stripes && colorDist(a.stripes, b.stripes) < 110) || (a.checks && b.checks);
+    // (a second colour over half the shirt counts as much as the shirt itself)
+    const second = (k) => k.halves || k.diag || k.hoops || null;
+    const clash = (a, b) => colorDist(a.jersey, b.jersey) < 110 || (a.stripes && b.stripes && colorDist(a.stripes, b.stripes) < 110) || (a.checks && b.checks)
+      || (second(a) && colorDist(second(a), b.jersey) < 110) || (second(b) && colorDist(second(b), a.jersey) < 110)
+      || (second(a) && second(b) && colorDist(second(a), second(b)) < 110);
     if (home.id === away.id || clash(hk, ak)) ak = away.away;
     if (clash(hk, ak)) ak = colorLum(hk.jersey) > 0.5 ? makeKit(B_, B_, B_, W_) : makeKit(W_, W_, W_, B_);
     // keepers: the colour furthest from both outfield kits, and not the same as each other
-    const extra = (k, c) => Math.min(k.stripes ? colorDist(c, k.stripes) : 999, k.checks ? colorDist(c, k.checks) : 999, k.sleeves ? colorDist(c, k.sleeves) : 999);
+    const extra = (k, c) => Math.min(...['stripes', 'checks', 'sleeves', 'hoops', 'halves', 'diag', 'center'].map((x) => (k[x] ? colorDist(c, k[x]) : 999)));
     const score = (c) => Math.min(colorDist(c, hk.jersey), colorDist(c, ak.jersey), extra(hk, c), extra(ak, c));
     const ranked = KEEPER_COLORS.slice().sort((a, b) => score(b) - score(a));
     const gk = (c) => ({ jersey: c, shade: shadeHex(c, -0.22), accent: colorLum(c) > 0.6 ? '#1b1d33' : '#ffffff', shorts: '#1b1d33', socks: c, shoes: '#1b1d33', gloves: '#ffffff' });
@@ -343,7 +435,7 @@ const Clubs = {
     this.home = home; this.current = away;
     const k = this.kitsFor(home, away);
     const fill = (slot, club, kit) => {
-      for (const key of ['stripes', 'sleeves', 'center', 'checks', 'hi']) delete TEAMS[slot][key];
+      for (const key of ['stripes', 'sleeves', 'center', 'checks', 'hoops', 'halves', 'diag', 'hi']) delete TEAMS[slot][key];
       Object.assign(TEAMS[slot], kit, { name: club.name, short: club.short });
     };
     fill('blue', home, k.home);
@@ -363,4 +455,4 @@ const Clubs = {
   apply(club) { this.setMatch(this.mine(), club); },
 };
 
-if (typeof module !== 'undefined') module.exports = { CLUBS, DEFAULT_CLUB, countryFor };
+if (typeof module !== 'undefined') module.exports = { CLUBS, EURO_CLUBS, DEFAULT_CLUB, countryFor };

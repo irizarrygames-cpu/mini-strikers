@@ -810,8 +810,12 @@ const Render = {
         if (sx < -100 || sx > W + 100 || sy < -40 || sy > H + 160) continue;
         Sprites.player(ctx, p, sx, sy, this.k(p.y), t);
       } else if (it.ball) {
-        Sprites.trail(ctx, b, this, t);
-        Sprites.ball(ctx, b, this.sx(b.x, b.y), this.sy(b.y, b.z + CFG.BALL_R), this.k(b.y), t);
+        // an ult shot in flight is a fireball (online, the striker's pose says it is one)
+        const fire = !b.owner && b.trailType === 'fire' && ((b.shot && b.shot.ult) || m.players.some((q) => q.ultShot));
+        const bsx = this.sx(b.x, b.y), bsy = this.sy(b.y, b.z + CFG.BALL_R);
+        if (fire) { Sprites.fireTrail(ctx, b, this, t); Sprites.fireball(ctx, bsx, bsy, CFG.BALL_R * this.k(b.y), b.vx, b.vy, t); }
+        else Sprites.trail(ctx, b, this, t);
+        Sprites.ball(ctx, b, bsx, bsy, this.k(b.y), t);
       } else if (it.cx !== undefined) {
         this.cornerFlag(ctx, it.cx, it.y, t);
       } else {

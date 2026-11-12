@@ -251,6 +251,36 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Club Career, one player of your own (build 111)
+
+PLAY now opens with two tabs: INTERNATIONAL (your country, as before) and CLUBS. Clubs is a second
+side of the game with its own home screen: every mode is there, in your club's kit and at its ground,
+and the World Cup becomes the Champions Cup (bots and online, with its own trophy lift).
+
+- **The clubs** (js/clubs.js, `EURO_CLUBS`): fifty European clubs, made up on purpose. Real club names
+  and badges are the clubs' trademarks, so each one is named after its city with a colour or nickname in
+  the local language (Madrid Blanco, Merseyside Red, München Rot…) and wears similar colours. Badges are
+  drawn from shapes (`UI.crestBadge`: a shape, a split, three colours, an emblem) and copy nobody's.
+  The Champions Cup trophy is our own design too (`Sprites.championsCup`). `Clubs.get` takes a
+  country or a club; `Clubs.mine()`/`Clubs.pool()` follow the side you are on (`Save.data.arena`).
+- **Offers and wages** (js/career.js): every three days four clubs make an offer, each paying a
+  different number of coins per goal and per assist; bigger clubs pay more and better stats bring
+  bigger clubs. You sign one per three days; the contract runs three days and pays on the results
+  screen (shootouts at half rate, training nothing). Kept in `Save.data.cc`.
+- **One player** (js/config.js `STAT_*`, js/clubpanels.js): the characters are gone. Your player has
+  a look you pick for free (hair, colours, skin, build) and five stats you buy levels of: each level
+  costs more than the last and adds less (rating = 60 + 12·ln(1 + level/6)), with no top level.
+  Old saves get back every coin they spent on characters, once (`charRefund`; the server lets that
+  one save add the refund on top of its usual limit, and never again: tools/refundscan.js).
+- **Accessories**: as many at once as you like (`Save.data.accessories`), drawn in slot order.
+- **The ULT** is a random kick each time — volley, bicycle kick, backflip kick or the new scorpion
+  kick — struck as a fireball, with flames on the cutscene.
+- **Online**: the game tells the server which club's kit it wears (`{ t: 'arena' }`); a side with
+  nobody on it is then a club too, and a club seat moves no country in the league. Your look, stats
+  and owned accessories come from the save the server keeps. Stats count in matchmaking (5 points per
+  OVR over 60) and sharpen the fill-ins. The online Champions Cup is its own run (`u.cc`, queue key
+  `cc/<format>/<round>`). Test: `node tools/clubscan.js`.
+
 ## Twelve languages (builds 109 and 110)
 
 English, Spanish, Portuguese (Brazil), French, German and Italian (build 109); Dutch, Turkish, Polish,

@@ -66,7 +66,8 @@ class NetInput {
 // real players at the same round (filled like any match), no draws (golden goal). Lose and you're out.
 const WC_ROUNDS = ['ROUND OF 16', 'QUARTER-FINAL', 'SEMI-FINAL', 'FINAL'];
 
-// worldCup: { round(id) -> 0..3, result(id, won) -> { round, champion, titles } } (the run lives on the account)
+// worldCup: { round(id, kind) -> 0..3, result(id, won, kind) -> { round, champion, titles } } (the run lives
+// on the account). kind 'wc' is the World Cup, 'cc' the Champions Cup (Club Career): two runs, one each.
 // league: { move(club, +1 up | -1 down), result([[club, ±1]...]) for a whole match, pos(club) -> 1.. } (server.js)
 function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worldCup, ranked, league }) {
   const wc = worldCup || { round: () => 0, result: () => ({ round: 0, champion: false, titles: 0 }) };
@@ -295,22 +296,41 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     return ch && (!ch.only || ch.only.includes(id)) ? ch.id : 'street';
   }
 
+  // Which club's kit a player wears online: the one their game said (Club Career), or none.
+  const EURO_IDS = new Set(sim.EURO_CLUBS.map((c) => c.id));
+  const clubOf = (id) => { const c = conns.get(id); return c && EURO_IDS.has(c.club) ? c.club : null; };
+  // How good a player's stats make them, from the save the server keeps: 60 is where everyone
+  // starts. (A save can only buy levels with coins, and coins can only climb so fast.)
+  const ovrOf = (id) => { const u = getUser(id); return sim.statOvr((u && u.save && u.save.stats) || {}); };
+
   function profileOf(id) {
     const u = getUser(id);
     const save = (u && u.save) || {};
     const has = (list, v) => !v || list.some((x) => x.id === v);
+    const country = (u && u.club) || sim.CLUBS[0].id, team = clubOf(id);
+    // every accessory they have on that they really own
+    const owned = save.owned && Array.isArray(save.owned.accessory) ? save.owned.accessory : [];
+    const wearing = Array.isArray(save.accessories) ? save.accessories : save.accessory ? [save.accessory] : [];
+    const accessories = sim.cleanAccessories(wearing, (a) => owned.includes(a) || !(sim.PRICES.accessory[a] > 0));
     return {
       name: userName(id),
-      club: (u && u.club) || sim.CLUBS[0].id,
+      // the team they show up as (a club in Club Career, otherwise their country)...
+      club: team || country,
+      // ...and the country whose place in the league they play for (none while they play for a club)
+      league: team ? null : country,
       character: charFor(save.character, id),
+      // their own player: how they look and their stat levels
+      look: sim.cleanLook(save.look),
+      stats: sim.statLevels(save.stats),
+      accessories,
       trail: has(sim.TRAILS, save.trail) && save.trail ? save.trail : 'electric',
       celebration: has(sim.CELEBRATIONS, save.celebration) && save.celebration ? save.celebration : 'jump',
       // a signature move the save actually owns, or the free one
       skill: save.skill && sim.SKILLS.some((k) => k.id === save.skill)
         && (save.skill === 'classic' || (save.owned && Array.isArray(save.owned.skill) && save.owned.skill.includes(save.skill)))
         ? save.skill : 'classic',
-      // only an accessory the save actually owns
-      accessory: save.accessory && sim.ACCESSORIES.some((a) => a.id === save.accessory) && save.owned && Array.isArray(save.owned.accessory) && save.owned.accessory.includes(save.accessory) ? save.accessory : null,
+      // (older games read one accessory)
+      accessory: accessories[0] || null,
     };
   }
 
@@ -412,7 +432,9 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'challenge.send': return answer(challengeInvite(id, msg.name));
       case 'challenge.accept': return answer(challengeAccept(id, msg.id));
       case 'challenge.decline': return answer(challengeDecline(id, msg.id));
-      case 'queue': return joinQueue(conn, msg.format, msg.wc === true);
+      // the kit they wear online: their club's (Club Career) or, with null, their country's
+      case 'arena': conn.club = typeof msg.club === 'string' && EURO_IDS.has(msg.club) ? msg.club : null; return;
+      case 'queue': return joinQueue(conn, msg.format, msg.wc === true, msg.cup === 'cc' ? 'cc' : 'wc');
       case 'unqueue': if (!stopQueue(id, `${userName(id)} stopped the search`)) send(conn, { t: 'unqueued' }); return;
       case 'party.coop': return partyCoop(id, msg.format);
       case 'room.coop': return lobbyCoop(id, !!msg.on);
@@ -428,10 +450,11 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   /* ---------------- queue ---------------- */
 
-  const wcRoundOf = (id) => Math.max(0, Math.min(WC_ROUNDS.length - 1, wc.round(id) | 0));
+  const wcRoundOf = (id, kind = 'wc') => Math.max(0, Math.min(WC_ROUNDS.length - 1, wc.round(id, kind === 'cc' ? 'cc' : 'wc') | 0));
 
   // In a party, the leader's PLAY brings everyone: they all go into one match on the same side.
-  function joinQueue(conn, format, worldCup) {
+  // worldCup: queue for a cup round; kind: which cup ('wc' World Cup, 'cc' Champions Cup)
+  function joinQueue(conn, format, worldCup, kind = 'wc') {
     const id = conn.userId;
     const fail = (msg) => send(conn, { t: 'error', msg });
     // ranked is its own queue, and it is 1v1: your rank is yours, not a team's
@@ -458,10 +481,11 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (inCup(id)) return fail('Your cup match is next');
     for (const m of ids) { const e = entryOf(m); if (e) removeEntry(e); }
     // a party plays the World Cup round the furthest of them has reached (each one's own run moves on)
-    const round = worldCup && !ranked ? Math.max(...ids.map((x) => wcRoundOf(x, fmt))) : null;
-    const key = ranked ? 'ranked' : round === null ? fmt : `wc/${fmt}/${round}`;
+    const cupKind = kind === 'cc' ? 'cc' : 'wc';
+    const round = worldCup && !ranked ? Math.max(...ids.map((x) => wcRoundOf(x, cupKind))) : null;
+    const key = ranked ? 'ranked' : round === null ? fmt : `${cupKind}/${fmt}/${round}`;
     (queues[key] = queues[key] || []).push({ userId: id, ids, at: Date.now(), skill: Math.max(...ids.map(skillOf)), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
-    for (const m of ids) push(m, { t: 'queue', format, wc: round === null ? null : wcRoundOf(m, fmt), party: ids.length > 1 ? ids.map(userName) : null, leader: userName(id) });
+    for (const m of ids) push(m, { t: 'queue', format, wc: round === null ? null : wcRoundOf(m, cupKind), cup: round === null ? null : cupKind, party: ids.length > 1 ? ids.map(userName) : null, leader: userName(id) });
   }
 
   function removeEntry(e) {
@@ -491,14 +515,17 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     try { rp = (ranked && ranked.view && (ranked.view(id) || {}).rp) || 0; } catch (e) { rp = 0; }
     const o = (u && u.online) || {};
     const played = o.p || 0;
-    if (!played) return rp;
+    // Stats count too: a player who has bought a lot of levels meets better players (and the
+    // fill-ins in their matches are better), five points for every point of OVR over 60.
+    const statPower = Math.max(0, ovrOf(id) - 60) * 5;
+    if (!played) return rp + statPower;
     // how often they win, nudged by how heavily: 0 to about 220, so it sits across the tiers
     const winRate = (o.w || 0) / played;
     const diff = Math.max(-2, Math.min(2, ((o.gf || 0) - (o.ga || 0)) / played));
     // a handful of games says little, so a new record is pulled towards the middle
     const trust = Math.min(1, played / 8);
     const casual = Math.round((winRate * 180 + diff * 20) * trust);
-    return Math.max(rp, Math.max(0, casual));
+    return Math.max(rp, Math.max(0, casual)) + statPower;
   }
   // a party is as good as its best player, so nobody can hide behind their friends
   const entrySkill = (e) => Math.max(...e.ids.map(skillOf));
@@ -589,7 +616,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function matchmake() {
     sweepParties();
     for (const [key, q] of Object.entries(queues)) {
-      const wcKey = key.startsWith('wc/'), ranked = key === 'ranked';
+      const wcKey = key.startsWith('wc/') || key.startsWith('cc/'), ranked = key === 'ranked';
+      const cupKind = wcKey ? key.slice(0, 2) : null;
       const format = wcKey ? key.split('/')[1] : ranked ? '1v1' : key;
       const round = wcKey ? Number(key.split('/')[2]) : null;
       // anyone whose connection went away is out (a party with them stops looking)
@@ -616,7 +644,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         }
         if (!full && waited < head.wait) break;   // nothing to start yet; come back later
         for (const e of pick) q.splice(q.indexOf(e), 1);
-        startRoom(format, sideUp(pick.map((e) => e.ids), size), null, round, null, ranked);
+        startRoom(format, sideUp(pick.map((e) => e.ids), size), null, round, null, ranked, false, cupKind || 'wc');
         if (!full) break;                          // that one went out short, filled in with bots
       }
     }
@@ -771,16 +799,17 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const e = entries.find((x) => x.team === team);
       if (e) {
         const pr = profileOf(e.id); taken.add(pr.name); clubs[team] = pr.club;
-        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, club: pr.club, conn: conns.get(e.id), gone: false, wc: null });
+        seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, look: pr.look, stats: pr.stats, accessories: pr.accessories, club: pr.league, conn: conns.get(e.id), gone: false, wc: null });
       } else {
         const character = sim.pickBotCharacter(Math.random, botShareFor(roomSkill(entries.map((x) => x.id)))).id;
         seats.push({ seat: seats.length, team, human: false, name: null, character, club: null, conn: null, gone: false });
       }
     }
     for (const s of seats) if (!s.human) s.name = botName(taken);
-    const clubIds = sim.CLUBS.map((c) => c.id);
-    if (!clubs.blue) clubs.blue = pickOne(clubIds.filter((c) => c !== clubs.red));
-    if (!clubs.red) clubs.red = pickOne(clubIds.filter((c) => c !== clubs.blue));
+    // nobody on a side: it is a team from the other side's world (a club plays a club)
+    const poolFor = (other) => (EURO_IDS.has(other) ? [...EURO_IDS] : sim.CLUBS.map((c) => c.id));
+    if (!clubs.blue) clubs.blue = pickOne(poolFor(clubs.red).filter((c) => c !== clubs.red));
+    if (!clubs.red) clubs.red = pickOne(poolFor(clubs.blue).filter((c) => c !== clubs.blue));
     const model = PenModel.create((Date.now() ^ nextRoom * 2654435761) >>> 0, kind);
     const room = { id: nextRoom++, code, format: kind === 'fk' ? 'fk' : 'pens', seats, state: 'intro', clubs, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound,
       pen: { model, phase: 'intro', pending: { shot: null, dive: null }, deadline: Date.now() + INTRO_MS + 10000, nextAt: 0 } };
@@ -873,8 +902,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
   /* ---------------- matches ---------------- */
 
-  // wcRound: the World Cup round this match is (0..3), or null for an ordinary match
-  function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false, coop = false) {
+  // wcRound: the cup round this match is (0..3), or null for an ordinary match; cupKind: which cup
+  function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false, coop = false, cupKind = 'wc') {
     if (SHOOTOUT(format)) return startPensRoom(entries, code, wcRound, format);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
@@ -898,7 +927,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         if (e) {
           const pr = profileOf(e.id);
           taken.add(pr.name);
-          seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.club, input: new NetInput(), conn: conns.get(e.id), ack: 0, wc: wcRound === null ? null : wcRoundOf(e.id) });
+          seats.push({ seat: seats.length, team, human: true, userId: e.id, name: pr.name, character: pr.character, look: pr.look, stats: pr.stats, accessories: pr.accessories, trail: pr.trail, celebration: pr.celebration, accessory: pr.accessory, club: pr.league, input: new NetInput(), conn: conns.get(e.id), ack: 0, wc: wcRound === null ? null : wcRoundOf(e.id, cupKind) });
         } else {
           // filled spots dress like people do: some with an accessory, mostly the cheaper ones
           seats.push({ seat: seats.length, team, human: false, name: null, character: sim.pickBotCharacter(Math.random, botShare).id, celebration: pickOne(BOT_CELEBS), skill: botSkillFor(standard), accessory: Math.random() < 0.3 ? pickOne(BOT_ACCESSORIES) : null });
@@ -906,16 +935,20 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       }
     }
     for (const s of seats) if (!s.human) s.name = botName(taken);
-    const clubIds = sim.CLUBS.map((c) => c.id);
-    if (!clubFor.blue) clubFor.blue = pickOne(clubIds.filter((c) => c !== clubFor.red));
-    if (!clubFor.red) clubFor.red = pickOne(clubIds.filter((c) => c !== clubFor.blue));
+    // a side with nobody on it is a team from the other side's world: a club plays a club
+    const poolFor = (other) => (EURO_IDS.has(other) ? [...EURO_IDS] : sim.CLUBS.map((c) => c.id));
+    if (!clubFor.blue) clubFor.blue = pickOne(poolFor(clubFor.red).filter((c) => c !== clubFor.red));
+    if (!clubFor.red) clubFor.red = pickOne(poolFor(clubFor.blue).filter((c) => c !== clubFor.blue));
 
-    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cup, ranked: !!ranked, coop: !!coop, standard };
+    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cupKind: wcRound === null ? null : cupKind === 'cc' ? 'cc' : 'wc', cup, ranked: !!ranked, coop: !!coop, standard };
+    // better stats in the room, better fill-ins: a notch up for every 3 OVR the players average over 60
+    const humanIds = seats.filter((s) => s.human).map((s) => s.userId);
+    const statBump = humanIds.length ? Math.round(Math.max(0, humanIds.reduce((n, x) => n + ovrOf(x), 0) / humanIds.length - 60) / 3) : 0;
     room.m = sim.create({
-      // World Cup rounds: no draws, and each round a notch tougher than the last
+      // cup rounds: no draws, and each round a notch tougher than the last
       online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null || !!cup,
       // (the fill-ins start strong, so your level and the round only add half as much as they do offline)
-      diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3),
+      diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3 + statBump),
       home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
     }, room.events);
     room.m.events = room.events;
@@ -938,7 +971,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       ranked: room.ranked || undefined, challenges: seat.chal ? seat.chal.map((c) => ({ id: c.id, text: c.text })) : undefined,
       t: 'start', room: room.id, code: room.code, format: room.format, minutes: MATCH_MINUTES,
       side: seat.team, you: m.players.indexOf(seat.player), clubs: room.clubs,
-      startsIn: Math.max(0, room.startAt - Date.now()), tick: room.tick, character: seat.character, wc: seat.wc == null ? room.wc : seat.wc,
+      startsIn: Math.max(0, room.startAt - Date.now()), tick: room.tick, character: seat.character, stats: seat.stats || undefined, wc: seat.wc == null ? room.wc : seat.wc, cup: room.cupKind || undefined,
       players: m.players.map((p) => ({ team: p.team, number: p.number, keeper: p.isKeeper, name: p.isKeeper ? null : p.name, look: p.look })),
       score: m.score,
     });
@@ -1323,7 +1356,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     }
     if (!room.coop) onlineRecord(seat.userId, { outcome: 'loss', goalsFor: 0, goalsAgainst: 0, goals: 0, ranked: !!room.ranked, challenges: 0 });
     if (room.state !== 'over' && seat.club) ladder.move(seat.club, -1);
-    if (room.wc !== null && room.wc !== undefined && room.state !== 'over') wc.result(seat.userId, false);
+    if (room.wc !== null && room.wc !== undefined && room.state !== 'over') wc.result(seat.userId, false, room.cupKind || 'wc');
     becomeBot(room, seat);
     seat.gone = true; seat.conn = null;
     const stillPlaying = (team) => room.seats.some((s) => s.human && !s.gone && s.team === team);
@@ -1409,7 +1442,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       mvp: { index: m.players.indexOf(mvp), name: mvp.isKeeper ? null : mvp.name, team: mvp.team, keeper: mvp.isKeeper, number: mvp.number, stats: mvp.stats },
       players: m.players.map((p) => ({ name: p.isKeeper ? null : p.name, team: p.team, number: p.number, keeper: p.isKeeper, stats: p.stats })),
       goals: m.goals.map((g) => ({ team: g.team, scorer: g.scorer ? m.players.indexOf(g.scorer) : -1, own: g.own, time: Math.round(g.time) })),
-      forfeit: !!forfeitTeam,
+      forfeit: !!forfeitTeam, cup: room.cupKind || undefined,
     };
     const fc = room.cup ? cupResult(room, forfeitTeam) : null;
     const results = [], moves = new Map();
@@ -1429,7 +1462,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const moved = !room.coop ? onlineRecord(seat.userId, { outcome, goalsFor: mine, goalsAgainst: theirs, goals: stats.goals || 0, ranked: !!room.ranked, challenges: chal.length }) : 0;
       let cup = null;
       if (room.wc !== null && room.wc !== undefined) {
-        const r = wc.result(seat.userId, outcome === 'win');
+        const r = wc.result(seat.userId, outcome === 'win', room.cupKind || 'wc');
         cup = { round: seat.wc == null ? room.wc : seat.wc, won: outcome === 'win', champion: r.champion, next: r.round, titles: r.titles };
       }
       if (seat.club && !room.coop) moves.set(seat.club, (moves.get(seat.club) || 0) + (outcome === 'win' ? 1 : outcome === 'loss' ? -1 : 0));
@@ -1486,6 +1519,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   return {
     connect,
     clubs: sim.CLUBS,
+    prices: sim.PRICES, // what the old characters cost (server.js gives it back once)
     // the rank maths the accounts need (server.js keeps the points, this keeps the rules in one place)
     rank: { tier: sim.rankTier, next: sim.rankNext, delta: sim.rankDelta, seasonNow: sim.seasonNow, seasonEndsAt: sim.seasonEndsAt, tiers: sim.RANK_TIERS },
     countryFor: sim.countryFor,

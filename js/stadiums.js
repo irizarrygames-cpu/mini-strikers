@@ -544,7 +544,8 @@ const _grounds = {};
 function stadiumFor(club) {
   const id = (club && club.id) || (typeof DEFAULT_CLUB === 'string' ? DEFAULT_CLUB : 'spain');
   if (_grounds[id]) return _grounds[id];
-  const ground = COUNTRY_GROUNDS[id] || DEFAULT_GROUND;
+  // a club plays in its country's kind of ground, named after its own city
+  const ground = COUNTRY_GROUNDS[id] || (club && club.euro && COUNTRY_GROUNDS[club.country] ? { ...COUNTRY_GROUNDS[club.country], city: club.city } : DEFAULT_GROUND);
   const k = STADIUM_KINDS[ground.kind] || STADIUM_KINDS.day;
   const kit = club && club.home ? club.home : null;
   // the stands take the country's colours, dark enough that the crowd still reads on top of them

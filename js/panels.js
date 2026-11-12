@@ -17,19 +17,20 @@ Object.assign(UI, {
     const quickClub = Clubs.random(Clubs.mine());
     const pensClub = Clubs.random(Clubs.mine());
     const fmt = Save.data.format || '4v4';
-    const club = Clubs.mine();
-    const wcRound = Online.wcRound();
+    const club = Clubs.mine(), clubs = Clubs.clubMode();
+    const cupKind = clubs ? 'cc' : 'wc', wcRound = Online.cupRound(cupKind);
     body.innerHTML = `
+      ${this.arenaSwitch()}
       <div class="formats"><span>${tl('FORMAT')}</span>${['1v1', '2v2', '3v3', '4v4'].map((f) => `<button data-format="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
       <div class="play-top">
         <button class="mode quick" data-mode="quick">
           <strong>${tl('QUICK MATCH')}</strong>
-          <p>${tl('One match against a random country. Works with no connection.')}</p>
-          <span class="tag">${tl('COINS · XP · 3 CHALLENGES')}</span>
+          <p>${clubs ? tl('One match against a random club. Works with no connection.') : tl('One match against a random country. Works with no connection.')}</p>
+          <span class="tag">${clubs ? tl('COINS · WAGES · 3 CHALLENGES') : tl('COINS · XP · 3 CHALLENGES')}</span>
         </button>
         <button class="mode online" data-needs-net data-mode="online">
           <strong>${tl('PLAY ONLINE')}</strong>
-          <p>${tl('Real people from every country. A win moves {0} up the league.', [club.name])}</p>
+          <p>${clubs ? tl('Real people from every country. Every goal and assist for {0} pays your wages.', [club.name]) : tl('Real people from every country. A win moves {0} up the league.', [club.name])}</p>
           <span class="tag">${tl('ONLINE')}</span>
         </button>
         <div class="room-box">
@@ -45,8 +46,8 @@ Object.assign(UI, {
           <p>${tl('1v1 for rank points. Win +10, draw +5, lose -5.')}</p>
           <span class="tag">${tl('ONLINE · 1V1')}</span>
         </button>
-        <button class="mode cup" data-mode="worldcup">
-          <strong>${tl('WORLD CUP')}</strong>
+        <button class="mode cup ${clubs ? 'champions' : ''}" data-mode="worldcup">
+          <strong>${Cup.name()}</strong>
           <p>${tl('Real players online, or bots. Lose once and you are out.')}</p>
           <span class="tag">${tl('ONLINE: {0} · BOTS: {1}', [WC_ROUNDS[wcRound], cup ? Cup.ROUNDS[cup.round] : tl('NEW CUP')])}</span>
         </button>
@@ -77,7 +78,8 @@ Object.assign(UI, {
         </button>
       </div>
       <button class="mid-btn pick-btn" id="pick-opp" aria-expanded="false">${tl('PICK YOUR OPPONENT')}</button>
-      <div class="clubs-row" id="clubs-row" hidden>${CLUBS.filter((c) => c.id !== Clubs.mine().id).map((c) => `<button class="club-chip" data-club="${c.id}" style="--c:${clubUi(c)}" title="${tl('Quick match vs {0}', [c.name])}"><canvas width="42" height="28" data-flag="${c.id}"></canvas><b>${c.short}</b><i>${'★'.repeat(c.level + 1)}</i></button>`).join('')}</div>`;
+      <div class="clubs-row ${clubs ? 'euro' : ''}" id="clubs-row" hidden>${Clubs.pool().filter((c) => c.id !== club.id).map((c) => `<button class="club-chip" data-club="${c.id}" style="--c:${clubUi(c)}" title="${tl('Quick match vs {0}', [c.name])}"><canvas width="42" height="${c.euro ? 42 : 28}" data-flag="${c.id}"></canvas><b>${c.short}</b><i>${'★'.repeat(c.euro ? c.stars : c.level + 1)}</i></button>`).join('')}</div>`;
+    this.bindArenaSwitch(body);
     // ninety-odd flags are a lot to scroll past, so they wait behind a button
     $('pick-opp').addEventListener('click', () => {
       this.tap();
@@ -267,12 +269,14 @@ Object.assign(UI, {
 
   // ---- WORLD CUP: two cups side by side, online and vs bots, each with its road to the final ----
   panel_worldcup(body) {
-    $('modal-title').textContent = tl('WORLD CUP');
+    // the World Cup for your country, the Champions Cup for your club: the same two cups
+    const champs = Cup.champions(), kind = champs ? 'cc' : 'wc';
+    $('modal-title').textContent = Cup.name();
     const fmt = Save.data.format || '4v4';
-    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="28" data-flag="${c.id}"></canvas>${c.short}</span>`; };
+    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="${c.euro ? 42 : 28}" data-flag="${c.id}"></canvas>${c.short}</span>`; };
     // online: the round you're in comes from the server; this run's results from your last matches
-    const round = Online.wcRound(), titles = (Net.user && Net.user.wc && Net.user.wc.titles) || 0;
-    const runAll = Array.isArray(Save.data.wcRun) ? Save.data.wcRun : [];
+    const round = Online.cupRound(kind), rec = Net.user && Net.user[kind], titles = (rec && rec.titles) || 0;
+    const runAll = champs ? Career.state().run : Array.isArray(Save.data.wcRun) ? Save.data.wcRun : [];
     const run = runAll.length === round ? runAll : [];
     const online = WC_ROUNDS.map((name, i) => {
       const r = run[i];
@@ -292,12 +296,12 @@ Object.assign(UI, {
         <section class="wc-panel online">
           <header><strong>${tl('ONLINE')}</strong><small>${tl('Against real players from every country, round of 16 to the final.')}</small></header>
           <ol class="wc-bracket">${online}</ol>
-          <div class="wc-foot"><span class="tag">${tl('WIN IT: +{0} COINS', [WC_PRIZE])}${titles ? ' · ' + tl('WON {0}', [titles]) : ''}</span><button class="mid-btn" data-needs-net data-cup="online">${tl('PLAY {0}', [WC_ROUNDS[round]])}</button></div>
+          <div class="wc-foot"><span class="tag">${tl('WIN IT: +{0} COINS', [champs ? CC_PRIZE : WC_PRIZE])}${titles ? ' · ' + tl('WON {0}', [titles]) : ''}</span><button class="mid-btn" data-needs-net data-cup="online">${tl('PLAY {0}', [WC_ROUNDS[round]])}</button></div>
         </section>
         <section class="wc-panel bots">
           <header><strong>${tl('VS BOTS')}</strong><small>${tl('Three knockout matches offline, each one tougher.')}</small></header>
           <ol class="wc-bracket">${bots}</ol>
-          <div class="wc-foot"><span class="tag">${tl('WIN IT: +{0} COINS', [300])}${Save.data.trophies ? ' · ' + tl('WON {0}', [Save.data.trophies]) : ''}</span><button class="mid-btn" data-cup="bots">${cup ? tl('PLAY {0}', [Cup.ROUNDS[cup.round]]) : tl('START CUP')}</button></div>
+          <div class="wc-foot"><span class="tag">${tl('WIN IT: +{0} COINS', [Cup.prize()])}${(champs ? Career.state().titles : Save.data.trophies) ? ' · ' + tl('WON {0}', [champs ? Career.state().titles : Save.data.trophies]) : ''}</span><button class="mid-btn" data-cup="bots">${cup ? tl('PLAY {0}', [Cup.ROUNDS[cup.round]]) : tl('START CUP')}</button></div>
         </section>
       </div>
       <p class="note" style="margin-top:12px">${tl('No draws in either cup: level at full time goes to golden goal. Lose once and you\'re out. Win it and lift the trophy.')}</p>`;
@@ -306,7 +310,7 @@ Object.assign(UI, {
       Save.data.format = b.dataset.format; Save.write(); this.tap();
       body.querySelectorAll('[data-format]').forEach((x) => x.classList.toggle('sel', x === b));
     }));
-    body.querySelector('[data-cup="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(Save.data.format || '4v4', true); });
+    body.querySelector('[data-cup="online"]').addEventListener('click', () => { this.tap(); Online.findMatch(Save.data.format || '4v4', kind); });
     body.querySelector('[data-cup="bots"]').addEventListener('click', () => {
       this.tap();
       if (!Cup.state()) Cup.start();
@@ -361,19 +365,6 @@ Object.assign(UI, {
 
   coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${fmtCoins(Save.data.coins)}</b></div>`; },
 
-  // ---- characters ----
-  panel_characters(body) {
-    $('modal-title').textContent = tl('CHARACTERS');
-    const list = this.charList();
-    body.innerHTML = `${this.coinsLine()}<p class="note">${tl('Better players are faster, shoot harder, pass sharper, keep the ball and win tackles. The best ones take days of play to afford.')}</p><div class="char-grid">${list.map((c) => this.charCard(c)).join('')}</div>`;
-    body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
-    body.querySelectorAll('.char-card-sm').forEach((el) => this.shopCard(el, 'character', el.dataset.id, () => {
-      Save.data.character = el.dataset.id; Save.write();
-      this.redraw(body, () => this.panel_characters(body));
-      this.refreshHome();
-    }));
-  },
-
   // ---- missions: jobs worth coins ----
   panel_missions(body) {
     $('modal-title').textContent = tl('MISSIONS');
@@ -419,7 +410,7 @@ Object.assign(UI, {
   // ---- collection: everything in the game, and how much of it is yours ----
   panel_collection(body) {
     $('modal-title').textContent = tl('COLLECTION');
-    const kinds = [['character', tl('PLAYERS')], ['ball', tl('BALLS')], ['trail', tl('POWER TRAILS')], ['celebration', tl('CELEBRATIONS')], ['accessory', tl('ACCESSORIES')]];
+    const kinds = [['ball', tl('BALLS')], ['trail', tl('POWER TRAILS')], ['celebration', tl('CELEBRATIONS')], ['accessory', tl('ACCESSORIES')], ['skill', tl('SKILL MOVES')]];
     let own = 0, all = 0;
     const order = ['common', 'rare', 'epic', 'legendary', 'mythic'];
     let best = null, bestRank = -1;
@@ -909,7 +900,8 @@ Object.assign(UI, {
   // anything worn anywhere else — a cape or a pair of boots is not in a portrait.
   accSwatch(cv, id) {
     const def = ACCESSORIES.find((a) => a.id === id);
-    const look = { ...Save.look(), acc: id === 'none' ? null : id };
+    // the card shows that one thing on its own, whatever else you are wearing
+    const look = { ...lookFromCustom(Save.data.look, []), acc: id === 'none' ? null : id, accs: id === 'none' ? [] : [id] };
     if (!def || def.slot === 'face') { this.portrait(cv, look); return; }
     if (def.slot === 'head') { this.portrait(cv, look, 'blue', false, 10, 0.16); return; }
     const g = cv.getContext('2d'), w = cv.width, h = cv.height;
@@ -929,38 +921,19 @@ Object.assign(UI, {
 
   // one small picture of any item, whatever kind it is
   itemSwatch(cv, item) {
-    if (item.kind === 'character') this.portrait(cv, CHARACTERS.find((c) => c.id === item.id));
-    else if (item.kind === 'accessory') this.accSwatch(cv, item.id);
+    if (item.kind === 'accessory') this.accSwatch(cv, item.id);
     else if (item.kind === 'ball') this.ballSwatch(cv, item.id);
     else if (item.kind === 'trail') this.trailSwatch(cv, item.id);
     else this.celebSwatch(cv, item.id, 1.2);
   },
 
-  // every player card, in both the characters panel and the customize screen
-  // worst to best, by rating — the order you would rank them in yourself
-  charList() {
-    return CHARACTERS.filter(charOk).sort((a, b) => charOvr(a) - charOvr(b) || Shop.price('character', a.id) - Shop.price('character', b.id));
-  },
-  charCard(c) {
-    const statRow = (label, v) => `<div class="bar"><i>${label}</i><span><b style="width:${Math.round(((v - 40) / 60) * 100)}%;background:${v >= 85 ? '#ffb400' : v >= 75 ? '#3fcf4a' : v >= 65 ? '#2f7bff' : '#8a90b8'}"></b></span><em>${v}</em></div>`;
-    return `<button class="char-card-sm rar-${c.rarity} ${c.id === Save.character().id ? 'sel' : ''} ${Shop.owns('character', c.id) ? '' : 'locked'}" data-id="${c.id}" style="--rar:${RARITIES[c.rarity].color}">
-        <span class="rar-tag">${RARITIES[c.rarity].name}</span>
-        <span class="ovr"><b>${charOvr(c)}</b><small>${tl('OVR')}</small></span>
-        <canvas width="96" height="96" data-portrait="${c.id}"></canvas>
-        <strong>${c.name}</strong>
-        <span class="sig-tag">${sigName(c)}</span>
-        ${this.priceTag('character', c.id)}
-        <div class="bars ${charStats(c).some(([label]) => label.length > 4) ? 'long' : ''}">${charStats(c).map(([label, v]) => statRow(label, v)).join('')}</div>
-      </button>`;
-  },
-
   // ---- customize: your player on the left, everything you can put on them on the right ----
-  CUST_TABS: [['character', tl('PLAYER')], ['skill', tl('SKILL MOVE')], ['ball', tl('BALL')], ['accessory', tl('ACCESSORY')], ['celebration', tl('CELEBRATION')], ['trail', tl('POWER TRAIL')]],
+  CUST_TABS: [['character', tl('PLAYER')], ['skill', tl('SKILL MOVE')], ['ball', tl('BALL')], ['accessory', tl('ACCESSORIES')], ['celebration', tl('CELEBRATION')], ['trail', tl('POWER TRAIL')]],
   CUST_NOTES: {
-    character: tl('Who you play as. Better players are faster, shoot harder and keep the ball.'),
+    character: tl('Your own player: the haircut, the colours and the build. The kit is your team\'s. To make them better, spend coins on STATS.'),
     skill: tl('What your SKILL button does. Carry one and it is that move every time, aimed wherever you are pointing.'),
     ball: tl('The match ball in every game you play.'),
-    accessory: tl('Worn by your player in every match — online, everyone sees it.'),
+    accessory: tl('Wear as many as you like, all at once: tap one to put it on, tap it again to take it off. Online, everyone sees them.'),
     celebration: tl('Score and the camera zooms in on you doing this. Everyone in the match sees it.'),
     trail: tl('Shown on power shots. Fill the meter around SHOOT, then fully charge.'),
   },
@@ -971,8 +944,8 @@ Object.assign(UI, {
     this._custTab = tab;
     let grid = '', gridClass = '';
     if (tab === 'character') {
-      gridClass = 'char-grid';
-      grid = this.charList().map((c) => this.charCard(c)).join('');
+      gridClass = 'look-grid';
+      grid = this.lookEditor();
     } else if (tab === 'trail') {
       grid = TRAILS.map((t) => `<button class="trail-opt ${t.id === Save.trail().id ? 'sel' : ''} ${Shop.owns('trail', t.id) ? '' : 'locked'}" data-id="${t.id}">
         <canvas width="200" height="70" data-trail="${t.id}"></canvas><strong>${t.name}</strong>${this.priceTag('trail', t.id)}</button>`).join('');
@@ -986,8 +959,9 @@ Object.assign(UI, {
         <canvas width="150" height="92" data-skillart="${k.id}"></canvas><strong>${k.name}</strong>
         <small class="skill-blurb">${k.blurb}</small>${this.priceTag('skill', k.id)}</button>`).join('');
     } else if (tab === 'accessory') {
-      const on = Save.accessory();
-      grid = [{ id: 'none', name: tl('Nothing') }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on : a.id === on) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}">
+      // as many as you like: each card is on or off
+      const on = new Set(Save.accessories());
+      grid = [{ id: 'none', name: on.size ? tl('Take them all off') : tl('Nothing on') }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on.size : on.has(a.id)) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}" aria-pressed="${a.id !== 'none' && on.has(a.id)}">
         <canvas width="120" height="120" data-acc="${a.id}"></canvas><strong>${a.name}</strong>${a.id === 'none' ? '' : this.priceTag('accessory', a.id)}</button>`).join('');
     } else {
       grid = BALLS.map((b) => `<button class="trail-opt ${b.id === Save.ball().id ? 'sel' : ''} ${Shop.owns('ball', b.id) ? '' : 'locked'}" data-id="${b.id}">
@@ -1009,19 +983,21 @@ Object.assign(UI, {
     body.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { this.tap(); this._custTab = b.dataset.tab; this.panel_customize(body); }));
     body.querySelectorAll('canvas[data-trail]').forEach((cv) => this.trailSwatch(cv, cv.dataset.trail));
     body.querySelectorAll('canvas[data-ball]').forEach((cv) => this.ballSwatch(cv, cv.dataset.ball));
-    body.querySelectorAll('canvas[data-portrait]').forEach((cv) => this.portrait(cv, CHARACTERS.find((c) => c.id === cv.dataset.portrait)));
     body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.accSwatch(cv, cv.dataset.acc));
     body.querySelectorAll('canvas[data-skillart]').forEach((cv) => this.skillSwatch(cv, cv.dataset.skillart));
     if (tab === 'celebration') this.animateCelebs(body);
+    if (tab === 'character') this.bindLookEditor(body);
     const groundCv = $('cust-ground');
     if (groundCv) { const g = groundCv.getContext('2d'); g.drawImage(Render.stadiumThumb(ground), 0, 0, groundCv.width, groundCv.height); }
-    body.querySelectorAll('.trail-opt, .char-card-sm').forEach((el) => this.shopCard(el, tab, el.dataset.id, () => {
-      if (tab === 'character') Save.data.character = el.dataset.id;
+    body.querySelectorAll('.trail-opt').forEach((el) => this.shopCard(el, tab, el.dataset.id, () => {
       if (tab === 'trail') Save.data.trail = el.dataset.id;
       if (tab === 'celebration') Save.data.celebration = el.dataset.id;
       if (tab === 'skill') Save.data.skill = el.dataset.id;
       if (tab === 'ball') Save.data.ball = el.dataset.id;
-      if (tab === 'accessory') Save.data.accessory = el.dataset.id === 'none' ? null : el.dataset.id;
+      if (tab === 'accessory') {
+        if (el.dataset.id === 'none') { Save.data.accessories = []; Save.data.accessory = null; }
+        else Save.toggleAccessory(el.dataset.id);
+      }
       Save.write();
       // a small nod that it took
       const card = el.getBoundingClientRect ? el : null;
@@ -1461,8 +1437,8 @@ Object.assign(UI, {
       <div class="prof-top">
         <canvas width="96" height="96" id="prof-canvas"></canvas>
         <div class="prof-id">
-          <strong>${ch.name}</strong>
-          <small>${Save.account || tl('GUEST')} · ${Clubs.mine().name} · ${tl('LEVEL {0}', [lv.level])} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · ${tl('OVR {0}', [charOvr(ch)])}</small>
+          <strong>${Save.account || tl('YOUR PLAYER')}</strong>
+          <small>${Clubs.mine().name}${Clubs.clubMode() ? ' · ' + Clubs.country().name : ''} · ${tl('LEVEL {0}', [lv.level])} ${rankFor(lv.level)} · <em style="color:${RARITIES[ch.rarity].color}">${RARITIES[ch.rarity].name}</em> · ${tl('OVR {0}', [charOvr(ch)])}</small>
           <small class="ramp-note">${lv.level >= LEVEL_RAMP_TOP ? tl('Every level makes every match harder — opponents are +{0}% sharper than at level 1 (as sharp as they get).', [levelRampPct(lv.level)]) : tl('Every level makes every match harder — opponents are +{0}% sharper than at level 1.', [levelRampPct(lv.level)])}</small>
           <span>${tl('{0}W · {1}D · {2}L · {3}% WON', [d.wins, d.draws || 0, d.losses || 0, winPct])}</span>
         </div>

@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 110;
+const BUILD = 111;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -128,6 +128,18 @@ function clampNumber(v, lim, fallback) {
   if (!Number.isFinite(n)) return fallback;
   return Math.min(lim.max, Math.max(lim.min, Math.floor(n)));
 }
+// Build 111 took the characters out and gives back what was spent on them, once. The game does the
+// giving (in the save it sends up), so the first save with `charRefund` set may carry that much
+// more than one game's worth of coins — exactly what the characters in the save before it cost.
+function characterRefund(prev) {
+  if (!prev || prev.charRefund) return 0;
+  const owned = prev.owned && Array.isArray(prev.owned.character) ? prev.owned.character : [];
+  let prices = {};
+  try { prices = (game.prices && game.prices.character) || {}; } catch (e) { /* the game is not built yet */ }
+  let n = 0;
+  for (const id of new Set(owned)) if (typeof id === 'string') n += Math.max(0, Number(prices[id]) || 0);
+  return n;
+}
 function sanitizeSave(incoming, previous, club) {
   if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return previous || null;
   let text;
@@ -135,13 +147,21 @@ function sanitizeSave(incoming, previous, club) {
   if (!text || text.length > SAVE_MAX_BYTES) return previous || null;
   const save = JSON.parse(text);
   const prev = previous && typeof previous === 'object' ? previous : null;
+  const refund = prev && save.charRefund ? characterRefund(prev) : 0;
   for (const [key, lim] of Object.entries(LIMITS)) {
     if (!(key in save)) continue;
     save[key] = clampNumber(save[key], lim, prev ? clampNumber(prev[key], lim, lim.min) : lim.min);
     if (prev) {
       const was = clampNumber(prev[key], lim, lim.min);
-      if (save[key] > was + lim.gain) save[key] = was + lim.gain;
+      const gain = lim.gain + (key === 'coins' ? refund : 0);
+      if (save[key] > was + gain) save[key] = was + gain;
     }
+  }
+  // once given back, always given back: an old open game cannot bring the characters (or a
+  // second refund) back
+  if (prev && prev.charRefund) {
+    save.charRefund = 1;
+    if (save.owned && typeof save.owned === 'object') save.owned.character = [];
   }
   save.club = club; // your club is set at sign-up and lives on the account, not in the save
   return save;
@@ -594,24 +614,27 @@ function throttled(ip, key, limit, windowMs) {
 }
 setInterval(() => { const cut = Date.now() - 600000; for (const [k, v] of hits) if (v.t < cut) hits.delete(k); }, 60000).unref();
 
-/* ---------------- online World Cup ----------------
-   Your run lives on your account: which round you're in (0 = round of 16 ... 3 = final) and how
-   many you've won. Win and you go through; lose (or walk off) and you start again next time. */
+/* ---------------- online World Cup and Champions Cup ----------------
+   Your runs live on your account: which round you're in (0 = round of 16 ... 3 = final) and how
+   many you've won. Win and you go through; lose (or walk off) and you start again next time.
+   'wc' is the World Cup (your country), 'cc' the Champions Cup (your club): one run each. */
 const WC_LAST = 3;
-function worldCupOf(u) {
-  const w = u && u.wc && typeof u.wc === 'object' ? u.wc : {};
+const cupKey = (kind) => (kind === 'cc' ? 'cc' : 'wc');
+function worldCupOf(u, kind = 'wc') {
+  const k = cupKey(kind);
+  const w = u && u[k] && typeof u[k] === 'object' ? u[k] : {};
   return { round: Math.max(0, Math.min(WC_LAST, Number(w.round) | 0)), titles: Math.max(0, Number(w.titles) | 0) };
 }
 const worldCup = {
-  round: (id) => worldCupOf(getUser(id)).round,
-  result(id, won) {
+  round: (id, kind) => worldCupOf(getUser(id), kind).round,
+  result(id, won, kind) {
     const u = getUser(id);
     if (!u) return { round: 0, champion: false, titles: 0 };
-    const w = worldCupOf(u);
+    const k = cupKey(kind), w = worldCupOf(u, k);
     const champion = won && w.round === WC_LAST;
-    u.wc = { round: won && !champion ? w.round + 1 : 0, titles: w.titles + (champion ? 1 : 0) };
+    u[k] = { round: won && !champion ? w.round + 1 : 0, titles: w.titles + (champion ? 1 : 0) };
     saveDB();
-    return { round: u.wc.round, champion, titles: u.wc.titles };
+    return { round: u[k].round, champion, titles: u[k].titles };
   },
 };
 
@@ -633,7 +656,7 @@ const server = http.createServer((req, res) => {
 
 function publicUser(id) {
   const u = getUser(id);
-  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u), rank: rankView(u), hasRecovery: !!(u.recovery && u.recovery.hash) };
+  return { name: u.name, club: u.club, save: u.save, online: u.online || { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, goals: 0 }, wc: worldCupOf(u, 'wc'), cc: worldCupOf(u, 'cc'), rank: rankView(u), hasRecovery: !!(u.recovery && u.recovery.hash) };
 }
 
 

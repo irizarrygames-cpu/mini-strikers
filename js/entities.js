@@ -348,7 +348,7 @@ function updateBall(m, dt) {
     b.trailT = 1 / 60;
     const s = Math.hypot(b.vx, b.vy);
     const maxLen = TRAIL_LEN[b.trailType] || 0;
-    if (b.shot && b.shot.ult && !Game.headless) FX.ember(b.x, b.y, b.z + CFG.BALL_R, rainbow(Math.random() * 3));
+    if (b.shot && b.shot.ult && !Game.headless) FX.ember(b.x, b.y, b.z + CFG.BALL_R, pick(FIRE_COLS));
     if (!b.owner && b.trailType && s > 260) {
       b.trail.unshift({ x: b.x, y: b.y, z: b.z });
       if (b.trail.length > maxLen) b.trail.length = maxLen;
@@ -550,7 +550,8 @@ function ultSteer(b, h) {
 // the ult shot: an acrobatic strike that cannot be stopped
 function ultShot(m, p) {
   const b = m.ball;
-  const kind = p.sig || ULT_KINDS[(Math.random() * ULT_KINDS.length) | 0]; // their signature finish
+  // a different one every time: volley, bicycle kick, backflip kick or scorpion kick
+  const kind = randomUlt();
   const gx = attackGoalX(p.team), gy = CFG.FIELD_H / 2, dir = TEAMS[p.team].dir;
   const GW2 = CFG.GOAL_W / 2;
   const tx = gx + dir * 70, ty = gy + rand(-1, 1) * (GW2 - 70);
@@ -560,7 +561,7 @@ function ultShot(m, p) {
   b.vx = dx * CFG.ULT_SHOT_SPEED; b.vy = dy * CFG.ULT_SHOT_SPEED; b.vz = 45;
   b.spinX = 0; b.spinY = 0; b.spinT = 0;
   b.shot = { team: p.team, from: p, x0: b.x, y0: b.y, level: 2, power: true, speed: CFG.ULT_SHOT_SPEED, decided: true, save: false, ult: true, kind, tx, ty, id: ++m.shotId };
-  b.trailType = 'rainbow'; b.trail.length = 0;
+  b.trailType = 'fire'; b.trail.length = 0; // (drawn as a fireball while it flies)
   b.lastKicker = p; b.lastTouchTeam = p.team; b.lastPass = null;
   p.ultOn = false; p.ult = 0;
   p.ultShot = { kind, t: 0, dur: 0.8 };
@@ -570,11 +571,12 @@ function ultShot(m, p) {
   p.stats.shots++; m.stats[p.team].shots++;
   m.slowmo = 0.45;
   if (!Game.headless) {
-    const names = { volley: tl('VOLLEY!'), bicycle: tl('BICYCLE KICK!'), backflip: tl('BACKFLIP KICK!'), scissors: tl('SCISSOR KICK!') };
-    for (let i = 0; i < 7; i++) FX.sparks(b.x, b.y, 8, rainbow(i * 0.1), 7, 300 + i * 40, 0.5);
-    FX.burst(b.x, b.y, 10, '#ffffff', 58, 0.35);
-    FX.ring(b.x, b.y, '#ff4df0', 10, 90, 0.4, 6);
-    FX.doFlash('#ffffff', 0.45);
+    const names = { volley: tl('VOLLEY!'), bicycle: tl('BICYCLE KICK!'), backflip: tl('BACKFLIP KICK!'), scorpion: tl('SCORPION KICK!') };
+    for (let i = 0; i < 7; i++) FX.sparks(b.x, b.y, 8, FIRE_COLS[i % 3], 7, 300 + i * 40, 0.5);
+    FX.burst(b.x, b.y, 10, '#fff6c8', 58, 0.35);
+    FX.ring(b.x, b.y, FIRE_COLS[1], 10, 90, 0.4, 6);
+    FX.ring(b.x, b.y, FIRE_COLS[0], 10, 130, 0.5, 5);
+    FX.doFlash('#ffb03a', 0.45);
     FX.doShake(14, 0.3);
     // (the cutscene announces the move now: this floating text sat on top of its card)
     if (typeof UltCut === 'undefined') FX.text(p.x, p.y, names[kind], rainbow(0.3), 22);

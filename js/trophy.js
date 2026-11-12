@@ -26,6 +26,7 @@ const Trophy = {
     const looks = (opts.mates || []).filter(Boolean).slice(0, 4);
     while (looks.length < 4) looks.push(aiLook());
     this.me = UI.fakePlayer(Save.look(), 'blue', false, 10);
+    this.me.cupStyle = opts.cup || null; // 'champions': the Champions Cup instead of the gold cup
     this.mates = looks.map((look, i) => Object.assign(UI.fakePlayer(look, 'blue', false, [7, 9, 11, 4][i]), { seed: i * 1.7, kind: i % 2 ? 'jump' : 'hype' }));
     this.fx = { rockets: [], sparks: [], confetti: [], nextRocket: 0.9, nextBurst: 0 };
     this.stars = Array.from({ length: 40 }, () => [rnd(), rnd() * 0.34, 0.6 + rnd() * 1.4]);

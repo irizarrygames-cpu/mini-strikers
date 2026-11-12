@@ -20,12 +20,14 @@ PLAY YOUR WAY
 - Ranked: 1v1 for rank points. Win and climb from Bronze all the way to Legend
 - Friends: make a room, share the code and play together, or run a friend cup
 - World Cup: play for the trophy online or against the bots. Lose once and you are out
+- Club Career: play for one of fifty European clubs (made-up names and badges), sign a new contract every three days and get paid coins for every goal and assist, then win the Champions Cup
 - Free Kicks: bend it over the wall or round it, against the bots or a real player online
 - Penalty Shootouts, Skill Challenges and Training for when you want to practise
 
 MAKE IT YOURS
-- More than 30 players, each with their own stats and signature move
-- Dozens of skill moves, goal celebrations, balls, trails and accessories
+- One player, all yours: pick the haircut, the colours and the build, then spend coins to train five stats
+- Dozens of skill moves, goal celebrations, balls and trails, and as many accessories as you like at once
+- A ULT that is a different flaming kick every time: volley, bicycle kick, backflip kick or scorpion kick
 - Win coins, open crates and collect everything. Every crate shows its odds
 - Daily rewards, missions and medals to chase
 
@@ -71,4 +73,4 @@ Play in English, Spanish, Portuguese, French, German, Italian, Dutch, Turkish, P
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.1.4 (15)`
+- Release name: `1.1.5 (16)`

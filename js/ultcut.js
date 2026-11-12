@@ -1,7 +1,7 @@
 // The ULT cutscene.
 //
 // Offline: the world is held nearly still while the camera dives onto the striker, his face fills
-// half the screen, and the bicycle kick / volley / backflip / scissor kick plays out in slow
+// half the screen, and the bicycle kick / volley / backflip / scorpion kick plays out in slow
 // motion. Then the camera swings onto the ball and hands back with it already rocketing away.
 // Nothing about the shot itself changes — the ball is struck the same way it always was, time is
 // just crawling while it happens, so a cutscene can never turn a goal into a miss.
@@ -95,13 +95,31 @@ const UltCut = {
     return { x: lerp(p.x, b.x, w), y: lerp(p.y - 14, b.y, w), zoom };
   },
 
+  // a row of flat flame tongues along a line, pointing down (dir 1) or up (dir -1)
+  flames(ctx, W, y, dir, h, now) {
+    const n = Math.max(8, Math.round(W / 46)), w = W / n;
+    ctx.save(); ctx.lineJoin = 'round';
+    for (let L = 0; L < 3; L++) {
+      const fr = 1 - L * 0.3;
+      ctx.beginPath(); ctx.moveTo(0, y);
+      for (let i = 0; i < n; i++) {
+        const x = i * w, tip = h * fr * (0.55 + 0.45 * Math.abs(Math.sin(now * 9 + i * 1.7 + L)));
+        ctx.quadraticCurveTo(x + w * 0.2, y + dir * tip * 0.6, x + w * 0.5 + Math.sin(now * 13 + i) * w * 0.12, y + dir * tip);
+        ctx.quadraticCurveTo(x + w * 0.8, y + dir * tip * 0.6, x + w, y);
+      }
+      ctx.closePath(); ctx.fillStyle = FIRE_COLS[L]; ctx.fill();
+      if (L === 0) { ctx.lineWidth = 3; ctx.strokeStyle = OUTLINE; ctx.stroke(); }
+    }
+    ctx.restore();
+  },
+
   // ---------- the picture on top ----------
   draw(ctx, m, now) {
     const c = m.ultCut;
     if (!c) return;
     const W = Render.W, H = Render.H, t = c.t;
     ctx.setTransform(Render.dpr, 0, 0, Render.dpr, 0, 0);
-    const col = rainbow(now * 0.6);
+    const col = fireCol(now * 0.6);
 
     // cinema bars, in and out
     const inT = c.short ? 0.1 : 0.2, outAt = c.dur - (c.short ? 0.25 : 0.55);
@@ -114,6 +132,9 @@ const UltCut = {
       ctx.fillStyle = col;
       ctx.fillRect(0, bh, W, 4);
       ctx.fillRect(0, H - bh - 4, W, 4);
+      // the bars are on fire: flames lick in off both of them
+      const fh = Math.min(H * 0.09, 60) * bar * (c.short ? 0.6 : 1);
+      if (fh > 4) { this.flames(ctx, W, bh + 3, 1, fh, now); this.flames(ctx, W, H - bh - 3, -1, fh, now); }
     }
 
     // speed lines: solid spokes chasing in from the edges while his face is up

@@ -33,7 +33,7 @@ const UI = {
     window.addEventListener('keydown', () => this.leaveSplash(), { once: true });
     $('btn-play').addEventListener('click', () => { this.tap(); this.openModal('play'); });
     document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.openModal(b.dataset.open); }));
-    $('home-char').addEventListener('click', () => { this.tap(); this.openModal('characters'); });
+    $('home-char').addEventListener('click', () => { this.tap(); this.openModal('stats'); });
     $('coins-plus').addEventListener('click', () => { this.tap(); this.openModal('coins'); });
     $('btn-howto').addEventListener('click', () => { this.tap(); this.showHowTo(); });
     $('btn-profile').addEventListener('click', () => { this.tap(); this.openModal('profile'); });
@@ -346,13 +346,23 @@ const UI = {
     const ready = Achievements.readyList().length;
     $('prof-badge').hidden = ready === 0;
     $('prof-badge').textContent = ready;
-    const club = Clubs.mine();
-    // menus and portraits wear your club's kit
-    if (!Clubs.home || Clubs.home.id !== club.id) Clubs.setMatch(club, Clubs.current && Clubs.current.id !== club.id ? Clubs.current : Clubs.random(club));
+    const club = Clubs.mine(), clubMode = Clubs.clubMode();
+    // menus and portraits wear your club's kit (and the other side is from the same world: a club
+    // plays clubs, a country plays countries)
+    const sameSide = (c) => c && c.id !== club.id && !!c.euro === !!club.euro;
+    if (!Clubs.home || Clubs.home.id !== club.id) Clubs.setMatch(club, sameSide(Clubs.current) ? Clubs.current : Clubs.random(club));
+    if (Game.demo && Game.demo.club && !sameSide(Game.demo.club)) Game.demo = null; // the match behind the menu starts again with the right teams
     $('home-user').textContent = Save.account || tl('GUEST');
     $('home-club-name').textContent = club.name;
     this.flagBadge($('home-club-badge'), club);
-    $('home-club-pos').textContent = this._leaguePos ? '#' + this._leaguePos : '';
+    // your country's place in the league, or (for a club) how long your contract has to run
+    const pillEl = $('home-club');
+    pillEl.dataset.open = clubMode ? 'offers' : 'league';
+    pillEl.title = clubMode ? tl('Club offers') : tl('League table');
+    if (clubMode) pillEl.removeAttribute('data-needs-net'); else pillEl.setAttribute('data-needs-net', '');
+    pillEl.classList.toggle('club', clubMode);
+    $('home-club-pos').textContent = clubMode ? (Career.active() ? Career.timeShort(Save.data.cc.until - Date.now()) : '!') : this._leaguePos ? '#' + this._leaguePos : '';
+    this.refreshClubBar();
     // ranked: your tier this season sits next to your country
     const myRank = Net.user && Net.user.rank, pill = $('home-rank');
     pill.hidden = !myRank;
@@ -364,10 +374,76 @@ const UI = {
     this.portrait($('home-char-canvas'), Save.look());
     const badge = $('mission-badge'), toClaim = typeof Missions !== 'undefined' ? Missions.ready() : 0;
     if (badge) { badge.hidden = !toClaim; badge.textContent = toClaim || ''; }
+    // once, after the update: what Club Career is (and the coins for the old characters)
+    if (Save.data.seenCC === 0 && !this._ccNewSoon) { this._ccNewSoon = true; setTimeout(() => { this._ccNewSoon = false; this.maybeWhatsNew(); }, 1400); }
   },
 
-  // a simple flag for a country (no crests or emblems, just its colours and shapes)
+  // A club's badge, drawn from its crest data: a shape, how it is split, three colours and an
+  // emblem in the middle. Made up for this game: no real club's badge is copied.
+  crestBadge(cv, club) {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    g.clearRect(0, 0, W, H);
+    const cr = club.crest, [c0, c1, c2] = cr.cols;
+    const S = Math.min(W, H) * 0.86, cx = W / 2, cy = H / 2, lw = Math.max(1.5, S * 0.07);
+    const L = cx - S / 2, T = cy - S / 2, R = cx + S / 2, B = cy + S / 2;
+    const shape = () => {
+      g.beginPath();
+      switch (cr.shape) {
+        case 'round': g.arc(cx, cy, S * 0.47, 0, Math.PI * 2); break;
+        case 'diamond': g.moveTo(cx, T); g.lineTo(R, cy); g.lineTo(cx, B); g.lineTo(L, cy); break;
+        case 'hex': for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + (i * Math.PI) / 3; g.lineTo(cx + Math.cos(a) * S * 0.5, cy + Math.sin(a) * S * 0.5); } break;
+        case 'badge': { const r = S * 0.2, x0 = cx - S * 0.43, x1 = cx + S * 0.43, y0 = T + S * 0.04, y1 = B - S * 0.04; g.moveTo(x0 + r, y0); g.arcTo(x1, y0, x1, y1, r); g.arcTo(x1, y1, x0, y1, r); g.arcTo(x0, y1, x0, y0, r); g.arcTo(x0, y0, x1, y0, r); break; }
+        case 'pointed': g.moveTo(cx - S * 0.42, T + S * 0.14); g.lineTo(cx, T); g.lineTo(cx + S * 0.42, T + S * 0.14); g.lineTo(cx + S * 0.42, cy + S * 0.08); g.quadraticCurveTo(cx + S * 0.36, B - S * 0.1, cx, B); g.quadraticCurveTo(cx - S * 0.36, B - S * 0.1, cx - S * 0.42, cy + S * 0.08); break;
+        default: g.moveTo(cx - S * 0.42, T + S * 0.03); g.lineTo(cx + S * 0.42, T + S * 0.03); g.lineTo(cx + S * 0.42, cy + S * 0.02); g.quadraticCurveTo(cx + S * 0.38, B - S * 0.12, cx, B); g.quadraticCurveTo(cx - S * 0.38, B - S * 0.12, cx - S * 0.42, cy + S * 0.02); // shield
+      }
+      g.closePath();
+    };
+    const rect = (c, x, y, w, h) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+    // the field, split
+    g.save(); shape(); g.clip();
+    rect(c0, L - 1, T - 1, S + 2, S + 2);
+    const n = 5, bw = S / n;
+    switch (cr.split) {
+      case 'vstripes': for (let i = 1; i < n; i += 2) rect(c1, L + i * bw, T, bw, S); break;
+      case 'hstripes': for (let i = 1; i < n; i += 2) rect(c1, L, T + i * bw, S, bw); break;
+      case 'halves': rect(c1, cx, T - 1, S / 2 + 1, S + 2); break;
+      case 'diag': g.fillStyle = c1; g.beginPath(); g.moveTo(R + 1, T - 1); g.lineTo(R + 1, B + 1); g.lineTo(L - 1, B + 1); g.closePath(); g.fill(); break;
+      case 'quarters': rect(c1, cx, T - 1, S / 2 + 1, S / 2 + 1); rect(c1, L - 1, cy, S / 2 + 1, S / 2 + 1); break;
+      case 'chevron': g.strokeStyle = c1; g.lineWidth = S * 0.2; g.beginPath(); g.moveTo(L, T + S * 0.12); g.lineTo(cx, cy + S * 0.1); g.lineTo(R, T + S * 0.12); g.stroke(); break;
+      case 'band': rect(c1, L, cy - S * 0.13, S, S * 0.26); break;
+      case 'checks': { const q = S / 6; for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) if ((r + c) % 2) rect(c1, L + c * q, T + r * q, q + 0.4, q + 0.4); break; }
+      case 'ring': g.strokeStyle = c1; g.lineWidth = S * 0.16; shape(); g.stroke(); break;
+    }
+    g.restore();
+    // the emblem, in the trim colour with the game's outline round it
+    const e = S * 0.2, ey = cy + (cr.shape === 'shield' || cr.shape === 'pointed' ? -S * 0.02 : 0);
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    const ink = () => { g.fillStyle = c2; g.fill(); g.lineWidth = Math.max(1, S * 0.035); g.strokeStyle = OUTLINE; g.stroke(); };
+    const poly = (pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(cx + x * e, ey + y * e) : g.moveTo(cx + x * e, ey + y * e))); g.closePath(); ink(); };
+    switch (cr.emblem) {
+      case 'star': g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? e * 0.45 : e * 1.1; g.lineTo(cx + Math.cos(a) * r, ey + Math.sin(a) * r); } g.closePath(); ink(); break;
+      case 'ball': g.beginPath(); g.arc(cx, ey, e * 0.95, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = Math.max(1, S * 0.035); g.strokeStyle = OUTLINE; g.stroke();
+        g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i * Math.PI * 2) / 5; g.lineTo(cx + Math.cos(a) * e * 0.38, ey + Math.sin(a) * e * 0.38); } g.closePath(); g.fillStyle = OUTLINE; g.fill(); break;
+      case 'tower': poly([[-0.75, 1], [-0.75, -0.55], [-0.75, -0.95], [-0.4, -0.95], [-0.4, -0.7], [-0.15, -0.7], [-0.15, -0.95], [0.15, -0.95], [0.15, -0.7], [0.4, -0.7], [0.4, -0.95], [0.75, -0.95], [0.75, 1]]); break;
+      case 'cross': poly([[-0.25, -1], [0.25, -1], [0.25, -0.25], [1, -0.25], [1, 0.25], [0.25, 0.25], [0.25, 1], [-0.25, 1], [-0.25, 0.25], [-1, 0.25], [-1, -0.25], [-0.25, -0.25]]); break;
+      case 'crown': poly([[-1, 0.7], [-1, -0.6], [-0.5, -0.05], [0, -0.85], [0.5, -0.05], [1, -0.6], [1, 0.7]]); break;
+      case 'wave': g.beginPath(); g.moveTo(cx - e, ey + e * 0.6); for (let i = 0; i <= 8; i++) g.lineTo(cx - e + (i * e) / 4, ey - Math.sin(i * Math.PI / 2) * e * 0.35); g.lineTo(cx + e, ey + e * 0.6); g.closePath(); ink(); break;
+      case 'sun': g.beginPath(); for (let i = 0; i < 16; i++) { const a = (i * Math.PI) / 8, r = i % 2 ? e * 0.68 : e * 1.05; g.lineTo(cx + Math.cos(a) * r, ey + Math.sin(a) * r); } g.closePath(); ink(); break;
+      case 'flame': poly([[0, -1.05], [0.55, -0.15], [0.7, 0.4], [0.35, 0.95], [-0.35, 0.95], [-0.7, 0.4], [-0.45, -0.1], [-0.2, 0.15]]); break;
+      case 'wing': poly([[-0.9, 0.6], [-0.2, -0.95], [0.35, -0.6], [1, -0.85], [0.75, -0.2], [1, 0.05], [0.55, 0.3], [0.7, 0.6]]); break;
+      case 'moon': g.beginPath(); g.arc(cx, ey, e, Math.PI * 0.3, Math.PI * 1.7); g.arc(cx + e * 0.45, ey, e * 0.75, Math.PI * 1.55, Math.PI * 0.45, true); g.closePath(); ink(); break;
+      case 'bolt': poly([[0.25, -1.05], [-0.6, 0.15], [-0.05, 0.15], [-0.3, 1.05], [0.6, -0.2], [0.05, -0.2]]); break;
+      case 'key': g.beginPath(); g.arc(cx - e * 0.45, ey, e * 0.45, 0, Math.PI * 2); ink(); poly([[-0.05, -0.15], [1, -0.15], [1, 0.45], [0.75, 0.45], [0.75, 0.15], [0.5, 0.15], [0.5, 0.45], [0.25, 0.45], [0.25, 0.15], [-0.05, 0.15]]); break;
+      case 'peak': poly([[-1, 0.75], [-0.35, -0.55], [-0.05, -0.05], [0.3, -0.85], [1, 0.75]]); break;
+    }
+    // the rim: the trim colour just inside the outline
+    shape(); g.lineWidth = lw * 1.9; g.strokeStyle = OUTLINE; g.stroke();
+    shape(); g.lineWidth = lw * 0.7; g.strokeStyle = c2; g.stroke();
+  },
+
+  // a simple flag for a country (no crests or emblems, just its colours and shapes), or a club's badge
   flagBadge(cv, club) {
+    if (club && club.crest) { this.crestBadge(cv, club); return; }
     const g = cv.getContext('2d'), W = cv.width, H = cv.height;
     g.clearRect(0, 0, W, H);
     const pad = Math.max(2, W * 0.05), x0 = pad, y0 = pad, w = W - pad * 2, h = H - pad * 2, r = Math.min(w, h) * 0.14;
@@ -648,7 +724,7 @@ const UI = {
   showQueue(msg) {
     this.closeAll();
     $('queue').hidden = false;
-    $('q-format').textContent = msg.format === 'ranked' ? tl('RANKED · 1v1') : msg.wc !== null && msg.wc !== undefined ? `${msg.format === 'pens' ? tl('PENALTY WORLD CUP') : tl('WORLD CUP')} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : tl('ONLINE · {0}', [msg.format === 'fk' ? tl('FREE KICKS') : msg.format === 'pens' ? tl('PENALTIES') : msg.format]);
+    $('q-format').textContent = msg.format === 'ranked' ? tl('RANKED · 1v1') : msg.wc !== null && msg.wc !== undefined ? `${msg.cup === 'cc' ? tl('CHAMPIONS CUP') : msg.format === 'pens' ? tl('PENALTY WORLD CUP') : tl('WORLD CUP')} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : tl('ONLINE · {0}', [msg.format === 'fk' ? tl('FREE KICKS') : msg.format === 'pens' ? tl('PENALTIES') : msg.format]);
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
     $('q-note').textContent = tl('Searching… 0:00');
@@ -793,14 +869,14 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('ONLINE · {0}', [m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? tl('CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('QUICK MATCH')) + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? (m.cupKind === 'cc' ? tl('CHAMPIONS CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format])) : tl('ONLINE · {0}', [m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? (Cup.champions() ? tl('CHAMPIONS CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('CUP · {0}', [Cup.ROUNDS[cup.round]])) : tl('QUICK MATCH')) + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
     const ch = Save.character();
     $('intro-you').innerHTML = `${ch.name.toUpperCase()} <b style="color:${RARITIES[ch.rarity].color}">${charOvr(ch)}</b>`;
     $('intro-stars').textContent = '★'.repeat(m.club.level + 1) + '☆'.repeat(3 - m.club.level);
-    this.portrait($('intro-canvas'), ch);
+    this.portrait($('intro-canvas'), m.human && m.human.look ? m.human.look : Save.look());
     $('intro').querySelector('.intro-ch').hidden = !(m.challenges && m.challenges.length);
     $('intro').style.setProperty('--opp', kitUi(TEAMS.red));
     $('intro-challenges').innerHTML = this.challengeList(m);
@@ -1041,8 +1117,11 @@ const UI = {
     d.coins += streakBonus;
     Missions.record(m, r.outcome);
     const cupResult = m.mode === 'cup' ? Cup.record(m) : null;
-    const cupPrize = cupResult === 'champion' ? 300 : 0;
+    const cupPrize = cupResult === 'champion' ? Cup.prize() : 0;
     if (cupPrize) d.coins += cupPrize;
+    // playing for a club: your wages for this match (a shootout pays for the penalties you scored)
+    const pay = Career.pay(m, pens ? m.score.blue : m.human.stats.goals, pens ? 0 : m.human.stats.assists, pens);
+    const payCoins = pay ? pay.coins : 0;
     Save.write();
     const levelAfter = Levels.info(d.xp).level;
     let levelCoins = 0;
@@ -1083,8 +1162,8 @@ const UI = {
     const line = mvp.isKeeper ? tl('{0} saves', [s.saves]) : pens ? tl('{0} penalties · {1} saves', [s.goals, m.pens.saves]) : tl('{0} G · {1} A · {2} tackles', [s.goals, s.assists, s.tackles]);
     $('r-mvp').innerHTML = `<canvas id="r-mvp-canvas" width="84" height="84"></canvas><div><small>${tl('MVP')}</small><strong>${mvpName}</strong><em>${line}</em></div>`;
     this.portrait($('r-mvp-canvas'), mvp.look, mvp.team, mvp.isKeeper, mvp.number);
-    $('r-challenges').innerHTML = this.challengeList(m);
-    $('r-coins').textContent = `+${r.coins + streakBonus + levelCoins + cupPrize}`;
+    $('r-challenges').innerHTML = this.challengeList(m) + this.wagesLine(pay, pens);
+    $('r-coins').textContent = `+${r.coins + streakBonus + levelCoins + cupPrize + payCoins}`;
     const multTag = $('r-mult');
     multTag.classList.remove('hard');
     multTag.hidden = r.mult === 1;
@@ -1102,8 +1181,8 @@ const UI = {
     const cupBox = $('r-cup');
     const fk = !!(m.pens && m.pens.fk);
     this._againMode = pens ? (fk ? 'fk' : 'pens') : 'quick';
-    if (m.mode === 'cup') {
-      const c = Save.data.cup;
+    if (m.mode === 'cup' && Cup.last()) {
+      const c = Cup.last();
       cupBox.hidden = false;
       cupBox.innerHTML = Cup.ROUNDS.map((name, i) => {
         const res = c.results[i], club = Clubs.get(c.opponents[i]);
@@ -1112,7 +1191,7 @@ const UI = {
       }).join('');
       this._againMode = cupResult === 'next' ? 'cup' : 'newcup';
       $('r-again').textContent = cupResult === 'next' ? tl('PLAY {0}', [Cup.ROUNDS[c.round]]) : cupResult === 'champion' ? tl('NEW CUP') : tl('TRY AGAIN');
-      if (cupResult === 'champion') Trophy.show({ title: tl('CUP WINNERS!'), sub: tl('BOT WORLD CUP · +300 COINS'), club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
+      if (cupResult === 'champion') Trophy.show({ title: Cup.champions() ? tl('CHAMPIONS!') : tl('CUP WINNERS!'), sub: Cup.champions() ? tl('CHAMPIONS CUP · +{0} COINS', [Cup.prize()]) : tl('BOT WORLD CUP · +300 COINS'), cup: Cup.champions() ? 'champions' : null, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
       this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : 'quick';
@@ -1123,7 +1202,7 @@ const UI = {
     $('hud').hidden = true;
     Input.reset();
     this.resultsFanfare(r.outcome, {
-      coins: r.coins + streakBonus + levelCoins + cupPrize,
+      coins: r.coins + streakBonus + levelCoins + cupPrize + payCoins,
       levelUp: lv.level > levelBefore,
       champion: cupResult === 'champion',
     });
@@ -1155,20 +1234,30 @@ const UI = {
     c.bestStreak = Math.max(c.bestStreak, c.streak);
     const streakBonus = outcome === 'win' ? Math.min(50, (c.streak - 1) * 10) : 0;
     d.coins += streakBonus;
-    // the online World Cup: remember this run's results to show the road to the final
-    const cup = msg.wc || null;
+    // the online World Cup (or Champions Cup): remember this run's results to show the road to the final
+    const cup = msg.wc || null, champs = !!cup && msg.cup === 'cc';
+    const cupPrizeOnline = champs ? CC_PRIZE : WC_PRIZE;
+    let run = [];
     if (cup) {
-      if (cup.round === 0 || !Array.isArray(d.wcRun)) d.wcRun = [];
-      d.wcRun[cup.round] = { club: msg.clubs[other], mine, theirs, won: cup.won };
-      d.wcRun.length = cup.round + 1;
-      if (cup.champion) { d.coins += WC_PRIZE; d.wcTitles = (d.wcTitles || 0) + 1; }
-      if (Net.user) Net.user.wc = { round: cup.next, titles: cup.titles };
+      const holder = champs ? Career.state() : d, key = champs ? 'run' : 'wcRun';
+      if (cup.round === 0 || !Array.isArray(holder[key])) holder[key] = [];
+      run = holder[key];
+      run[cup.round] = { club: msg.clubs[other], mine, theirs, won: cup.won };
+      run.length = cup.round + 1;
+      if (cup.champion) {
+        d.coins += cupPrizeOnline;
+        if (champs) Career.state().titles = (Career.state().titles || 0) + 1; else d.wcTitles = (d.wcTitles || 0) + 1;
+      }
+      if (Net.user) Net.user[champs ? 'cc' : 'wc'] = { round: cup.next, titles: cup.titles };
     }
+    // playing for a club: your wages, from the goals and assists the server counted
+    const pay = isEuro(msg.clubs[side]) ? Career.pay(m, st.goals, st.assists, false) : null;
+    const payCoins = pay ? pay.coins : 0;
     // a friend cup: this round, and the prize if you just won the lot
     const fcup = msg.fcup || null;
     const fcupPrize = fcup && fcup.champion ? FCUP_PRIZE : 0;
     if (fcupPrize) d.coins += fcupPrize;
-    const wcPrize = cup && cup.champion ? WC_PRIZE : 0;
+    const wcPrize = cup && cup.champion ? cupPrizeOnline : 0;
     const levelAfter = Levels.info(d.xp).level;
     let levelCoins = 0;
     for (let lv = levelBefore + 1; lv <= levelAfter; lv++) levelCoins += Levels.reward(lv);
@@ -1177,7 +1266,7 @@ const UI = {
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
     if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [I18N.upper(fresh[0].name)]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
 
-    $('r-title').textContent = cup && cup.champion ? tl('WORLD CHAMPIONS!') : cup && !cup.won ? tl('KNOCKED OUT') : { win: tl('VICTORY!'), loss: tl('DEFEAT'), draw: tl('DRAW') }[outcome];
+    $('r-title').textContent = cup && cup.champion ? (champs ? tl('CHAMPIONS!') : tl('WORLD CHAMPIONS!')) : cup && !cup.won ? tl('KNOCKED OUT') : { win: tl('VICTORY!'), loss: tl('DEFEAT'), draw: tl('DRAW') }[outcome];
     $('r-title').className = 'r-title ' + (cup && cup.champion ? 'win champ' : outcome);
     $('r-blue').textContent = mine; $('r-red').textContent = theirs;
     if (msg.forfeit && outcome === 'win') setTimeout(() => { if (Game.state === 'results') this.toast(tl('THE OTHER TEAM LEFT · YOU WIN')); }, 400);
@@ -1198,11 +1287,12 @@ const UI = {
     const lg = msg.league;
     const lgText = lg && lg.pos ? (lg.d > 0 ? tl('{0} MOVES UP TO {1} ▲', [club.name, ordinal(lg.pos)]) : lg.d < 0 ? tl('{0} DROPS TO {1} ▼', [club.name, ordinal(lg.pos)]) : tl('{0} STAYS {1}', [club.name, ordinal(lg.pos)])) : `${club.name}: ${outcome === 'win' ? tl('UP A PLACE') : outcome === 'loss' ? tl('DOWN A PLACE') : tl('NO CHANGE')}`;
     const chalRows = (msg.challenges || []).map((c) => `<li class="${c.done ? 'done' : ''}"><i></i><span>${I18N.upper(tl(c.text))}</span>${c.done ? `<em>${outcome === 'win' ? tl('+1 RP') : tl('WIN IT NEXT TIME')}</em>` : ''}</li>`).join('');
-    $('r-challenges').innerHTML = chalRows + (msg.coop
+    // (a club has no place in the countries' league: what it gives you is your wages)
+    $('r-challenges').innerHTML = chalRows + (club.euro ? '' : msg.coop
       ? `<li><i></i><span>${tl('PLAYED TOGETHER AGAINST THE COMPUTER — NOTHING MOVES IN THE LEAGUE')}</span></li>`
-      : `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>${tl('LEAGUE: {0}', [lgText])}</span></li>`);
-    $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize}`;
-    $('r-mult').hidden = false; $('r-mult').textContent = msg.coop ? tl('PLAYING TOGETHER') : msg.ranked ? tl('RANKED') : fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[fcup.of - 1 - fcup.round] || tl('CUP')]) : cup ? tl('WORLD CUP') : tl('ONLINE'); $('r-mult').classList.add('hard');
+      : `<li class="${lg && lg.d > 0 ? 'done' : ''}"><i></i><span>${tl('LEAGUE: {0}', [lgText])}</span></li>`) + this.wagesLine(pay, false);
+    $('r-coins').textContent = `+${coins + streakBonus + levelCoins + wcPrize + fcupPrize + payCoins}`;
+    $('r-mult').hidden = false; $('r-mult').textContent = msg.coop ? tl('PLAYING TOGETHER') : msg.ranked ? tl('RANKED') : fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[fcup.of - 1 - fcup.round] || tl('CUP')]) : cup ? (champs ? tl('CHAMPIONS CUP') : tl('WORLD CUP')) : tl('ONLINE'); $('r-mult').classList.add('hard');
     // what this match did to your rank
     const rankBox = $('r-rank'), rk = msg.rank;
     rankBox.hidden = !rk;
@@ -1223,14 +1313,13 @@ const UI = {
     $('r-xp').classList.toggle('lvup', lv.level > levelBefore);
     $('r-cup').hidden = !cup;
     if (cup) {
-      const run = d.wcRun || [];
       $('r-cup').innerHTML = WC_ROUNDS.map((name, i) => {
         const r = run[i];
         const cls = r ? (r.won ? 'won' : 'lost') : i === cup.round + 1 && cup.won && !cup.champion ? 'next' : '';
         const club = r ? Clubs.get(r.club) : null;
         return `<div class="cup-step ${cls}"><small>${name}</small><b style="--c:${club ? clubUi(club) : '#8a90b8'}">${club ? club.short : '?'}</b><em>${r ? `${r.mine}-${r.theirs}` : '—'}</em></div>`;
       }).join('');
-      if (cup.champion) Trophy.show({ title: tl('WORLD CHAMPIONS!'), sub: tl('ONLINE WORLD CUP · +{0} COINS', [WC_PRIZE]), club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
+      if (cup.champion) Trophy.show({ title: champs ? tl('CHAMPIONS!') : tl('WORLD CHAMPIONS!'), sub: champs ? tl('ONLINE CHAMPIONS CUP · +{0} COINS', [CC_PRIZE]) : tl('ONLINE WORLD CUP · +{0} COINS', [WC_PRIZE]), cup: champs ? 'champions' : null, club: Clubs.get(msg.clubs[side]), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     }
     if (fcup) {
       const round = CUP_ROUND_NAMES[fcup.of - 1 - fcup.round] || tl('CUP'), next = CUP_ROUNDS[fcup.of - 2 - fcup.round] || tl('THE NEXT ROUND');
@@ -1240,7 +1329,7 @@ const UI = {
       if (fcup.champion) Trophy.show({ title: tl('CUP WINNER!'), sub: tl('FRIEND CUP · {0} PLAYERS · +{1} COINS', [fcup.size, FCUP_PRIZE]), club: Clubs.mine(), mates: [] });
     }
     this._againMode = 'online';
-    $('r-again').textContent = fcup ? tl('SEE THE BOARD') : !cup ? tl('PLAY AGAIN') : cup.champion ? tl('NEW WORLD CUP') : cup.won ? tl('PLAY {0}', [WC_ROUNDS[cup.next]]) : tl('TRY AGAIN');
+    $('r-again').textContent = fcup ? tl('SEE THE BOARD') : !cup ? tl('PLAY AGAIN') : cup.champion ? (champs ? tl('NEW CHAMPIONS CUP') : tl('NEW WORLD CUP')) : cup.won ? tl('PLAY {0}', [WC_ROUNDS[cup.next]]) : tl('TRY AGAIN');
     // in a party, the leader starts the next one (and brings you with them)
     const party = Social.party;
     if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = tl('HOME');
@@ -1249,7 +1338,7 @@ const UI = {
     $('hud').hidden = true;
     Input.reset();
     this.resultsFanfare(outcome, {
-      coins: coins + streakBonus + levelCoins + wcPrize + fcupPrize,
+      coins: coins + streakBonus + levelCoins + wcPrize + fcupPrize + payCoins,
       levelUp: lv.level > levelBefore,
       champion: !!((cup && cup.champion) || (fcup && fcup.champion)),
       rankUp: !!this._rankedUp,
@@ -1257,6 +1346,14 @@ const UI = {
     this._rankedUp = false;
     this._leaguePos = 0;
     this.fetchLeaguePos();
+  },
+
+  // the wages line on the results: what your goals and assists for your club paid
+  wagesLine(pay, pens) {
+    if (!Clubs.clubMode()) return '';
+    if (!pay) return `<li class="wages over"><i></i><span>${tl('CONTRACT OVER · SIGN A NEW OFFER TO GET PAID')}</span></li>`;
+    const what = pens ? tl('WAGES · PENALTIES {0} × {1}', [pay.goals, pay.goalRate]) : tl('WAGES · GOALS {0} × {1} · ASSISTS {2} × {3}', [pay.goals, pay.goalRate, pay.assists, pay.assistRate]);
+    return `<li class="wages ${pay.coins ? 'done' : ''}"><i></i><span>${what}</span><b><span class="coin"></span>${pay.coins}</b></li>`;
   },
 
   resultsAgain() {

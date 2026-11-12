@@ -287,7 +287,8 @@ const Game = {
     this.headless = true;
     const diff = this._diff;
     if (!this.demo || this.demo.phase === 'over') {
-      const demoClub = Clubs.current && Clubs.current.id !== Clubs.mine().id ? Clubs.current : Clubs.random(Clubs.mine());
+      const me = Clubs.mine(), cur = Clubs.current;
+      const demoClub = cur && cur.id !== me.id && !!cur.euro === !!me.euro ? cur : Clubs.random(me);
       Clubs.setMatch(Clubs.mine(), demoClub);
       this.demo = Match.create({ autopilot: true, minutes: 30, club: demoClub });
       this.demo.demo = true;

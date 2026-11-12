@@ -8,8 +8,8 @@
 // Both are needed — the CUSTOMIZE button that spilled out of its pill was invisible to overlap
 // checks, and the 25px-tall home row overlapped nothing at all.
 window.US = {
-  PANELS: ['play', 'characters', 'customize', 'crates', 'coins', 'collection', 'missions', 'settings',
-    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'fkmode', 'friends'],
+  PANELS: ['play', 'stats', 'customize', 'crates', 'coins', 'collection', 'missions', 'settings',
+    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'fkmode', 'friends', 'offers'],
 
   // the full-screen ones, which the panel sweep never touched
   OVERLAYS: ['daily', 'howto', 'results', 'pause', 'queue', 'lobby'],
@@ -155,6 +155,51 @@ window.US = {
       UI.closeModal();
       asWeb();
       await wait(60);
+    }
+    // build 111: every customize tab that changed (your look, and wearing many accessories)
+    for (const tab of ['character', 'accessory']) {
+      const t0 = UI._custTab; UI._custTab = tab;
+      UI.openModal('customize');
+      await wait(260);
+      const p = document.querySelector('#modal .panel');
+      if (p) out.hits.push(...this.scan(p, 'customize · ' + tab, true));
+      UI.closeModal(); UI._custTab = t0;
+      await wait(60);
+    }
+    // build 111: Club Career. The home screen and every window that is different for a club, the
+    // card you get when you sign, and the note about what changed — then everything put back.
+    {
+      const keep = { cc: JSON.stringify(Save.data.cc || null), arena: Save.data.arena, seen: Save.data.seenCC, refund: Save.data.refundNote };
+      const cc = Career.state();
+      if (!cc.club) Object.assign(cc, { club: 'barcelonablau', goal: 45, assist: 25, since: Date.now(), until: Date.now() + CC_PERIOD, goals: 12, assists: 7, earned: 715 });
+      Save.data.arena = 'club';
+      UI.refreshHome();
+      await wait(250);
+      const homeEl = document.getElementById('home');
+      if (!homeEl.hidden) out.hits.push(...this.scan(homeEl, 'home (club)', false));
+      for (const kind of ['play', 'worldcup', 'offers', 'stats']) {
+        UI.openModal(kind);
+        await wait(240);
+        const p = document.querySelector('#modal .panel');
+        if (p) out.hits.push(...this.scan(p, kind + ' (club)', true));
+        UI.closeModal();
+        await wait(60);
+      }
+      UI.signedFor(Clubs.get(cc.club));
+      await wait(250);
+      const sig = document.querySelector('.cc-signed .panel');
+      if (sig) out.hits.push(...this.scan(sig, 'signed for a club', true)); else out.hits.push('signed for a club NOT SHOWN');
+      document.querySelectorAll('.cc-signed').forEach((x) => x.remove());
+      Save.data.seenCC = 0; Save.data.refundNote = 123456;
+      const shown = UI.maybeWhatsNew();
+      await wait(250);
+      const nw = document.querySelector('.cc-new .panel');
+      if (nw) out.hits.push(...this.scan(nw, 'what is new', true)); else if (shown) out.hits.push('what is new NOT SHOWN');
+      document.querySelectorAll('.cc-new').forEach((x) => x.remove());
+      Save.data.cc = JSON.parse(keep.cc); Save.data.arena = keep.arena; Save.data.seenCC = keep.seen;
+      if (keep.refund === undefined) delete Save.data.refundNote; else Save.data.refundNote = keep.refund;
+      UI.refreshHome();
+      await wait(120);
     }
     // and the overlays: the results card, how to play, the daily reward, the pause menu, and
     // the two waiting rooms. Each is shown as it is, looked at, and put back.

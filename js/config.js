@@ -466,9 +466,11 @@ const ACCESSORIES = [
 const ACCESSORY_IDS = new Set(ACCESSORIES.map((a) => a.id));
 const ACCESSORY_FACE_IDS = new Set(ACCESSORIES.filter((a) => a.slot === 'face').map((a) => a.id));
 
-// the four ways an ult shot can be struck, picked at random
-const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scissors'];
-const ULT_NAMES = { volley: tl('VOLLEY'), bicycle: tl('BICYCLE KICK'), backflip: tl('BACKFLIP KICK'), scissors: tl('SCISSOR KICK') };
+// the four ways an ult shot can be struck, picked at random every time it goes off. (The online
+// match sends the index, so the order stays put: the scorpion kick took the scissor kick's slot.)
+const ULT_KINDS = ['volley', 'bicycle', 'backflip', 'scorpion'];
+const ULT_NAMES = { volley: tl('VOLLEY'), bicycle: tl('BICYCLE KICK'), backflip: tl('BACKFLIP KICK'), scorpion: tl('SCORPION KICK'), scissors: tl('SCISSOR KICK') };
+const randomUlt = (rand = Math.random) => ULT_KINDS[(rand() * ULT_KINDS.length) | 0];
 // Every character has a signature finish: the kick they always pull out when their ult goes off.
 // A handful are hand-picked, the rest are spread evenly and never change for that character.
 const SIGNATURES = {
@@ -543,6 +545,9 @@ const ordinal = (n) => {
   return n + (['th', 'st', 'nd', 'rd'][n % 10 > 3 || (n % 100 > 10 && n % 100 < 14) ? 0 : n % 10]);
 };
 const ULT_COLORS = ['#ff3a3f', '#ff8a1f', '#ffe14d', '#3fcf4a', '#46d9ff', '#b04dff', '#ff4df0'];
+// the ult strike burns: outer flame, middle, the hot yellow core
+const FIRE_COLS = ['#e8341c', '#ff8a1f', '#ffd23f'];
+const fireCol = (t, i = 0) => FIRE_COLS[(Math.floor(t * 9 + i) % 3 + 3) % 3];
 const rainbow = (t, i = 0) => ULT_COLORS[(Math.floor(t * 9 + i) % ULT_COLORS.length + ULT_COLORS.length) % ULT_COLORS.length];
 
 const AI_HAIRS = ['messy', 'spikes', 'curly', 'buzz', 'headband', 'messy', 'curly', 'beanie', 'mohawk', 'afro'];
@@ -564,6 +569,69 @@ function pickBotCharacter(rand = Math.random, share = BOT_RARITY_SHARE) {
 }
 
 const overall = (r) => Math.round((r.spd + r.sht + r.pas + r.ctl + r.def) / 5);
+
+// ===== Your player =====================================================
+// There is one player now, yours, and five stats you train with coins. Every level costs more
+// than the one before, there is no top level, and each one adds a little less than the last:
+// the first is worth about two points, level 10 about three quarters of one, level 50 a fifth.
+// 60 is where everyone starts (an ordinary player); the bots offline average about 64.
+const STAT_KEYS = ['spd', 'sht', 'pas', 'ctl', 'def'];
+const STAT_NAMES = { spd: tl('SPEED'), sht: tl('SHOOTING'), pas: tl('PASSING'), ctl: tl('DRIBBLING'), def: tl('DEFENDING') };
+const STAT_BASE = 60;
+const STAT_LEVEL_CAP = 2000; // only a guard against a broken save: nobody can afford anywhere near it
+const statLevel = (v) => Math.max(0, Math.min(STAT_LEVEL_CAP, Math.floor(Number(v) || 0)));
+function statRating(level) { return STAT_BASE + 12 * Math.log(1 + statLevel(level) / 6); }
+// what the next level costs from this one
+function statCost(level) {
+  const L = statLevel(level);
+  return Math.min(2e9, Math.round((250 * Math.pow(1.075, L) + 60 * L) / 10) * 10);
+}
+function statLevels(raw) {
+  const o = {};
+  for (const k of STAT_KEYS) o[k] = statLevel(raw && raw[k]);
+  return o;
+}
+function statRatings(levels) {
+  const L = statLevels(levels), r = {};
+  for (const k of STAT_KEYS) r[k] = statRating(L[k]);
+  return r;
+}
+const statOvr = (levels) => overall(statRatings(levels));
+// how good your levels make you, as a grade colour (the badge next to your OVR)
+function ovrGrade(ovr) {
+  return ovr >= 93 ? 'mythic' : ovr >= 86 ? 'legendary' : ovr >= 79 ? 'epic' : ovr >= 72 ? 'rare' : ovr >= 65 ? 'common' : 'starter';
+}
+// The looks you can give your player, all free: haircuts, colours, skin and build.
+const LOOK_HAIRS = ['buzz', 'messy', 'spikes', 'curly', 'afro', 'fade', 'mohawk', 'curtains', 'braids', 'dreads', 'ponytail',
+  'topknot', 'flattop', 'shaggy', 'emo', 'anime', 'cap', 'headband', 'beanie', 'bandana'];
+const LOOK_HAIR_COLORS = ['#2b1d14', '#4a2e1c', '#6b3f22', '#1b1b2a', '#f2c230', '#b8521f', '#e8e4dc', '#2f7bff', '#ff5fa8', '#3fcf4a'];
+const LOOK_CAPS = ['#2f7bff', '#ff3a3f', '#3fcf4a', '#ffc21a', '#1b1d33', '#ffffff', '#a35cff'];
+const LOOK_BUILDS = ['normal', 'buff', 'slim'];
+const DEFAULT_LOOK = { hair: 'cap', hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#2f7bff', build: 'normal' };
+function cleanLook(raw) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const hex = (v, list, d) => (typeof v === 'string' && list.includes(v) ? v : d);
+  return {
+    hair: LOOK_HAIRS.includes(r.hair) ? r.hair : DEFAULT_LOOK.hair,
+    hairColor: hex(r.hairColor, LOOK_HAIR_COLORS, DEFAULT_LOOK.hairColor),
+    skin: hex(r.skin, SKINS, DEFAULT_LOOK.skin),
+    cap: hex(r.cap, LOOK_CAPS, DEFAULT_LOOK.cap),
+    build: LOOK_BUILDS.includes(r.build) ? r.build : 'normal',
+  };
+}
+// accessories: as many as you like at once, each one only once, in the order they were listed
+function cleanAccessories(list, owns) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  return ACCESSORIES.filter((a) => list.includes(a.id) && !seen.has(a.id) && seen.add(a.id) && (!owns || owns(a.id))).map((a) => a.id);
+}
+// what a player looks like on the pitch, from a look and the accessories worn
+function lookFromCustom(look, accs) {
+  const l = cleanLook(look);
+  const list = cleanAccessories(accs);
+  return { hair: l.hair, hairColor: l.hairColor, skin: l.skin, cap: l.cap, band: '#ffffff', thin: l.build === 'slim' ? 0.82 : 0, buff: l.build === 'buff' ? 1 : 0,
+    anime: l.hair === 'anime', mewing: false, acc: list[0] || null, accs: list };
+}
 // characters can be locked to certain accounts, and can show their own stat lines
 const charOk = (c) => !c.only || (typeof Save !== 'undefined' && c.only.includes(String(Save.account || '').toLowerCase()));
 const charStats = (c) => c.stats || [[tl('SPD'), c.r.spd], [tl('SHT'), c.r.sht], [tl('PAS'), c.r.pas], [tl('CTL'), c.r.ctl], [tl('DEF'), c.r.def]];
@@ -571,7 +639,8 @@ const charOvr = (c) => (c.ovr !== undefined ? c.ovr : overall(c.r));
 // rating 70 = 0; 95 ≈ +1; 99 ≈ +1.16; 45 ≈ -1. Kept small on purpose: better, not unfair.
 const NEUTRAL_ATTR = { speed: 1, shot: 1, pass: 1, finish: 0, ctl: 0, def: 0 };
 function ratingAttr(r) {
-  const f = (v) => clamp((v - 70) / 25, -1, 1.16);
+  // (no top end for your own stats: a rating past 99 still counts, it is just very dear to get)
+  const f = (v) => clamp((v - 70) / 25, -1, 1.6);
   return { speed: 1 + f(r.spd) * 0.08, shot: 1 + f(r.sht) * 0.07, finish: -f(r.sht) * 0.07, pass: 1 + f(r.pas) * 0.1, ctl: f(r.ctl), def: f(r.def) };
 }
 

@@ -58,8 +58,9 @@ const Online = {
     if (why) UI.toast(why);
     return !!why;
   },
-  // worldCup: queue for your next World Cup round instead of an ordinary match
-  findMatch(format, worldCup = false) {
+  // cup: queue for your next round of a cup instead of an ordinary match — 'wc' (or true) for the
+  // World Cup, 'cc' for the Champions Cup
+  findMatch(format, cup = false) {
     if (this.noWifi()) return;
     // in a party the leader starts, and the format has to fit everyone on one side
     const p = Social.party;
@@ -69,13 +70,18 @@ const Online = {
       const n = p.members.length;
       if (FORMAT_SIZE_NET[format] < n) { UI.toast(tl('PICK {0}v{1} OR BIGGER FOR YOUR PARTY OF {2}', [n, n, n])); return; }
     }
+    const kind = cup === 'cc' ? 'cc' : cup ? 'wc' : null;
     this.format = format;
-    this.worldCup = !!worldCup;
+    this.worldCup = !!kind;
+    this.cupKind = kind;
     this.status = 'queue';
-    UI.showQueue({ format, wc: this.worldCup ? this.wcRound(format) : null });
-    Net.whenReady({ t: 'queue', format, wc: this.worldCup });
+    UI.showQueue({ format, wc: kind ? this.cupRound(kind) : null, cup: kind });
+    Net.sendArena();
+    Net.whenReady(kind === 'cc' ? { t: 'queue', format, wc: true, cup: 'cc' } : { t: 'queue', format, wc: !!kind });
   },
-  wcRound() { return (Net.user && Net.user.wc && Net.user.wc.round) || 0; },
+  // the round of the online cup you are up to (the server keeps it)
+  cupRound(kind = 'wc') { const r = Net.user && Net.user[kind]; return (r && r.round) || 0; },
+  wcRound() { return this.cupRound('wc'); },
   cancelQueue() { Net.send({ t: 'unqueue' }); this.status = 'idle'; UI.hideQueue(); },
   // the queue as the server has it; in a party this is how everyone else learns the leader pressed PLAY
   onQueue(msg) {
@@ -85,8 +91,9 @@ const Online = {
       this.m = null;
       this.format = msg.format;
       this.worldCup = msg.wc !== null && msg.wc !== undefined;
+      this.cupKind = this.worldCup ? (msg.cup === 'cc' ? 'cc' : 'wc') : null;
       this.status = 'queue';
-      UI.showQueue({ format: msg.format, wc: msg.wc });
+      UI.showQueue({ format: msg.format, wc: msg.wc, cup: msg.cup });
     }
     UI.queueParty(msg.party);
   },
@@ -167,9 +174,11 @@ const Online = {
       const p = new Player({ team: flipTeam(info.team), keeper: info.keeper, number: info.number, look: info.look, human: i === msg.you });
       p.name = info.name;
       if (i === msg.you) {
-        const ch = CHARACTERS.find((c) => c.id === msg.character) || Save.character();
-        p.attr = ratingAttr(ch.r);
-        p.rarity = ch.rarity;
+        // the stats the server is playing you at (an older server names a character instead)
+        const old = !msg.stats && CHARACTERS.find((c) => c.id === msg.character);
+        const r = msg.stats ? statRatings(msg.stats) : old ? old.r : Save.character().r;
+        p.attr = ratingAttr(r);
+        p.rarity = ovrGrade(overall(r));
       }
       return p;
     });
@@ -181,7 +190,7 @@ const Online = {
       stats: { blue: {}, red: {} }, duration: msg.minutes * 60, time: msg.minutes * 60, overtime: false, otTime: 0,
       phase: 'kickoff', phaseT: 0, clock: 0, format: msg.format, mode: 'online', club: theirs, home: mine, goals: [], flags: {},
       challenges: null, timeScale: 1, demo: false, replay: null, rec: null, humanRarity: players[msg.you].rarity, events: null,
-      wc: Number.isInteger(msg.wc) ? msg.wc : null, fcup: msg.fcup || null,
+      wc: Number.isInteger(msg.wc) ? msg.wc : null, cupKind: msg.cup === 'cc' ? 'cc' : 'wc', fcup: msg.fcup || null,
       ranked: !!msg.ranked,
       // ranked challenges come from the server (it keeps the stats), so they are their own list —
       // m.challenges is the offline one, whose rules are checked on this side
@@ -883,7 +892,7 @@ const Online = {
     const f = this.format;
     Game.goHome();
     this.m = null;
-    this.findMatch(f, this.worldCup);
+    this.findMatch(f, this.cupKind || this.worldCup);
   },
 };
 

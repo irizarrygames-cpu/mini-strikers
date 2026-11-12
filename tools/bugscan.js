@@ -335,7 +335,7 @@ window.BS = {
 
     await step('splash away', () => { $('splash').classList.add('gone'); $('splash').hidden = true; $('daily').hidden = true; });
     await step('home refresh', () => UI.refreshHome());
-    for (const kind of ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile']) {
+    for (const kind of ['play', 'stats', 'offers', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile']) {
       await step('open ' + kind, () => { UI.openModal(kind); if (!visible('modal')) throw new Error('modal hidden'); });
       await step('close ' + kind, () => { click($('modal-close')); if (visible('modal')) throw new Error('modal still open'); });
     }
@@ -344,13 +344,30 @@ window.BS = {
       for (const t of ['character', 'ball', 'celebration', 'accessory', 'trail']) { click(document.querySelector(`[data-tab="${t}"]`)); await wait(30); }
       UI.closeModal();
     });
-    await step('a locked card cannot be bought', async () => {
-      Save.data.coins = 999999; UI.openModal('characters');
-      const card = document.querySelector('.char-card-sm.locked');
-      if (!card) { UI.closeModal(); return; }
-      const id = card.dataset.id;
-      click(card); click(card);
-      if (Save.data.owned.character.includes(id)) throw new Error('a card sold itself');
+    await step('a stat level costs what it says, and the next one costs more', async () => {
+      Save.data.coins = 999999; UI.openModal('stats');
+      const before = Save.stats().spd, cost = statCost(before), coins = Save.data.coins;
+      click(document.querySelector('[data-up="spd"]'));
+      if (Save.stats().spd !== before + 1) throw new Error('no level');
+      if (coins - Save.data.coins !== cost) throw new Error('charged ' + (coins - Save.data.coins) + ' not ' + cost);
+      if (statCost(before + 1) <= cost) throw new Error('the next level is not dearer');
+      if (statRating(before + 2) - statRating(before + 1) >= statRating(before + 1) - statRating(before)) throw new Error('the next level is not worth less');
+      Save.data.coins = 0; UI.panel_stats(document.getElementById('modal-body'));
+      const lv = Save.stats().spd;
+      click(document.querySelector('[data-up="spd"]'));
+      if (Save.stats().spd !== lv) throw new Error('levelled up with no coins');
+      UI.closeModal();
+    });
+    await step('many accessories at once, on and off', async () => {
+      Save.data.owned.accessory = [...new Set([...(Save.data.owned.accessory || []), 'shades', 'cape', 'halo'])];
+      Save.data.accessories = [];
+      UI._custTab = 'accessory'; UI.openModal('customize');
+      for (const id of ['shades', 'cape', 'halo']) click(document.querySelector(`.acc-opt[data-id="${id}"]`));
+      if (Save.accessories().length !== 3) throw new Error('wearing ' + Save.accessories().join(','));
+      click(document.querySelector('.acc-opt[data-id="cape"]'));
+      if (Save.wearing('cape') || Save.accessories().length !== 2) throw new Error('cape did not come off');
+      click(document.querySelector('.acc-opt[data-id="none"]'));
+      if (Save.accessories().length) throw new Error('not all off');
       UI.closeModal();
     });
     const emptyBag = () => { Save.data.owned = { character: [], ball: [], trail: [], celebration: [], accessory: [] }; };
@@ -421,11 +438,11 @@ window.BS = {
       if (Missions.claim(job.id) !== 0) throw new Error('paid twice');
       if (Save.data.coins !== def.coins) throw new Error('coins ' + Save.data.coins);
     });
-    await step('equip a character you own', async () => {
-      Save.data.owned.character = [...new Set([...(Save.data.owned.character || []), 'buzz'])];
-      UI.openModal('characters');
-      click(document.querySelector('.char-card-sm[data-id="buzz"]'));
-      if (Save.character().id !== 'buzz') throw new Error('not equipped');
+    await step('change your look', async () => {
+      UI._custTab = 'character'; UI.openModal('customize');
+      click(document.querySelector('[data-look="hair"][data-v="afro"]'));
+      click(document.querySelector('[data-look="build"][data-v="slim"]'));
+      if (Save.look().hair !== 'afro' || !Save.look().thin) throw new Error('look not changed');
       UI.closeModal();
     });
     await step('equip a ball you own', async () => {
@@ -495,13 +512,13 @@ window.BS = {
     }
 
     await step('cup: run to champion', async () => {
-      Save.data.cup = null; const trophies = Save.data.trophies || 0;
+      Cup.slot().cup = null; const trophies = Save.data.trophies || 0;
       Cup.start();
       for (let round = 0; round < 3; round++) {
         Game.startMatch({ mode: 'cup' });
         Game.kickOff();
         const m = Game.match;
-        if (m.club.id !== Save.data.cup.opponents[round]) throw new Error('wrong opponent in round ' + round);
+        if (m.club.id !== Cup.last().opponents[round]) throw new Error('wrong opponent in round ' + round);
         m.time = 0.05; m.score.blue = 1; m.goals.push({ team: 'blue' }); m.ball.shot = null;
         for (let i = 0; i < 80 && Game.state !== 'results'; i++) await wait(50);
         if (Game.state !== 'results') throw new Error('no results in round ' + round);
@@ -625,7 +642,7 @@ window.BS = {
     const was = Save.data.tutorialSeen;
     Save.data.tutorialSeen = true;
     const bad = [];
-    for (const kind of ['play', 'characters', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile']) {
+    for (const kind of ['play', 'stats', 'offers', 'customize', 'crates', 'collection', 'missions', 'settings', 'profile']) {
       UI.openModal(kind);
       await wait(260);
       const r = this.panelFit();

@@ -198,7 +198,7 @@ const Net = {
     if (r.token) { this.token = r.token; try { localStorage.setItem(TOKEN_KEY, r.token); } catch (e) {} }
     if (r.name) { this.lastUser = r.name; try { localStorage.setItem(USER_KEY, r.name); } catch (e) {} }
     this.openSocket(); // have it ready before the first thing they press
-    this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 }, hasRecovery: r.hasRecovery };
+    this.user = { name: r.name, club: r.club, online: r.online, rank: r.rank || null, wc: r.wc || { round: 0, titles: 0 }, cc: r.cc || { round: 0, titles: 0 }, hasRecovery: r.hasRecovery };
     Save.useAccount(r.name, r.save, r.club, fresh);
     Store.onSignedIn();
     if (r.gift > 0) this.giftToast(r.gift); // already inside the save that just came back
@@ -289,7 +289,7 @@ const Net = {
     ws.onmessage = (e) => {
       let msg;
       try { msg = JSON.parse(e.data); } catch (err) { return; }
-      if (msg.t === 'hello') { this.wsReady = true; this._retry = 0; if (this.offline) this.pokeConnection(); }
+      if (msg.t === 'hello') { this.wsReady = true; this._retry = 0; this._arenaSent = undefined; this.sendArena(); if (this.offline) this.pokeConnection(); }
       if (msg.t === 'pong') { this.rtt = Math.max(1, performance.now() - msg.c); return; }
       const fn = this.handlers[msg.t];
       if (fn) fn(msg);
@@ -315,6 +315,13 @@ const Net = {
   send(obj) {
     if (this.ws && this.ws.readyState === 1) { this.ws.send(JSON.stringify(obj)); return true; }
     return false;
+  },
+  // Which kit you wear online: your club's in Club Career, otherwise your country's (the server
+  // knows your country already). Sent when the connection comes up and whenever it changes.
+  sendArena() {
+    const club = typeof Clubs !== 'undefined' && Clubs.clubMode() ? Clubs.career().id : null;
+    if (this._arenaSent === club) return;
+    if (this.send({ t: 'arena', club })) this._arenaSent = club;
   },
   // send it now if we can, and otherwise as soon as the connection is up
   sendSoon(obj) { if (!this.send(obj)) this.whenReady(obj); },

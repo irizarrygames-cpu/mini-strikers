@@ -29,7 +29,8 @@ const CRATES = [
 ];
 
 // Everything a crate can hold, and where to find its definition.
-const CRATE_KINDS = ['character', 'ball', 'trail', 'celebration', 'accessory', 'skill'];
+// (characters went in build 111: there is one player now, your own)
+const CRATE_KINDS = ['ball', 'trail', 'celebration', 'accessory', 'skill'];
 
 const Crates = {
   get(id) { return CRATES.find((c) => c.id === id) || null; },

@@ -749,7 +749,17 @@ const ULT_POSES = {
   // a full backflip, striking it on the way round
   backflip: (u) => ({ jump: Math.sin(Math.min(1, u * 1.1) * Math.PI) * 52 + 4, rot: -u * Math.PI * 2,
     feet: [[-2, -14], [10, -20]], hands: [[-6, -28], [12, -26]] }),
-  // both feet off the deck, legs scissoring through it
+  // Diving forward onto the hands, the back arched, and the heel whipping up and over to strike it
+  // from behind the head.
+  scorpion: (u) => {
+    const dive = Math.min(1, u / 0.3), tip = dive * dive * (3 - 2 * dive);
+    const whip = u < 0.22 ? 0 : Math.sin(Math.min(1, (u - 0.22) / 0.62) * Math.PI);
+    const settle = u > 0.84 ? (u - 0.84) / 0.16 : 0;
+    return { jump: 4 + Math.sin(Math.min(1, u * 1.1) * Math.PI) * 16, rot: 1.35 * tip * (1 - settle * 0.7), upper: -0.6 * tip * (1 - settle),
+      feet: [[-4 - whip * 3, -4], [lerp(-3, -20, whip), lerp(-5, -22, whip)]],
+      hands: [[14, -66], [21, -60]] };
+  },
+  // both feet off the deck, legs scissoring through it (kept for older saved replays)
   scissors: (u) => {
     const s = Math.sin(u * Math.PI * 3);
     return { jump: Math.sin(Math.min(1, u * 1.2) * Math.PI) * 34 + 3, rot: -0.55, lean: -0.2,

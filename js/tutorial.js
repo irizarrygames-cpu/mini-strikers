@@ -41,8 +41,8 @@ const Tutorial = {
         : tl('{0} with a direction: spin, flick, nutmeg, Cruyff. No direction and you hop over the tackle.', [btn(tl('SKILL'))]),
       tackle: kb ? tl('Without the ball, {0} slides in and takes it. Time it — a miss leaves you on the floor.', [k('F')])
         : tl('Without the ball, {0} slides in and takes it. Time it — a miss leaves you on the floor.', [btn(tl('TACKLE'))]),
-      ult: kb ? tl('Goals, skills, assists and won tackles fill the ULT bar. Full, and {0} fires your signature — and its cutscene.', [k(tl('SPACE'))])
-        : tl('Goals, skills, assists and won tackles fill the ULT bar. Full, and {0} fires your signature — and its cutscene.', [btn(tl('ULT'))]),
+      ult: kb ? tl('Goals, skills, assists and won tackles fill the ULT bar. Full, and {0} fires your ULT: a different kick every time, in flames, with its own cutscene.', [k(tl('SPACE'))])
+        : tl('Goals, skills, assists and won tackles fill the ULT bar. Full, and {0} fires your ULT: a different kick every time, in flames, with its own cutscene.', [btn(tl('ULT'))]),
       penkick: kb ? tl('Aim with {0}, hold {1} for power, let go to hit it. Corners beat keepers; power alone misses.', [move, k(tl('SPACE'))])
         : tl('Aim by dragging, hold {0} for power, let go to hit it. Corners beat keepers; power alone misses.', [btn(tl('SHOOT'))]),
       pensave: kb ? tl('Their turn: pick a side with {0} as the ball leaves their boot. Too early and they change their mind.', [move])

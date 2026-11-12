@@ -169,16 +169,31 @@ const Challenges = {
 };
 
 // ===== Cup ==========================================================
+// The bot cup: the World Cup when you play for your country, the Champions Cup when you play for
+// a club (each keeps its own run). Three knockout matches, each against a bigger team.
 const Cup = {
   ROUNDS: [tl('QUARTER-FINAL'), tl('SEMI-FINAL'), tl('FINAL')],
+  champions() { return Clubs.clubMode(); },
+  // what holds this side's cup: the save itself, or the Club Career part of it
+  slot() { return this.champions() ? Career.state() : Save.data; },
+  name() { return this.champions() ? tl('CHAMPIONS CUP') : tl('WORLD CUP'); },
+  prize() { return this.champions() ? CC_BOT_PRIZE : 300; },
   start() {
-    const mine = Clubs.mine().id;
-    const at = (lo, hi) => pick(CLUBS.filter((c) => c.level >= lo && c.level <= hi && c.id !== mine));
-    const picks = [at(0, 1), at(2, 2), at(3, 3)];
-    Save.data.cup = { active: true, round: 0, opponents: picks.map((c) => c.id), results: [] };
+    const mine = Clubs.mine().id, pool = Clubs.pool(), used = new Set([mine]);
+    const at = (lo, hi) => {
+      const list = pool.filter((c) => c.level >= lo && c.level <= hi && !used.has(c.id));
+      const c = pick(list.length ? list : pool.filter((x) => !used.has(x.id)));
+      used.add(c.id);
+      return c;
+    };
+    // the Champions Cup has no easy draws: it is the best clubs there are
+    const picks = this.champions() ? [at(1, 2), at(2, 3), at(3, 3)] : [at(0, 1), at(2, 2), at(3, 3)];
+    this.slot().cup = { active: true, round: 0, opponents: picks.map((c) => c.id), results: [] };
     Save.write();
   },
-  state() { return Save.data.cup && Save.data.cup.active ? Save.data.cup : null; },
+  state() { const s = this.slot(); return s && s.cup && s.cup.active ? s.cup : null; },
+  // the cup as it stands, finished or not (the results screen shows the whole road)
+  last() { const s = this.slot(); return (s && s.cup) || null; },
   opponent() { const s = this.state(); return s ? Clubs.get(s.opponents[s.round]) : null; },
   // returns 'next' | 'champion' | 'out'
   record(m) {
@@ -187,7 +202,13 @@ const Cup = {
     const won = m.score.blue > m.score.red;
     s.results[s.round] = { blue: m.score.blue, red: m.score.red, won };
     if (!won) { s.active = false; Save.write(); return 'out'; }
-    if (s.round >= 2) { s.active = false; Save.data.trophies = (Save.data.trophies || 0) + 1; Save.write(); return 'champion'; }
+    if (s.round >= 2) {
+      s.active = false;
+      Save.data.trophies = (Save.data.trophies || 0) + 1;
+      if (this.champions()) Career.state().titles = (Career.state().titles || 0) + 1;
+      Save.write();
+      return 'champion';
+    }
     s.round++; Save.write();
     return 'next';
   },
@@ -195,7 +216,8 @@ const Cup = {
 
 // ===== Career achievements ==========================================
 // stat(d) reads the save; progress is capped at goal; each one pays out once when claimed.
-const ownedCount = (pred) => CHARACTERS.filter((c) => pred(c) && charOk(c) && Shop.owns('character', c.id)).length;
+const statTotal = (d) => STAT_KEYS.reduce((n, k) => n + statLevel(d.stats && d.stats[k]), 0);
+const statBest = (d) => statOvr(d.stats);
 const ACHIEVEMENTS = [
   { id: 'goal1', name: tl('Off The Mark'), text: tl('Score your first goal'), goal: 1, coins: 50, stat: (d) => d.goals },
   { id: 'win1', name: tl('First Win'), text: tl('Win a match'), goal: 1, coins: 60, stat: (d) => d.wins },
@@ -211,13 +233,15 @@ const ACHIEVEMENTS = [
   { id: 'power10', name: tl('Screamers'), text: tl('Score 10 power-shot goals'), goal: 10, coins: 300, stat: (d) => d.career.powerGoals },
   { id: 'streak5', name: tl('On Fire'), text: tl('Win 5 matches in a row'), goal: 5, coins: 400, stat: (d) => d.career.bestStreak },
   { id: 'cup1', name: tl('Silverware'), text: tl('Win the Cup'), goal: 1, coins: 300, stat: (d) => d.trophies },
-  { id: 'squad', name: tl('Squad Builder'), text: tl('Own 6 characters'), goal: 6, coins: 400, stat: () => ownedCount(() => true) },
+  { id: 'train10', name: tl('Hard Worker'), text: tl('Upgrade your stats 10 times'), goal: 10, coins: 400, stat: (d) => statTotal(d) },
+  { id: 'signed', name: tl('Signed!'), text: tl('Sign for a club'), goal: 1, coins: 200, stat: (d) => (d.cc && d.cc.signed) || 0 },
   { id: 'goal100', name: tl('Goal Machine'), text: tl('Score 100 goals'), goal: 100, coins: 600, stat: (d) => d.goals },
   { id: 'veteran', name: tl('Veteran'), text: tl('Play 100 matches'), goal: 100, coins: 800, stat: (d) => d.matches },
-  { id: 'epic', name: tl('Epic Signing'), text: tl('Own an epic character'), goal: 1, coins: 500, stat: () => ownedCount((c) => c.rarity === 'epic') },
+  { id: 'ovr70', name: tl('Rising Star'), text: tl('Get your player to 70 OVR'), goal: 70, coins: 500, stat: (d) => statBest(d) },
+  { id: 'cc1', name: tl('Champions'), text: tl('Win the Champions Cup'), goal: 1, coins: 600, stat: (d) => (d.cc && d.cc.titles) || 0 },
   { id: 'win50', name: tl('Serial Winner'), text: tl('Win 50 matches'), goal: 50, coins: 1000, stat: (d) => d.wins },
   { id: 'cup5', name: tl('Dynasty'), text: tl('Win the Cup 5 times'), goal: 5, coins: 1200, stat: (d) => d.trophies },
-  { id: 'legend', name: tl('Legendary'), text: tl('Own a legendary character'), goal: 1, coins: 1000, stat: () => ownedCount((c) => c.rarity === 'legendary') },
+  { id: 'ovr80', name: tl('Superstar'), text: tl('Get your player to 80 OVR'), goal: 80, coins: 1000, stat: (d) => statBest(d) },
   { id: 'goal300', name: tl('Living Legend'), text: tl('Score 300 goals'), goal: 300, coins: 1500, stat: (d) => d.goals },
 ];
 

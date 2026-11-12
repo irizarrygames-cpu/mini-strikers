@@ -1,4 +1,5 @@
 // Chunky flat cartoon players, the ball and ball trails — all drawn in code.
+const NO_ACCS = Object.freeze([]);
 const Sprites = {
   rr(ctx, x, y, w, h, r) {
     ctx.beginPath();
@@ -104,9 +105,11 @@ const Sprites = {
     if (lean) { ctx.translate(0, -16); ctx.rotate(lean); ctx.translate(0, 16); }
     ctx.lineJoin = 'round';
 
-    const acc = look.acc || null;
+    // everything you have on (as many as you like; an older look carries just the one)
+    const accs = p.isKeeper ? NO_ACCS : look.accs || (look.acc ? [look.acc] : NO_ACCS);
+    const has = (id) => accs.includes(id);
     // capes, wings and jetpacks hang behind you (seen from behind they're drawn over the shirt)
-    if (acc && !back) this.accessory(ctx, acc, 'back', p, t, back, sp);
+    if (!back) for (const a of accs) this.accessory(ctx, a, 'back', p, t, back, sp);
 
     // ---- legs + boots ----
     const hipY = -18;
@@ -119,8 +122,8 @@ const Sprites = {
       if (dive) { fx = hx * 1.3; fy = -1; }
       if (cp && cp.feet) { fx = cp.feet[i][0]; fy = cp.feet[i][1]; }
       this.leg(ctx, hx, hipY, fx, fy, look.skin, kit.socks, buff);
-      const premiumBoot = acc === 'galaxyboots' ? '#7b4dff' : acc === 'flameboots' ? '#ff5a1f' : acc === 'goldboots' ? '#ffc21a'
-        : acc === 'neonboots' ? '#39ff88' : acc === 'frostboots' ? '#9fe8ff' : null;
+      const premiumBoot = has('galaxyboots') ? '#7b4dff' : has('flameboots') ? '#ff5a1f' : has('goldboots') ? '#ffc21a'
+        : has('neonboots') ? '#39ff88' : has('frostboots') ? '#9fe8ff' : null;
       this.boot(ctx, fx, fy, premiumBoot && !p.isKeeper ? premiumBoot : kit.shoes, i === 1 && kick > 0.3);
     }
 
@@ -156,28 +159,28 @@ const Sprites = {
         ctx.beginPath(); ctx.ellipse(bx - side * 1.2, by - 2.2, 1.6, 2.6, 0.25 * side, 0, Math.PI * 2); ctx.fill();
       }
       const armLen = Math.hypot(hx - side * shX, hy - shY) || 1;
-      if (acc === 'robotarm' && side > 0 && !p.isKeeper) {
+      if (has('robotarm') && side > 0 && !p.isKeeper) {
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(side * shX, shY); ctx.lineTo(hx, hy); ctx.stroke();
         ctx.strokeStyle = '#9aa7bd'; ctx.lineWidth = 4.2; ctx.stroke();
         ctx.beginPath(); ctx.arc(lerp(side * shX, hx, 0.55), lerp(shY, hy, 0.55), 3.4, 0, Math.PI * 2); this.blob(ctx, '#46d9ff');
       }
-      if (acc === 'wraps' && !p.isKeeper) {
+      if (has('wraps') && !p.isKeeper) {
         ctx.strokeStyle = '#f1ece0'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
         const f0 = Math.max(0.4, (armLen - 9) / armLen);
         for (let q = 0; q < 3; q++) { const f = f0 + (q * 3) / armLen; ctx.beginPath(); ctx.moveTo(lerp(side * shX, hx, f) - 2.6, lerp(shY, hy, f)); ctx.lineTo(lerp(side * shX, hx, f) + 2.6, lerp(shY, hy, f)); ctx.stroke(); }
         ctx.lineCap = 'butt';
       }
-      if (acc === 'powerband' && !p.isKeeper) {
+      if (has('powerband') && !p.isKeeper) {
         const f = Math.max(0.5, (armLen - 4) / armLen), wx = lerp(side * shX, hx, f), wy = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(wx, wy, 4.4, 0, Math.PI * 2); this.blob(ctx, '#2a2d45');
         ctx.fillStyle = '#39ff88'; ctx.fillRect(wx - 2.6, wy - 1, 5.2, 2);
       }
-      if (acc === 'gauntlet' && side > 0 && !p.isKeeper) {
+      if (has('gauntlet') && side > 0 && !p.isKeeper) {
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 8.4; ctx.beginPath(); ctx.moveTo(lerp(side * shX, hx, 0.45), lerp(shY, hy, 0.45)); ctx.lineTo(hx, hy); ctx.stroke();
         ctx.strokeStyle = '#c8a24a'; ctx.lineWidth = 6; ctx.stroke();
         ctx.beginPath(); ctx.arc(lerp(side * shX, hx, 0.62), lerp(shY, hy, 0.62), 2.6, 0, Math.PI * 2); this.blob(ctx, '#ff3a3f');
       }
-      if (acc === 'wristbands' && !p.isKeeper) {
+      if (has('wristbands') && !p.isKeeper) {
         const f = Math.max(0.5, (armLen - 3.6) / armLen), wx = lerp(side * shX, hx, f), wy = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(wx, wy, 4.1, 0, Math.PI * 2); this.blob(ctx, '#ff3a3f');
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(wx, wy, 1.7, 0, Math.PI * 2); ctx.fill();
@@ -185,7 +188,7 @@ const Sprites = {
       ctx.beginPath(); ctx.arc(hx, hy, p.isKeeper ? 4.8 : 3.4 + 0.9 * buff, 0, Math.PI * 2);
       this.blob(ctx, p.isKeeper ? kit.gloves : look.skin);
       ctx.beginPath(); ctx.arc(side * shX, shY + 1, 5.6 + 1.8 * buff, 0, Math.PI * 2); this.blob(ctx, kit.sleeves || kit.jersey);
-      if (acc === 'armband' && side > 0 && !p.isKeeper) {
+      if (has('armband') && side > 0 && !p.isKeeper) {
         const f = Math.min(0.62, 7 / armLen), ax = lerp(side * shX, hx, f), ay = lerp(shY, hy, f);
         ctx.beginPath(); ctx.arc(ax, ay, 4.4, 0, Math.PI * 2); this.blob(ctx, '#ffe14d');
         ctx.fillStyle = OUTLINE; ctx.font = '900 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('C', ax, ay + 0.4);
@@ -200,7 +203,15 @@ const Sprites = {
     if (kit.stripes) { ctx.fillStyle = kit.stripes; ctx.fillRect(-8.4, -44.6, 3.8, 19.4); ctx.fillRect(-1.9, -45.4, 3.8, 21); ctx.fillRect(4.6, -44.6, 3.8, 19.4); }
     if (kit.center) { ctx.fillStyle = '#ffffff'; ctx.fillRect(-4.8, -45.4, 9.6, 21); ctx.fillStyle = kit.center; ctx.fillRect(-3, -45.4, 6, 21); }
     if (kit.checks) { ctx.fillStyle = kit.checks; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if ((r + c) % 2 === 0) ctx.fillRect(-9 + c * 4.5, -44 + r * 4.5, 4.5, 4.5); }
-    ctx.fillStyle = kit.stripes || kit.center || kit.checks ? 'rgba(0, 0, 0, 0.16)' : kit.shade;
+    if (kit.hoops || kit.halves || kit.diag) {
+      // club shirts: hoops across, the shirt split down the middle, or a diagonal half
+      ctx.save(); this.rr(ctx, -12, -46, 24, 22, 8); ctx.clip();
+      if (kit.hoops) { ctx.fillStyle = kit.hoops; ctx.fillRect(-13, -42.5, 26, 4.2); ctx.fillRect(-13, -35, 26, 4.2); ctx.fillRect(-13, -27.5, 26, 4); }
+      if (kit.halves) { ctx.fillStyle = kit.halves; ctx.fillRect(0, -47, 13, 24); }
+      if (kit.diag) { ctx.fillStyle = kit.diag; ctx.beginPath(); ctx.moveTo(-13, -47); ctx.lineTo(13, -47); ctx.lineTo(-13, -23); ctx.closePath(); ctx.fill(); }
+      ctx.restore();
+    }
+    ctx.fillStyle = kit.stripes || kit.center || kit.checks || kit.hoops || kit.halves || kit.diag ? 'rgba(0, 0, 0, 0.16)' : kit.shade;
     this.rr(ctx, -11, -31, 22, 6.5, 3); ctx.fill();   // lower shadow band
     ctx.fillRect(-10.5, -42, 4, 13);                   // back-side panel
     ctx.fillStyle = kit.accent === OUTLINE ? '#ffffff' : kit.accent;
@@ -228,7 +239,7 @@ const Sprites = {
     ctx.fillText(String(p.number), nx, ny);
     ctx.restore();
 
-    if (acc) { if (back) this.accessory(ctx, acc, 'back', p, t, back, sp); this.accessory(ctx, acc, 'neck', p, t, back, sp); }
+    for (const a of accs) { if (back) this.accessory(ctx, a, 'back', p, t, back, sp); this.accessory(ctx, a, 'neck', p, t, back, sp); }
     arm(1, armSwing);
 
     // ---- head ----
@@ -236,13 +247,33 @@ const Sprites = {
     if (slim !== 1) { ctx.save(); ctx.scale(1 / slim, 1); }
     this.head(ctx, look, back, t, p);
     const faceProp = cp && (cp.prop === 'shades' || cp.prop === 'glasses');
-    const faceAcc = acc && ACCESSORY_FACE_IDS.has(acc);
-    if (acc && !(faceProp && faceAcc)) this.accessory(ctx, acc, 'head', p, t, back, sp);
+    for (const a of accs) if (!(faceProp && ACCESSORY_FACE_IDS.has(a))) this.accessory(ctx, a, 'head', p, t, back, sp);
     if (cp && cp.prop) this.celebProp(ctx, cp.prop, ce, back, p);
     if (slim !== 1) ctx.restore();
     ctx.restore();
     if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, true);
     if (cp && cp.screen) this.celebScreen(ctx, cp.screen, ce, sx, sy, k, flip, cp);
+  },
+
+  // The Champions Cup, held up by its stem: our own design, not anybody's real trophy. A tall
+  // silver cup with a blue band, two swept-back handles like wings, and a gold star on top.
+  championsCup(ctx) {
+    ctx.save(); ctx.scale(1.25, 1.25); // a touch bigger than the gold cup: it is the big one
+    ctx.lineJoin = 'round';
+    // handles first, so the cup sits over where they meet it
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(s * 8, -27); ctx.quadraticCurveTo(s * 17, -31, s * 15, -20); ctx.quadraticCurveTo(s * 13, -14, s * 6, -14);
+      ctx.lineWidth = 4.6; ctx.strokeStyle = OUTLINE; ctx.stroke(); ctx.lineWidth = 2.2; ctx.strokeStyle = '#cfd8e6'; ctx.stroke();
+    }
+    this.rr(ctx, -7.5, -3.5, 15, 5, 1.5); this.blob(ctx, '#1d2a5a');
+    this.rr(ctx, -2, -11, 4, 8, 1); this.blob(ctx, '#cfd8e6');
+    ctx.beginPath(); ctx.moveTo(-9.5, -31); ctx.lineTo(9.5, -31); ctx.lineTo(7, -17); ctx.quadraticCurveTo(0, -9.5, -7, -17); ctx.closePath(); this.blob(ctx, '#e3e9f2');
+    ctx.fillStyle = '#2f7bff'; ctx.fillRect(-8.2, -25.5, 16.4, 3.6);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(-6.5, -29.5, 2.2, 10);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 2.4 : 5.4; ctx.lineTo(Math.cos(a) * r, -35 + Math.sin(a) * r); }
+    ctx.closePath(); this.blob(ctx, '#ffc21a');
+    ctx.restore();
   },
 
   // Rainbow fire round the player while the ult is up: flat flame tongues, colours running through
@@ -270,8 +301,9 @@ const Sprites = {
         ctx.quadraticCurveTo(x + ww * 1.15, y - hh * 0.62, x + ww, y);
         ctx.quadraticCurveTo(x, y + 2.6 * k, x - ww, y);
         ctx.closePath();
-        if (L === 0) { ctx.fillStyle = rainbow(t * 0.9, i); ctx.fill(); ctx.lineWidth = 2.4 * k; ctx.strokeStyle = OUTLINE; ctx.stroke(); }
-        else { ctx.fillStyle = rainbow(t * 0.9 + L * 0.45, i + L * 2); ctx.fill(); }
+        // charged it is rainbow; the strike itself goes up in real flames
+        if (L === 0) { ctx.fillStyle = p.ultShot ? FIRE_COLS[0] : rainbow(t * 0.9, i); ctx.fill(); ctx.lineWidth = 2.4 * k; ctx.strokeStyle = OUTLINE; ctx.stroke(); }
+        else { ctx.fillStyle = p.ultShot ? FIRE_COLS[L] : rainbow(t * 0.9 + L * 0.45, i + L * 2); ctx.fill(); }
       }
     }
   },
@@ -414,6 +446,7 @@ const Sprites = {
       case 'trophy': {
         const k = celeEase(e / 0.35), b = Math.abs(Math.sin(e * 7)) * 2 * k;
         ctx.save(); ctx.translate(1.5, lerp(-30, -66, k) - b);
+        if (p && p.cupStyle === 'champions') { this.championsCup(ctx); ctx.restore(); break; }
         for (const s of [-1, 1]) {
           ctx.beginPath(); ctx.arc(s * 8, -16, 4, s > 0 ? -Math.PI / 2 : Math.PI / 2, s > 0 ? Math.PI / 2 : Math.PI * 1.5);
           ctx.lineWidth = 4.4; ctx.strokeStyle = OUTLINE; ctx.stroke(); ctx.lineWidth = 2; ctx.strokeStyle = '#ffc21a'; ctx.stroke();
@@ -1982,6 +2015,44 @@ const Sprites = {
     for (let i = n - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
     ctx.closePath(); ctx.fill();
     ctx.globalAlpha = 1;
+  },
+
+  // An ult shot is a fireball: a fat flame ribbon behind it with tongues licking off the top.
+  fireTrail(ctx, b, R, t) {
+    if (b.trail.length < 2) return;
+    const pts = [{ x: R.sx(b.x, b.y), y: R.sy(b.y, b.z + CFG.BALL_R) }];
+    for (const p of b.trail) pts.push({ x: R.sx(p.x, p.y), y: R.sy(p.y, p.z + CFG.BALL_R) });
+    const k = R.k ? R.k(b.y) : R.S, rad = CFG.BALL_R * k;
+    this.ribbon(ctx, pts, rad * 3.4, FIRE_COLS[0], 0.92);
+    this.ribbon(ctx, pts, rad * 2.5, FIRE_COLS[1], 1);
+    this.ribbon(ctx, pts, rad * 1.6, FIRE_COLS[2], 1);
+    this.ribbon(ctx, pts, rad * 0.7, '#fff6c8', 1);
+    ctx.lineJoin = 'round';
+    for (let i = 1; i < pts.length; i++) {
+      const u = 1 - i / pts.length, h = rad * (1.4 + Math.abs(Math.sin(t * 22 + i * 1.9)) * 1.6) * u, w = rad * 0.9 * u;
+      if (h < 1.5) continue;
+      const x = pts[i].x, y = pts[i].y - rad * 1.2 * u;
+      ctx.beginPath(); ctx.moveTo(x - w, y); ctx.quadraticCurveTo(x - w, y - h * 0.6, x + Math.sin(t * 17 + i) * w * 0.6, y - h); ctx.quadraticCurveTo(x + w, y - h * 0.6, x + w, y); ctx.closePath();
+      ctx.fillStyle = FIRE_COLS[i % 2 ? 1 : 2]; ctx.fill();
+    }
+    if (Math.random() < 0.9) FX.ember(b.x, b.y, b.z, pick(FIRE_COLS));
+  },
+  // the flames wrapped round the ball itself, streaming back the way it came
+  fireball(ctx, sx, sy, r, vx, vy, t) {
+    const sp = Math.hypot(vx, vy);
+    const ang = sp > 1 ? Math.atan2(-vy * CFG.TILT, -vx) : -Math.PI / 2;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang); ctx.lineJoin = 'round';
+    const layers = [[FIRE_COLS[0], 4.4, 1.9], [FIRE_COLS[1], 3.3, 1.5], [FIRE_COLS[2], 2.2, 1.15]];
+    layers.forEach(([c, len, wid], i) => {
+      const L = r * len * (1 + 0.14 * Math.sin(t * 34 + i * 2)), W = r * wid, wob = Math.sin(t * 27 + i) * W * 0.25;
+      ctx.beginPath(); ctx.moveTo(0, -W);
+      ctx.quadraticCurveTo(L * 0.55, -W * 0.95, L, wob);
+      ctx.quadraticCurveTo(L * 0.55, W * 0.95, 0, W);
+      ctx.arc(0, 0, W, Math.PI / 2, Math.PI * 1.5);
+      ctx.closePath(); ctx.fillStyle = c; ctx.fill();
+      if (i === 0) { ctx.lineWidth = Math.max(2, r * 0.42); ctx.strokeStyle = OUTLINE; ctx.stroke(); }
+    });
+    ctx.restore();
   },
 
   trail(ctx, b, R, t) {
