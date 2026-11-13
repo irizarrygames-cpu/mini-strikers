@@ -73,4 +73,4 @@ Play in English, Spanish, Portuguese, French, German, Italian, Dutch, Turkish, P
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.1.5 (16)`
+- Release name: `1.1.6 (17)`

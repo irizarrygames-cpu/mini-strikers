@@ -251,6 +251,12 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## The keeper's dive line in free kicks (build 114)
+
+In goal, the blue line from the keeper shows the way you will dive whatever you aim with: the stick or
+keys, or the mouse (it points from the keeper towards the mouse). Build 112 had drawn a circle where
+the mouse was instead, which looked wrong. App 1.1.6 (code 17).
+
 ## Badges, names and a bug sweep (build 113)
 
 - **Club names as obvious as the law allows** and **detailed badges** (js/crests.js, `Crests.badge`):

@@ -910,15 +910,6 @@ const Pens = {
     } else if (P.phase !== 'after' && P.phase !== 'end' && this.sudden(P)) {
       Render.chunkyText(ctx, tl('SUDDEN DEATH'), W / 2, cy, sub, '#ff8a8e');
     }
-    // in goal with a mouse: a glove-sized ring where you are pointing, the way you will dive
-    if (P.team === 'red' && !P.dive && !P.watch && P.mouse && (P.phase === 'runup' || P.phase === 'flight' || P.phase === 'ready')) {
-      const c = this.gp(L, P.mouse.x * PEN.HW, P.mouse.z * PEN.HT), r = Math.max(9, L.s * 0.26);
-      ctx.save();
-      ctx.lineWidth = 7; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.lineWidth = 4; ctx.strokeStyle = '#46d9ff'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.32, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
     // your aim
     if (P.phase === 'aim') {
       const sw = P.sway || { x: 0, z: 0 };
@@ -953,12 +944,14 @@ const Pens = {
       Render.chunkyText(ctx, tl('POWER'), bx + bw / 2, by + bh + sub * 0.8, sub * 0.6, '#ffffff', 3);
       if (P.clock < 3.5) Render.chunkyText(ctx, String(Math.ceil(P.clock)), c.x, c.y - r * 2.4, sub * 1.1, '#ff8a8e');
     }
-    // you in goal: where the stick points is where you'll go
+    // you in goal: a line from the keeper the way you will dive
     if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive && !P.watch) {
       // (from where the keeper stands: in a free kick that is off to one side, away from the wall)
+      // the line points the way you will dive: the stick or keys if you are pushing them, otherwise
+      // towards the mouse (the same choice diveFrom makes when you press)
       const mv = Input.move, l = Math.hypot(mv.x, mv.y), hip = this.gp(L, P.kx || 0, PEN.K.hip);
-      if (l > 0.25) {
-        const dx = mv.x / l, dy = mv.y / l, len = L.s * 1.6;
+      if (l > 0.25 || P.mouse) {
+        const d = this.diveFrom(P, 0), dx = d.dx, dy = -d.dz, len = L.s * 1.6;
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 9; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(hip.x + dx * L.s * 0.5, hip.y + dy * L.s * 0.5); ctx.lineTo(hip.x + dx * len, hip.y + dy * len); ctx.stroke();
         ctx.strokeStyle = '#46d9ff'; ctx.lineWidth = 5;
