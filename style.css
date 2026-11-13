@@ -2263,3 +2263,29 @@ body.lefty #touch-zone { left: 50%; }
   .cc-c-mid { flex: 1 1 150px; }
   .cc-c-tot { flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 8px; width: 100%; }
 }
+/* a club badge is square: never squeeze it into a flag-shaped box */
+.wc-bracket li canvas.crest { width: 22px; height: 22px; }
+
+/* ===== Build 113: lighter windows =====
+   "A lot of the UI is way too bold, especially Friends." The chunky letters with the thick outline
+   stay where they belong (the home screen, titles, the big PLAY-sized buttons). Inside a window:
+   thinner outlines on its buttons, and names, small print, tags and typing in the phone's own font. */
+#modal .mid-btn, .overlay .panel .mid-btn, .sheet .mid-btn { -webkit-text-stroke-width: 0.075em; }
+#modal .big-btn, .overlay .panel .big-btn { -webkit-text-stroke-width: 0.1em; }
+#modal .tabs button, .formats button, .look-chip, .arena-switch button { -webkit-text-stroke-width: 0; }
+.fr-add input, .gate input, .join input, #join-code {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-weight: 600; letter-spacing: 0.02em;
+}
+.fr-add input { font-size: 17px; }
+.fr-row b, .fr-name, .fr-member b, .fr-party strong, .cup-slot b, .lb-board span, .pl-name {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-weight: 700;
+}
+.fr-row b, .fr-name { font-size: 16px; }
+.fr-row small, .fr-member small, .fr-party header small, .fr-tag, .fr-st, .fr-coop small, .fr-coop-line em,
+.cup-slot small, .rank-how span, .rank-stats span, .st-name small, .cc-c-mid small, .cc-c-tot small, .cc-c-tot span,
+.cc-pay small, .coll-top em, .coll-big small, .prof-id small, .lb-board i small {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-weight: 600;
+}
+.fr-h { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; }
+.fr-row .mid-btn { -webkit-text-stroke-width: 0.06em; }
+.club-pill.club canvas { width: 1.9em; height: 1.9em; margin: -4px 0 -4px 2px; }

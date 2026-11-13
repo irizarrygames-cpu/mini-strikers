@@ -273,7 +273,7 @@ Object.assign(UI, {
     const champs = Cup.champions(), kind = champs ? 'cc' : 'wc';
     $('modal-title').textContent = Cup.name();
     const fmt = Save.data.format || '4v4';
-    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="${c.euro ? 42 : 28}" data-flag="${c.id}"></canvas>${c.short}</span>`; };
+    const flagCell = (id) => { const c = Clubs.get(id); return `<span><canvas width="42" height="${c.euro ? 42 : 28}" data-flag="${c.id}"${c.euro ? ' class="crest"' : ''}></canvas>${c.short}</span>`; };
     // online: the round you're in comes from the server; this run's results from your last matches
     const round = Online.cupRound(kind), rec = Net.user && Net.user[kind], titles = (rec && rec.titles) || 0;
     const runAll = champs ? Career.state().run : Array.isArray(Save.data.wcRun) ? Save.data.wcRun : [];

@@ -354,7 +354,11 @@ const UI = {
     if (Game.demo && Game.demo.club && !sameSide(Game.demo.club)) Game.demo = null; // the match behind the menu starts again with the right teams
     $('home-user').textContent = Save.account || tl('GUEST');
     $('home-club-name').textContent = club.name;
-    this.flagBadge($('home-club-badge'), club);
+    // a club's badge is round or shield-shaped: square canvas for it, the flag's 3:2 for a country
+    // (a 3:2 canvas shown square stretched the badge)
+    const hb = $('home-club-badge'), hw = 72, hh = club.crest ? 72 : 48;
+    if (hb.width !== hw || hb.height !== hh) { hb.width = hw; hb.height = hh; }
+    this.flagBadge(hb, club);
     // your country's place in the league, or (for a club) how long your contract has to run
     const pillEl = $('home-club');
     pillEl.dataset.open = clubMode ? 'offers' : 'league';
@@ -378,68 +382,8 @@ const UI = {
     if (Save.data.seenCC === 0 && !this._ccNewSoon) { this._ccNewSoon = true; setTimeout(() => { this._ccNewSoon = false; this.maybeWhatsNew(); }, 1400); }
   },
 
-  // A club's badge, drawn from its crest data: a shape, how it is split, three colours and an
-  // emblem in the middle. Made up for this game: no real club's badge is copied.
-  crestBadge(cv, club) {
-    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
-    g.clearRect(0, 0, W, H);
-    const cr = club.crest, [c0, c1, c2] = cr.cols;
-    const S = Math.min(W, H) * 0.86, cx = W / 2, cy = H / 2, lw = Math.max(1.5, S * 0.07);
-    const L = cx - S / 2, T = cy - S / 2, R = cx + S / 2, B = cy + S / 2;
-    const shape = () => {
-      g.beginPath();
-      switch (cr.shape) {
-        case 'round': g.arc(cx, cy, S * 0.47, 0, Math.PI * 2); break;
-        case 'diamond': g.moveTo(cx, T); g.lineTo(R, cy); g.lineTo(cx, B); g.lineTo(L, cy); break;
-        case 'hex': for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + (i * Math.PI) / 3; g.lineTo(cx + Math.cos(a) * S * 0.5, cy + Math.sin(a) * S * 0.5); } break;
-        case 'badge': { const r = S * 0.2, x0 = cx - S * 0.43, x1 = cx + S * 0.43, y0 = T + S * 0.04, y1 = B - S * 0.04; g.moveTo(x0 + r, y0); g.arcTo(x1, y0, x1, y1, r); g.arcTo(x1, y1, x0, y1, r); g.arcTo(x0, y1, x0, y0, r); g.arcTo(x0, y0, x1, y0, r); break; }
-        case 'pointed': g.moveTo(cx - S * 0.42, T + S * 0.14); g.lineTo(cx, T); g.lineTo(cx + S * 0.42, T + S * 0.14); g.lineTo(cx + S * 0.42, cy + S * 0.08); g.quadraticCurveTo(cx + S * 0.36, B - S * 0.1, cx, B); g.quadraticCurveTo(cx - S * 0.36, B - S * 0.1, cx - S * 0.42, cy + S * 0.08); break;
-        default: g.moveTo(cx - S * 0.42, T + S * 0.03); g.lineTo(cx + S * 0.42, T + S * 0.03); g.lineTo(cx + S * 0.42, cy + S * 0.02); g.quadraticCurveTo(cx + S * 0.38, B - S * 0.12, cx, B); g.quadraticCurveTo(cx - S * 0.38, B - S * 0.12, cx - S * 0.42, cy + S * 0.02); // shield
-      }
-      g.closePath();
-    };
-    const rect = (c, x, y, w, h) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-    // the field, split
-    g.save(); shape(); g.clip();
-    rect(c0, L - 1, T - 1, S + 2, S + 2);
-    const n = 5, bw = S / n;
-    switch (cr.split) {
-      case 'vstripes': for (let i = 1; i < n; i += 2) rect(c1, L + i * bw, T, bw, S); break;
-      case 'hstripes': for (let i = 1; i < n; i += 2) rect(c1, L, T + i * bw, S, bw); break;
-      case 'halves': rect(c1, cx, T - 1, S / 2 + 1, S + 2); break;
-      case 'diag': g.fillStyle = c1; g.beginPath(); g.moveTo(R + 1, T - 1); g.lineTo(R + 1, B + 1); g.lineTo(L - 1, B + 1); g.closePath(); g.fill(); break;
-      case 'quarters': rect(c1, cx, T - 1, S / 2 + 1, S / 2 + 1); rect(c1, L - 1, cy, S / 2 + 1, S / 2 + 1); break;
-      case 'chevron': g.strokeStyle = c1; g.lineWidth = S * 0.2; g.beginPath(); g.moveTo(L, T + S * 0.12); g.lineTo(cx, cy + S * 0.1); g.lineTo(R, T + S * 0.12); g.stroke(); break;
-      case 'band': rect(c1, L, cy - S * 0.13, S, S * 0.26); break;
-      case 'checks': { const q = S / 6; for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) if ((r + c) % 2) rect(c1, L + c * q, T + r * q, q + 0.4, q + 0.4); break; }
-      case 'ring': g.strokeStyle = c1; g.lineWidth = S * 0.16; shape(); g.stroke(); break;
-    }
-    g.restore();
-    // the emblem, in the trim colour with the game's outline round it
-    const e = S * 0.2, ey = cy + (cr.shape === 'shield' || cr.shape === 'pointed' ? -S * 0.02 : 0);
-    g.lineJoin = 'round'; g.lineCap = 'round';
-    const ink = () => { g.fillStyle = c2; g.fill(); g.lineWidth = Math.max(1, S * 0.035); g.strokeStyle = OUTLINE; g.stroke(); };
-    const poly = (pts) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(cx + x * e, ey + y * e) : g.moveTo(cx + x * e, ey + y * e))); g.closePath(); ink(); };
-    switch (cr.emblem) {
-      case 'star': g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? e * 0.45 : e * 1.1; g.lineTo(cx + Math.cos(a) * r, ey + Math.sin(a) * r); } g.closePath(); ink(); break;
-      case 'ball': g.beginPath(); g.arc(cx, ey, e * 0.95, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill(); g.lineWidth = Math.max(1, S * 0.035); g.strokeStyle = OUTLINE; g.stroke();
-        g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i * Math.PI * 2) / 5; g.lineTo(cx + Math.cos(a) * e * 0.38, ey + Math.sin(a) * e * 0.38); } g.closePath(); g.fillStyle = OUTLINE; g.fill(); break;
-      case 'tower': poly([[-0.75, 1], [-0.75, -0.55], [-0.75, -0.95], [-0.4, -0.95], [-0.4, -0.7], [-0.15, -0.7], [-0.15, -0.95], [0.15, -0.95], [0.15, -0.7], [0.4, -0.7], [0.4, -0.95], [0.75, -0.95], [0.75, 1]]); break;
-      case 'cross': poly([[-0.25, -1], [0.25, -1], [0.25, -0.25], [1, -0.25], [1, 0.25], [0.25, 0.25], [0.25, 1], [-0.25, 1], [-0.25, 0.25], [-1, 0.25], [-1, -0.25], [-0.25, -0.25]]); break;
-      case 'crown': poly([[-1, 0.7], [-1, -0.6], [-0.5, -0.05], [0, -0.85], [0.5, -0.05], [1, -0.6], [1, 0.7]]); break;
-      case 'wave': g.beginPath(); g.moveTo(cx - e, ey + e * 0.6); for (let i = 0; i <= 8; i++) g.lineTo(cx - e + (i * e) / 4, ey - Math.sin(i * Math.PI / 2) * e * 0.35); g.lineTo(cx + e, ey + e * 0.6); g.closePath(); ink(); break;
-      case 'sun': g.beginPath(); for (let i = 0; i < 16; i++) { const a = (i * Math.PI) / 8, r = i % 2 ? e * 0.68 : e * 1.05; g.lineTo(cx + Math.cos(a) * r, ey + Math.sin(a) * r); } g.closePath(); ink(); break;
-      case 'flame': poly([[0, -1.05], [0.55, -0.15], [0.7, 0.4], [0.35, 0.95], [-0.35, 0.95], [-0.7, 0.4], [-0.45, -0.1], [-0.2, 0.15]]); break;
-      case 'wing': poly([[-0.9, 0.6], [-0.2, -0.95], [0.35, -0.6], [1, -0.85], [0.75, -0.2], [1, 0.05], [0.55, 0.3], [0.7, 0.6]]); break;
-      case 'moon': g.beginPath(); g.arc(cx, ey, e, Math.PI * 0.3, Math.PI * 1.7); g.arc(cx + e * 0.45, ey, e * 0.75, Math.PI * 1.55, Math.PI * 0.45, true); g.closePath(); ink(); break;
-      case 'bolt': poly([[0.25, -1.05], [-0.6, 0.15], [-0.05, 0.15], [-0.3, 1.05], [0.6, -0.2], [0.05, -0.2]]); break;
-      case 'key': g.beginPath(); g.arc(cx - e * 0.45, ey, e * 0.45, 0, Math.PI * 2); ink(); poly([[-0.05, -0.15], [1, -0.15], [1, 0.45], [0.75, 0.45], [0.75, 0.15], [0.5, 0.15], [0.5, 0.45], [0.25, 0.45], [0.25, 0.15], [-0.05, 0.15]]); break;
-      case 'peak': poly([[-1, 0.75], [-0.35, -0.55], [-0.05, -0.05], [0.3, -0.85], [1, 0.75]]); break;
-    }
-    // the rim: the trim colour just inside the outline
-    shape(); g.lineWidth = lw * 1.9; g.strokeStyle = OUTLINE; g.stroke();
-    shape(); g.lineWidth = lw * 0.7; g.strokeStyle = c2; g.stroke();
-  },
+  // A club's badge: js/crests.js draws it (a shape, its colours split, the city, an emblem).
+  crestBadge(cv, club) { Crests.badge(cv, club); },
 
   // a simple flag for a country (no crests or emblems, just its colours and shapes), or a club's badge
   flagBadge(cv, club) {
@@ -1352,7 +1296,8 @@ const UI = {
   wagesLine(pay, pens) {
     if (!Clubs.clubMode()) return '';
     if (!pay) return `<li class="wages over"><i></i><span>${tl('CONTRACT OVER · SIGN A NEW OFFER TO GET PAID')}</span></li>`;
-    const what = pens ? tl('WAGES · PENALTIES {0} × {1}', [pay.goals, pay.goalRate]) : tl('WAGES · GOALS {0} × {1} · ASSISTS {2} × {3}', [pay.goals, pay.goalRate, pay.assists, pay.assistRate]);
+    const fk = !!(Game.match && Game.match.pens && Game.match.pens.fk);
+    const what = pens ? (fk ? tl('WAGES · FREE KICKS {0} × {1}', [pay.goals, pay.goalRate]) : tl('WAGES · PENALTIES {0} × {1}', [pay.goals, pay.goalRate])) : tl('WAGES · GOALS {0} × {1} · ASSISTS {2} × {3}', [pay.goals, pay.goalRate, pay.assists, pay.assistRate]);
     return `<li class="wages ${pay.coins ? 'done' : ''}"><i></i><span>${what}</span><b><span class="coin"></span>${pay.coins}</b></li>`;
   },
 

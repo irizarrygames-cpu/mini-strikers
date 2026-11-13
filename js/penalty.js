@@ -346,8 +346,9 @@ const Pens = {
     const mv = Input.move, l = Math.hypot(mv.x, mv.y);
     if (l >= 0.25) return { dx: mv.x / l, dz: -mv.y / l, td, v: PEN.PLAYER_DIVE };
     if (P.mouse) {
-      const dx = P.mouse.x, dz = (P.mouse.z - 0.45) * 1.6, d = Math.hypot(dx, dz);
-      if (d >= 0.3) return { dx: dx / d, dz: dz / d, td, v: PEN.PLAYER_DIVE };
+      // the way from where the keeper stands (off to one side in a free kick) to the mouse
+      const dx = P.mouse.x * PEN.HW - (P.kx || 0), dz = P.mouse.z * PEN.HT - PEN.K.hip, d = Math.hypot(dx, dz);
+      if (d >= PEN.HW * 0.22) return { dx: dx / d, dz: dz / d, td, v: PEN.PLAYER_DIVE };
     }
     return { dx: 0, dz: 1, td, v: PEN.PLAYER_DIVE };
   },
@@ -954,7 +955,8 @@ const Pens = {
     }
     // you in goal: where the stick points is where you'll go
     if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive && !P.watch) {
-      const mv = Input.move, l = Math.hypot(mv.x, mv.y), hip = this.gp(L, 0, PEN.K.hip);
+      // (from where the keeper stands: in a free kick that is off to one side, away from the wall)
+      const mv = Input.move, l = Math.hypot(mv.x, mv.y), hip = this.gp(L, P.kx || 0, PEN.K.hip);
       if (l > 0.25) {
         const dx = mv.x / l, dy = mv.y / l, len = L.s * 1.6;
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = 9; ctx.lineCap = 'round';

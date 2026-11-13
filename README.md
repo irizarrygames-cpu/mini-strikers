@@ -251,6 +251,24 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Badges, names and a bug sweep (build 113)
+
+- **Club names as obvious as the law allows** and **detailed badges** (js/crests.js, `Crests.badge`):
+  each badge is a shape, a rim, the field split in the club's colours (stripes, hoops, halves, sash,
+  the Bavarian diamonds, a top band…), the city round the ring or on a ribbon, sometimes a crown or
+  stars on top, and a flat cartoon emblem (lion, eagle, wolf, bear and tree, bull, serpent, dragon,
+  canary, cockerel on a ball, castle, ship, cannon, lily, trident, submarine, Vesuvius, hammers,
+  shamrock, anchor, three crosses…). The club ids did not change, so careers carry on.
+- A badge always gets a square canvas (the home pill stretched it 3:2).
+- **Free kicks:** the keeper's dive line (and the mouse dive) start from where the keeper stands,
+  off to one side, not the middle of the goal.
+- **Weather moving at a steady speed:** birds, rain, snow, dust and the sparkles moved at
+  time x speed x camera zoom, so every zoom change (the camera pulls back to keep you and the ball in)
+  made them jump; they use the unzoomed scale (`Render.motionS`). The power-shot ring's dashes too.
+- **Lighter windows:** inside a window, names, small print and typing are in the phone's own font,
+  and button outlines are thinner (Friends was the worst).
+- The wages line after a free-kick shootout says FREE KICKS, not PENALTIES.
+
 ## Shootouts with a mouse (build 112)
 
 In penalties and free kicks the mouse now works whatever Controls is set to: point at the goal to

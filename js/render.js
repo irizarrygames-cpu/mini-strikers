@@ -379,6 +379,11 @@ const Render = {
   drawWeather(ctx, t, v) {
     const st = (v && v.st) || Save.stadium();
     if (!st.weather) return;
+    // Anything that moves across the SCREEN (birds, rain, snow, dust, sparkles) moves at a speed
+    // that does not change with the camera's zoom. It used to be time x speed x zoom, and since the
+    // camera zooms out to keep you and the ball in view, every little zoom change made that big
+    // number jump: the birds over a sunset ground teleported about whenever you moved.
+    const MS = v ? v.S : (this.motionS || this.S);
     v = v || { W: this.W, H: this.H, S: this.S, px: (x, y) => this.sx(x, y), py: (y) => this.sy(y, 0), k: (y) => this.k(y) };
     const W = v.W, H = v.H, S = v.S, T = CFG.TILT;
     const lite = this.quality >= 2 || Save.data.settings.graphics === 'low';
@@ -419,7 +424,7 @@ const Render = {
         tint('rgba(255, 110, 40, 0.10)');
         ctx.strokeStyle = OUTLINE; ctx.lineWidth = Math.max(1.5, 2.2 * S); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (let i = 0; i < 4; i++) {
-          const x = ((t * 40 * S + i * 170 * S + rnd(i, 1) * 300) % (W + 200)) - 100, y = H * (0.08 + rnd(i, 2) * 0.12) + Math.sin(t * 2 + i) * 4 * S;
+          const x = ((t * 40 * MS + i * 170 * MS + rnd(i, 1) * 300) % (W + 200)) - 100, y = H * (0.08 + rnd(i, 2) * 0.12) + Math.sin(t * 2 + i) * 4 * S;
           const flap = Math.sin(t * 9 + i * 2) * 3 * S, s = 7 * S;
           ctx.beginPath(); ctx.moveTo(x - s, y - flap); ctx.quadraticCurveTo(x - s / 2, y - s * 0.6, x, y); ctx.quadraticCurveTo(x + s / 2, y - s * 0.6, x + s, y - flap); ctx.stroke();
         }
@@ -432,11 +437,11 @@ const Render = {
       }
       case 'rain': {
         tint('rgba(30, 40, 70, 0.14)');
-        const n = lite ? 45 : 100, len = 30 * S, span = H + len * 2, wide = W + 100;
+        const n = lite ? 45 : 100, len = 30 * MS, span = H + len * 2, wide = W + 100;
         ctx.strokeStyle = 'rgba(215, 230, 255, 0.5)'; ctx.lineWidth = Math.max(1, 1.8 * S); ctx.lineCap = 'round';
         ctx.beginPath();
         for (let i = 0; i < n; i++) {
-          const y = ((rnd(i, 2) * span + t * 1100 * S * (0.85 + rnd(i, 3) * 0.3)) % span) - len;
+          const y = ((rnd(i, 2) * span + t * 1100 * MS * (0.85 + rnd(i, 3) * 0.3)) % span) - len;
           const x = (((rnd(i, 1) * wide - y * 0.22) % wide) + wide) % wide - 50;
           ctx.moveTo(x, y); ctx.lineTo(x - len * 0.22, y + len);
         }
@@ -459,7 +464,7 @@ const Render = {
         ctx.beginPath();
         for (let i = 0; i < (lite ? 40 : 90); i++) {
           const r = (1.4 + rnd(i, 3) * 2.4) * S, span = H + 20;
-          const y = ((rnd(i, 2) * span + t * (28 + rnd(i, 4) * 40) * S) % span) - 10;
+          const y = ((rnd(i, 2) * span + t * (28 + rnd(i, 4) * 40) * MS) % span) - 10;
           const x = (((rnd(i, 1) * W + Math.sin(t * 0.9 + i) * 16 * S) % W) + W) % W;
           ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
         }
@@ -471,7 +476,7 @@ const Render = {
         ctx.strokeStyle = 'rgba(236, 206, 140, 0.7)'; ctx.lineWidth = Math.max(1, 2 * S); ctx.lineCap = 'round';
         ctx.beginPath();
         for (let i = 0; i < (lite ? 18 : 40); i++) {
-          const span = W + 80, x = ((rnd(i, 1) * span + t * (160 + rnd(i, 3) * 160) * S) % span) - 40;
+          const span = W + 80, x = ((rnd(i, 1) * span + t * (160 + rnd(i, 3) * 160) * MS) % span) - 40;
           const y = rnd(i, 2) * H + Math.sin(t * 1.7 + i) * 8 * S, l = (6 + rnd(i, 5) * 10) * S;
           ctx.moveTo(x, y); ctx.lineTo(x + l, y - l * 0.08);
         }
@@ -481,7 +486,7 @@ const Render = {
       case 'royal': {
         ctx.fillStyle = '#ffe14d';
         for (let i = 0; i < (lite ? 10 : 22); i++) {
-          const span = H + 40, y = span - ((rnd(i, 2) * span + t * (22 + rnd(i, 3) * 20) * S) % span) - 20;
+          const span = H + 40, y = span - ((rnd(i, 2) * span + t * (22 + rnd(i, 3) * 20) * MS) % span) - 20;
           const x = rnd(i, 1) * W + Math.sin(t + i) * 10 * S, r = (2 + Math.abs(Math.sin(t * 3 + i * 1.7)) * 3) * S;
           ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.3, y - r * 0.3); ctx.lineTo(x + r, y); ctx.lineTo(x + r * 0.3, y + r * 0.3);
           ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.3, y + r * 0.3); ctx.lineTo(x - r, y); ctx.lineTo(x - r * 0.3, y - r * 0.3); ctx.closePath(); ctx.fill();
@@ -763,6 +768,7 @@ const Render = {
   drawMatch(m, t) {
     // the cutscene zooms by drawing the whole frame at a bigger scale
     const baseS = this.S;
+    this.motionS = baseS; // (the weather moves at the unzoomed scale)
     this.S = baseS * (m.demo ? 1 : this.zoom);
     try { this.drawFrame(m, t); } finally { this.S = baseS; }
   },
@@ -986,7 +992,7 @@ const Render = {
     ctx.stroke();
     if (power) {
       const tr = Save.trail();
-      ctx.setLineDash([7 * S, 6 * S]); ctx.lineDashOffset = -t * 40 * S;
+      ctx.setLineDash([7 * S, 6 * S]); ctx.lineDashOffset = -t * 40 * (this.motionS || S); // (not x zoom: it jumped when the camera zoomed)
       ctx.strokeStyle = tr.a === '#ffffff' ? '#bff3ff' : tr.a; ctx.lineWidth = 3 * S;
       const r2 = R + 6 * S + Math.sin(t * 8) * 1.5 * S;
       ctx.beginPath(); ctx.ellipse(x, y, r2, r2 * CFG.TILT, 0, 0, Math.PI * 2); ctx.stroke();

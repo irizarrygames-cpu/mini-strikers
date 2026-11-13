@@ -1780,4 +1780,5 @@ I18N.add('tr', {
   "{0} ASSIST": "{0} ASİST",
   "{0} ASSISTS": "{0} ASİST",
   "WATCH THE KICK  ·  CLICK WHERE TO DIVE, OR WASD + SPACE": "ATIŞI İZLE  ·  PLONJON İÇİN TIKLA YA DA WASD + BOŞLUK",
+  "WAGES · FREE KICKS {0} × {1}": "MAAŞ · SERBEST VURUŞ {0} × {1}",
 });
