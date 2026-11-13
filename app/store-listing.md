@@ -16,6 +16,7 @@ Mini Strikers is quick, colourful arcade football for everyone. Dribble, pass, s
 
 PLAY YOUR WAY
 - Quick Match: a fast game against a random country, with no connection needed
+- Pro Match: a bigger pitch with the real rules. The ball goes out for throw-ins, corners and goal kicks (2v2 to 4v4)
 - Play Online: real players from every country, and every win moves your country up the league
 - Ranked: 1v1 for rank points. Win and climb from Bronze all the way to Legend
 - Friends: make a room, share the code and play together, or run a friend cup
@@ -73,4 +74,4 @@ Play in English, Spanish, Portuguese, French, German, Italian, Dutch, Turkish, P
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.1.6 (17)`
+- Release name: `1.1.7 (18)`

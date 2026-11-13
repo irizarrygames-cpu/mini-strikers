@@ -37,7 +37,7 @@ const Render = {
   layerFor() {
     const low = Save.data.settings.graphics === 'low' || this.quality >= 1;
     const f = Math.min(this.S * this.dpr * 1.1, low ? 0.75 : 1.0);
-    return [f.toFixed(3), Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id].join('|');
+    return [f.toFixed(3), Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id, CFG.FIELD_W].join('|');
   },
 
   // Slight perspective: things on the far side of the pitch shrink, the near side grows.
@@ -70,7 +70,11 @@ const Render = {
   // ---------------- static layer ----------------
   buildLayer() {
     const T = CFG.TILT, M = CFG.SIDE_M;
-    const X0 = -270, X1 = CFG.FIELD_W + 270, Y0 = -M * T - 230, Y1 = (CFG.FIELD_H + M) * T + 190;
+    // (PRO MATCH draws more stand round its pitch: the camera can go further out while you take a
+    // throw-in or a corner, so you are not stood under the buttons — see arena)
+    const pro = typeof Pitch !== 'undefined' && Pitch.size === 'pro';
+    const EX = pro ? 420 : 270, EY0 = pro ? 340 : 230, EY1 = pro ? 300 : 190;
+    const X0 = -EX, X1 = CFG.FIELD_W + EX, Y0 = -M * T - EY0, Y1 = (CFG.FIELD_H + M) * T + EY1;
     const f = Math.min(this.S * this.dpr * 1.1, Save.data.settings.graphics === 'low' || this.quality >= 1 ? 0.75 : 1.0);
     this.layerClub = Clubs.home && Clubs.current ? Clubs.home.id + '/' + Clubs.current.id : null;
     this._layerKey = this.layerFor();
@@ -587,6 +591,7 @@ const Render = {
   // far in from each edge (parts of the screen's width and height) they are kept: you further from
   // the bottom, where the stick and the buttons are, and the ball nearer the edges than you. Past
   // what MIN can show, you stay where you can be seen and the ball goes off the edge.
+  CAM_OUT: 200,
   PULL: { MIN: 0.55, RATE: 2.4, YOU: { x: 0.26, top: 0.2, bottom: 0.4 }, BALL: { x: 0.1, top: 0.14, bottom: 0.12 } },
   // How far either side of the middle of the screen you can be, at the heights YOU keeps you to,
   // before the stick or a button is over you: on a small phone they reach further in than YOU.x
@@ -618,6 +623,10 @@ const Render = {
   updateCamera(m, dt, snap) {
     const h = m.human, b = m.ball;
     let tx, ty, pull = 1;
+    // PRO MATCH: taking a throw-in or a corner yourself, the camera may go out into the stands to
+    // keep you clear of the stick and the buttons (eased in and out, so nothing jumps)
+    const out = m.rules && m.phase === 'restart' && m.restart && m.restart.human && !m.demo ? this.CAM_OUT : 0;
+    this.camOut = snap ? out : (this.camOut || 0) + (out - (this.camOut || 0)) * (1 - Math.exp(-5 * dt));
     // an ult cutscene owns the camera while it runs
     const cut = m.ultCut ? UltCut.camera(m) : null;
     const star = !cut && m.phase === 'cele' && m.cele && m.cele.scorer;
@@ -629,10 +638,16 @@ const Render = {
     } else if (m.phase === 'goal' || m.phase === 'timeup' || m.phase === 'replay') {
       tx = b.x; ty = b.y;
     } else {
-      tx = h.x + h.vx * 0.35 + TEAMS.blue.dir * 60;
-      ty = h.y + h.vy * 0.22;
-      const d = dist(h.x, h.y, b.x, b.y);
-      if (d > 120) { const w = clamp((d - 120) / 420, 0, 0.5); tx = lerp(tx, b.x, w); ty = lerp(ty, b.y, w); }
+      const R = out ? m.restart : null;
+      if (R) {
+        // your restart: look the way you are aiming (you are kept on screen below, as always)
+        tx = R.bx + R.ax * 380; ty = R.by + R.ay * 380;
+      } else {
+        tx = h.x + h.vx * 0.35 + TEAMS.blue.dir * 60;
+        ty = h.y + h.vy * 0.22;
+        const d = dist(h.x, h.y, b.x, b.y);
+        if (d > 120) { const w = clamp((d - 120) / 420, 0, 0.5); tx = lerp(tx, b.x, w); ty = lerp(ty, b.y, w); }
+      }
       if (!m.demo) {
         // persp: the near side of the pitch is drawn a little bigger (see f), so a thing down there
         // sits further from the middle of the screen than its distance alone says
@@ -679,10 +694,11 @@ const Render = {
   // The camera stops where the stands do: at zs (scale times zoom) the middle of the screen can be no
   // nearer the edge than this, and once the view is bigger than the pitch it sits in the middle.
   // x across, py the tilted height (y * TILT); gives back the pair it may have.
+  // (camOut: further, into the stands PRO MATCH draws round its pitch, while you take a restart)
   arena(x, py, zs) {
-    const halfW = this.W / 2 / zs, halfH = this.H / 2 / zs;
-    const minX = -CFG.END_M - 90 + halfW, maxX = CFG.FIELD_W + CFG.END_M + 90 - halfW;
-    const minY = -CFG.SIDE_M * CFG.TILT - 95 + halfH, maxY = (CFG.FIELD_H + CFG.SIDE_M) * CFG.TILT + 80 - halfH;
+    const halfW = this.W / 2 / zs, halfH = this.H / 2 / zs, o = this.camOut || 0;
+    const minX = -CFG.END_M - 90 - o + halfW, maxX = CFG.FIELD_W + CFG.END_M + 90 + o - halfW;
+    const minY = -CFG.SIDE_M * CFG.TILT - 95 - o + halfH, maxY = (CFG.FIELD_H + CFG.SIDE_M) * CFG.TILT + 80 + o - halfH;
     return [minX > maxX ? CFG.FIELD_W / 2 : clamp(x, minX, maxX), minY > maxY ? (CFG.FIELD_H / 2) * CFG.TILT : clamp(py, minY, maxY)];
   },
 
@@ -833,6 +849,7 @@ const Render = {
     if (m.net) this.drawNames(ctx, m); else this.drawChatOnly(ctx, m);
     if (!m.demo) {
       if (m.phase !== 'cele') this.drawIndicators(ctx, m);
+      if (m.phase === 'restart' && typeof Rules !== 'undefined') Rules.drawAim(ctx, m, t);
       if (m.phase !== 'cele') this.drawSlideWarning(ctx, m, t);
       if (Save.data.settings.minimap && m.phase !== 'timeup' && this.zoom < 1.05) this.drawMinimap(ctx, m);
     }

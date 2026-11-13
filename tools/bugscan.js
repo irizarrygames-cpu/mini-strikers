@@ -111,7 +111,7 @@ window.BS = {
       const club = CLUBS[i % CLUBS.length];
       Save.data.settings.difficulty = diffs[i % diffs.length];
       const autopilot = i % 4 === 3; // mostly a fuzzed human, sometimes all bots
-      const mode = format === 'training' ? 'training' : i % 5 === 1 ? 'cup' : 'quick';
+      const mode = format === 'training' ? 'training' : i % 5 === 1 ? 'cup' : i % 5 === 2 ? 'pro' : 'quick';
       try {
         this.runOne({ format, club, autopilot, mode, minutes: opts.minutes || 1, add, report, seed: i });
       } catch (e) {
@@ -126,7 +126,14 @@ window.BS = {
     return report;
   },
 
-  runOne({ format, club, autopilot, mode, minutes, add, report, seed }) {
+  runOne(o) {
+    // PRO MATCH (build 115) is played on its own bigger pitch, and everything after on the normal one
+    const pro = o.mode === 'pro';
+    if (pro) Pitch.use('pro');
+    try { this.runMatch(o); } finally { if (pro) Pitch.use('normal'); }
+  },
+
+  runMatch({ format, club, autopilot, mode, minutes, add, report, seed }) {
     const rng = mulberry32(1234 + seed * 77);
     const m = Match.create({ format, club, autopilot, mode: format === 'training' ? 'training' : mode, minutes });
     const W = CFG.FIELD_W, H = CFG.FIELD_H;
@@ -137,7 +144,8 @@ window.BS = {
     const pocketT = new Map();
     let stickT = 0, charge = 0, lineT = 0, farT = 0;
     const stack = {};
-    const phaseMax = { kickoff: 2.5, goal: 3, reset: 1, timeup: 2.5, replay: 12, cele: CELE_TIME + 0.3 };
+    // (a PRO MATCH restart: a bot takes it within 1.5 s, and yours is taken for you after 8)
+    const phaseMax = { kickoff: 2.5, goal: 3, reset: 1, timeup: 2.5, replay: 12, cele: CELE_TIME + 0.3, restart: 8.2 };
     while (m.phase !== 'over') {
       if (!autopilot) this.fuzz(m, rng, () => stickT, (v) => (stickT = v), () => charge, (v) => (charge = v));
       Match.step(m, CFG.STEP);
@@ -510,6 +518,28 @@ window.BS = {
       await step(`quick ${format}: restart from pause`, () => { Game.kickOff(); click($('btn-pause')); click($('p-restart')); if (Game.state !== 'intro') throw new Error('state ' + Game.state); });
       await step(`quick ${format}: quit`, () => { Game.kickOff(); click($('btn-pause')); click($('p-quit')); if (Game.state !== 'home' || !visible('home')) throw new Error('not home'); }, 200);
     }
+
+    // PRO MATCH: 1v1 picked plays 2v2 on the big pitch; a throw-in; and every way out is the normal pitch
+    await step('pro: start (1v1 picked is 2v2)', () => { Save.data.format = '1v1'; UI.openModal('play'); click(document.querySelector('[data-mode="pro"]')); const m = Game.match; if (Game.state !== 'intro' || !m.rules || m.format !== '2v2' || Pitch.size !== 'pro' || CFG.FIELD_W !== 3000) throw new Error(`state ${Game.state} rules ${m && m.rules} format ${m && m.format} pitch ${Pitch.size}`); });
+    await step('pro: kick off', () => { click($('intro-go')); if (Game.state !== 'match') throw new Error('state ' + Game.state); }, 600);
+    await step('pro: a throw-in, taken', async () => {
+      const m = Game.match, b = m.ball; m.phase = 'play';
+      if (b.owner) loseBall(m, b.owner, 0.3);
+      b.x = 1500; b.y = -20; b.vx = 0; b.vy = -100; b.lastTouchTeam = 'red'; b.shot = null;
+      for (let i = 0; i < 40 && m.phase !== 'restart'; i++) await wait(25);
+      if (m.phase !== 'restart' || !m.restart || m.restart.kind !== 'throw' || m.restart.team !== 'blue') throw new Error('no throw-in: ' + m.phase);
+      for (let i = 0; i < 220 && m.phase === 'restart'; i++) await wait(50);
+      if (m.phase !== 'play') throw new Error('never taken: ' + m.phase);
+    });
+    await step('pro: pause, resume', () => { click($('btn-pause')); if (Game.state !== 'paused') throw new Error('not paused'); click($('p-resume')); if (Game.state !== 'match') throw new Error('not resumed'); }, 300);
+    await step('pro: finish', async () => {
+      const m = Game.match; m.phase = 'play'; m.restart = null; m.time = 0.05; m.score.blue = 2; m.goals.push({ team: 'blue' }, { team: 'blue' }); m.ball.shot = null;
+      for (let i = 0; i < 80 && Game.state !== 'results'; i++) await wait(50);
+      if (Game.state !== 'results' || !visible('results')) throw new Error('no results, state ' + Game.state + ' phase ' + m.phase);
+    });
+    await step('pro: play again is pro', () => { click($('r-again')); const m = Game.match; if (Game.state !== 'intro' || !m.rules || Pitch.size !== 'pro') throw new Error(`state ${Game.state} rules ${m && m.rules}`); });
+    await step('pro: quit is the normal pitch', () => { Game.kickOff(); click($('btn-pause')); click($('p-quit')); if (Game.state !== 'home' || Pitch.size !== 'normal' || CFG.FIELD_W !== 2400) throw new Error(`state ${Game.state} pitch ${Pitch.size}`); }, 200);
+    await step('pro: then a quick match is normal', () => { Save.data.format = '2v2'; Game.startMatch({ mode: 'quick', club: Clubs.random() }); if (Game.match.rules || Pitch.size !== 'normal') throw new Error('pitch ' + Pitch.size); Game.goHome(); });
 
     await step('cup: run to champion', async () => {
       Cup.slot().cup = null; const trophies = Save.data.trophies || 0;

@@ -251,6 +251,32 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## PRO MATCH: a bigger pitch with the real rules (build 115)
+
+PLAY → PRO MATCH, in International and in Club Career. The same game on a pitch a quarter bigger
+each way (3000 × 1750; the boxes, goals and centre circle grow with it), and the ball can go out:
+
+- **over a touchline**: a THROW-IN to the side that did not touch it last. The thrower stands outside
+  the line, ball over their head. Nobody scores straight from a throw-in (off a defender it counts).
+- **over a goal line, wide of the posts**: a CORNER if the defenders touched it last, otherwise a
+  GOAL KICK, which their keeper takes from inside the six-yard box.
+- The nearest player takes it, so often you: aim with the stick (it never points back out of the
+  pitch), PASS to play it (tap, or hold for a lofted one), SHOOT for a long one. At a corner SHOOT is
+  a go at goal that curls in (about 1 in 8 go in; the keeper reads the rest). What to press stays on
+  screen until you take it, and after 8 s it is taken for you. Bots take theirs within 1.5 s.
+- When a teammate takes it, PASS asks for it, and you get it.
+- The other side stands 190 back (and out of the box for a goal kick), the clock stops, and while it
+  is yours the camera may go out into the stands so you are never under the buttons.
+- 2v2 to 4v4 only: with 1v1 picked, PRO MATCH plays 2v2 (and says so).
+- Offline only: online matches are always on the normal pitch. Leaving goes back to it, whichever way.
+
+How: `PITCHES` and `Pitch.use()` in js/config.js swap the pitch (CFG, the goals, the walls, the painted
+stadium); the rules are js/rules.js, hooked into Match.step (`m.rules`, phase `'restart'`).
+
+Test: `node tools/rulesscan.js` (about 1,500 restarts and corner shots in bot matches and with a scripted you: the right
+restart from the right spot every time, all taken, the other side back, the clock stopped, nothing
+out of the arena, no throw-in goals, the 2v2 rule, the corner shot's rate). App 1.1.7 (code 18).
+
 ## The keeper's dive line in free kicks (build 114)
 
 In goal, the blue line from the keeper shows the way you will dive whatever you aim with: the stick or
@@ -345,6 +371,7 @@ still showing on a screen in another language; `tools/startscan.js` has a `langu
 
 ## Tools
 
+- `node tools/rulesscan.js` — PRO MATCH: the bigger pitch, throw-ins, corners and goal kicks, played out by bots and a scripted you (about 1 minute).
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).
 - `node tools/flowscan.js` — online flow control: a player who falls behind is not buried in stale pictures (about 2 minutes).
 - `node tools/wsping.js [url]` — the real round trip to a server, over a WebSocket. `node tools/cpubench.js` — CPU cost of one match.

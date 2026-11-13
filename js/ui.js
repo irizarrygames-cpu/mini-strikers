@@ -813,7 +813,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? (m.cupKind === 'cc' ? tl('CHAMPIONS CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format])) : tl('ONLINE · {0}', [m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? (Cup.champions() ? tl('CHAMPIONS CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('CUP · {0}', [Cup.ROUNDS[cup.round]])) : tl('QUICK MATCH')) + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? (m.cupKind === 'cc' ? tl('CHAMPIONS CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format])) : tl('ONLINE · {0}', [m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? (Cup.champions() ? tl('CHAMPIONS CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('CUP · {0}', [Cup.ROUNDS[cup.round]])) : m.rules ? tl('PRO MATCH') : tl('QUICK MATCH')) + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -1138,7 +1138,7 @@ const UI = {
       if (cupResult === 'champion') Trophy.show({ title: Cup.champions() ? tl('CHAMPIONS!') : tl('CUP WINNERS!'), sub: Cup.champions() ? tl('CHAMPIONS CUP · +{0} COINS', [Cup.prize()]) : tl('BOT WORLD CUP · +300 COINS'), cup: Cup.champions() ? 'champions' : null, club: Clubs.mine(), mates: m.players.filter((p) => p.team === 'blue' && !p.isKeeper && p !== m.human).map((p) => p.look) });
     } else {
       cupBox.hidden = true;
-      this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : 'quick';
+      this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : m.rules ? 'pro' : 'quick';
       $('r-again').textContent = tl('PLAY AGAIN');
     }
     $('results').hidden = false;
@@ -1309,6 +1309,7 @@ const UI = {
     else if (this._againMode === 'onlinepens') { Game.goHome(); Online.m = null; Online.findMatch('pens'); }
     else if (this._againMode === 'fk') Game.startMatch({ mode: 'pens', fk: true, club: Clubs.random(Clubs.mine(), previous) });
     else if (this._againMode === 'onlinefk') { Game.goHome(); Online.m = null; Online.findMatch('fk'); }
+    else if (this._againMode === 'pro') Game.startMatch({ mode: 'pro', format: (Game.match && Game.match.format) || Save.data.format, club: Clubs.random(Clubs.mine(), previous) });
     else Game.startMatch({ mode: 'quick', format: (Game.match && Game.match.format) || Save.data.format, club: Clubs.random(Clubs.mine(), previous) });
   },
 };

@@ -96,11 +96,14 @@ const Game = {
       this.acc = 0;
       UI._lastTime = null; UI._lastMeter = null; UI._mode = null; UI._cd = null; UI._st = null; UI._rep = null;
       $('hud').classList.remove('replaying', 'pens');
+      Pitch.use('normal');
       SkillRun.start(opts.id);
       return;
     }
     if (!Save.data.tutorialSeen) { UI.showHowTo(() => this.startMatch(opts)); return; }
     this.lastOpts = opts;
+    // PRO MATCH is on the bigger pitch; everything else on the normal one
+    Pitch.use(opts && opts.mode === 'pro' ? 'pro' : 'normal');
     let club = opts.club;
     if (opts.mode === 'cup') { if (!Cup.state()) Cup.start(); club = Cup.opponent(); }
     if (!club) club = Clubs.random(Clubs.mine());
@@ -186,6 +189,8 @@ const Game = {
     if (this.match && this.match.net) { Online.status = 'idle'; Online.m = null; }
     this.state = 'home';
     this.match = null;
+    // (the home screen's match behind the menu, and anything after, is on the normal pitch)
+    if (Pitch.use('normal')) this.demo = null;
     $('hud').classList.remove('pens'); Pens.label(tl('SHOOT'));
     Render.zoom = 1;
     FX.clear();
@@ -286,6 +291,9 @@ const Game = {
     const prev = this.headless;
     this.headless = true;
     const diff = this._diff;
+    // the match behind the menu is always on the normal pitch, however the menu came back
+    // (signing in, or out, can show it without goHome)
+    if (Pitch.use('normal')) this.demo = null;
     if (!this.demo || this.demo.phase === 'over') {
       const me = Clubs.mine(), cur = Clubs.current;
       const demoClub = cur && cur.id !== me.id && !!cur.euro === !!me.euro ? cur : Clubs.random(me);

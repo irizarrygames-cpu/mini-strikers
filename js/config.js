@@ -77,8 +77,9 @@ const CFG = {
     // loose: inside the six-yard box the ball sits further ahead of you, so it is never a stroll
     dodgeStop: 0.6, loose: 1.45, retry: 0.3, fumble: 0.25 },
 };
-const GOAL_Y1 = (CFG.FIELD_H - CFG.GOAL_W) / 2;
-const GOAL_Y2 = GOAL_Y1 + CFG.GOAL_W;
+// (let, not const: the PRO MATCH pitch is bigger, and Pitch.use moves the goals with it)
+let GOAL_Y1 = (CFG.FIELD_H - CFG.GOAL_W) / 2;
+let GOAL_Y2 = GOAL_Y1 + CFG.GOAL_W;
 const OUTLINE = '#161a33';
 
 const TEAMS = {
@@ -857,7 +858,8 @@ function mulberry32(seed) {
 const WALLS = [];
 const POSTS = [];
 const ARENA_POLY = [];
-(function buildWalls() {
+function buildWalls() {
+  WALLS.length = 0; POSTS.length = 0; ARENA_POLY.length = 0;
   const W = CFG.FIELD_W, H = CFG.FIELD_H, M = CFG.SIDE_M, E = CFG.END_M, C = CFG.CHAMFER, D = CFG.GOAL_D;
   const pts = [
     [-E + C, -M], [W + E - C, -M], [W + E, -M + C], [W + E, GOAL_Y1],
@@ -881,7 +883,34 @@ const ARENA_POLY = [];
   add(0, GOAL_Y1, -E, GOAL_Y1, 'net', 'left');
   add(0, GOAL_Y2, -E, GOAL_Y2, 'net', 'left');
   POSTS.push({ x: W, y: GOAL_Y1 }, { x: W, y: GOAL_Y2 }, { x: 0, y: GOAL_Y1 }, { x: 0, y: GOAL_Y2 });
-})();
+}
+buildWalls();
+
+// The two pitches. 'normal' is every match there has always been. 'pro' is PRO MATCH (build 115): a
+// quarter bigger each way with real touchlines — the ball goes out and the game restarts with a
+// throw-in, a corner or a goal kick (js/rules.js). Its boards stand further back, so a player can
+// stand behind the ball at a corner flag (the normal pitch's cut corners run right through it).
+// The boxes, the goal and the centre circle grow with it. Offline only: the server plays every
+// online match on the normal pitch.
+const PITCHES = {
+  normal: { FIELD_W: 2400, FIELD_H: 1400, SIDE_M: 40, END_M: 34, CHAMFER: 72, GOAL_W: 380, BOX_D: 380, BOX_W: 860, SMALL_D: 140, SMALL_W: 540, CIRCLE_R: 190 },
+  pro:    { FIELD_W: 3000, FIELD_H: 1750, SIDE_M: 78, END_M: 68, CHAMFER: 44, GOAL_W: 410, BOX_D: 460, BOX_W: 1020, SMALL_D: 160, SMALL_W: 600, CIRCLE_R: 220 },
+};
+const Pitch = {
+  size: 'normal',
+  // switch the whole world to that pitch (and the walls, goals and painted field with it)
+  use(size) {
+    const want = PITCHES[size] ? size : 'normal';
+    if (want === this.size) return false;
+    this.size = want;
+    Object.assign(CFG, PITCHES[want]);
+    GOAL_Y1 = (CFG.FIELD_H - CFG.GOAL_W) / 2;
+    GOAL_Y2 = GOAL_Y1 + CFG.GOAL_W;
+    buildWalls();
+    if (typeof Render !== 'undefined' && Render.ctx) { Render.camOut = 0; Render._miniBox = null; Render.cam.x = CFG.FIELD_W / 2; Render.cam.y = (CFG.FIELD_H / 2) * CFG.TILT; Render.buildLayer(); Render.homeCrowd = null; }
+    return true;
+  },
+};
 
 // point-in-polygon (ray cast) against the arena outline, goal pockets included
 function insideArena(x, y) {

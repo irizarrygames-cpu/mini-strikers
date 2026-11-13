@@ -2289,3 +2289,4 @@ body.lefty #touch-zone { left: 50%; }
 .fr-h { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; }
 .fr-row .mid-btn { -webkit-text-stroke-width: 0.06em; }
 .club-pill.club canvas { width: 1.9em; height: 1.9em; margin: -4px 0 -4px 2px; }
+.mode.pro { background: #2a9d4b; }

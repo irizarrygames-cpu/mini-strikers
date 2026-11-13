@@ -105,6 +105,7 @@ const Online = {
 
   // ---------- online penalty shootout ----------
   startPens(msg) {
+    if (Pitch.use('normal')) Game.demo = null; // online is always the normal pitch
     const other = msg.side === 'blue' ? 'red' : 'blue', opponent = Clubs.get(msg.clubs[other]) || Clubs.random(Clubs.mine());
     this.watching = msg.watch || null;
     this._chalQuiet = true;
@@ -157,6 +158,7 @@ const Online = {
 
   // ---------- match start ----------
   start(msg) {
+    if (Pitch.use('normal')) Game.demo = null; // online is always the normal pitch
     const resync = this.m && this.m.roomId === msg.room;
     this.watching = msg.watch || null;
     this._chalQuiet = true; // whatever the first snapshot says is already done is not news

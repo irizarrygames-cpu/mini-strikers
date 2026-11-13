@@ -473,6 +473,7 @@ function deflectOff(m, p, b, d) {
 
 function takePossession(m, p) {
   const b = m.ball;
+  b.restartBy = null; // (PRO MATCH: somebody has touched a throw-in, so it can go in now)
   const prevTeam = b.lastTouchTeam;
   const lp = b.lastPass;
   if (lp && lp.from !== p && lp.team === p.team && m.clock - lp.t < 5) {

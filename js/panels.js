@@ -41,6 +41,11 @@ Object.assign(UI, {
       </div>
       <p class="note vs-bots">${tl('MORE WAYS TO PLAY')}</p>
       <div class="play-more">
+        <button class="mode pro" data-mode="pro">
+          <strong>${tl('PRO MATCH')}</strong>
+          <p>${tl('A bigger pitch with the real rules: the ball can go out for throw-ins, corners and goal kicks.')}</p>
+          <span class="tag">${tl('2V2 TO 4V4 · THROW-INS · CORNERS')}</span>
+        </button>
         <button class="mode ranked" data-needs-net data-mode="ranked">
           <strong>${tl('RANKED')}</strong>
           <p>${tl('1v1 for rank points. Win +10, draw +5, lose -5.')}</p>
@@ -107,6 +112,13 @@ Object.assign(UI, {
     body.querySelector('[data-mode="challenges"]').addEventListener('click', () => { this.tap(); this.openModal('challenges'); });
     body.querySelector('[data-mode="friendcup"]').addEventListener('click', () => { this.tap(); this.openModal('cup'); });
     body.querySelector('[data-mode="ranked"]').addEventListener('click', () => { this.tap(); Online.findMatch('ranked'); });
+    body.querySelector('[data-mode="pro"]').addEventListener('click', () => {
+      this.tap();
+      // PRO MATCH is 2v2 or bigger (Match.create makes sure): with 1v1 picked, it is 2v2
+      const f = fmtNow() === '1v1' ? '2v2' : fmtNow();
+      if (f !== fmtNow()) UI.toast(tl('PRO MATCH IS 2V2 OR BIGGER'));
+      Game.startMatch({ mode: 'pro', format: f, club: Clubs.random(Clubs.mine()) });
+    });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
     body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
   },

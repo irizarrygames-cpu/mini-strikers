@@ -24,7 +24,7 @@ const SHELL = [
   './js/i18n.js', './js/lang-es.js', './js/lang-pt.js', './js/lang-fr.js', './js/lang-de.js', './js/lang-it.js',
   './js/lang-nl.js', './js/lang-tr.js', './js/lang-pl.js', './js/lang-id.js', './js/lang-sv.js', './js/lang-ro.js',
   './js/config.js', './js/products.js', './js/store.js', './js/clubs.js', './js/crests.js', './js/stadiums.js', './js/celebs.js', './js/save.js', './js/meta.js', './js/career.js', './js/crates.js', './js/missions.js', './js/audio.js',
-  './js/input.js', './js/fx.js', './js/commentary.js', './js/entities.js', './js/ai.js', './js/match.js',
+  './js/input.js', './js/fx.js', './js/commentary.js', './js/entities.js', './js/ai.js', './js/match.js', './js/rules.js',
   './privacy.html',
   './js/pop.js', './js/replay.js', './js/net.js', './js/online.js', './js/sprites.js', './js/render.js', './js/ui.js',
   './js/panels.js', './js/clubpanels.js', './js/social.js', './js/trophy.js', './js/penalty.js', './js/challenges.js',

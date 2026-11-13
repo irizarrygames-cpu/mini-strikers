@@ -78,6 +78,7 @@ const Sprites = {
     }
     if (p.recoverT > 0 && !slide && !dive) rot = 0.25 * flip * Math.min(1, p.recoverT / 0.25);
     if (p.hopT > 0) { jump += Math.sin((1 - p.hopT / 0.42) * Math.PI) * 22; tuck = 1; armsUp = 0.5; }
+    if (p.throwIn) armsUp = 1; // (PRO MATCH: holding a throw-in over your head)
     if (p.sprintOn && sp > 0.5 && !slide) lean += 0.12;
 
     if (p.ultOn || p.ultShot) this.ultFire(ctx, p, t, sx, sy, k, false);

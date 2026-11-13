@@ -8,7 +8,9 @@ const Match = {
     if (!Game.headless) Clubs.setMatch(home, club);
     if (!opts.diff) Game.setDifficulty(club);
     // the format ramp is for the bots you meet offline; online fill-ins keep their own tuning
-    const fmt0 = FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4');
+    let fmt0 = FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4');
+    // PRO MATCH is 2v2 or bigger: one against one on the big pitch is all running and throw-ins
+    if (opts.mode === 'pro' && !opts.online && fmt0 === '1v1') fmt0 = '2v2';
     const diff = opts.online ? (opts.diff || Game.difficulty()) : formatRamp(opts.diff || Game.difficulty(), fmt0);
     const m = {
       players: [], ball: new Ball(), human: null, keepers: {},
@@ -22,9 +24,13 @@ const Match = {
       autopilot: !!opts.autopilot, diff, mateDiff: opts.mateDiff || levelDiff(MATE_BASE, home.level), home, humans: [], teamHuman: { blue: false, red: false }, online: !!opts.online,
       goals: [], result: null, resetDone: false, exciteT: 0, lastConceded: null,
       mode: opts.mode || 'quick', club, noDraw: opts.mode === 'cup' || !!opts.noDraw, flags: {}, challenges: null, challengeT: 0,
-      format: FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4'),
+      format: fmt0,
     };
     if (m.online) m.mode = 'online';
+    // PRO MATCH: the bigger pitch and the real rules (throw-ins, corners, goal kicks: js/rules.js).
+    // Never online: the server plays every match on the normal pitch.
+    m.rules = m.mode === 'pro' && !m.online && !opts.seats;
+    m.restart = null;
     m.training = m.mode === 'training';
     if (m.training) m.format = 'training';
     if (!m.autopilot && !Game.headless && !m.training && !m.online && m.mode !== 'pens') m.challenges = Challenges.roll(m.format);
@@ -168,6 +174,8 @@ const Match = {
         AI.update(m, sdt);
         movePlayers(m, sdt);
         updateBall(m, sdt);
+        // PRO MATCH: over the line is out, and the game restarts from where it went
+        if (m.rules && Rules.out(m.ball)) { Rules.start(m); break; }
         checkSlides(m);
         Replay.record(m, sdt);
         this.checkGoal(m);
@@ -183,6 +191,11 @@ const Match = {
           const b = m.ball;
           Sound.setExcitement(Math.min(b.x, CFG.FIELD_W - b.x) < 600 ? 1 : 0);
         }
+        break;
+
+      case 'restart':
+        // a throw-in, corner or goal kick being set up (the clock is stopped)
+        if (sdt > 0) Rules.step(m, sdt);
         break;
 
       case 'goal':
@@ -435,6 +448,8 @@ const Match = {
     // to save got it anyway, the ball was dragged back onto the pitch and the game shouted
     // SAVE! at a ball that was already in. A save has to happen in front of the line or not at
     // all — which is the rule ballOverLine states and ballContacts has always obeyed.
+    // (PRO MATCH: nobody scores straight from a throw-in)
+    if (m.rules && Rules.noGoal(m)) { Rules.start(m); return; }
     this.goalScored(m, team);
   },
 

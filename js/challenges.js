@@ -55,6 +55,7 @@ const SkillRun = {
   start(id) {
     const ch = challengeById(id);
     if (!ch) return;
+    if (Pitch.use('normal')) Game.demo = null; // the challenges are laid out on the normal pitch
     Sound.unlock();
     Game.goFullscreen();
     UI.closeAll();

@@ -232,7 +232,14 @@ const FX = {
       ctx.translate(W / 2, H * 0.42);
       ctx.rotate(-0.06);
       R.chunkyText(ctx, b.str, 0, 0, size, b.color, size * 0.14);
-      if (b.sub) R.chunkyText(ctx, b.sub, 0, size * 0.72, size * 0.3, '#ffffff', size * 0.06);
+      if (b.sub) {
+        // the line under it is made smaller too when it would run off a narrow screen
+        let ss = size * 0.3;
+        ctx.font = `400 ${ss}px "Lilita One", system-ui, sans-serif`;
+        const sw = ctx.measureText(b.sub).width + ss * 0.3;
+        if (sw > W * 0.94) ss *= (W * 0.94) / sw;
+        R.chunkyText(ctx, b.sub, 0, size * 0.72, ss, '#ffffff', ss * 0.2);
+      }
       ctx.restore();
       ctx.globalAlpha = 1;
     }

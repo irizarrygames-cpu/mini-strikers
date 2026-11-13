@@ -59,8 +59,10 @@ const AI = {
     }
 
     for (const h of m.humans) h.passRequestT = Math.max(0, (h.passRequestT || 0) - dt);
+    const taker = m.restart ? m.restart.taker : null; // (PRO MATCH: the one taking a restart stands still)
     for (const p of m.players) {
       if (p.isHuman && !humanAI) continue;
+      if (p === taker) continue;
       if (p.isKeeper) this.keeper(m, p, dt);
       else this.outfield(m, p, dt, chaser);
     }
@@ -434,11 +436,19 @@ const AI = {
     }
     if (!s || s.decided) return;
     const dir = TEAMS[k.team].dir, lineX = ownGoalX(k.team);
-    if (b.vx * dir > -40 && !late) return;
-    const t = b.vx * dir < -1 ? (lineX - b.x) / b.vx : 0.05;
-    if (!late && (t < 0 || t > 1.0)) return;
-    const st = Math.min(t, b.spinT);
-    const py = b.y + b.vy * t + 0.5 * b.spinY * st * st;
+    let t, py;
+    if (s.curl) {
+      // PRO MATCH: a corner curled straight at goal (js/rules.js) — it is known where it crosses
+      t = Math.max(0.05, s.curl.at - m.clock);
+      if (!late && t > 0.85) return;
+      py = s.curl.y;
+    } else {
+      if (b.vx * dir > -40 && !late) return;
+      t = b.vx * dir < -1 ? (lineX - b.x) / b.vx : 0.05;
+      if (!late && (t < 0 || t > 1.0)) return;
+      const st = Math.min(t, b.spinT);
+      py = b.y + b.vy * t + 0.5 * b.spinY * st * st;
+    }
     s.decided = true;
     if (py < GOAL_Y1 - 30 || py > GOAL_Y2 + 30) { s.save = true; return; } // off target
 
