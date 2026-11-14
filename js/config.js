@@ -501,19 +501,20 @@ const FCUP_PRIZE = 500; // winning a friend cup
 
 // The thresholds are set against what a ranked match pays (about 11 for a win with a challenge
 // or two), so the climb takes the same number of matches it always did.
+// (build 118: every season reward seven times what it was — 1,400 for BRONZE up to 350,000 for IMMORTAL)
 const RANK_TIERS = [
-  { id: 'bronze', name: tl('BRONZE'), at: 0, color: '#c87d3a', reward: 200 },
-  { id: 'silver', name: tl('SILVER'), at: 60, color: '#c9d2e4', reward: 500 },
-  { id: 'gold', name: tl('GOLD'), at: 150, color: '#ffc21a', reward: 1200 },
-  { id: 'platinum', name: tl('PLATINUM'), at: 300, color: '#46d9ff', reward: 2500 },
-  { id: 'diamond', name: tl('DIAMOND'), at: 500, color: '#b04dff', reward: 5000 },
-  { id: 'legend', name: tl('LEGEND'), at: 800, color: '#ff3a6e', reward: 10000 },
+  { id: 'bronze', name: tl('BRONZE'), at: 0, color: '#c87d3a', reward: 1400 },
+  { id: 'silver', name: tl('SILVER'), at: 60, color: '#c9d2e4', reward: 3500 },
+  { id: 'gold', name: tl('GOLD'), at: 150, color: '#ffc21a', reward: 8400 },
+  { id: 'platinum', name: tl('PLATINUM'), at: 300, color: '#46d9ff', reward: 17500 },
+  { id: 'diamond', name: tl('DIAMOND'), at: 500, color: '#b04dff', reward: 35000 },
+  { id: 'legend', name: tl('LEGEND'), at: 800, color: '#ff3a6e', reward: 70000 },
   // build 117: five more above LEGEND, each a longer climb than the last
-  { id: 'master', name: tl('MASTER'), at: 1100, color: '#3fcf4a', reward: 15000 },
-  { id: 'grandmaster', name: tl('GRANDMASTER'), at: 1450, color: '#ff7a1a', reward: 20000 },
-  { id: 'champion', name: tl('CHAMPION'), at: 1850, color: '#1f5bff', reward: 27500 },
-  { id: 'titan', name: tl('TITAN'), at: 2300, color: '#1b1d33', reward: 37500 },
-  { id: 'immortal', name: tl('IMMORTAL'), at: 2800, color: '#ffffff', reward: 50000 },
+  { id: 'master', name: tl('MASTER'), at: 1100, color: '#3fcf4a', reward: 105000 },
+  { id: 'grandmaster', name: tl('GRANDMASTER'), at: 1450, color: '#ff7a1a', reward: 140000 },
+  { id: 'champion', name: tl('CHAMPION'), at: 1850, color: '#1f5bff', reward: 192500 },
+  { id: 'titan', name: tl('TITAN'), at: 2300, color: '#1b1d33', reward: 262500 },
+  { id: 'immortal', name: tl('IMMORTAL'), at: 2800, color: '#ffffff', reward: 350000 },
 ];
 const SEASON_DAYS = 14;
 const SEASON_START = Date.UTC(2026, 8, 21); // seasons have counted from here

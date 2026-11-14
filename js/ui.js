@@ -231,7 +231,7 @@ const UI = {
   // depends on the labels and whether GET THE APP is showing, so it is measured, never guessed
   // A few buttons hold one word side by side, and in some languages that word is longer than the
   // button ("PERSONNALISER"). Those letters shrink just enough to fit, rather than spill out.
-  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board, #r-title, .sig-tag',
+  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board, #r-title, .sig-tag, .rank-badge b, .rank-tier b',
   fitWords(root = document) {
     if (!root) return;
     const range = document.createRange();
@@ -241,10 +241,13 @@ const UI = {
       // the words themselves, measured: centred words spill out of both sides, and scrollWidth only
       // counts the right-hand half of that
       range.selectNodeContents(el);
-      const scale = el.getBoundingClientRect().width / el.offsetWidth || 1;
-      const cs = getComputedStyle(el), pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-      const room = el.clientWidth - pad, need = range.getBoundingClientRect().width / scale;
-      if (room > 0 && need > room) el.style.fontSize = Math.max(8, Math.floor(parseFloat(cs.fontSize) * (room / need) * 0.97 * 10) / 10) + 'px';
+      // (both measured on the screen, to the fraction of a pixel: clientWidth is rounded down, so a
+      // word that just fits would otherwise look a fraction too wide and shrink for nothing)
+      const box = el.getBoundingClientRect().width, scale = box / el.offsetWidth || 1;
+      const cs = getComputedStyle(el);
+      const edge = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+      const room = box - edge * scale, need = range.getBoundingClientRect().width;
+      if (room > 0 && need > room + 0.05) el.style.fontSize = Math.max(8, Math.floor(parseFloat(cs.fontSize) * (room / need) * 0.97 * 10) / 10) + 'px';
     }
   },
 

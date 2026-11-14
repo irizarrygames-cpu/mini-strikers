@@ -2319,3 +2319,26 @@ body.lefty #touch-zone { left: 50%; }
 .auth-agree input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: #2a9d4b; cursor: pointer; }
 .auth-agree a { color: #1f5bff; text-decoration: underline; font-weight: 600; }
 @media (max-height: 430px) { .auth-agree { min-height: 30px; font-size: 13px; } }
+
+/* build 118: the ranked tiers list with bigger rewards (up to 350,000) fits a narrow phone: the name and
+   the points share what is left, the reward never wraps */
+.rank-tiers { grid-template-columns: minmax(0, 1fr); }
+.rank-tier { min-width: 0; }
+.rank-tier i, .rank-tier em { flex: none; }
+.rank-tier small { white-space: nowrap; }
+.rank-tier b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 420px) {
+  .rank-tier { gap: 6px; padding: 4px 8px; }
+  .rank-tier b { font-size: 14px; }
+  .rank-tier small { font-size: 11px; }
+  .rank-tier em { font-size: 14px; }
+}
+/* (and the head: a long rank name like GRANDMASTER shrinks rather than pushing the points off) */
+.rank-head { min-width: 0; }
+.rank-badge { min-width: 0; flex: 1 1 auto; }
+.rank-badge i, .rank-rp { flex: none; }
+.rank-badge b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 420px) { .rank-head { gap: 8px; padding: 8px 10px; } .rank-badge b { font-size: 19px; } .rank-rp b { font-size: 22px; } }
+/* build 118: a long rank name (GROSSMEISTER, NIEŚMIERTELNY) takes the whole top line and the
+   points drop below it, rather than both squeezing onto one line */
+.rank-head { flex-wrap: wrap; row-gap: 2px; }

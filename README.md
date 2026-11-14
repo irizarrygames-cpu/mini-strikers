@@ -251,6 +251,19 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Season rewards seven times bigger (build 118)
+
+Every ranked season reward is seven times what it was (`RANK_TIERS` in js/config.js): BRONZE 1,400,
+SILVER 3,500, GOLD 8,400, PLATINUM 17,500, DIAMOND 35,000, LEGEND 70,000, MASTER 105,000, GRANDMASTER
+140,000, CHAMPION 192,500, TITAN 262,500, IMMORTAL 350,000 coins. The server pays them (its sandbox reads
+the same list), so every app gets the new amounts at the end of the season; the RANKED screen shows them
+with commas. App 1.2.0 (code 21).
+
+The RANKED screen on a narrow phone: the bigger amounts and the long rank names (GRANDMASTER,
+GROSSMEISTER, NIEŚMIERTELNY) no longer hang out of their rows. A rank name too long to sit beside the
+points takes the top line and the points go under it; `UI.fitWords` shrinks what still doesn't fit,
+and now measures to the fraction of a pixel, so a word that only just fits is left alone.
+
 ## Your throw-ins, five more ranks, agreeing to the policy (build 117)
 
 - **Who takes a throw-in or a corner in PRO MATCH**: offline, always you (your side's; the keeper still
