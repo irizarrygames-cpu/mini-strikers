@@ -1813,4 +1813,12 @@ I18N.add('tr', {
   "Free kicks with {0} starting": "{0} ile serbest vuruşlar başlıyor",
   "PRO MATCH with {0} starting": "{0} ile PRO MAÇ başlıyor",
   "{0} declined the challenge": "{0} meydan okumayı reddetti",
+  "MASTER": "USTA",
+  "GRANDMASTER": "BÜYÜK USTA",
+  "CHAMPION": "ŞAMPİYON",
+  "TITAN": "TİTAN",
+  "IMMORTAL": "ÖLÜMSÜZ",
+  "I agree to the {0}": "{0} kabul ediyorum",
+  "Privacy Policy": "Gizlilik Politikasını",
+  "Tick the box to agree to the Privacy Policy.": "Gizlilik Politikasını kabul etmek için kutuyu işaretle.",
 });

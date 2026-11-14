@@ -4,7 +4,8 @@
 //   over a goal line, wide of the posts:
 //     last touched by the defenders -> a CORNER to the attackers
 //     last touched by the attackers -> a GOAL KICK to the defenders (their keeper takes it)
-// The ball goes on the spot and the nearest player takes it (you, if that is you): aim with the
+// The ball goes on the spot and the side's real player takes it (offline: you; online: one of them at
+// random; a side of fill-ins: the nearest), the keeper a goal kick: aim with the
 // stick, PASS to play it to a teammate, SHOOT for a long one (at a corner, a shot at goal). A bot
 // takes its own after a moment. The other side has to stand back until it has been taken, the clock
 // stops while it is set up, and the taker cannot touch it twice in a row.
@@ -55,15 +56,21 @@ const Rules = {
       aimX = (tx - bx) / d; aimY = (ty - by) / d;
     }
     { const al = Math.hypot(aimX, aimY) || 1; aimX /= al; aimY /= al; }
-    // who takes it: the keeper for a goal kick, otherwise the nearest outfield player of that side
+    // Who takes it: the keeper takes a goal kick. A throw-in or a corner is taken by a real player
+    // when the side has one (build 117): offline that is always you; online, one of the side's real
+    // players at random (not one who has dropped out). A side of fill-ins: the nearest of them.
     let taker = null;
     if (kind === 'goalkick') taker = m.keepers[team];
     else {
-      let best = 1e9;
-      for (const p of m.players) {
-        if (p.team !== team || p.isKeeper) continue;
-        const d = dist(p.x, p.y, bx, by);
-        if (d < best) { best = d; taker = p; }
+      const people = m.autopilot ? [] : m.players.filter((p) => p.team === team && p.isHuman && !p.isKeeper && !p.away);
+      if (people.length) taker = people.length === 1 ? people[0] : people[Math.floor(Math.random() * people.length)];
+      else {
+        let best = 1e9;
+        for (const p of m.players) {
+          if (p.team !== team || p.isKeeper) continue;
+          const d = dist(p.x, p.y, bx, by);
+          if (d < best) { best = d; taker = p; }
+        }
       }
     }
     if (!taker) taker = m.players.find((p) => p.team === team) || m.players[0];
@@ -107,6 +114,8 @@ const Rules = {
   step(m, dt) {
     const R = m.restart;
     if (!R) { m.phase = 'play'; return; }
+    // online: the one taking it left (a bot plays for them now) or dropped out: it is a bot's to take
+    if (R.human && (!R.taker.isHuman || R.taker.away)) R.human = false;
     R.t += dt;
     const b = m.ball, taker = R.taker;
     // you, when you are not the one taking it: move about; PASS asks for it

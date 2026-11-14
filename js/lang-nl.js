@@ -1813,4 +1813,12 @@ I18N.add('nl', {
   "Free kicks with {0} starting": "Vrije trappen met {0} beginnen",
   "PRO MATCH with {0} starting": "PRO-WEDSTRIJD met {0} begint",
   "{0} declined the challenge": "{0} heeft de uitdaging afgewezen",
+  "MASTER": "MEESTER",
+  "GRANDMASTER": "GROOTMEESTER",
+  "CHAMPION": "KAMPIOEN",
+  "TITAN": "TITAAN",
+  "IMMORTAL": "ONSTERFELIJK",
+  "I agree to the {0}": "Ik ga akkoord met het {0}",
+  "Privacy Policy": "Privacybeleid",
+  "Tick the box to agree to the Privacy Policy.": "Vink het vakje aan om akkoord te gaan met het Privacybeleid.",
 });

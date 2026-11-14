@@ -251,6 +251,22 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Your throw-ins, five more ranks, agreeing to the policy (build 117)
+
+- **Who takes a throw-in or a corner in PRO MATCH**: offline, always you (your side's; the keeper still
+  takes a goal kick, and PASS asks him for it). Online, one of the side's real players at random, never
+  one who has dropped out (`p.away`, set while their connection is gone); a side of fill-ins, its nearest.
+  If the one taking it leaves or drops out while it is set up, a bot takes it at once.
+- **Five more ranks above LEGEND** (`RANK_TIERS`): MASTER 1,100 RP, GRANDMASTER 1,450, CHAMPION 1,850,
+  TITAN 2,300 and IMMORTAL 2,800, paying 15,000 to 50,000 coins at the end of a season. Older apps don't
+  know the new ones and show them as BRONZE until they update; the points and the payouts are the server's.
+- **Signing up**: a box to tick, "I agree to the Privacy Policy", with the policy linked (inside the app the
+  link is behind the grown-up check, which now shows over the sign-in page). Nothing new is stored.
+- A full guide to the game was written for Noah (an artifact, outside this repository).
+
+Tests: `rulesscan` (offline your side's throw-ins are always yours), `proscan` (online: a random real
+player, never a fill-in, never one who has dropped out), `rankscan` (the new ranks). App 1.1.9 (code 20).
+
 ## PRO MATCH online, bots that put it out, 50 more clubs, challenge modes (build 116)
 
 - **PRO MATCH online, just like ordinary matches.** PRO MATCH opens a choice: OFFLINE or ONLINE, and the

@@ -493,6 +493,18 @@ const UI = {
     this._authMode = 'login';
     document.querySelectorAll('[data-auth]').forEach((b) => b.addEventListener('click', () => { this.tap(); this.setAuthMode(b.dataset.auth); }));
     $('auth-form').addEventListener('submit', (e) => { e.preventDefault(); this.submitAuth(); });
+    // signing up: the box that says you agree to the Privacy Policy (build 117). Its link opens the
+    // policy; inside the app that is a web page outside the game, so it is behind the grown-up check
+    // (shown over the sign-in page, which sits at 40).
+    $('auth-agree-box').addEventListener('change', () => { if ($('auth-agree-box').checked && $('auth-msg').classList.contains('bad')) { $('auth-msg').textContent = ''; $('auth-msg').classList.remove('bad'); } });
+    $('auth-agree-text').addEventListener('click', async (e) => {
+      const a = e.target.closest && e.target.closest('a');
+      if (!a) return;
+      e.preventDefault(); // (a tap on the link opens it; it does not tick the box)
+      this.tap();
+      if (NATIVE && !(await this.grownUpCheck(tl('This opens a web page outside the game.'), 46))) return;
+      window.open(a.href, '_blank', 'noopener');
+    });
     $('auth-forgot').addEventListener('click', (e) => { e.preventDefault(); this.tap(); this.showForgot(); });
     $('auth-clubs').innerHTML = CLUBS.slice().sort((x, y) => x.name.localeCompare(y.name)).map((c) => `<button type="button" class="auth-club" data-club="${c.id}"><canvas width="96" height="64"></canvas><b${c.name.length > 9 ? ' class="long"' : ''}>${c.name}</b></button>`).join('');
     $('auth-clubs').querySelectorAll('.auth-club').forEach((b) => {
@@ -516,6 +528,8 @@ const UI = {
     $('auth-go').textContent = mode === 'signup' ? tl('CREATE ACCOUNT') : tl('LOG IN');
     $('auth-forgot').hidden = mode !== 'login';
     $('auth-lang').hidden = mode !== 'signup';
+    $('auth-agree').hidden = mode !== 'signup';
+    $('auth-agree-text').innerHTML = tl('I agree to the {0}', [`<a href="${API_BASE}/privacy.html" target="_blank" rel="noopener">${esc(tl('Privacy Policy'))}</a>`]);
     $('auth-lang').textContent = tl('LANGUAGE: {0}', [I18N.name()]);
     $('auth-pass').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
     $('auth-msg').textContent = mode === 'signup' ? tl('Password: 8+ characters.') : '';
@@ -587,6 +601,7 @@ const UI = {
     msg.classList.add('bad');
     if (!user || !pass) { msg.textContent = tl('Enter a username and password.'); return; }
     if (this._authMode === 'signup' && !this._authClub) { msg.textContent = tl('Pick your country first.'); return; }
+    if (this._authMode === 'signup' && !$('auth-agree-box').checked) { msg.textContent = tl('Tick the box to agree to the Privacy Policy.'); return; }
     const go = $('auth-go');
     go.disabled = true; msg.classList.remove('bad'); msg.textContent = this._authMode === 'signup' ? tl('Creating your account…') : tl('Logging in…');
     let r;

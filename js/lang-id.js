@@ -1813,4 +1813,12 @@ I18N.add('id', {
   "Free kicks with {0} starting": "Tendangan bebas dengan {0} dimulai",
   "PRO MATCH with {0} starting": "LAGA PRO dengan {0} dimulai",
   "{0} declined the challenge": "{0} menolak tantangan",
+  "MASTER": "MASTER",
+  "GRANDMASTER": "GRANDMASTER",
+  "CHAMPION": "JUARA",
+  "TITAN": "TITAN",
+  "IMMORTAL": "ABADI",
+  "I agree to the {0}": "Saya setuju dengan {0}",
+  "Privacy Policy": "Kebijakan Privasi",
+  "Tick the box to agree to the Privacy Policy.": "Centang kotak untuk menyetujui Kebijakan Privasi.",
 });

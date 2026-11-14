@@ -15,7 +15,7 @@ class FakeWS {
   msg(obj) { this.lastSeen = Date.now(); this.handlers.message(obj); }
 }
 const users = {};
-for (const id of ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'old1', 'n1', 'n2']) users[id] = { club: 'spain', save: {} };
+for (const id of ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'old1', 'n1', 'n2', 'q1', 'q2']) users[id] = { club: 'spain', save: {} };
 const game = createGame({ getUser: (id) => users[id], userName: (id) => id.toUpperCase(), saveDB: () => {}, onlineRecord: () => {}, isNameTaken: () => false });
 
 let failures = 0;
@@ -92,20 +92,22 @@ const PH_RESTART = 8, PH_PLAY = 1;
     const n = ws.got.length;
     const snap = await waitFor(ws, (x) => x.t === 's' && x.ph === PH_RESTART && Array.isArray(x.rs), n, 3000);
     check('the snapshots say a restart is on, and what it is', !!snap && snap.rs[0] === 0, snap && snap.rs);
-    const you = starts[0] && room.m.players.indexOf(me);
-    check("it is p1's to take (the nearest of the side that did not touch it)", snap && snap.rs[2] === you && snap.rs[1] === (me.team === 'red' ? 1 : 0), snap && { rs: snap.rs, you });
+    // (build 117: one of the side's real players takes it, picked at random)
+    const tk = snap && m.players[snap.rs[2]], tseat = tk && room.seats.find((x) => x.player === tk);
+    check("it is p1's side's, taken by one of its real players", !!tseat && tseat.human && tk.team === me.team && snap.rs[1] === (me.team === 'red' ? 1 : 0), snap && { rs: snap.rs, taker: tseat && tseat.userId });
+    const you = snap ? snap.rs[2] : -1, tws = tseat ? socks[tseat.userId] : ws;
     check('the thrower is drawn with the ball over their head', snap && (snap.p[you][7] & 32) === 32 && snap.b[2] > 40, snap && { flags: snap.p[you][7], z: snap.b[2] });
     check('the clock has stopped', snap && (await (async () => { const t0 = m.time; await sleep(300); return m.time === t0 && m.phase === 'restart'; })()));
     const banner = ws.got.slice(n).some((x) => x.t === 's' && x.ev.some((e) => e.e === 'f' && e.n === 'showBanner' && e.a[0] === 'THROW-IN'));
     const whistle = ws.got.slice(n).some((x) => x.t === 's' && x.ev.some((e) => e.e === 's' && e.n === 'whistle'));
     check('everyone gets the THROW-IN banner and the whistle', banner && whistle, { banner, whistle });
-    // p1 aims into the pitch and presses PASS
-    const n2 = ws.got.length;
-    ws.msg({ t: 'i', s: 1, x: 0.3, y: 1, sp: 0, a: 32 });
+    // the taker aims into the pitch and presses PASS
+    const n2 = tws.got.length;
+    tws.msg({ t: 'i', s: 1, x: 0.3, y: 1, sp: 0, a: 32 });
     await sleep(60);
-    ws.msg({ t: 'i', s: 2, x: 0.3, y: 1, sp: 0, a: 1 });
-    const back = await waitFor(ws, (x) => x.t === 's' && x.ph === PH_PLAY, n2, 2000);
-    check("p1's PASS takes it, and play goes on", !!back && !back.rs, back && back.ph);
+    tws.msg({ t: 'i', s: 2, x: 0.3, y: 1, sp: 0, a: 1 });
+    const back = await waitFor(tws, (x) => x.t === 's' && x.ph === PH_PLAY, n2, 2000);
+    check("the taker's PASS takes it, and play goes on", !!back && !back.rs, back && back.ph);
     check('thrown into the pitch, not back out', back && back.b[4] > 0, back && back.b.slice(0, 6));
   }
 
@@ -160,6 +162,44 @@ const PH_RESTART = 8, PH_PLAY = 1;
     check('it starts as a PRO MATCH 3v3', st && st.pro === true && st.format === '3v3', st && { pro: st.pro, f: st.format });
     const r = game._roomOf('p5');
     check('on the big pitch, with the rules', r && r.pro && r.m.rules, r && r.pro);
+  }
+
+  console.log("who takes a side's throw-ins online: one of its real players, at random");
+  {
+    let n = socks.q1.got.length;
+    socks.q1.msg({ t: 'room.create', format: '2v2' });
+    const lob = await waitFor(socks.q1, (x) => x.t === 'room', n, 1000);
+    socks.q2.msg({ t: 'room.join', code: lob.code }); await sleep(50);
+    socks.q2.msg({ t: 'room.team', team: 'blue' }); await sleep(50);
+    socks.q1.msg({ t: 'room.pro', on: true }); await sleep(50);
+    n = socks.q2.got.length;
+    socks.q1.msg({ t: 'room.start' });
+    await waitFor(socks.q2, (x) => x.t === 'start', n, 2000);
+    const r = game._roomOf('q1'), m = r.m;
+    const team = r.seats.find((x) => x.userId === 'q1').team;
+    check('the two friends are on the same side', r.seats.find((x) => x.userId === 'q2').team === team, r.seats.map((x) => [x.userId, x.team]));
+    for (let i = 0; i < 200 && m.phase !== 'play'; i++) await sleep(50);
+    const takers = [];
+    const one = async () => {
+      for (let i = 0; i < 150 && m.phase !== 'play'; i++) await sleep(20);
+      const b = m.ball; if (b.owner) b.owner = null;
+      b.x = 1500; b.y = -12; b.vx = 0; b.vy = -50; b.z = 0; b.shot = null; b.lastTouchTeam = team === 'blue' ? 'red' : 'blue';
+      for (let i = 0; i < 150 && m.phase !== 'restart'; i++) await sleep(20);
+      const R = m.restart, who = R && R.taker;
+      const seat = who && r.seats.find((x) => x.player === who);
+      takers.push(!who ? 'none' : seat && seat.human ? seat.userId : 'bot');
+      if (R) R.t = 7.95; // (taken for them a moment later)
+      for (let i = 0; i < 150 && m.phase === 'restart'; i++) await sleep(20);
+    };
+    for (let k = 0; k < 14; k++) await one();
+    const a = takers.filter((x) => x === 'q1').length, c = takers.filter((x) => x === 'q2').length;
+    check("only the side's real players take them, never a fill-in", a + c === takers.length, takers);
+    check('and each of them gets some (a random one each time)', a > 0 && c > 0, { q1: a, q2: c });
+    // q2 drops out: from then on they are all q1's
+    socks.q2.close(); await sleep(50);
+    takers.length = 0;
+    for (let k = 0; k < 5; k++) await one();
+    check('a player who has dropped out is never handed one', takers.length === 5 && takers.every((x) => x === 'q1'), takers);
   }
 
   console.log(failures ? `\n${failures} FAILED` : '\nall good');

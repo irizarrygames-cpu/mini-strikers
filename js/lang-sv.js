@@ -1813,4 +1813,12 @@ I18N.add('sv', {
   "Free kicks with {0} starting": "Frisparkarna mot {0} börjar",
   "PRO MATCH with {0} starting": "PROFFSMATCHEN mot {0} börjar",
   "{0} declined the challenge": "{0} tackade nej till utmaningen",
+  "MASTER": "MÄSTARE",
+  "GRANDMASTER": "STORMÄSTARE",
+  "CHAMPION": "CHAMPION",
+  "TITAN": "TITAN",
+  "IMMORTAL": "ODÖDLIG",
+  "I agree to the {0}": "Jag godkänner {0}",
+  "Privacy Policy": "integritetspolicyn",
+  "Tick the box to agree to the Privacy Policy.": "Kryssa i rutan för att godkänna integritetspolicyn.",
 });

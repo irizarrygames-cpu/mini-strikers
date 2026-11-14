@@ -1813,4 +1813,12 @@ I18N.add('ro', {
   "Free kicks with {0} starting": "Încep loviturile libere cu {0}",
   "PRO MATCH with {0} starting": "Începe MECIUL PRO cu {0}",
   "{0} declined the challenge": "{0} a refuzat provocarea",
+  "MASTER": "MAESTRU",
+  "GRANDMASTER": "MARE MAESTRU",
+  "CHAMPION": "CAMPION",
+  "TITAN": "TITAN",
+  "IMMORTAL": "NEMURITOR",
+  "I agree to the {0}": "Sunt de acord cu {0}",
+  "Privacy Policy": "Politica de confidențialitate",
+  "Tick the box to agree to the Privacy Policy.": "Bifează căsuța ca să fii de acord cu Politica de confidențialitate.",
 });

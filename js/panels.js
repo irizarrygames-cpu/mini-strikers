@@ -496,12 +496,13 @@ Object.assign(UI, {
   // A grown-up check for anything that takes the player out of the game (a web link) or spends
   // real money. A few numbers written out in words: easy for a grown-up, not something a young
   // player gets past by tapping. Resolves true if they typed them right, false if they backed out.
-  grownUpCheck(why) {
+  // (z: over what it shows — the sign-in page is at 40)
+  grownUpCheck(why, z = 25) {
     return new Promise((resolve) => {
       Store.newGate();
       const el = document.createElement('div');
       el.className = 'overlay grownup';
-      el.style.zIndex = 25;
+      el.style.zIndex = z;
       el.innerHTML = `<div class="panel small"><div class="gate">
         <strong>${tl('ASK A GROWN-UP')}</strong>
         <p>${why}</p>

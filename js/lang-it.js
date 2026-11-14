@@ -1813,4 +1813,12 @@ I18N.add('it', {
   "Free kicks with {0} starting": "Iniziano le punizioni con {0}",
   "PRO MATCH with {0} starting": "Inizia la PARTITA PRO con {0}",
   "{0} declined the challenge": "{0} ha rifiutato la sfida",
+  "MASTER": "MAESTRO",
+  "GRANDMASTER": "GRAN MAESTRO",
+  "CHAMPION": "CAMPIONE",
+  "TITAN": "TITANO",
+  "IMMORTAL": "IMMORTALE",
+  "I agree to the {0}": "Accetto l'{0}",
+  "Privacy Policy": "Informativa sulla privacy",
+  "Tick the box to agree to the Privacy Policy.": "Spunta la casella per accettare l'Informativa sulla privacy.",
 });

@@ -11,7 +11,10 @@ const check = (n, ok, d) => { console.log((ok ? '  ok   ' : '  FAIL ') + n + (d 
 console.log('tiers and thresholds');
 check('a new player is bronze', rankTier(0).id === 'bronze');
 check('60 is silver, 149 still silver', rankTier(60).id === 'silver' && rankTier(149).id === 'silver');
-check('the top threshold is legend and there is nothing above it', rankTier(800).id === 'legend' && rankNext(800) === null, rankTier(800).id);
+// (build 117: five more above LEGEND)
+check('legend is at 800, with MASTER next at 1100', rankTier(800).id === 'legend' && rankNext(800) && rankNext(800).id === 'master' && rankNext(800).at === 1100, rankTier(800).id);
+check('the five new ones climb in order', ['master', 'grandmaster', 'champion', 'titan', 'immortal'].every((id, i, a) => rankTier([1100, 1450, 1850, 2300, 2800][i]).id === id && rankTier([1100, 1450, 1850, 2300, 2800][i] - 1).id !== id), null);
+check('the top threshold is immortal and there is nothing above it', rankTier(2800).id === 'immortal' && rankNext(2800) === null && rankTier(99999).id === 'immortal', rankTier(2800).id);
 check('every tier pays more than the one below', RANK_TIERS.every((t, i) => i === 0 || t.reward > RANK_TIERS[i - 1].reward));
 check('the tiers climb in order', RANK_TIERS.every((t, i) => i === 0 || t.at > RANK_TIERS[i - 1].at));
 

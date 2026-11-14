@@ -508,6 +508,12 @@ const RANK_TIERS = [
   { id: 'platinum', name: tl('PLATINUM'), at: 300, color: '#46d9ff', reward: 2500 },
   { id: 'diamond', name: tl('DIAMOND'), at: 500, color: '#b04dff', reward: 5000 },
   { id: 'legend', name: tl('LEGEND'), at: 800, color: '#ff3a6e', reward: 10000 },
+  // build 117: five more above LEGEND, each a longer climb than the last
+  { id: 'master', name: tl('MASTER'), at: 1100, color: '#3fcf4a', reward: 15000 },
+  { id: 'grandmaster', name: tl('GRANDMASTER'), at: 1450, color: '#ff7a1a', reward: 20000 },
+  { id: 'champion', name: tl('CHAMPION'), at: 1850, color: '#1f5bff', reward: 27500 },
+  { id: 'titan', name: tl('TITAN'), at: 2300, color: '#1b1d33', reward: 37500 },
+  { id: 'immortal', name: tl('IMMORTAL'), at: 2800, color: '#ffffff', reward: 50000 },
 ];
 const SEASON_DAYS = 14;
 const SEASON_START = Date.UTC(2026, 8, 21); // seasons have counted from here

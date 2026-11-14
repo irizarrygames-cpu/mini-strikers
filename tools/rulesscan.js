@@ -144,7 +144,7 @@ globalThis.__you = function (seed, format) {
     consumeShootPress() { return this.take('shootPress'); }, consumeShootRelease() { return this.take('shootRelease'); },
     consumeSkill() { return false; }, consumeSlide() { return false; }, consumeUlt() { return false; } };
   const h = m.human; h.input = F;
-  const log = { mine: 0, byPass: 0, byLong: 0, byWait: 0, asked: 0, askedGot: 0, wrongWay: [], stuck: 0, legal: 0, waitT: 0, outs: 0, shotAtCorner: 0 };
+  const log = { mine: 0, byPass: 0, byLong: 0, byWait: 0, asked: 0, askedGot: 0, wrongWay: [], stuck: 0, legal: 0, waitT: 0, outs: 0, shotAtCorner: 0, ourThrows: 0, notMine: 0 };
   let plan = null, guard = 0, hoofIn = 2, wander = 0;
   while (m.phase !== 'over' && guard < 300000) {
     guard++;
@@ -176,6 +176,8 @@ globalThis.__you = function (seed, format) {
     const R = m.restart;
     if (m.phase === 'restart' && R && !plan) {
       log.outs++;
+      // build 117: offline, your side's throw-ins and corners are always yours to take
+      if (R.team === h.team && R.kind !== 'goalkick') { log.ourThrows++; if (R.taker !== h) log.notMine++; }
       if (R.human) {
         log.mine++;
         const k = log.mine % 4;
@@ -226,7 +228,7 @@ globalThis.__you = function (seed, format) {
   return log;
 };
 `);
-const you = { mine: 0, byPass: 0, byLong: 0, byWait: 0, asked: 0, askedGot: 0, legal: 0, outs: 0, shotAtCorner: 0 };
+const you = { mine: 0, byPass: 0, byLong: 0, byWait: 0, asked: 0, askedGot: 0, legal: 0, outs: 0, shotAtCorner: 0, ourThrows: 0, notMine: 0 };
 let youWrong = [], youStuck = 0, youWait = 0;
 for (let i = 0; i < 9; i++) {
   const r = sim.run(`__you(${7 + i * 104729}, '${['2v2', '3v3', '4v4'][i % 3]}')`);
@@ -238,7 +240,8 @@ check('you take your own throw-ins, corners and goal kicks', you.mine > 30 && yo
 check('PASS plays it, SHOOT hits the long one, and leaving it gets it taken for you after 8 s', youWait >= 7.9 && youWait <= 8.1, +youWait.toFixed(2));
 check('at a corner, SHOOT is a go at goal', you.shotAtCorner > 0 || you.byLong < 6, you.shotAtCorner);
 check('nothing is ever played back out over the line it is taken from (even aimed that way)', youWrong.length === 0, youWrong.slice(0, 4));
-check('when a teammate takes it, PASS asks for it, and you get it', you.asked > 5 && you.askedGot >= you.asked * 0.8, { asked: you.asked, got: you.askedGot });
+check("every one of your side's throw-ins and corners is yours to take", you.ourThrows > 20 && you.notMine === 0, { ours: you.ourThrows, notYours: you.notMine });
+check('when your keeper takes a goal kick, PASS asks for it, and you get it', you.asked > 0 && you.askedGot >= you.asked * 0.8, { asked: you.asked, got: you.askedGot });
 check('your matches end', youStuck === 0, youStuck);
 
 console.log('PRO MATCH is 2v2 or bigger');

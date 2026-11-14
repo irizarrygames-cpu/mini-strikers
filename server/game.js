@@ -404,6 +404,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (room && (room.state === 'intro' || room.state === 'playing')) {
       const seat = room.seats.find((s) => s.userId === userId);
       seat.conn = conn; seat.leftAt = 0;
+      if (seat.player) seat.player.away = false;
       sendStart(room, seat);
     } else if (room) {
       const seat = room.seats.find((s) => s.userId === userId);
@@ -423,6 +424,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const seat = room.seats.find((s) => s.userId === userId);
     if (room.state === 'lobby') { leaveLobby(room, userId); return; }
     seat.conn = null; seat.leftAt = Date.now();
+    // (gone for now: PRO MATCH does not hand them a throw-in to take, js/rules.js)
+    if (seat.player) seat.player.away = true;
   }
 
   function onMessage(conn, msg) {
