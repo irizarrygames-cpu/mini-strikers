@@ -692,7 +692,7 @@ function fmtCoins(n) {
   // Above it the short form is already clearer than any amount of grouping — 2.5M beats
   // 2,500,000 — which is what it is for.
   if (n < 1e6) return (n < 0 ? '-' : '') + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  const [v, unit] = n >= 1e9 ? [n / 1e9, 'B'] : [n / 1e6, 'M'];
+  const [v, unit] = n >= 1e12 ? [n / 1e12, 'T'] : n >= 1e9 ? [n / 1e9, 'B'] : [n / 1e6, 'M'];
   return (v >= 100 ? Math.floor(v) : Math.floor(v * 100) / 100) + unit;
 }
 

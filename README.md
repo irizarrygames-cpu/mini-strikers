@@ -251,6 +251,13 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## A 10 trillion coin gift (build 119)
+
+`GIFTS` in server.js gives IRIZARRY and LILOTTER 10,000,000,000,000 coins each, delivered the next time
+that account's game syncs (no new app needed: the server adds them). The highest a save may hold went from 2 billion to a quadrillion (`LIMITS.coins.max`) so it fits.
+A gift can now carry `madeBefore`: only an account made before then gets it, so if the name were free,
+whoever signed up with it later would not. `fmtCoins` shows trillions as T (10T, not 10000B).
+
 ## Season rewards seven times bigger (build 118)
 
 Every ranked season reward is seven times what it was (`RANK_TIERS` in js/config.js): BRONZE 1,400,

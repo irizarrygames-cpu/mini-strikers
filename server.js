@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 118;
+const BUILD = 119;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -116,7 +116,9 @@ async function flushDB() {
 
 const SAVE_MAX_BYTES = 40000;
 const LIMITS = {
-  coins: { min: 0, max: 2000000000, gain: 12000 }, // max leaves room for gifts; gain still limits what a game can add
+  // max leaves room for gifts (build 119: a quadrillion, for a 10 trillion one; still far inside the
+  // whole numbers JavaScript keeps exactly); gain still limits what a game can add
+  coins: { min: 0, max: 1000000000000000, gain: 12000 },
   xp: { min: 0, max: 100000000, gain: 8000 },
   trophies: { min: 0, max: 100000, gain: 3 },
   matches: { min: 0, max: 1000000, gain: 20 },
@@ -177,6 +179,10 @@ const GIFTS = [
   { key: '2026-09-22-lilotter-billion', user: 'lilotter', coins: 1000000000 },
   { key: '2026-10-16-irizarry-billion', user: 'irizarry', coins: 1000000000 },
   { key: '2026-10-16-irizarrygamegh-billion', user: 'irizarrygamegh', coins: 1000000000 },
+  // madeBefore: only the account that already had this name when the gift was written gets it — if
+  // the name is free and someone signs up with it later, they get nothing
+  { key: '2026-11-14-irizarry-10-trillion', user: 'irizarry', coins: 10000000000000, madeBefore: Date.UTC(2026, 10, 14, 19, 45) },
+  { key: '2026-11-14-lilotter-10-trillion', user: 'lilotter', coins: 10000000000000, madeBefore: Date.UTC(2026, 10, 14, 19, 45) },
 ];
 // A one-time clean slate, spent the first time it runs.
 //
@@ -228,6 +234,7 @@ function queueGifts(quiet) {
     const u = getUser(g.user);
     if (!u) { if (!quiet) console.log(`gift ${g.key}: no account ${g.user}`); continue; }
     if (g.club && u.club !== g.club) { console.log(`gift ${g.key}: ${g.user} plays for ${u.club}, not ${g.club}`); continue; }
+    if (g.madeBefore && !(Number(u.created) < g.madeBefore)) { if (!quiet) console.log(`gift ${g.key}: ${g.user} was made after the gift`); continue; }
     u.giftsDone = Array.isArray(u.giftsDone) ? u.giftsDone : [];
     if (u.giftsDone.includes(g.key)) continue;
     u.giftsDone.push(g.key);
