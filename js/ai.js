@@ -7,6 +7,23 @@ const KEEPER = { base: 0.94, speed: 0.34, power: 0.12, close: 0.2, mid: 0.08, fa
   // more team-mates means more room and closer shots, so the bigger formats need MORE help,
   // not less: 4v4 used to give the keeper nothing and 64% of shots went in.
   format: { '4v4': 0.15, '3v3': 0.13, '2v2': 0.1, '1v1': 0.11 } };
+// PRO MATCH (build 116): the ball goes out of play now and then, the way it does in real football.
+// Only on that pitch (m.rules), and only a bot under pressure: on the wing it runs the ball over the
+// touchline; deep in its own half it clears it into touch, or behind its own goal line for a corner.
+// Chances are per decision (a carrier decides about four times a second). tools/outscan.js measures it.
+const BOT_OUT = {
+  press: 125,     // an opponent this close in front is pressure
+  wing: 230,      // this near a touchline is the wing
+  runOut: 0.28,   // on the wing under pressure: runs it out
+  runOutFree: 0.1, // on the wing with nobody near: a heavy touch takes it out all the same
+  runFor: 0.9,    // (keeps running that way this long, ball and all)
+  deep: 1600,     // this near its own goal line is its own half
+  clear: 0.12,   // in its own half under pressure: puts it out of play to be safe
+  behind: 0.4,    // ...and when it is wide near its own goal line, this often behind it (a corner)
+  wingRun: 0.15,  // free, a long way from goal: takes it down a wing instead of the middle
+  wingFor: [1.2, 2.4], // (for this long)
+};
+
 const AI = {
   update(m, dt) {
     const b = m.ball;
@@ -290,6 +307,13 @@ const AI = {
       return;
     }
 
+    // running the ball out of play (outOfPlay, PRO MATCH): on until it goes, or somebody takes it
+    // (by the match clock, so a run it was tackled out of is not picked up again next time it has the ball)
+    if (p.ai.outUntil > m.clock) {
+      p.mx = p.ai.outX; p.my = p.ai.outY; p.mSpeed = 1; this.wantSprint(p, false);
+      return;
+    }
+
     p.ai.decideT -= dt;
     const dG = dist(p.x, p.y, gx, gy);
     if (p.ai.decideT <= 0) {
@@ -302,6 +326,7 @@ const AI = {
         if (front && d < nearOpp) nearOpp = d;
       }
       this.wantSprint(p, nearOpp > 140 && dG > 360);
+      if (m.rules && this.outOfPlay(m, p, nearOpp)) return;
       // too big a touch with a defender close: the ball runs away
       if (nearOpp < 85 && p.protectT <= 0 && !p.skill && Math.random() < BOT_MISTAKES.looseTouch * slip) {
         loseBall(m, p, 0.3);
@@ -339,6 +364,14 @@ const AI = {
       const dir = TEAMS[p.team].dir;
       let aimX = gx, aimY = gy;
       if (lineDist < 170 && Math.abs(p.y - gy) > CFG.GOAL_W / 2 - 25) { aimX = gx - dir * 230; aimY = gy; }
+      // PRO MATCH: the big pitch has wings, and now and then a bot goes down one
+      if (m.rules) {
+        const H = CFG.FIELD_H;
+        if (!(p.ai.wingUntil > m.clock) && dG > 1000 && Math.random() < BOT_OUT.wingRun) {
+          p.ai.wingUntil = m.clock + rand(BOT_OUT.wingFor[0], BOT_OUT.wingFor[1]); p.ai.wingY = p.y < H / 2 ? 110 : H - 110;
+        }
+        if (p.ai.wingUntil > m.clock && dG > 700) { aimX = p.x + dir * 420; aimY = p.ai.wingY; }
+      }
       const dA = dist(p.x, p.y, aimX, aimY) || 1;
       let dx = (aimX - p.x) / dA, dy = (aimY - p.y) / dA;
       let ax = 0, ay = 0;
@@ -352,12 +385,45 @@ const AI = {
         const w = (1 - od / 180) * 1.3;
         ax += -dy * side * w; ay += dx * side * w;
       }
-      if (p.y < 150) ay += 0.6; if (p.y > CFG.FIELD_H - 150) ay -= 0.6;
+      if (!(p.ai.wingUntil > m.clock)) { if (p.y < 150) ay += 0.6; if (p.y > CFG.FIELD_H - 150) ay -= 0.6; }
       dx += ax; dy += ay;
       const l = Math.hypot(dx, dy) || 1;
       p.ai.dribX = dx / l; p.ai.dribY = dy / l;
     }
     p.mx = p.ai.dribX || 0; p.my = p.ai.dribY || 0; p.mSpeed = 1;
+  },
+
+  // PRO MATCH: a bot puts the ball out of play (see BOT_OUT). True when it did.
+  outOfPlay(m, p, nearOpp) {
+    const O = BOT_OUT, H = CFG.FIELD_H, dir = TEAMS[p.team].dir, own = ownGoalX(p.team), b = m.ball;
+    if (p.isKeeper || b.owner !== p) return false;
+    const press = nearOpp <= O.press;
+    const edge = Math.min(p.y, H - p.y), fromOwn = Math.abs(p.x - own), top = p.y < H / 2;
+    // on the wing (somebody on top of it, or a heavy touch): it runs the ball over the touchline (a throw-in to them)
+    if (edge < O.wing && Math.random() < (press ? O.runOut : O.runOutFree)) {
+      const a = Math.atan2(top ? -1 : 1, dir * rand(0.15, 0.8));
+      p.ai.outUntil = m.clock + O.runFor; p.ai.outX = Math.cos(a); p.ai.outY = Math.sin(a);
+      return true;
+    }
+    // deep in its own half: it puts it out to be safe — into touch up the line, or (wide, near its own
+    // goal line) behind, well wide of the post, for a corner
+    if (press && fromOwn < O.deep && Math.random() < O.clear) {
+      let tx, ty;
+      if (fromOwn < 420 && Math.abs(p.y - H / 2) > CFG.GOAL_W * 0.9 && Math.random() < O.behind) {
+        tx = own - dir * 160; ty = top ? rand(30, GOAL_Y1 - 170) : rand(GOAL_Y2 + 170, H - 30);
+      } else {
+        tx = p.x + dir * rand(150, 520); ty = top ? -170 : H + 170;
+      }
+      const d = Math.hypot(tx - p.x, ty - p.y) || 1, v = rand(720, 980);
+      loseBall(m, p, 0.45);
+      b.vx = ((tx - p.x) / d) * v; b.vy = ((ty - p.y) / d) * v; b.vz = rand(90, 200);
+      b.spinT = 0; b.shot = null; b.trailType = 'pass'; b.lastPass = null;
+      b.lastTouchTeam = p.team; b.lastKicker = p;
+      p.fx = (tx - p.x) / d; p.fy = (ty - p.y) / d; p.kickT = 0.24; p.kickDur = 0.24;
+      Sound.kick(0.7);
+      return true;
+    }
+    return false;
   },
 
   keeper(m, k, dt) {

@@ -112,13 +112,8 @@ Object.assign(UI, {
     body.querySelector('[data-mode="challenges"]').addEventListener('click', () => { this.tap(); this.openModal('challenges'); });
     body.querySelector('[data-mode="friendcup"]').addEventListener('click', () => { this.tap(); this.openModal('cup'); });
     body.querySelector('[data-mode="ranked"]').addEventListener('click', () => { this.tap(); Online.findMatch('ranked'); });
-    body.querySelector('[data-mode="pro"]').addEventListener('click', () => {
-      this.tap();
-      // PRO MATCH is 2v2 or bigger (Match.create makes sure): with 1v1 picked, it is 2v2
-      const f = fmtNow() === '1v1' ? '2v2' : fmtNow();
-      if (f !== fmtNow()) UI.toast(tl('PRO MATCH IS 2V2 OR BIGGER'));
-      Game.startMatch({ mode: 'pro', format: f, club: Clubs.random(Clubs.mine()) });
-    });
+    // PRO MATCH: against the computer or online (panel_promode)
+    body.querySelector('[data-mode="pro"]').addEventListener('click', () => { this.tap(); this.openModal('promode'); });
     body.querySelector('[data-mode="training"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'training', club: Clubs.random(Clubs.mine()) }); });
     body.querySelector('[data-mode="worldcup"]').addEventListener('click', () => { this.tap(); this.openModal('worldcup'); });
   },
@@ -142,6 +137,38 @@ Object.assign(UI, {
       </div>`;
     body.querySelector('[data-pens="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pens', club }); });
     body.querySelector('[data-pens="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pens'); });
+  },
+
+  // ---- PRO MATCH: the bigger pitch with throw-ins, corners and goal kicks, offline or online ----
+  // 2v2 to 4v4 only (with 1v1 picked on the PLAY screen it starts on 2v2 here, and says so).
+  panel_promode(body) {
+    $('modal-title').textContent = tl('PRO MATCH');
+    const saved = Save.data.format || '4v4', clubs = Clubs.clubMode(), club = Clubs.mine();
+    let fmt = ['2v2', '3v3', '4v4'].includes(saved) ? saved : '2v2';
+    const opp = Clubs.random(club);
+    body.innerHTML = `
+      <p class="note">${tl('A bigger pitch with the real rules: the ball can go out for throw-ins, corners and goal kicks.')}</p>
+      <div class="formats"><span>${tl('FORMAT')}</span>${['2v2', '3v3', '4v4'].map((f) => `<button data-pf="${f}" class="${f === fmt ? 'sel' : ''}">${f}</button>`).join('')}</div>
+      ${saved === '1v1' ? `<p class="note pro-note">${tl('PRO MATCH IS 2V2 OR BIGGER')}</p>` : ''}
+      <div class="modes pen-choice">
+        <button class="mode pro" data-pro="offline">
+          <strong>${tl('OFFLINE')}</strong>
+          <p>${clubs ? tl('One match against a random club. Works with no connection.') : tl('One match against a random country. Works with no connection.')}</p>
+          <span class="tag">${tl('VS {0}', [opp.name])}</span>
+        </button>
+        <button class="mode online" data-needs-net data-pro="online">
+          <strong>${tl('ONLINE')}</strong>
+          <p>${clubs ? tl('Real people from every country. Every goal and assist for {0} pays your wages.', [club.name]) : tl('Real people from every country. A win moves {0} up the league.', [club.name])}</p>
+          <span class="tag">${tl('ONLINE')}</span>
+        </button>
+      </div>`;
+    body.querySelectorAll('[data-pf]').forEach((b) => b.addEventListener('click', () => {
+      fmt = b.dataset.pf; Save.data.format = fmt; Save.write(); this.tap();
+      body.querySelectorAll('[data-pf]').forEach((x) => x.classList.toggle('sel', x === b));
+      const note = body.querySelector('.pro-note'); if (note) note.remove();
+    }));
+    body.querySelector('[data-pro="offline"]').addEventListener('click', () => { this.tap(); Game.startMatch({ mode: 'pro', format: fmt, club: opp }); });
+    body.querySelector('[data-pro="online"]').addEventListener('click', () => { this.tap(); Online.findMatch('pro/' + fmt); });
   },
 
   // ---- FREE KICKS: the same choice, for a free-kick shootout ----

@@ -251,6 +251,39 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## PRO MATCH online, bots that put it out, 50 more clubs, challenge modes (build 116)
+
+- **PRO MATCH online, just like ordinary matches.** PRO MATCH opens a choice: OFFLINE or ONLINE, and the
+  format (2v2 to 4v4). Online it has queues of its own (`pro/2v2`, `pro/3v3`, `pro/4v4`, filled with
+  fill-ins after the usual wait), parties, a PRO MATCH switch in private rooms (host, 2v2 and up), watching
+  and rejoining. The server plays PRO rooms in a second sandbox that is always on the big pitch
+  (`createSim({ pitch: 'pro' })`, `simOf(room)`): the world is one set of globals, so the two pitches can't
+  share one. Snapshots carry phase `restart` and `rs` (kind, side, taker, spot, aim, time) and the thrower's
+  pose (flag 32); your own restart's arrow follows your stick on your screen at once, and you can still run
+  about (predicted) during one you are not taking. A game too old for the big pitch says nothing about it,
+  so the server keeps it out of PRO queues, rooms, parties and watching (`canPro`, from the `pro` flag in
+  the `arena` message), and fills its matches only with the first fifty clubs.
+- **Bots put the ball out** (PRO MATCH only, `BOT_OUT` in js/ai.js): on the wing they run it over the
+  touchline, in their own half under pressure they clear it into touch or behind, they go down the wings,
+  and a keeper tips half his parries round the post for a corner (`KEEPER_TIP`; only when the ball is
+  clearly in front of the line, so it can never go in). Bot matches went from 1.2 restarts to 6.7 a match
+  (about 4 throw-ins, 2 corners, 1 goal kick), with the same goals: `node tools/outscan.js`.
+- **As little lag as possible.** A PRO match costs the server what an ordinary one does (0.73% of a core
+  against 0.67%) and sends the same snapshots; the stadium is drawn only where it is on screen
+  (`Render.drawLayer`: 1.32 ms to 0.80 ms a frame on the big pitch, 0.64 to 0.58 on the normal one).
+- **Your restart, on a phone**: the camera stays at full zoom and moves (out into the stands PRO MATCH
+  draws round its pitch, `camOut`) so you are never under the scoreboard, the stick or the buttons.
+- **Fifty more clubs** (the best in the world right now that were not in yet, from Brighton to Flamengo,
+  Boca to Al Hilal). Real names and badges belong to the clubs, so like the first fifty they are the city,
+  the nickname fans use, the colours and the symbol everyone knows. Six new badge symbols (a tree, a bat, a
+  horse, a stag, a fish, a cross) and two new shirt patterns (a band across the chest, a sash).
+- **Challenging a friend**: 1V1 opens a choice: a 1v1 match, penalties, free kicks, or a PRO MATCH (2v2,
+  a fill-in each). Never a cup. The invite says which; REMATCH at the end challenges them to the same again.
+- The private room fits a phone on its side (and an upright one) without scrolling.
+
+Tests: `node tools/proscan.js` (PRO MATCH online on fake sockets), `node tools/challengescan.js` (now every
+mode, older games, rematch), `node tools/outscan.js` (how often it goes out). App 1.1.8 (code 19).
+
 ## PRO MATCH: a bigger pitch with the real rules (build 115)
 
 PLAY → PRO MATCH, in International and in Club Career. The same game on a pitch a quarter bigger
@@ -316,7 +349,7 @@ PLAY now opens with two tabs: INTERNATIONAL (your country, as before) and CLUBS.
 side of the game with its own home screen: every mode is there, in your club's kit and at its ground,
 and the World Cup becomes the Champions Cup (bots and online, with its own trophy lift).
 
-- **The clubs** (js/clubs.js, `EURO_CLUBS`): fifty European clubs, made up on purpose. Real club names
+- **The clubs** (js/clubs.js, `EURO_CLUBS`): a hundred clubs (fifty European, and since build 116 fifty more from England, Spain, Germany, Italy, France, the rest of Europe, Brazil, Argentina, Saudi Arabia, the USA, Mexico and Egypt), made up on purpose. Real club names
   and badges are the clubs' trademarks, so each one is named after its city with a colour or nickname in
   the local language (Madrid Blanco, Merseyside Red, München Rot…) and wears similar colours. Badges are
   drawn from shapes (`UI.crestBadge`: a shape, a split, three colours, an emblem) and copy nobody's.
@@ -371,6 +404,8 @@ still showing on a screen in another language; `tools/startscan.js` has a `langu
 
 ## Tools
 
+- `node tools/proscan.js` — PRO MATCH online: its queues, rooms and snapshots, against the real server code on fake sockets (about 20 seconds).
+- `node tools/outscan.js [matches]` — how often bots put the ball out in PRO MATCH, and the goals.
 - `node tools/rulesscan.js` — PRO MATCH: the bigger pitch, throw-ins, corners and goal kicks, played out by bots and a scripted you (about 1 minute).
 - `node tools/slidescan.js` — your own tackle, pass, shot and skill answer within a frame online (about 1 minute).
 - `node tools/flowscan.js` — online flow control: a player who falls behind is not buried in stale pictures (about 2 minutes).

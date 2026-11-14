@@ -16,12 +16,12 @@ Mini Strikers is quick, colourful arcade football for everyone. Dribble, pass, s
 
 PLAY YOUR WAY
 - Quick Match: a fast game against a random country, with no connection needed
-- Pro Match: a bigger pitch with the real rules. The ball goes out for throw-ins, corners and goal kicks (2v2 to 4v4)
+- Pro Match: a bigger pitch with the real rules. The ball goes out for throw-ins, corners and goal kicks (2v2 to 4v4), against the bots or online
 - Play Online: real players from every country, and every win moves your country up the league
 - Ranked: 1v1 for rank points. Win and climb from Bronze all the way to Legend
-- Friends: make a room, share the code and play together, or run a friend cup
+- Friends: challenge a friend to a 1v1, penalties, free kicks or a Pro Match, make a room, share the code and play together, or run a friend cup
 - World Cup: play for the trophy online or against the bots. Lose once and you are out
-- Club Career: play for one of fifty European clubs (made-up names and badges), sign a new contract every three days and get paid coins for every goal and assist, then win the Champions Cup
+- Club Career: play for one of a hundred clubs from Europe, South America, Saudi Arabia, the USA, Mexico and Egypt (made-up names and badges), sign a new contract every three days and get paid coins for every goal and assist, then win the Champions Cup
 - Free Kicks: bend it over the wall or round it, against the bots or a real player online
 - Penalty Shootouts, Skill Challenges and Training for when you want to practise
 
@@ -74,4 +74,4 @@ Play in English, Spanish, Portuguese, French, German, Italian, Dutch, Turkish, P
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.1.7 (18)`
+- Release name: `1.1.8 (19)`

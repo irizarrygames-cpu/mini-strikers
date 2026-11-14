@@ -321,7 +321,8 @@ const Net = {
   sendArena() {
     const club = typeof Clubs !== 'undefined' && Clubs.clubMode() ? Clubs.career().id : null;
     if (this._arenaSent === club) return;
-    if (this.send({ t: 'arena', club })) this._arenaSent = club;
+    // (pro: this game can play PRO MATCH online — the server keeps older ones out of it)
+    if (this.send({ t: 'arena', club, pro: 1 })) this._arenaSent = club;
   },
   // send it now if we can, and otherwise as soon as the connection is up
   sendSoon(obj) { if (!this.send(obj)) this.whenReady(obj); },

@@ -62,8 +62,13 @@ const Render = {
       const y0 = this.sy(wy0, 0), y1 = this.sy(wy1, 0);
       if (y1 < 0 || y0 > this.H) continue;
       const f = this.f((wy0 + wy1) / 2);
-      const x0 = (L.X0 - this.cam.x) * S * f + this.W / 2 + FX.shake.x;
-      ctx.drawImage(img, 0, r0, img.width, r1 - r0, x0, y0, (L.X1 - L.X0) * S * f, y1 - y0 + 0.75);
+      const x0 = (L.X0 - this.cam.x) * S * f + this.W / 2 + FX.shake.x, dw = (L.X1 - L.X0) * S * f;
+      // only the part of the strip that is on the screen (a strip is the whole stadium wide, and
+      // most of it is off to the sides: copying all of it every frame was most of the drawing)
+      const pxW = img.width / dw;
+      const sa = clamp(Math.floor(-x0 * pxW) - 2, 0, img.width), sb = clamp(Math.ceil((this.W - x0) * pxW) + 2, 0, img.width);
+      if (sb - sa < 1) continue;
+      ctx.drawImage(img, sa, r0, sb - sa, r1 - r0, x0 + sa / pxW, y0, (sb - sa) / pxW, y1 - y0 + 0.75);
     }
   },
 
@@ -640,8 +645,9 @@ const Render = {
     } else {
       const R = out ? m.restart : null;
       if (R) {
-        // your restart: look the way you are aiming (you are kept on screen below, as always)
-        tx = R.bx + R.ax * 380; ty = R.by + R.ay * 380;
+        // your restart: look a little way the way you are aiming, so you stay well inside the screen
+        // (clear of the scoreboard at the top and the stick and buttons at the bottom)
+        tx = R.bx + R.ax * 50; ty = R.by + R.ay * 50;
       } else {
         tx = h.x + h.vx * 0.35 + TEAMS.blue.dir * 60;
         ty = h.y + h.vy * 0.22;
@@ -660,7 +666,9 @@ const Render = {
         // how far back to fit you and the ball round that spot, and never further than pullMin
         const fit = (x, y, r) => Math.min(r.x / Math.max(1, Math.abs(x - lx) * this.S * persp(y, ly)),
           (y > ly ? r.down : r.up) / Math.max(1, Math.abs(y - ly) * CFG.TILT * this.S * persp(y, ly)));
-        const z = clamp(Math.min(fit(h.x, h.y, you), fit(b.x, b.y, ball)), this.pullMin(), 1);
+        // (your restart: no pulling back — you and the ball are together; the camera just moves, out
+        // into the stands if it has to, to keep you where YOU keeps you, clear of the buttons)
+        const z = R ? 1 : clamp(Math.min(fit(h.x, h.y, you), fit(b.x, b.y, ball)), this.pullMin(), 1);
         // Where the camera goes at zoom z. When that is not far enough back for both, the ball gives
         // way and you stay where YOU keeps you: measured at the closer of the zoom now and the zoom
         // it is heading for, so that holds while it is still on its way out too. Then the stands

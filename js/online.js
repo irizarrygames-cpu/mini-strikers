@@ -6,7 +6,9 @@
 // club's colours. Other players are shown ~80ms in the past and smoothly interpolated;
 // your own player is predicted from your stick so it answers instantly.
 
-const NET_PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
+const NET_PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele', 'restart'];
+// PRO MATCH (build 116): what a restart is, in the order the server numbers them
+const NET_RESTARTS = ['throw', 'corner', 'goalkick'];
 const NET_CELEBS = [null, ...CELEBRATIONS.map((c) => c.id), 'hype'];
 // the four the game gives out itself, then every trail you can own, in the order they are listed
 const NET_TRAILS = [null, 'pass', 'weak', 'shot', 'strong', ...TRAILS.map((t) => t.id)];
@@ -68,7 +70,7 @@ const Online = {
       if (format === 'ranked') { UI.toast(tl('RANKED IS 1V1 — LEAVE YOUR PARTY FIRST')); return; }
       if (!p.lead) { UI.toast(tl('{0} STARTS THE MATCH FOR YOUR PARTY', [p.leader])); return; }
       const n = p.members.length;
-      if (FORMAT_SIZE_NET[format] < n) { UI.toast(tl('PICK {0}v{1} OR BIGGER FOR YOUR PARTY OF {2}', [n, n, n])); return; }
+      if (FORMAT_SIZE_NET[netFormat(format)] < n) { UI.toast(tl('PICK {0}v{1} OR BIGGER FOR YOUR PARTY OF {2}', [n, n, n])); return; }
     }
     const kind = cup === 'cc' ? 'cc' : cup ? 'wc' : null;
     this.format = format;
@@ -158,14 +160,17 @@ const Online = {
 
   // ---------- match start ----------
   start(msg) {
-    if (Pitch.use('normal')) Game.demo = null; // online is always the normal pitch
+    // a PRO MATCH room plays on the bigger pitch; every other online match on the normal one
+    if (Pitch.use(msg.pro ? 'pro' : 'normal')) Game.demo = null;
     const resync = this.m && this.m.roomId === msg.room;
     this.watching = msg.watch || null;
     this._chalQuiet = true; // whatever the first snapshot says is already done is not news
     this.status = 'match';
     this.mirror = msg.side === 'red';
     this.you = msg.you;
-    this.format = msg.format;
+    // (what PLAY AGAIN queues for: a PRO MATCH asks for 'pro/3v3' and so on)
+    this.format = msg.pro ? 'pro/' + msg.format : msg.format;
+    this.restartAim = null; this.restartKey = null;
     this.snaps = []; this.offset = null; this.lastK = undefined; this.slide = null; this.slideLock = 0; this.heard = []; this.inputs = []; this.bits = 0; this.pred = null; this.corr = { x: 0, y: 0 };
     this.ballCorr = { x: 0, y: 0 }; this.ballPrev = null; this.busyCorr = null;
     this.lead = 0; this.visualLead = 0; this.leadBase = 0; this.leadAt = 0; this.localOwn = null; this.kick = null; this.kickSeq = 0; this.kickBlock = 0; this.kickT = 0; this.wBall = 0; this.pendingBurst = 0;
@@ -194,6 +199,8 @@ const Online = {
       challenges: null, timeScale: 1, demo: false, replay: null, rec: null, humanRarity: players[msg.you].rarity, events: null,
       wc: Number.isInteger(msg.wc) ? msg.wc : null, cupKind: msg.cup === 'cc' ? 'cc' : 'wc', fcup: msg.fcup || null,
       ranked: !!msg.ranked,
+      // PRO MATCH: the real rules; m.restart is the server's throw-in, corner or goal kick (update)
+      rules: !!msg.pro, restart: null,
       // ranked challenges come from the server (it keeps the stats), so they are their own list —
       // m.challenges is the offline one, whose rules are checked on this side
       netChal: msg.challenges ? msg.challenges.map((c) => ({ id: c.id, text: c.text, complete: false })) : null,
@@ -264,6 +271,12 @@ const Online = {
           team: this.mirror ? (shotTeam === 'blue' ? 'red' : 'blue') : shotTeam, bl: (this.mirror ? r[12] : r[11]) / 100, br: (this.mirror ? r[11] : r[12]) / 100 };
       })(),
       ev: msg.ev.map((e) => this.flipEvent(e)),
+      // PRO MATCH: a restart being set up (see the server's snapshot)
+      rs: Array.isArray(msg.rs) ? (() => {
+        const r = msg.rs, team = r[1] ? 'red' : 'blue';
+        return { kind: NET_RESTARTS[r[0]] || 'throw', team: this.mirror ? (team === 'blue' ? 'red' : 'blue') : team, taker: r[2],
+          bx: X(r[3]), by: r[4], ax: s * r[5] / 100, ay: r[6] / 100, t: r[7] / 100 };
+      })() : null,
     };
     // clock: the earliest a tick could have arrived is our best guess at "now" on the server
     const est = now - msg.k * NET_TICK_MS;
@@ -329,8 +342,9 @@ const Online = {
     // the cutscene starting clears the big GOAL! banner so it never covers the celebration
     if (m.phase === 'cele' && this._lastPhase !== 'cele') FX.banner = null;
     // (only a restart, where everyone is put back in place, drops the smoothing; a goal keeps it gliding)
-    const phaseChanged = this._lastPhase !== m.phase && (m.phase === 'kickoff' || m.phase === 'reset');
+    const phaseChanged = this._lastPhase !== m.phase && (m.phase === 'kickoff' || m.phase === 'reset' || m.phase === 'restart');
     this._lastPhase = m.phase;
+    if (m.rules) this.updateRestart(latest, since);
     m.overtime = latest.ot >= 0; m.otTime = Math.max(0, latest.ot);
     m.score = latest.score; m.meter = latest.meter; m.timeScale = latest.ts;
     const me = this.watching ? this.nobody : m.human;
@@ -378,7 +392,11 @@ const Online = {
     }
     const mine = !kp && ((ownL === me && fresh) || !!this.localOwn);
     let tx, ty, tz, tvx, tvy, f = null;
-    if (kp) {
+    if (m.phase === 'restart') {
+      // a throw-in, corner or goal kick: the ball is on the spot (over the thrower's head), as the server has it
+      tx = LB.x; ty = LB.y; tz = LB.z; tvx = 0; tvy = 0;
+      ball.owner = ownL; this.wBall = 1; this.kick = kp = null; this.localOwn = null;
+    } else if (kp) {
       ball.owner = null; this.wBall = 1;
       tx = kp.x; ty = kp.y; tz = kp.z; tvx = kp.vx; tvy = kp.vy;
       if (kp.hand > 0 && this.predOk) {
@@ -404,7 +422,7 @@ const Online = {
       tx = f.x; ty = f.y; tz = f.z; tvx = f.vx; tvy = f.vy;
     }
     const bc = this.ballCorr, prev = this.ballPrev;
-    if (prev && !(prev.phase !== m.phase && (m.phase === 'kickoff' || m.phase === 'reset'))) {
+    if (prev && !(prev.phase !== m.phase && (m.phase === 'kickoff' || m.phase === 'reset' || m.phase === 'restart'))) {
       // how far the target moved beyond its own speed this frame = a jump to hide
       const moved = Math.hypot(tx - prev.tx, ty - prev.ty), allowed = Math.hypot(tvx, tvy) * dt * 1.5 + 8;
       if (moved > allowed && moved < 700) { bc.x += prev.tx - tx; bc.y += prev.ty - ty; }
@@ -606,6 +624,24 @@ const Online = {
     p.netPrev = pos;
     p.x = pos.x + off.x; p.y = pos.y + off.y;
   },
+  // PRO MATCH: the server's throw-in, corner or goal kick as m.restart, for the arrow, the hint and the
+  // camera (Rules.drawAim, Render.updateCamera). Yours to take: the arrow follows your stick on this
+  // screen straight away (the server has the same stick a moment later, and takes it from there).
+  updateRestart(latest, since) {
+    const m = this.m, RS = latest.rs;
+    if (!RS || m.phase !== 'restart') { m.restart = null; this.restartAim = null; this.restartKey = null; return; }
+    const key = RS.kind + ':' + RS.bx + ':' + RS.by;
+    if (key !== this.restartKey) { this.restartKey = key; this.restartAim = null; }
+    const taker = m.players[RS.taker] || null;
+    const R = { kind: RS.kind, team: RS.team, taker, bx: RS.bx, by: RS.by, ax: RS.ax, ay: RS.ay, t: RS.t + since, human: !this.watching && taker === m.human };
+    if (R.human) {
+      const mv = Input.move;
+      if (Math.hypot(mv.x, mv.y) > 0.3) this.restartAim = Rules.legalAim(m, mv.x, mv.y, R);
+      if (this.restartAim) [R.ax, R.ay] = this.restartAim;
+    }
+    m.restart = R;
+  },
+
   // shrink a correction offset: quickly when small, but never faster than `maxSpeed` units a second, so
   // catching up always looks like running, never a jump
   settle(off, dt, rate, maxSpeed) {
@@ -619,7 +655,9 @@ const Online = {
     let k = t;
     if (S.slideT > 0) k = (1 - Math.exp(-1.5 * t)) / 1.5;
     else if (S.fallT > 0 || S.diveT > 0 || S.stunT > 0.2 || S.recoverT > 0) k = (1 - Math.exp(-4 * t)) / 4;
-    return { x: clamp(S.x + S.vx * k, -40, CFG.FIELD_W + 40), y: clamp(S.y + S.vy * k, 8, CFG.FIELD_H - 8) };
+    // (PRO MATCH: a thrower stands outside the touchline, a corner taker behind the flag)
+    const ym = this.m && this.m.rules ? 10 - CFG.SIDE_M : 8, xm = Math.max(40, CFG.END_M);
+    return { x: clamp(S.x + S.vx * k, -xm, CFG.FIELD_W + xm), y: clamp(S.y + S.vy * k, ym, CFG.FIELD_H - ym) };
   },
 
   applyPlayer(p, A, B, u, dt) {
@@ -633,7 +671,7 @@ const Online = {
     p.celebrateT = S.celebrateT; p.celebKind = S.celebKind;
     p.slideT = S.slideT; p.slideWindT = S.slideWindT; p.fallT = S.fallT; p.hopT = lerp(A.hopT, B.hopT, u);
     p.slideDirX = S.sdx; p.slideDirY = S.sdy; p.slideWindX = S.sdx; p.slideWindY = S.sdy;
-    p.sad = !!(S.flags & 1); p.slideHit = !!(S.flags & 2); p.sprintOn = !!(S.flags & 4);
+    p.sad = !!(S.flags & 1); p.slideHit = !!(S.flags & 2); p.sprintOn = !!(S.flags & 4); p.throwIn = !!(S.flags & 32);
     p.ultOn = !!(S.ultFlags & 1);
     p.ultShot = S.ultFlags & 2 ? { kind: S.ultKind, t: S.ultShotT, dur: 0.8 } : null;
     if (p !== this.m.human) p.charging = !!(S.flags & 8);
@@ -691,7 +729,9 @@ const Online = {
     // how far ahead of this snapshot you are drawn: the inputs it hasn't seen yet (plus time since, per frame)
     this.leadBase = this.inputs.reduce((sum, i) => sum + i.dt, 0); this.leadAt = performance.now();
     // the server is moving you itself (lunge, spin, dive, trip, celebration, restart): follow it
-    const busy = S.slideT > 0 || S.slideWindT > 0 || (S.flags & 16) || (S.ultFlags & 2) || S.fallT > 0 || S.stunT > 0.2 || S.celebrateT > 0 || snap.phase !== 'play';
+    // (PRO MATCH: while a throw-in, corner or goal kick is set up you can still move — unless it's yours)
+    const restartFree = snap.phase === 'restart' && !(snap.rs && snap.rs.taker === this.you);
+    const busy = S.slideT > 0 || S.slideWindT > 0 || (S.flags & 16) || (S.ultFlags & 2) || S.fallT > 0 || S.stunT > 0.2 || S.celebrateT > 0 || (snap.phase !== 'play' && !restartFree);
     this.predOk = !busy;
     if (busy) return;
     const p = { x: S.x, y: S.y, vx: S.vx, vy: S.vy, r: me.r, stamina: me.stamina, exhausted: me.exhausted, burstT: (burstT || 0) / 100 };
@@ -867,6 +907,12 @@ const Online = {
     if (mineScored) { m.flags.goals = (m.flags.goals || 0) + 1; if (e.power) m.flags.powerGoals = (m.flags.powerGoals || 0) + 1; }
   },
 
+  // challenge the friend you just played to the same thing again (their answer comes as a toast)
+  rematch(r) {
+    Game.goHome(); this.m = null;
+    Net.sendSoon({ t: 'challenge.send', name: r.name, mode: r.mode });
+  },
+
   // ---------- full time ----------
   end(msg) {
     if (this.status !== 'match' || !this.m) return;
@@ -880,6 +926,8 @@ const Online = {
 
   again() {
     if (Social.cup && Social.cup.state === 'playing') { Game.goHome(); this.m = null; UI.openModal('cup'); return; }
+    // a friend challenge: REMATCH challenges the same friend to the same thing again
+    if (this.lastEnd && this.lastEnd.rematch) { this.rematch(this.lastEnd.rematch); return; }
     // a kickabout runs back with the same party rather than dropping you into the queue
     if (this.lastEnd && this.lastEnd.coop) {
       const party = Social.party, f = this.format;
@@ -901,3 +949,5 @@ const Online = {
 // the sounds the server makes for a player's own pass, shot, skill and tackle (the only ones played early)
 const SELF_SOUNDS = new Set(['pass', 'kick', 'skill', 'slide']);
 const FORMAT_SIZE_NET = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
+// 'pro/3v3' (PRO MATCH online) is a 3v3
+const netFormat = (f) => (typeof f === 'string' && f.startsWith('pro/') ? f.slice(4) : f);

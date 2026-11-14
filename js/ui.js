@@ -663,12 +663,13 @@ const UI = {
     });
     $('lb-start').addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.start' }); });
     $('lb-coop').addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.coop', on: !(Online.room && Online.room.coop) }); });
+    $('lb-pro').addEventListener('click', () => { this.tap(); Net.sendSoon({ t: 'room.pro', on: !(Online.room && Online.room.pro) }); });
   },
 
   showQueue(msg) {
     this.closeAll();
     $('queue').hidden = false;
-    $('q-format').textContent = msg.format === 'ranked' ? tl('RANKED · 1v1') : msg.wc !== null && msg.wc !== undefined ? `${msg.cup === 'cc' ? tl('CHAMPIONS CUP') : msg.format === 'pens' ? tl('PENALTY WORLD CUP') : tl('WORLD CUP')} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : tl('ONLINE · {0}', [msg.format === 'fk' ? tl('FREE KICKS') : msg.format === 'pens' ? tl('PENALTIES') : msg.format]);
+    $('q-format').textContent = msg.format === 'ranked' ? tl('RANKED · 1v1') : msg.wc !== null && msg.wc !== undefined ? `${msg.cup === 'cc' ? tl('CHAMPIONS CUP') : msg.format === 'pens' ? tl('PENALTY WORLD CUP') : tl('WORLD CUP')} · ${WC_ROUNDS[msg.wc]}${msg.format === 'pens' ? '' : ` · ${msg.format}`}` : tl('ONLINE · {0}', [msg.format === 'fk' ? tl('FREE KICKS') : msg.format === 'pens' ? tl('PENALTIES') : String(msg.format).startsWith('pro/') ? `${tl('PRO MATCH')} ${String(msg.format).slice(4)}` : msg.format]);
     $('q-dots').innerHTML = '<i></i><i></i><i></i>';
     this._queueT = 0;
     $('q-note').textContent = tl('Searching… 0:00');
@@ -708,6 +709,13 @@ const UI = {
     $('lb-coop').classList.toggle('on', coop);
     $('lb-switch').hidden = coop;
     $('lb-coop-note').hidden = !coop;
+    // PRO MATCH (2v2 and up): the host switches it on; everyone sees that it is
+    const pro = !!msg.pro, proOk = size >= 2 && msg.format !== 'pens' && msg.format !== 'fk';
+    $('lb-pro').hidden = !msg.isHost || !proOk;
+    $('lb-pro').textContent = pro ? tl('PRO MATCH · ON') : tl('PRO MATCH · OFF');
+    $('lb-pro').classList.toggle('on', pro);
+    $('lb-pro-note').hidden = !pro || msg.isHost; // (the host has the button that says so)
+    $('lb-pro-note').textContent = `${tl('PRO MATCH')}: ${tl('A bigger pitch with the real rules: the ball can go out for throw-ins, corners and goal kicks.')}`;
   },
   hideLobby() { $('lobby').hidden = true; },
 
@@ -813,7 +821,7 @@ const UI = {
   // ---- match intro card ----
   showIntro(m, startsIn) {
     const cup = m.mode === 'cup' ? Cup.state() : null;
-    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? (m.cupKind === 'cc' ? tl('CHAMPIONS CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format])) : tl('ONLINE · {0}', [m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? (Cup.champions() ? tl('CHAMPIONS CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('CUP · {0}', [Cup.ROUNDS[cup.round]])) : m.rules ? tl('PRO MATCH') : tl('QUICK MATCH')) + ` · ${m.format}`;
+    $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? (m.cupKind === 'cc' ? tl('CHAMPIONS CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format])) : tl('ONLINE · {0}', [m.rules ? `${tl('PRO MATCH')} ${m.format}` : m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? (Cup.champions() ? tl('CHAMPIONS CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('CUP · {0}', [Cup.ROUNDS[cup.round]])) : m.rules ? tl('PRO MATCH') : tl('QUICK MATCH')) + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
@@ -1139,7 +1147,8 @@ const UI = {
     } else {
       cupBox.hidden = true;
       this._againMode = pens ? (m.net ? (fk ? 'onlinefk' : 'onlinepens') : (fk ? 'fk' : 'pens')) : m.rules ? 'pro' : 'quick';
-      $('r-again').textContent = tl('PLAY AGAIN');
+      // (a shootout against a friend you challenged: the same friend again)
+      $('r-again').textContent = pens && m.net && m.onlinePenEnd && m.onlinePenEnd.rematch ? tl('REMATCH') : tl('PLAY AGAIN');
     }
     $('results').hidden = false;
     this.fitWords($('results'));
@@ -1273,7 +1282,7 @@ const UI = {
       if (fcup.champion) Trophy.show({ title: tl('CUP WINNER!'), sub: tl('FRIEND CUP · {0} PLAYERS · +{1} COINS', [fcup.size, FCUP_PRIZE]), club: Clubs.mine(), mates: [] });
     }
     this._againMode = 'online';
-    $('r-again').textContent = fcup ? tl('SEE THE BOARD') : !cup ? tl('PLAY AGAIN') : cup.champion ? (champs ? tl('NEW CHAMPIONS CUP') : tl('NEW WORLD CUP')) : cup.won ? tl('PLAY {0}', [WC_ROUNDS[cup.next]]) : tl('TRY AGAIN');
+    $('r-again').textContent = fcup ? tl('SEE THE BOARD') : !cup ? (msg.rematch ? tl('REMATCH') : tl('PLAY AGAIN')) : cup.champion ? (champs ? tl('NEW CHAMPIONS CUP') : tl('NEW WORLD CUP')) : cup.won ? tl('PLAY {0}', [WC_ROUNDS[cup.next]]) : tl('TRY AGAIN');
     // in a party, the leader starts the next one (and brings you with them)
     const party = Social.party;
     if (party && party.members.length > 1 && !party.lead) $('r-again').textContent = tl('HOME');
@@ -1306,6 +1315,7 @@ const UI = {
     if (this._againMode === 'cup') Game.startMatch({ mode: 'cup' });
     else if (this._againMode === 'newcup') { Cup.start(); Game.startMatch({ mode: 'cup' }); }
     else if (this._againMode === 'pens') Game.startMatch({ mode: 'pens', club: Clubs.random(Clubs.mine(), previous) });
+    else if ((this._againMode === 'onlinepens' || this._againMode === 'onlinefk') && Game.match && Game.match.onlinePenEnd && Game.match.onlinePenEnd.rematch) Online.rematch(Game.match.onlinePenEnd.rematch);
     else if (this._againMode === 'onlinepens') { Game.goHome(); Online.m = null; Online.findMatch('pens'); }
     else if (this._againMode === 'fk') Game.startMatch({ mode: 'pens', fk: true, club: Clubs.random(Clubs.mine(), previous) });
     else if (this._againMode === 'onlinefk') { Game.goHome(); Online.m = null; Online.findMatch('fk'); }

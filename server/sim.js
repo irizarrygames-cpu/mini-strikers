@@ -7,14 +7,16 @@ const fs = require('fs');
 const path = require('path');
 
 const JS = path.join(__dirname, '..', 'js');
-const FILES = ['config.js', 'clubs.js', 'stadiums.js', 'celebs.js', 'save.js', 'meta.js', 'entities.js', 'ai.js', 'match.js', 'replay.js'];
+const FILES = ['config.js', 'clubs.js', 'stadiums.js', 'celebs.js', 'save.js', 'meta.js', 'entities.js', 'ai.js', 'match.js', 'rules.js', 'replay.js'];
 
 // sounds everyone should hear; the charge hum is local to whoever is charging
 const SOUND_SKIP = new Set(['chargeStart', 'chargeStop', 'unlock', 'startMusic', 'stopMusic', 'startAmbience', 'stopAmbience', 'applyVolumes', 'tap', 'ok', 'setExcitement']);
 // particles worth sending; dust, speed lines and embers each client makes for itself
 const FX_SEND = new Set(['text', 'showBanner', 'burst', 'sparks', 'ring', 'stars', 'doShake', 'doFlash', 'confetti']);
 
-function createSim() {
+// pitch: 'pro' for PRO MATCH rooms (build 116). The world is one set of globals (CFG, the walls, the
+// goals), so a bigger pitch gets a sandbox of its own and every PRO room is stepped in that one.
+function createSim({ pitch = 'normal' } = {}) {
   let target = null; // the event list of the room being stepped right now
   const record = (e) => { if (target) target.push(e); };
 
@@ -50,6 +52,7 @@ function createSim() {
     const code = fs.readFileSync(path.join(JS, f), 'utf8');
     vm.runInContext(code, sandbox, { filename: 'js/' + f });
   }
+  if (pitch === 'pro') vm.runInContext("Pitch.use('pro')", sandbox);
   // lexical globals (const/let) aren't properties of the sandbox; pull out what we need
   const api = vm.runInContext(`({ Match, CLUBS, EURO_CLUBS, countryFor, statLevels, statRatings, statOvr, overall, cleanLook, cleanAccessories, lookFromCustom, PRICES, CHARACTERS, pickBotCharacter, BOT_RARITY_ONLINE, BOT_RARITY_SHARE, SKILLS, ONLINE_BOTS, TRAILS, CELEBRATIONS, ACCESSORIES, ULT_KINDS, QUICK_CHAT, DIFFICULTY, playerRamp, Levels, CFG, FORMATS, SIDES, Clubs, TEAMS, RANK_TIERS, rankTier, rankNext, rankDelta, seasonNow, seasonEndsAt, NET_CHALLENGES, RANK_CHALLENGE })`, sandbox);
 

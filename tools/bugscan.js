@@ -520,7 +520,8 @@ window.BS = {
     }
 
     // PRO MATCH: 1v1 picked plays 2v2 on the big pitch; a throw-in; and every way out is the normal pitch
-    await step('pro: start (1v1 picked is 2v2)', () => { Save.data.format = '1v1'; UI.openModal('play'); click(document.querySelector('[data-mode="pro"]')); const m = Game.match; if (Game.state !== 'intro' || !m.rules || m.format !== '2v2' || Pitch.size !== 'pro' || CFG.FIELD_W !== 3000) throw new Error(`state ${Game.state} rules ${m && m.rules} format ${m && m.format} pitch ${Pitch.size}`); });
+    await step('pro: the chooser (1v1 picked shows 2v2)', () => { Save.data.format = '1v1'; UI.openModal('play'); click(document.querySelector('[data-mode="pro"]')); const sel = document.querySelector('[data-pf].sel'); if ($('modal').dataset.kind !== 'promode' || !sel || sel.dataset.pf !== '2v2' || !document.querySelector('[data-pro="online"]')) throw new Error(`modal ${$('modal').dataset.kind} picked ${sel && sel.dataset.pf}`); });
+    await step('pro: start offline (2v2, big pitch)', () => { click(document.querySelector('[data-pro="offline"]')); const m = Game.match; if (Game.state !== 'intro' || !m.rules || m.format !== '2v2' || Pitch.size !== 'pro' || CFG.FIELD_W !== 3000) throw new Error(`state ${Game.state} rules ${m && m.rules} format ${m && m.format} pitch ${Pitch.size}`); });
     await step('pro: kick off', () => { click($('intro-go')); if (Game.state !== 'match') throw new Error('state ' + Game.state); }, 600);
     await step('pro: a throw-in, taken', async () => {
       const m = Game.match, b = m.ball; m.phase = 'play';

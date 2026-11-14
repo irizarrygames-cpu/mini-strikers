@@ -406,6 +406,9 @@ function heavyTouch(m, p, b, sp) {
   return true;
 }
 
+// PRO MATCH: how often a keeper's parry is tipped round the post for a corner (keeperContact)
+const KEEPER_TIP = 0.5;
+
 function keeperContact(m, k, b, sp) {
   const shot = b.shot && b.shot.team !== k.team ? b.shot : null;
   if (shot) {
@@ -440,8 +443,20 @@ function keeperContact(m, k, b, sp) {
   }
   // Parry wide, from wherever it was caught. No repositioning: see the note on the spill above.
   const out = TEAMS[k.team].dir;
-  b.vx = out * rand(380, 540);
-  b.vy = (b.y < CFG.FIELD_H / 2 ? -1 : 1) * rand(180, 380);
+  // PRO MATCH: tipped round the post, behind for a corner. It goes back so slowly that it is past the
+  // post (and clear of it) before it reaches the line, so it can never go in; a ball saved right on
+  // the line is pushed out in front instead, the ordinary way.
+  const side = b.y < CFG.FIELD_H / 2 ? -1 : 1, postY = side < 0 ? GOAL_Y1 : GOAL_Y2;
+  const inFront = (b.x - ownGoalX(k.team)) * out;  // how far in front of the line the ball is
+  const tipVy = rand(400, 500), clearPost = Math.abs(postY - b.y) + CFG.BALL_R + 26;
+  const tipVx = (tipVy * inFront) / clearPost * 0.85;
+  if (m.rules && inFront > 20 && tipVx > 30 && Math.random() < KEEPER_TIP) {
+    b.vx = -out * Math.min(tipVx, 240);
+    b.vy = side * tipVy;
+  } else {
+    b.vx = out * rand(380, 540);
+    b.vy = (b.y < CFG.FIELD_H / 2 ? -1 : 1) * rand(180, 380);
+  }
   b.vz = rand(180, 300);
   b.spinT = 0;
   b.shot = null;

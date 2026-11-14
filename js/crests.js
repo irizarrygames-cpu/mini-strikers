@@ -483,6 +483,65 @@ const Crests = {
         line('M24 38 C30 34 34 36 36 40 M70 36 C76 32 82 34 86 40', 2, '#ffffff');
         break;
       }
+      // ---- build 116, for the fifty new clubs ----
+      case 'tree': {
+        // a broad old tree: a round crown of leaves, a thick trunk, roots, and the river under it
+        fs(P('M43 90 L45 62 L40 54 L46 56 L50 48 L54 56 L60 54 L55 62 L57 90 Z'), '#8b5a2b');
+        fs(P('M26 60 C10 60 8 40 22 36 C20 18 40 8 52 18 C64 8 84 18 80 36 C94 40 90 62 74 60 C70 68 58 66 54 60 C48 68 34 68 26 60 Z'), col);
+        line('M34 32 Q40 28 46 31 M58 26 Q64 24 70 28 M30 48 Q36 46 40 50 M62 44 Q68 42 72 46', L * 0.7, dark);
+        line('M30 90 Q40 84 46 88 M54 88 Q60 84 70 90', L * 0.8, '#8b5a2b');
+        line('M14 96 Q24 92 34 96 Q44 100 54 96 Q64 92 74 96 Q82 99 88 96', L, alt);
+        break;
+      }
+      case 'bat': {
+        // a bat, wings spread wide, ears up
+        fs(P('M50 30 L45 20 L43 33 C33 26 18 25 4 36 C12 40 16 47 16 55 C22 49 29 49 33 55 C37 49 43 49 45 57 L50 66 L55 57 C57 49 63 49 67 55 C71 49 78 49 84 55 C84 47 88 40 96 36 C82 25 67 26 57 33 L55 20 Z'), col);
+        line('M43 34 C30 34 22 40 16 50 M57 34 C70 34 78 40 84 50', L * 0.7, dark);
+        dot(46.5, 37, 2.6, '#ffffff'); dot(53.5, 37, 2.6, '#ffffff');
+        dot(46.5, 37, 1.2, ink); dot(53.5, 37, 1.2, ink);
+        break;
+      }
+      case 'horse': {
+        // a young horse's head and neck in profile, mane flying
+        fs(P('M28 92 L34 62 C28 56 26 46 30 38 L20 30 L34 30 L42 14 L46 25 C60 23 74 34 78 48 L82 60 C84 67 78 72 72 68 L62 60 C58 66 56 76 58 92 Z'), col);
+        fs(P('M42 14 C32 28 30 44 34 62 L28 60 C24 46 26 30 36 18 Z'), dark);
+        line('M44 20 L36 36 M40 30 L32 46', L * 0.8, dark);
+        dot(57, 37, 3.4, ink); dot(58, 36, 1.1, '#ffffff');
+        dot(76, 60, 2.2, ink);
+        line('M66 64 Q70 68 74 67', L * 0.7, ink);
+        break;
+      }
+      case 'stag': {
+        // a stag's head, face on, with branching antlers
+        for (const s of [1, -1]) {
+          g.save(); if (s < 0) { g.translate(100, 0); g.scale(-1, 1); }
+          thick('M41 34 L33 20 L24 8 M33 20 L18 18 M29 14 L30 4 M37 27 L26 30', 5.5, alt);
+          fs(P('M34 40 L18 34 L24 46 L36 48 Z'), col);
+          g.restore();
+        }
+        fs(P('M36 36 C36 28 64 28 64 36 L62 60 C60 74 55 84 50 86 C45 84 40 74 38 60 Z'), col);
+        g.beginPath(); g.ellipse(50, 76, 8, 6, 0, 0, Math.PI * 2); g.fillStyle = dark; g.fill(); g.lineWidth = L * 0.8; g.strokeStyle = ink; g.stroke();
+        dot(43, 50, 3.2, ink); dot(57, 50, 3.2, ink); dot(44, 49, 1.1, '#ffffff'); dot(58, 49, 1.1, '#ffffff');
+        break;
+      }
+      case 'fish': {
+        // a fish, leaping
+        g.save(); g.translate(50, 50); g.rotate(-0.3); g.translate(-50, -50);
+        fs(P('M10 50 C24 26 58 24 74 44 L94 28 L89 50 L94 72 L74 56 C58 76 24 74 10 50 Z'), col);
+        fs(P('M40 32 L50 14 L60 34 Z'), dark);
+        fs(P('M42 66 L50 80 L56 66 Z'), dark);
+        line('M30 38 C36 46 36 54 30 62', L * 0.8, dark);
+        line('M44 44 L48 48 M52 44 L56 48 M60 46 L64 50 M44 54 L48 58 M52 54 L56 58', L * 0.55, alt);
+        dot(21, 47, 3.4, ink); dot(22, 46, 1.1, '#ffffff');
+        g.restore();
+        break;
+      }
+      case 'cross': {
+        // a cross with flared ends
+        fs(P('M42 8 L58 8 L56 38 L88 36 L88 52 L56 50 L58 92 L42 92 L44 50 L12 52 L12 36 L44 38 Z'), col);
+        line('M50 14 L50 86 M18 44 L82 44', L * 0.6, alt);
+        break;
+      }
     }
     g.restore();
   },

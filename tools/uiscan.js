@@ -9,7 +9,7 @@
 // checks, and the 25px-tall home row overlapped nothing at all.
 window.US = {
   PANELS: ['play', 'stats', 'customize', 'crates', 'coins', 'collection', 'missions', 'settings',
-    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'fkmode', 'friends', 'offers'],
+    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'fkmode', 'promode', 'challenge', 'friends', 'offers'],
 
   // the full-screen ones, which the panel sweep never touched
   OVERLAYS: ['daily', 'howto', 'results', 'pause', 'queue', 'lobby'],
@@ -207,6 +207,8 @@ window.US = {
       const el = document.getElementById(id);
       if (!el) continue;
       const was2 = el.hidden;
+      // the private room as its host sees it, with every button there is (build 116: PRO MATCH · ON)
+      if (id === 'lobby' && UI.showLobby) UI.showLobby({ code: 'ABCDE', format: '3v3', host: 'YOU', you: 'YOU', isHost: true, coop: false, pro: true, players: [{ name: 'YOU', team: 'blue', club: 'spain' }, { name: 'FRIEND', team: 'red', club: 'italy' }] });
       el.hidden = false;
       if (UI.fitWords) UI.fitWords(el); // as the game does when it shows one (the results title)
       await wait(160);

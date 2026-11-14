@@ -31,7 +31,12 @@ const MATCH_MINUTES = 2;            // every match is two minutes: CFG.MATCH_MIN
 // 'pens' and 'fk' (free kicks) are both one-a-side shootouts, run by server/pens.js
 const FORMAT_SIZE = { 'pens': 1, 'fk': 1, '1v1': 1, '2v2': 2, '3v3': 3, '4v4': 4 };
 const SHOOTOUT = (format) => format === 'pens' || format === 'fk';
-const PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele'];
+const PHASES = ['kickoff', 'play', 'goal', 'reset', 'timeup', 'over', 'replay', 'cele', 'restart'];
+// PRO MATCH online (build 116): the bigger pitch with throw-ins, corners and goal kicks, 2v2 to 4v4.
+// Asked for as 'pro/2v2' and so on; its rooms play in a sandbox of their own (simOf).
+const PRO_FORMATS = new Set(['2v2', '3v3', '4v4']);
+const proFormat = (f) => (typeof f === 'string' && f.startsWith('pro/') && PRO_FORMATS.has(f.slice(4)) ? f.slice(4) : null);
+const RESTART_KINDS = ['throw', 'corner', 'goalkick'];
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const BOT_NAME_A = ['ace', 'blitz', 'cyber', 'dark', 'echo', 'frost', 'ghost', 'hyper', 'iron', 'jet', 'lunar', 'neon',
@@ -76,6 +81,13 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   const rankOf = (ranked && ranked.view) || (() => null);
   const rankDeltaFor = (outcome, gf, ga) => (sim.rankDelta ? sim.rankDelta(outcome, gf, ga) : 0);
   const sim = createSim();
+  // PRO MATCH rooms are stepped in their own sandbox, which is always on the bigger pitch (the world is
+  // one set of globals, so the two pitches can't share one). Made the first time a PRO room starts.
+  let proSim = null;
+  const simOf = (room) => (room && room.pro ? (proSim || (proSim = createSim({ pitch: 'pro' }))) : sim);
+  // only a game new enough to draw the bigger pitch goes into a PRO MATCH (older apps can't)
+  const canPro = (id) => { const c = conns.get(id); return !!(c && c.pro); };
+  const notPro = (ids) => ids.find((x) => !canPro(x));
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
   // must match NET_TRAILS on the client, so it is built the same way
   const TRAIL_TYPES = [null, 'pass', 'weak', 'shot', 'strong', ...sim.TRAILS.map((t) => t.id)];
@@ -127,21 +139,32 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   const friends = createFriends({ getUser, userName, saveDB, statusOf, push });
 
   // Direct friend challenges skip matchmaking, but availability is checked again on acceptance.
-  const challenges = new Map(); // recipient -> { id, from, until }
+  // Build 116: the challenger picks what it is — a 1v1 match, penalties, free kicks, or a PRO MATCH
+  // (2v2: each of you with a fill-in, as PRO MATCH is 2v2 and up). Cup runs are never a challenge.
+  const CHALLENGE_MODES = { match: { format: '1v1' }, pens: { format: 'pens' }, fk: { format: 'fk' }, pro: { format: '2v2', pro: true } };
+  // (written out as msg: lines so tools/i18nscan.js finds each one to translate)
+  const challengeWords = {
+    sent: (mode, n) => ({ match: { msg: `Challenged ${n} to a 1v1` }, pens: { msg: `Challenged ${n} to penalties` }, fk: { msg: `Challenged ${n} to free kicks` }, pro: { msg: `Challenged ${n} to a PRO MATCH` } })[mode].msg,
+    start: (mode, n) => ({ match: { msg: `1v1 with ${n} starting` }, pens: { msg: `Penalties with ${n} starting` }, fk: { msg: `Free kicks with ${n} starting` }, pro: { msg: `PRO MATCH with ${n} starting` } })[mode].msg,
+    declined: (mode, n) => ({ match: { msg: `${n} declined the 1v1 challenge` }, other: { msg: `${n} declined the challenge` } })[mode === 'match' || !mode ? 'match' : 'other'].msg,
+  };
+  const challenges = new Map(); // recipient -> { id, from, until, mode }
   let nextChallenge = 1;
-  function challengeInvite(me, name) {
+  function challengeInvite(me, name, asked) {
     const them = friends.idOf(name);
+    const mode = CHALLENGE_MODES[asked] ? asked : 'match'; // (an older game asks for nothing: a 1v1)
     if (!them || them === me || !friends.areFriends(me, them)) return { ok: false, msg: 'You can only challenge friends' };
+    if (mode === 'pro' && notPro([me, them])) return { ok: false, msg: `${userName(notPro([me, them]))} needs the new version of the game for PRO MATCH` };
     if (statusOf(me) !== 'online') return { ok: false, msg: 'Finish your match or search first' };
     if (statusOf(them) !== 'online') return { ok: false, msg: `${userName(them)} is unavailable right now` };
     if (inCup(me)) return { ok: false, msg: 'You are in the middle of a cup' };
     if (inCup(them)) return { ok: false, msg: `${userName(them)} is in the middle of a cup` };
     const pending = challenges.get(them);
     if (pending && pending.until > Date.now()) return { ok: false, msg: `${userName(them)} already has a challenge waiting` };
-    const invite = { id: nextChallenge++, from: me, until: Date.now() + CHALLENGE_INVITE_MS };
+    const invite = { id: nextChallenge++, from: me, until: Date.now() + CHALLENGE_INVITE_MS, mode };
     challenges.set(them, invite);
-    push(them, { t: 'challenge.invite', id: invite.id, from: userName(me), club: profileOf(me).club });
-    return { ok: true, msg: `Challenged ${userName(them)} to a 1v1` };
+    push(them, { t: 'challenge.invite', id: invite.id, from: userName(me), club: profileOf(me).club, mode });
+    return { ok: true, msg: challengeWords.sent(mode, userName(them)) };
   }
   function challengeAccept(me, inviteId) {
     const invite = challenges.get(me);
@@ -152,14 +175,25 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       push(invite.from, { t: 'challenge.info', msg: `${userName(me)} is unavailable for a 1v1` });
       return { ok: false, msg: 'One of you is already in a match or search' };
     }
-    startRoom('1v1', [{ id: invite.from, team: 'blue' }, { id: me, team: 'red' }], null);
-    return { ok: true, msg: `1v1 with ${userName(invite.from)} starting` };
+    const mode = CHALLENGE_MODES[invite.mode] ? invite.mode : 'match', M = CHALLENGE_MODES[mode];
+    if (M.pro && notPro([me, invite.from])) return { ok: false, msg: `${userName(notPro([me, invite.from]))} needs the new version of the game for PRO MATCH` };
+    const room = startRoom(M.format, [{ id: invite.from, team: 'blue' }, { id: me, team: 'red' }], null, null, null, false, false, 'wc', !!M.pro);
+    // remembered, so PLAY AGAIN at the end challenges the same friend to the same thing again
+    if (room) room.challenge = { mode, ids: [invite.from, me] };
+    return { ok: true, msg: challengeWords.start(mode, userName(invite.from)) };
   }
+  // the end of a friend challenge, for one of the two: who to challenge again, and to what
+  const rematchFor = (room, id) => {
+    const c = room.challenge;
+    if (!c) return undefined;
+    const other = c.ids.find((x) => x !== id);
+    return other ? { name: userName(other), mode: c.mode } : undefined;
+  };
   function challengeDecline(me, inviteId) {
     const invite = challenges.get(me);
     if (!invite || invite.id !== Number(inviteId)) return { ok: true };
     challenges.delete(me);
-    push(invite.from, { t: 'challenge.info', msg: `${userName(me)} declined the 1v1 challenge` });
+    push(invite.from, { t: 'challenge.info', msg: challengeWords.declined(invite.mode, userName(me)) });
     return { ok: true };
   }
 
@@ -298,6 +332,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   // Which club's kit a player wears online: the one their game said (Club Career), or none.
   const EURO_IDS = new Set(sim.EURO_CLUBS.map((c) => c.id));
+  // The first fifty clubs (build 111); build 116 added fifty more. A game older than that has never
+  // heard of the new ones, so a match with one of those in it only fills a side with the first fifty.
+  const FIRST_CLUBS = sim.EURO_CLUBS.slice(0, 50).map((c) => c.id);
+  const clubPool = (other, ids) => (!EURO_IDS.has(other) ? sim.CLUBS.map((c) => c.id) : ids.every((x) => !x || canPro(x)) ? [...EURO_IDS] : FIRST_CLUBS);
   const clubOf = (id) => { const c = conns.get(id); return c && EURO_IDS.has(c.club) ? c.club : null; };
   // How good a player's stats make them, from the save the server keeps: 60 is where everyone
   // starts. (A save can only buy levels with coins, and coins can only climb so fast.)
@@ -429,15 +467,17 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'party.decline': return answer(partyDecline(id, msg.id));
       case 'party.leave': leaveParty(id); return;
       case 'party.kick': return answer(partyKick(id, msg.name));
-      case 'challenge.send': return answer(challengeInvite(id, msg.name));
+      case 'challenge.send': return answer(challengeInvite(id, msg.name, msg.mode));
       case 'challenge.accept': return answer(challengeAccept(id, msg.id));
       case 'challenge.decline': return answer(challengeDecline(id, msg.id));
       // the kit they wear online: their club's (Club Career) or, with null, their country's
-      case 'arena': conn.club = typeof msg.club === 'string' && EURO_IDS.has(msg.club) ? msg.club : null; return;
+      // (a game new enough for PRO MATCH says so here: older ones are kept out of it, see canPro)
+      case 'arena': conn.club = typeof msg.club === 'string' && EURO_IDS.has(msg.club) ? msg.club : null; if (msg.pro) conn.pro = true; return;
       case 'queue': return joinQueue(conn, msg.format, msg.wc === true, msg.cup === 'cc' ? 'cc' : 'wc');
       case 'unqueue': if (!stopQueue(id, `${userName(id)} stopped the search`)) send(conn, { t: 'unqueued' }); return;
       case 'party.coop': return partyCoop(id, msg.format);
       case 'room.coop': return lobbyCoop(id, !!msg.on);
+      case 'room.pro': return lobbyPro(id, !!msg.on);
       case 'room.create': return createLobby(conn, msg.format);
       case 'room.join': return joinLobby(conn, msg.code);
       case 'room.team': return lobbyTeam(id, msg.team);
@@ -457,9 +497,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function joinQueue(conn, format, worldCup, kind = 'wc') {
     const id = conn.userId;
     const fail = (msg) => send(conn, { t: 'error', msg });
+    // PRO MATCH has queues of its own, one per format (and no cup runs)
+    const pro = proFormat(format);
+    if (pro && worldCup) return fail('Pick a format');
     // ranked is its own queue, and it is 1v1: your rank is yours, not a team's
     const ranked = format === 'ranked';
-    const fmt = ranked ? '1v1' : format;
+    const fmt = ranked ? '1v1' : pro || format;
     if (!FORMAT_SIZE[fmt]) return fail('Pick a format');
     const party = partyOf.get(id);
     let ids = [id];
@@ -479,11 +522,12 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     }
     if (roomOf(id)) return fail('You are already in a match');
     if (inCup(id)) return fail('Your cup match is next');
+    if (pro && notPro(ids)) return fail(`${userName(notPro(ids))} needs the new version of the game for PRO MATCH`);
     for (const m of ids) { const e = entryOf(m); if (e) removeEntry(e); }
     // a party plays the World Cup round the furthest of them has reached (each one's own run moves on)
     const cupKind = kind === 'cc' ? 'cc' : 'wc';
     const round = worldCup && !ranked ? Math.max(...ids.map((x) => wcRoundOf(x, cupKind))) : null;
-    const key = ranked ? 'ranked' : round === null ? fmt : `${cupKind}/${fmt}/${round}`;
+    const key = ranked ? 'ranked' : pro ? `pro/${fmt}` : round === null ? fmt : `${cupKind}/${fmt}/${round}`;
     (queues[key] = queues[key] || []).push({ userId: id, ids, at: Date.now(), skill: Math.max(...ids.map(skillOf)), wait: QUEUE_WAIT_MIN + Math.random() * (QUEUE_WAIT_MAX - QUEUE_WAIT_MIN) });
     for (const m of ids) push(m, { t: 'queue', format, wc: round === null ? null : wcRoundOf(m, cupKind), cup: round === null ? null : cupKind, party: ids.length > 1 ? ids.map(userName) : null, leader: userName(id) });
   }
@@ -616,9 +660,9 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   function matchmake() {
     sweepParties();
     for (const [key, q] of Object.entries(queues)) {
-      const wcKey = key.startsWith('wc/') || key.startsWith('cc/'), ranked = key === 'ranked';
+      const wcKey = key.startsWith('wc/') || key.startsWith('cc/'), ranked = key === 'ranked', pro = !!proFormat(key);
       const cupKind = wcKey ? key.slice(0, 2) : null;
-      const format = wcKey ? key.split('/')[1] : ranked ? '1v1' : key;
+      const format = wcKey ? key.split('/')[1] : ranked ? '1v1' : pro ? proFormat(key) : key;
       const round = wcKey ? Number(key.split('/')[2]) : null;
       // anyone whose connection went away is out (a party with them stops looking)
       for (let i = q.length - 1; i >= 0; i--) {
@@ -644,7 +688,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
         }
         if (!full && waited < head.wait) break;   // nothing to start yet; come back later
         for (const e of pick) q.splice(q.indexOf(e), 1);
-        startRoom(format, sideUp(pick.map((e) => e.ids), size), null, round, null, ranked, false, cupKind || 'wc');
+        startRoom(format, sideUp(pick.map((e) => e.ids), size), null, round, null, ranked, false, cupKind || 'wc', pro);
         if (!full) break;                          // that one went out short, filled in with bots
       }
     }
@@ -693,18 +737,20 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
 
   // Everyone in the party on one side against fill-ins. No queue: it starts when the leader says.
-  function partyCoop(id, format) {
+  function partyCoop(id, asked) {
     const party = partyOf.get(id);
     if (!party) return push(id, { t: 'error', msg: 'You are not in a party' });
     if (party.leader !== id) return push(id, { t: 'error', msg: 'Only the party leader can start it' });
+    const pro = !!proFormat(asked), format = proFormat(asked) || asked;
     if (!FORMAT_SIZE[format] || SHOOTOUT(format)) return push(id, { t: 'error', msg: 'Pick a format' });
     if (party.members.length > FORMAT_SIZE[format]) return push(id, { t: 'error', msg: 'Too many of you for ' + format });
     for (const m of party.members) {
       if (!conns.has(m)) return push(id, { t: 'error', msg: userName(m) + ' is not online' });
       if (roomOf(m)) return push(id, { t: 'error', msg: userName(m) + ' is already in a match' });
     }
+    if (pro && notPro(party.members)) return push(id, { t: 'error', msg: `${userName(notPro(party.members))} needs the new version of the game for PRO MATCH` });
     for (const m of party.members) stopQueue(m);
-    startRoom(format, party.members.map((m) => ({ id: m, team: 'blue' })), null, null, null, false, true);
+    startRoom(format, party.members.map((m) => ({ id: m, team: 'blue' })), null, null, null, false, true, 'wc', pro);
   }
 
   function joinLobby(conn, code) {
@@ -716,6 +762,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (room.seats.length >= size * 2) return send(conn, { t: 'error', msg: 'That room is full' });
     // a room with someone in it you blocked (or who blocked you) is not one you can walk into
     if (room.seats.some((s) => friends.isBlocked(id, s.userId))) return send(conn, { t: 'error', msg: "You can't join that room" });
+    if (room.pro && !canPro(id)) return send(conn, { t: 'error', msg: 'That room plays PRO MATCH: update the game to join' });
     stopQueue(id);
     const blues = room.seats.filter((s) => s.team === 'blue').length;
     room.seats.push({ userId: id, team: blues < size && blues <= room.seats.length - blues ? 'blue' : 'red', conn });
@@ -723,6 +770,16 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   }
 
   // the host turns the room into a kickabout: everyone on blue, fill-ins on the other side
+  // PRO MATCH in a room of your own: the host switches it on (2v2 and up)
+  function lobbyPro(id, on) {
+    const room = roomOf(id);
+    if (!room || room.state !== 'lobby' || room.host !== id) return;
+    const old = on && notPro(room.seats.map((x) => x.userId));
+    if (old) return send(conns.get(id), { t: 'error', msg: `${userName(old)} needs the new version of the game for PRO MATCH` });
+    room.pro = !!on && PRO_FORMATS.has(room.format);
+    lobbyUpdate(room);
+  }
+
   function lobbyCoop(id, on) {
     const room = roomOf(id);
     if (!room || room.state !== 'lobby' || room.host !== id) return;
@@ -745,6 +802,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!room || room.state !== 'lobby' || room.host !== id || !FORMAT_SIZE[format]) return;
     if (room.seats.length > FORMAT_SIZE[format] * 2) return send(conns.get(id), { t: 'error', msg: 'Too many players for ' + format });
     room.format = format;
+    if (!PRO_FORMATS.has(format)) room.pro = false; // (PRO MATCH is 2v2 and up)
     const size = FORMAT_SIZE[format];
     for (const s of room.seats) {
       if (room.seats.filter((x) => x.team === s.team).length > size) s.team = s.team === 'blue' ? 'red' : 'blue';
@@ -761,7 +819,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
 
   function lobbyUpdate(room) {
     const payload = {
-      t: 'room', code: room.code, format: room.format, host: userName(room.host), coop: !!room.coop,
+      t: 'room', code: room.code, format: room.format, host: userName(room.host), coop: !!room.coop, pro: !!room.pro,
       players: room.seats.map((s) => ({ name: userName(s.userId), team: s.team, club: profileOf(s.userId).club })),
     };
     for (const s of room.seats) send(s.conn || conns.get(s.userId), { ...payload, you: userName(s.userId), isHost: s.userId === room.host });
@@ -772,7 +830,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!room || room.state !== 'lobby' || room.host !== id) return;
     codes.delete(room.code);
     rooms.delete(room.id);
-    startRoom(room.format, room.seats.map((s) => ({ id: s.userId, team: room.coop ? 'blue' : s.team })), room.code, null, null, false, !!room.coop);
+    startRoom(room.format, room.seats.map((s) => ({ id: s.userId, team: room.coop ? 'blue' : s.team })), room.code, null, null, false, !!room.coop, 'wc', !!room.pro);
   }
 
   /* ---------------- online penalty shootouts ---------------- */
@@ -807,7 +865,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     }
     for (const s of seats) if (!s.human) s.name = botName(taken);
     // nobody on a side: it is a team from the other side's world (a club plays a club)
-    const poolFor = (other) => (EURO_IDS.has(other) ? [...EURO_IDS] : sim.CLUBS.map((c) => c.id));
+    const poolFor = (other) => clubPool(other, entries.map((x) => x.id));
     if (!clubs.blue) clubs.blue = pickOne(poolFor(clubs.red).filter((c) => c !== clubs.red));
     if (!clubs.red) clubs.red = pickOne(poolFor(clubs.blue).filter((c) => c !== clubs.blue));
     const model = PenModel.create((Date.now() ^ nextRoom * 2654435761) >>> 0, kind);
@@ -885,7 +943,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       results.push({ seat, outcome, cup, mine, other });
     }
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
-    for (const { seat, outcome, cup, mine, other } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', winner, outcome, side: seat.team, rank: null, rankD: 0, score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
+    for (const { seat, outcome, cup, mine, other } of results) send(seat.conn || conns.get(seat.userId), { t: 'pen.end', rematch: rematchFor(room, seat.userId), winner, outcome, side: seat.team, rank: null, rankD: 0, score: room.pen.model.score, kicks: room.pen.model.kicks, clubs: room.clubs, wc: cup ? { round: seat.wc, won: outcome === 'win', champion: cup.champion, next: cup.round, titles: cup.titles } : null, forfeit: !!forfeitTeam, league: seat.club ? { pos: ladder.pos(seat.club), d: Math.sign(moves.get(seat.club) || 0) } : null });
     saveDB();
   }
   function tickPens(room, now) {
@@ -903,7 +961,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   /* ---------------- matches ---------------- */
 
   // wcRound: the cup round this match is (0..3), or null for an ordinary match; cupKind: which cup
-  function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false, coop = false, cupKind = 'wc') {
+  // pro: PRO MATCH (the bigger pitch with throw-ins and corners; 2v2 and up)
+  function startRoom(format, entries, code, wcRound = null, cup = null, ranked = false, coop = false, cupKind = 'wc', pro = false) {
     if (SHOOTOUT(format)) return startPensRoom(entries, code, wcRound, format);
     const size = FORMAT_SIZE[format];
     const taken = new Set();
@@ -936,20 +995,21 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     }
     for (const s of seats) if (!s.human) s.name = botName(taken);
     // a side with nobody on it is a team from the other side's world: a club plays a club
-    const poolFor = (other) => (EURO_IDS.has(other) ? [...EURO_IDS] : sim.CLUBS.map((c) => c.id));
+    const poolFor = (other) => clubPool(other, entries.map((e) => e.id));
     if (!clubFor.blue) clubFor.blue = pickOne(poolFor(clubFor.red).filter((c) => c !== clubFor.red));
     if (!clubFor.red) clubFor.red = pickOne(poolFor(clubFor.blue).filter((c) => c !== clubFor.blue));
 
-    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cupKind: wcRound === null ? null : cupKind === 'cc' ? 'cc' : 'wc', cup, ranked: !!ranked, coop: !!coop, standard };
+    const room = { id: nextRoom++, code, format, seats, state: 'intro', clubs: clubFor, events: [], tick: 0, acc: 0, last: 0, startAt: Date.now() + INTRO_MS, created: Date.now(), wc: wcRound, cupKind: wcRound === null ? null : cupKind === 'cc' ? 'cc' : 'wc', cup, ranked: !!ranked, coop: !!coop, standard, pro: !!pro && PRO_FORMATS.has(format) && wcRound === null && !ranked };
+    const S = simOf(room);
     // better stats in the room, better fill-ins: a notch up for every 3 OVR the players average over 60
     const humanIds = seats.filter((s) => s.human).map((s) => s.userId);
     const statBump = humanIds.length ? Math.round(Math.max(0, humanIds.reduce((n, x) => n + ovrOf(x), 0) / humanIds.length - 60) / 3) : 0;
-    room.m = sim.create({
+    room.m = S.create({
       // cup rounds: no draws, and each round a notch tougher than the last
-      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null || !!cup,
+      online: true, format, minutes: MATCH_MINUTES, seats, noDraw: wcRound !== null || !!cup, mode: room.pro ? 'pro' : undefined,
       // (the fill-ins start strong, so your level and the round only add half as much as they do offline)
-      diff: sim.playerRamp({ ...sim.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3 + statBump),
-      home: sim.Clubs.get(clubFor.blue), club: sim.Clubs.get(clubFor.red),
+      diff: S.playerRamp({ ...S.ONLINE_BOTS }, Math.round(1 + (roomLevel(seats) - 1) * 0.5) + (wcRound || 0) * 3 + statBump),
+      home: S.Clubs.get(clubFor.blue), club: S.Clubs.get(clubFor.red),
     }, room.events);
     room.m.events = room.events;
     // map seats to their players
@@ -968,7 +1028,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const m = room.m;
     send(to, {
       watch: viewer ? viewer.name : undefined, fcup: room.cup ? { round: room.cup.round, of: room.cup.of } : undefined,
-      ranked: room.ranked || undefined, challenges: seat.chal ? seat.chal.map((c) => ({ id: c.id, text: c.text })) : undefined,
+      ranked: room.ranked || undefined, challenges: seat.chal ? seat.chal.map((c) => ({ id: c.id, text: c.text })) : undefined, pro: room.pro || undefined,
       t: 'start', room: room.id, code: room.code, format: room.format, minutes: MATCH_MINUTES,
       side: seat.team, you: m.players.indexOf(seat.player), clubs: room.clubs,
       startsIn: Math.max(0, room.startAt - Date.now()), tick: room.tick, character: seat.character, stats: seat.stats || undefined, wc: seat.wc == null ? room.wc : seat.wc, cup: room.cupKind || undefined,
@@ -1217,6 +1277,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!room || room.state === 'lobby' || (!room.m && !room.pen)) return fail(userName(them) + ' is not in a match');
     const seat = room.seats.find((s) => s.userId === them && (room.pen || s.player));
     if (!seat) return fail(userName(them) + ' is not in a match');
+    if (room.pro && !canPro(me)) return fail('That match is PRO MATCH: update the game to watch it');
     stopWatching(me, false);
     room.viewers = room.viewers || new Map();
     room.viewers.set(me, seat.team);
@@ -1376,7 +1437,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const m = room.m, b = m.ball;
     const P = m.players.map((p) => {
       const winding = (p.slideWindT || 0) > 0;
-      const flags = (p.sad ? 1 : 0) | (p.slideHit ? 2 : 0) | (p.sprintOn ? 4 : 0) | (p.charging ? 8 : 0) | (p.skill ? 16 : 0);
+      const flags = (p.sad ? 1 : 0) | (p.slideHit ? 2 : 0) | (p.sprintOn ? 4 : 0) | (p.charging ? 8 : 0) | (p.skill ? 16 : 0) | (p.throwIn ? 32 : 0);
       return [Math.round(p.x), Math.round(p.y), Math.round(p.vx), Math.round(p.vy), r100(p.fx), r100(p.fy), r100(p.faceX), flags,
         r100(p.kickT), r100(p.kickDur), r100(p.stunT), r100(p.recoverT), r100(p.diveT), Math.sign(p.diveDir || 0), r100(p.celebrateT),
         Math.max(0, CELEBS.indexOf(p.celebKind)), r100(p.slideT), r100(p.slideWindT || 0),
@@ -1391,6 +1452,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       k: room.tick, ph: PHASES.indexOf(m.phase), pt: r100(m.phaseT), tm: Math.round(m.time * 10), ot: m.overtime ? Math.round(m.otTime) : -1,
       sc: [m.score.blue, m.score.red], mt: [Math.round(m.meter.blue), Math.round(m.meter.red)], ts: r100(m.timeScale), p: P, b: B, ev: room.events.splice(0),
     };
+    // PRO MATCH: a throw-in, corner or goal kick being set up: what, whose, who takes it, the spot,
+    // the aim, and how long it has been waiting
+    const R = m.restart;
+    if (R) common.rs = [RESTART_KINDS.indexOf(R.kind), R.team === 'red' ? 1 : 0, m.players.indexOf(R.taker), Math.round(R.bx), Math.round(R.by), r100(R.ax), r100(R.ay), r100(R.t)];
     const body = JSON.stringify(common).slice(1);
     const nowMs = Date.now();
     for (const seat of room.seats) {
@@ -1472,7 +1537,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     ladder.result([...moves].filter(([, d]) => d).map(([club, d]) => [club, Math.sign(d)]));
     for (const { seat, outcome, cup, chal, moved } of results) {
       const d = seat.club ? Math.sign(moves.get(seat.club) || 0) : 0;
-      send(seat.conn || conns.get(seat.userId), { ...base, side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, coop: room.coop || undefined, league: seat.club && !room.coop ? { pos: ladder.pos(seat.club), d } : null, ranked: !!room.ranked, challenges: seat.chal ? seat.chal.map((c) => ({ text: c.text, done: chal.includes(c) })) : null, rank: room.ranked ? rankOf(seat.userId) : null, rankD: room.ranked ? (typeof moved === 'number' ? moved : rankDeltaFor(outcome, chal.length)) : 0, fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
+      send(seat.conn || conns.get(seat.userId), { ...base, rematch: rematchFor(room, seat.userId), side: seat.team, you: m.players.indexOf(seat.player), outcome, format: room.format, wc: cup, coop: room.coop || undefined, league: seat.club && !room.coop ? { pos: ladder.pos(seat.club), d } : null, ranked: !!room.ranked, challenges: seat.chal ? seat.chal.map((c) => ({ text: c.text, done: chal.includes(c) })) : null, rank: room.ranked ? rankOf(seat.userId) : null, rankD: room.ranked ? (typeof moved === 'number' ? moved : rankDeltaFor(outcome, chal.length)) : 0, fcup: fc ? { round: fc.round, of: fc.of, size: fc.size, won: seat.userId === fc.winner, champion: fc.champion === seat.userId } : null });
     }
     saveDB();
   }
@@ -1500,7 +1565,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       room.last = now;
       let n = 0;
       while (room.acc >= STEP && n < 30) {
-        sim.step(room.m, STEP, room.events);
+        simOf(room).step(room.m, STEP, room.events);
         room.acc -= STEP; room.tick++; n++;
         if (room.tick % SNAPSHOT_EVERY === 0) snapshot(room);
         if (room.m.finished) { snapshot(room); finish(room); break; }

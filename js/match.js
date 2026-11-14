@@ -10,7 +10,7 @@ const Match = {
     // the format ramp is for the bots you meet offline; online fill-ins keep their own tuning
     let fmt0 = FORMATS[opts.format] ? opts.format : (FORMATS[Save.data.format] ? Save.data.format : '4v4');
     // PRO MATCH is 2v2 or bigger: one against one on the big pitch is all running and throw-ins
-    if (opts.mode === 'pro' && !opts.online && fmt0 === '1v1') fmt0 = '2v2';
+    if (opts.mode === 'pro' && fmt0 === '1v1') fmt0 = '2v2';
     const diff = opts.online ? (opts.diff || Game.difficulty()) : formatRamp(opts.diff || Game.difficulty(), fmt0);
     const m = {
       players: [], ball: new Ball(), human: null, keepers: {},
@@ -28,8 +28,9 @@ const Match = {
     };
     if (m.online) m.mode = 'online';
     // PRO MATCH: the bigger pitch and the real rules (throw-ins, corners, goal kicks: js/rules.js).
-    // Never online: the server plays every match on the normal pitch.
-    m.rules = m.mode === 'pro' && !m.online && !opts.seats;
+    // Offline the game switches to that pitch first (Game.startMatch); online the server plays PRO
+    // rooms in a sandbox of their own that is always on it (server/sim.js).
+    m.rules = opts.mode === 'pro' && typeof Pitch !== 'undefined' && Pitch.size === 'pro';
     m.restart = null;
     m.training = m.mode === 'training';
     if (m.training) m.format = 'training';

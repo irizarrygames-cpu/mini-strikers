@@ -85,7 +85,8 @@ const Rules = {
       Sound.whistle();
       const label = { throw: tl('THROW-IN'), corner: tl('CORNER!'), goalkick: tl('GOAL KICK') }[kind];
       // (when it is yours, what to press stays on screen beside the ball until you take it: drawAim)
-      FX.showBanner(label, team === 'blue' ? '#ffffff' : '#ffd0d2', 1.2, TEAMS[team].name);
+      // (the side by its club: online one server plays many matches, and each player sees it their way round)
+      FX.showBanner(label, '#ffffff', 1.2, ((team === 'blue' ? m.home : m.club) || {}).name || '');
     }
   },
 
@@ -164,8 +165,8 @@ const Rules = {
     }
   },
 
-  // which way a restart may be played: never back out over the line it is taken from (a corner may
-  // go straight at goal), and a goal kick goes up the pitch, not back at its own goal
+  // which way a restart may be played: never back out over the line it is taken from, and a goal
+  // kick goes up the pitch, not back at its own goal
   legalAim(m, ax, ay, R = m.restart) {
     const W = CFG.FIELD_W, H = CFG.FIELD_H, MIN = 0.14;
     let l = Math.hypot(ax, ay);
@@ -181,13 +182,10 @@ const Rules = {
     } else {
       if (R.by <= 20) atLeastY(MIN);
       if (R.by >= H - 20) atMostY(-MIN);
-      if (R.bx <= 20 || R.bx >= W - 20) {
-        // a corner: over the goal line is fine only into the goal
-        const gx = R.bx <= 20 ? 0 : W, toward = R.bx <= 20 ? ax < 0 : ax > 0;
-        const yAt = toward ? R.by + ay * (Math.abs(gx - R.bx) / Math.max(1e-6, Math.abs(ax))) : null;
-        const atGoal = toward && yAt > GOAL_Y1 + CFG.BALL_R && yAt < GOAL_Y2 - CFG.BALL_R;
-        if (!atGoal) { if (R.bx <= 20) atLeastX(MIN); else atMostX(-MIN); }
-      }
+      // a corner goes into the pitch (SHOOT at a corner is the one that goes at goal: curlIn, whose
+      // curl brings it back, and which this is never asked about)
+      if (R.bx <= 20) atLeastX(MIN);
+      if (R.bx >= W - 20) atMostX(-MIN);
     }
     l = Math.hypot(ax, ay) || 1;
     return [ax / l, ay / l];
@@ -198,6 +196,9 @@ const Rules = {
     const R = m.restart, h = R.taker, I = h.input || Input;
     const mv = I.move, mag = Math.hypot(mv.x, mv.y);
     if (mag > 0.3) { const [ax, ay] = this.legalAim(m, mv.x, mv.y); R.ax = ax; R.ay = ay; }
+    // online: a button carries the stick as it was when it was pressed — that is the aim it goes with
+    const pressed = I.aim;
+    if (pressed) { I.aim = null; if (Math.hypot(pressed.x, pressed.y) > 0.3) { const [ax, ay] = this.legalAim(m, pressed.x, pressed.y); R.ax = ax; R.ay = ay; } }
     h.fx = R.ax; h.fy = R.ay;
     I.consumeSkill(); I.consumeSlide(); if (I.consumeUlt) I.consumeUlt();
     if (I.consumePassPress && I.consumePassPress()) { h.passCharging = true; h.passChargeT = 0; }
@@ -408,7 +409,7 @@ const Rules = {
     ctx.font = `400 ${size}px "Lilita One", system-ui, sans-serif`;
     const tw = ctx.measureText(how).width + size * 0.4, room = W * 0.6;
     if (tw > room) size *= room / tw;
-    const hy = y0 < H * 0.5 ? H * 0.62 : H * 0.3;
+    const hy = y0 < H * 0.5 ? H * 0.72 : H * 0.28;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     Render.chunkyText(ctx, how, W / 2, hy, size, '#ffffff', size * 0.22);
     ctx.restore();

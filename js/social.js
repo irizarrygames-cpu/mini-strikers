@@ -34,7 +34,7 @@ const Social = {
       Sound.tap();
       this.changed();
     });
-    Net.on('challenge.invite', (m) => { this.challenges = this.challenges.filter((i) => i.from !== m.from); this.challenges.push({ id: m.id, from: m.from, club: m.club, until: performance.now() + 58000 }); Sound.tap(); this.changed(); });
+    Net.on('challenge.invite', (m) => { this.challenges = this.challenges.filter((i) => i.from !== m.from); this.challenges.push({ id: m.id, from: m.from, club: m.club, mode: CHALLENGE_MODES.includes(m.mode) ? m.mode : 'match', until: performance.now() + 58000 }); Sound.tap(); this.changed(); });
     Net.on('challenge.info', (m) => UI.toast(I18N.upper(I18N.server(m.msg || ''))));
     Net.on('party.info', (m) => UI.toast(I18N.upper(I18N.server(m.msg || ''))));
     Net.on('friend.req', (m) => UI.toast(tl('{0} WANTS TO BE FRIENDS', [m.name])));
@@ -154,7 +154,7 @@ const Social = {
     card.classList.toggle('low', !$('modal').hidden || !$('results').hidden || !$('queue').hidden || !$('lobby').hidden);
     if (card.dataset.id === kind + String(inv.id) + inv.from && !card.hidden) return;
     card.dataset.id = kind + String(inv.id) + inv.from;
-    const what = challenge ? tl('challenged you to a 1v1') : cupAsk ? tl('invited you to a {0}-player cup', [inv.size]) : tl('invited you to their party');
+    const what = challenge ? challengeWhat(challenge.mode) : cupAsk ? tl('invited you to a {0}-player cup', [inv.size]) : tl('invited you to their party');
     card.innerHTML = `<canvas width="48" height="32"></canvas><p><b>${esc(inv.from)}</b> ${what}</p><button class="mid-btn green" data-a="join">${challenge ? tl('PLAY') : tl('JOIN')}</button><button class="mid-btn red" data-a="no">${tl('NO')}</button>`;
     UI.flagBadge(card.querySelector('canvas'), Clubs.get(inv.club));
     card.hidden = false;
@@ -329,7 +329,39 @@ const Social = {
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------------- the FRIENDS panel ---------------- */
+// A friend challenge (build 116): what it is. A 1v1 match, penalties, free kicks, or a PRO MATCH (2v2:
+// each of you gets a fill-in teammate, as PRO MATCH is 2v2 and up). Cup runs are never a challenge.
+const CHALLENGE_MODES = ['match', 'pens', 'fk', 'pro'];
+function challengeWhat(mode, upper) {
+  if (mode === 'pens') return upper ? tl('CHALLENGED YOU TO PENALTIES') : tl('challenged you to penalties');
+  if (mode === 'fk') return upper ? tl('CHALLENGED YOU TO FREE KICKS') : tl('challenged you to free kicks');
+  if (mode === 'pro') return upper ? tl('CHALLENGED YOU TO A PRO MATCH') : tl('challenged you to a PRO MATCH');
+  return upper ? tl('CHALLENGED YOU TO A 1V1') : tl('challenged you to a 1v1');
+}
+
 Object.assign(UI, {
+  // ---- challenging a friend: pick what to play, then it goes to them ----
+  panel_challenge(body) {
+    const name = this._challengeName || '';
+    $('modal-title').textContent = tl('CHALLENGE {0}', [name]);
+    const card = (mode, cls, title, tag) => `<button class="mode ${cls}" data-cmode="${mode}"><strong>${title}</strong><span class="tag">${tag}</span></button>`;
+    body.innerHTML = `
+      <p class="note">${tl('What do you want to play against {0}?', [esc(name)])}</p>
+      <div class="modes pen-choice chal-choice">
+        ${card('match', 'quick', tl('1V1 MATCH'), tl('ONLINE · {0}', ['1v1']))}
+        ${card('pens', 'pens', tl('PENALTY SHOOTOUT'), tl('ONLINE PENALTIES'))}
+        ${card('fk', 'pens fk', tl('FREE KICKS'), tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL'))}
+        ${card('pro', 'pro', tl('PRO MATCH'), tl('2V2: YOU EACH GET A TEAMMATE'))}
+      </div>
+      <div class="cup-foot"><button class="mid-btn" data-back>${tl('BACK')}</button></div>`;
+    body.querySelectorAll('[data-cmode]').forEach((b) => b.addEventListener('click', () => {
+      this.tap();
+      Net.sendSoon({ t: 'challenge.send', name, mode: b.dataset.cmode });
+      this.openModal('friends');
+    }));
+    body.querySelector('[data-back]').addEventListener('click', () => { this.tap(); this.openModal('friends'); });
+  },
+
   panel_friends(body, redraw = false) {
     $('modal-title').textContent = tl('FRIENDS');
     const S = Social;
@@ -355,7 +387,7 @@ Object.assign(UI, {
           <div class="fr-coop-line"><em>${tl('AGAINST OTHER PEOPLE')}</em><div class="fr-coop-row">${['2v2', '3v3', '4v4'].filter((f) => p.members.length <= Number(f[0])).map((f) => `<button class="mid-btn blue" data-vs="${f}">${f}</button>`).join('')}</div></div></div>` : ''}
         <button class="mid-btn red fr-leave" data-leave="1">${tl('LEAVE PARTY')}</button>
       </section>` : '';
-    const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>${tl('CHALLENGED YOU TO A 1V1')}</small><button class="mid-btn green" data-accept-challenge="${i.id}">${tl('PLAY')}</button><button class="mid-btn red" data-decline-challenge="${i.id}">${tl('NO')}</button></div>`).join('');
+    const challenges = S.liveChallenges().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>${challengeWhat(i.mode, true)}</small><button class="mid-btn green" data-accept-challenge="${i.id}">${tl('PLAY')}</button><button class="mid-btn red" data-decline-challenge="${i.id}">${tl('NO')}</button></div>`).join('');
     const invites = S.liveInvites().map((i) => `<div class="fr-row ask">${flag(i.club)}<b>${esc(i.from)}</b><small>${tl('INVITED YOU TO THEIR PARTY')}</small><button class="mid-btn green" data-join="${i.id}">${tl('JOIN')}</button><button class="mid-btn red" data-nojoin="${i.id}">${tl('NO')}</button></div>`).join('');
     const cupBtn = `<div class="fr-row cup-row"><b>${tl('FRIEND CUP')}</b><small>${S.cup ? tl('YOU ARE IN ONE') : tl('4 OR 8 FRIENDS, KNOCKOUT')}</small><button class="mid-btn gold" data-cup="1">${S.cup ? tl('SEE THE BOARD') : tl('START ONE')}</button></div>`;
     // a name is a button: it opens that player, to block them or report their name
@@ -383,7 +415,7 @@ Object.assign(UI, {
       ${rows || `<p class="note fr-empty">${S.loaded ? tl('No friends yet. Ask your mates for their username and add them here.') : tl('Connecting…')}</p>`}
       ${sent ? `<h3 class="fr-h">${tl('SENT')}</h3>${sent}` : ''}
       ${S.blocked.length ? `<h3 class="fr-h">${tl('BLOCKED · {0}', [S.blocked.length])}</h3>${S.blocked.map((b) => `<div class="fr-row blocked"><b>${esc(b.name)}</b><small>${tl('BLOCKED')}</small><button class="mid-btn" data-unblock="${esc(b.name)}">${tl('UNBLOCK')}</button></div>`).join('')}` : ''}
-      <p class="note fr-foot">${tl('Challenge an online friend to a 1v1, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match. Tap a name to block that player or report their name.')}</p>
+      <p class="note fr-foot">${tl('Challenge an online friend to a 1v1, penalties, free kicks or a PRO MATCH, invite them to your party to play on the same team, or run a cup between the lot of you. Only the quick chat lines can be sent in a match. Tap a name to block that player or report their name.')}</p>
       <div class="fr-safety"><button type="button" class="auth-guest" data-findplayer>${tl('BLOCK OR REPORT A PLAYER')}</button></div>`;
     body.querySelectorAll('canvas[data-club]').forEach((cv) => this.flagBadge(cv, Clubs.get(cv.dataset.club)));
     const input = body.querySelector('#fr-name');
@@ -410,7 +442,8 @@ Object.assign(UI, {
     on('[data-invite]', (b) => go({ t: 'party.invite', name: b.dataset.invite }));
     on('[data-watch]', (b) => { this.tap(); this.closeAll(); Online.watch(b.dataset.watch); });
     on('[data-cup]', () => { this.tap(); this.openModal('cup'); });
-    on('[data-challenge]', (b) => go({ t: 'challenge.send', name: b.dataset.challenge }));
+    // 1V1: first what to play (panel_challenge)
+    on('[data-challenge]', (b) => { this.tap(); this._challengeName = b.dataset.challenge; this.openModal('challenge'); });
     on('[data-accept-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.acceptChallenge); if (inv) S.answerChallenge(inv, true); });
     on('[data-decline-challenge]', (b) => { const inv = S.challenges.find((i) => String(i.id) === b.dataset.declineChallenge); if (inv) S.answerChallenge(inv, false); });
     on('[data-kick]', (b) => go({ t: 'party.kick', name: b.dataset.kick }));

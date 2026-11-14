@@ -17,7 +17,7 @@ let failures = 0;
 const check = (name, ok, detail) => { console.log((ok ? '  ok   ' : '  FAIL ') + name + (detail !== undefined ? '  ' + JSON.stringify(detail) : '')); if (!ok) failures++; };
 
 const sim = createSim();
-sim.run(fs.readFileSync(path.join(__dirname, '..', 'js', 'rules.js'), 'utf8') + '\n;globalThis.Rules = Rules;');
+sim.run('globalThis.Rules = Rules;'); // (js/rules.js is in the sandbox: the server plays PRO rooms with it)
 // the sandbox has no screen: the banner and the whistle go nowhere
 sim.run('Game.headless = true; Game.demo = null;');
 

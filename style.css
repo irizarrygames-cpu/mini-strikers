@@ -1489,6 +1489,8 @@ body.kb .chat-menu kbd { display: inline-block; }
 .fr-coop-row { display: flex; gap: 6px; justify-content: center; }
 .fr-coop-row .mid-btn { min-width: 64px; }
 #lb-coop.on { background: var(--green); color: #fff; }
+#lb-pro.on { background: #2a9d4b; color: #fff; }
+.lb-pro-note, .pro-note { color: #2a9d4b !important; }
 .lb-coop-note { color: var(--green) !important; }
 
 /* MISSIONS: a board of jobs worth coins */
@@ -2290,3 +2292,23 @@ body.lefty #touch-zone { left: 50%; }
 .fr-row .mid-btn { -webkit-text-stroke-width: 0.06em; }
 .club-pill.club canvas { width: 1.9em; height: 1.9em; margin: -4px 0 -4px 2px; }
 .mode.pro { background: #2a9d4b; }
+
+/* build 116: the private room's two sides on a narrow phone — a long name gets cut short with "…"
+   instead of pushing the right-hand side out of the panel */
+.lb-sides { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lb-side, .lb-p { min-width: 0; }
+.lb-p b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-p canvas { flex: none; }
+@media (max-width: 420px) { .lb-sides { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+/* build 116: the private room on a short screen (a phone on its side) fits without scrolling, and its
+   format buttons are big enough to tap */
+@media (max-height: 430px) {
+  .panel.lobby { gap: 3px; padding-top: 8px; padding-bottom: 8px; }
+  .panel.lobby h2 { font-size: 20px; }
+  .lb-code b { font-size: 24px; }
+  .panel.lobby .formats button { min-height: 34px; padding: 2px 10px; }
+  .lb-p { min-height: 22px; }
+}
+/* build 116: challenging a friend: four choices, two by two (one under the other on a narrow phone) */
+.modes.chal-choice { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 420px) { .modes.chal-choice { grid-template-columns: minmax(0, 1fr); } }

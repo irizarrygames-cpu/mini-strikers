@@ -204,15 +204,18 @@ const Sprites = {
     if (kit.stripes) { ctx.fillStyle = kit.stripes; ctx.fillRect(-8.4, -44.6, 3.8, 19.4); ctx.fillRect(-1.9, -45.4, 3.8, 21); ctx.fillRect(4.6, -44.6, 3.8, 19.4); }
     if (kit.center) { ctx.fillStyle = '#ffffff'; ctx.fillRect(-4.8, -45.4, 9.6, 21); ctx.fillStyle = kit.center; ctx.fillRect(-3, -45.4, 6, 21); }
     if (kit.checks) { ctx.fillStyle = kit.checks; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if ((r + c) % 2 === 0) ctx.fillRect(-9 + c * 4.5, -44 + r * 4.5, 4.5, 4.5); }
-    if (kit.hoops || kit.halves || kit.diag) {
-      // club shirts: hoops across, the shirt split down the middle, or a diagonal half
+    if (kit.hoops || kit.halves || kit.diag || kit.band || kit.sash) {
+      // club shirts: hoops across, the shirt split down the middle, a diagonal half, one band across
+      // the chest, or a sash from the shoulder (build 116)
       ctx.save(); this.rr(ctx, -12, -46, 24, 22, 8); ctx.clip();
       if (kit.hoops) { ctx.fillStyle = kit.hoops; ctx.fillRect(-13, -42.5, 26, 4.2); ctx.fillRect(-13, -35, 26, 4.2); ctx.fillRect(-13, -27.5, 26, 4); }
       if (kit.halves) { ctx.fillStyle = kit.halves; ctx.fillRect(0, -47, 13, 24); }
       if (kit.diag) { ctx.fillStyle = kit.diag; ctx.beginPath(); ctx.moveTo(-13, -47); ctx.lineTo(13, -47); ctx.lineTo(-13, -23); ctx.closePath(); ctx.fill(); }
+      if (kit.band) { ctx.fillStyle = kit.band; ctx.fillRect(-13, -39.5, 26, 6.5); }
+      if (kit.sash) { ctx.fillStyle = kit.sash; ctx.beginPath(); ctx.moveTo(-13, -47); ctx.lineTo(-5, -47); ctx.lineTo(13, -29); ctx.lineTo(13, -21); ctx.closePath(); ctx.fill(); }
       ctx.restore();
     }
-    ctx.fillStyle = kit.stripes || kit.center || kit.checks || kit.hoops || kit.halves || kit.diag ? 'rgba(0, 0, 0, 0.16)' : kit.shade;
+    ctx.fillStyle = kit.stripes || kit.center || kit.checks || kit.hoops || kit.halves || kit.diag || kit.band || kit.sash ? 'rgba(0, 0, 0, 0.16)' : kit.shade;
     this.rr(ctx, -11, -31, 22, 6.5, 3); ctx.fill();   // lower shadow band
     ctx.fillRect(-10.5, -42, 4, 13);                   // back-side panel
     ctx.fillStyle = kit.accent === OUTLINE ? '#ffffff' : kit.accent;
