@@ -157,7 +157,7 @@ window.US = {
       await wait(60);
     }
     // build 111: every customize tab that changed (your look, and wearing many accessories)
-    for (const tab of ['character', 'accessory']) {
+    for (const tab of ['character', 'accessory', 'emote']) {
       const t0 = UI._custTab; UI._custTab = tab;
       UI.openModal('customize');
       await wait(260);

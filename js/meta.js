@@ -56,6 +56,9 @@ const PRICES = {
     lava: 20000, arctic: 24000, venom: 28000, ruby: 32000, sapphire: 36000, emeraldball: 40000, checker: 45000,
     thunder: 70000, royalball: 80000, phantomball: 90000, cyber: 100000, pearl: 110000, nebula: 125000, comet: 140000, solar: 160000,
     obsidian: 260000, dragonball: 300000, prism: 340000, voidball: 400000, infinity: 500000 },
+  // emotes (build 120): the four starters are free; the rest come from crates or the daily emote
+  // shop, which is the only place one is sold (its grade is its own, not worked out from this)
+  emote: typeof EMOTES !== 'undefined' ? Object.fromEntries(EMOTES.map((e) => [e.id, e.starter ? 0 : EMOTE_PRICE])) : {},
 };
 // base = leather, patch = panels; multi cycles panel colors
 const BALLS = [

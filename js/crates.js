@@ -30,7 +30,9 @@ const CRATES = [
 
 // Everything a crate can hold, and where to find its definition.
 // (characters went in build 111: there is one player now, your own)
-const CRATE_KINDS = ['ball', 'trail', 'celebration', 'accessory', 'skill'];
+// (emotes since build 120)
+const EMOTE_CRATE_WEIGHT = 0.5;
+const CRATE_KINDS = ['ball', 'trail', 'celebration', 'accessory', 'skill', 'emote'];
 
 const Crates = {
   get(id) { return CRATES.find((c) => c.id === id) || null; },
@@ -41,6 +43,7 @@ const Crates = {
     if (kind === 'trail') return TRAILS;
     if (kind === 'celebration') return CELEBRATIONS;
     if (kind === 'skill') return SKILLS;
+    if (kind === 'emote') return typeof EMOTES !== 'undefined' ? EMOTES : [];
     return ACCESSORIES;
   },
   def(kind, id) { return this.list(kind).find((x) => x.id === id) || null; },
@@ -59,7 +62,7 @@ const Crates = {
     const out = [];
     for (const kind of CRATE_KINDS) {
       for (const item of this.list(kind)) {
-        if (item.rarity === 'oneofone' || item.only) continue;
+        if (item.rarity === 'oneofone' || item.only || item.starter) continue;
         if (Shop.owns(kind, item.id)) continue;
         if (this.rarity(kind, item.id) !== rarity) continue;
         out.push({ kind, id: item.id });
@@ -102,7 +105,17 @@ const Crates = {
     let pick = Math.random() * total, chosen = CRATE_RARITIES[0];
     for (const r of CRATE_RARITIES) { pick -= odds[r] || 0; if (pick <= 0) { chosen = r; break; } }
     const at = CRATE_RARITIES.indexOf(chosen);
-    const take = (r) => { const pool = this.missing(r); return pool.length ? { ...pool[(Math.random() * pool.length) | 0], rarity: r } : null; };
+    const take = (r) => {
+      const pool = this.missing(r);
+      if (!pool.length) return null;
+      // an emote counts half (build 120): there are 150 of them, and counted in full they were half
+      // of everything a crate gave, crowding out the balls, trails and celebrations
+      let total = 0;
+      for (const it of pool) total += it.kind === 'emote' ? EMOTE_CRATE_WEIGHT : 1;
+      let x = Math.random() * total;
+      for (const it of pool) { x -= it.kind === 'emote' ? EMOTE_CRATE_WEIGHT : 1; if (x <= 0) return { ...it, rarity: r }; }
+      return { ...pool[pool.length - 1], rarity: r };
+    };
     let got = take(chosen);
     for (let i = at - 1; i >= 0 && !got; i--) if ((odds[CRATE_RARITIES[i]] || 0) > 0) got = take(CRATE_RARITIES[i]);
     const top = CRATE_RARITIES.indexOf(this.ceiling(crate));
@@ -116,7 +129,7 @@ const Crates = {
     const grades = CRATE_RARITIES.filter((r) => (crate.odds[r] || 0) > 0);
     const owned = [];
     for (const kind of CRATE_KINDS) for (const item of this.list(kind)) {
-      if (item.rarity === 'oneofone' || item.only) continue;
+      if (item.rarity === 'oneofone' || item.only || item.starter) continue;
       if (grades.includes(this.rarity(kind, item.id))) owned.push({ kind, id: item.id });
     }
     for (let i = 0; i < n; i++) cells.push(owned.length ? owned[(Math.random() * owned.length) | 0] : win);
@@ -134,6 +147,7 @@ const Crates = {
     Save.data.coins -= crate.price;
     Save.data.owned[win.kind] = Save.data.owned[win.kind] || [];
     Save.data.owned[win.kind].push(win.id);
+    if (win.kind === 'emote' && typeof Emotes !== 'undefined') Emotes.got(win.id); // straight into your match menu if it has room
     Save.data.crateCount = (Save.data.crateCount || 0) + 1;
     Save.write();
     return win;

@@ -2342,3 +2342,60 @@ body.lefty #touch-zone { left: 50%; }
 /* build 118: a long rank name (GROSSMEISTER, NIEŚMIERTELNY) takes the whole top line and the
    points drop below it, rather than both squeezing onto one line */
 .rank-head { flex-wrap: wrap; row-gap: 2px; }
+
+/* build 120: emotes — the daily emote shop at the top of CRATES, the EMOTES tab on CUSTOMIZE, and
+   your eight along the top of the quick chat menu in a match */
+.emote-shop { border: 3px solid var(--ink); border-radius: 14px; background: #fff7d6; padding: 8px; margin: 2px 0 8px; box-shadow: 0 4px 0 var(--ink); }
+.es-head { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap; margin: 0 2px 6px; }
+.es-head strong { font-weight: 400; font-size: 18px; letter-spacing: .03em; }
+.es-head small { font-size: 12px; color: #6b7299; letter-spacing: .04em; }
+.es-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.es-card {
+  position: relative; min-width: 0; border: 3px solid var(--ink); border-radius: 12px; background: #eef2ff; color: var(--ink);
+  padding: 6px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  box-shadow: 0 4px 0 var(--ink), inset 0 0 0 3px var(--r, #8a90b8);
+}
+.es-card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink), inset 0 0 0 3px var(--r, #8a90b8); }
+.es-card canvas { width: 100%; max-width: 110px; height: auto; aspect-ratio: 1; }
+.es-card strong { font-weight: 400; font-size: 14px; line-height: 1.1; text-align: center; overflow-wrap: anywhere; max-width: 100%; }
+.es-grade, .em-grade { font-size: 11px; letter-spacing: .06em; color: var(--r, #8a90b8); -webkit-text-stroke: .08em var(--ink); paint-order: stroke fill; }
+.es-price { display: flex; align-items: center; gap: 4px; font-size: 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 9px; padding: 1px 8px; margin-top: 2px; white-space: nowrap; }
+.es-price .coin { width: 14px; height: 14px; border-width: 2px; }
+.es-card.owned .es-price { background: #c9f5cf; }
+.es-card.poor { filter: saturate(.5); opacity: .75; }
+@media (max-width: 420px) { .es-card strong { font-size: 12px; } .es-price { font-size: 12px; padding: 1px 5px; } .es-head strong { font-size: 16px; } }
+
+.trail-grid.emote-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.emote-opt { padding: 6px; gap: 3px; box-shadow: 0 4px 0 var(--ink), inset 0 0 0 3px var(--r, #8a90b8); min-width: 0; }
+.emote-opt canvas { width: 84px; height: 84px; max-width: 100%; border: 0; border-radius: 0; }
+.emote-opt strong { font-size: 14px; line-height: 1.1; text-align: center; overflow-wrap: anywhere; max-width: 100%; }
+.emote-count { grid-column: 1 / -1; justify-self: start; font-size: 14px; letter-spacing: .04em; background: #e7ebff; border: 3px solid var(--ink); border-radius: 10px; padding: 3px 10px; }
+
+.chat-emotes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; }
+.chat-emotes[hidden] { display: none; }
+.chat-menu button.chat-emote { padding: 2px; min-height: 0; width: clamp(40px, 11vmin, 52px); height: clamp(40px, 11vmin, 52px); justify-content: center; }
+.chat-emote canvas { width: 100%; height: 100%; display: block; }
+.chat-menu.cool .chat-emote { opacity: 0.55; }
+/* build 120: seven customize tabs (EMOTES joined), so four across: two rows, none left on its own.
+   Where there is not room for four beside the coins (a small phone on its side), the tabs take a
+   row of their own under them instead of being squeezed to 40px. */
+.cust-top .tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1 1 260px; }
+/* the profile's top row: a big coin count goes onto its own line rather than out of the panel
+   (seen at 320px wide with 4,040 coins; ten trillion is longer still) */
+.prof-top { flex-wrap: wrap; }
+.prof-top .panel-coins { margin-left: auto; }
+/* the narrowest phones: four tabs across, so a little less border and room round each word */
+@media (max-width: 380px) {
+  .cust-top .tabs { gap: 4px; }
+  #modal[data-kind="customize"] .cust-top .tabs button { padding-inline: 2px; border-width: 2px; }
+}
+/* the quick chat menu on a narrow screen held upright: two columns, and never past the edge (it ran
+   35px off a 320px phone with three) */
+.chat-menu { max-width: calc(100vw - var(--sl) - clamp(40px, 11vmin, 54px) - 18px); }
+@media (max-width: 480px) {
+  .chat-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chat-menu button { white-space: normal; font-size: clamp(12px, 3.6vmin, 15px); }
+}
+/* while the quick chat menu is open the commentary steps aside: held upright it sits right where the
+   menu opens, on top of the emotes */
+.chat-menu:not([hidden]) ~ #commentary { visibility: hidden; }

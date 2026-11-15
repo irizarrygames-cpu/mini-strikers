@@ -390,7 +390,7 @@ Object.assign(UI, {
       if (Shop.owns(kind, id)) { this.tap(); onEquip(); return; }
       Sound.steal();
       el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400);
-      this.toast(tl('OPEN CRATES TO FIND THIS ONE'));
+      this.toast(kind === 'emote' ? tl('FIND IT IN CRATES OR THE DAILY EMOTE SHOP') : tl('OPEN CRATES TO FIND THIS ONE'));
     });
   },
 
@@ -399,7 +399,7 @@ Object.assign(UI, {
   priceTag(kind, id) {
     if (Shop.owns(kind, id)) return '';
     const rar = Crates.rarity(kind, id);
-    return `<span class="price locked-tag" style="--r:${RARITIES[rar].color}"><i></i>${RARITIES[rar].name}</span><span class="buy">${tl('FROM CRATES')}</span>`;
+    return `<span class="price locked-tag" style="--r:${RARITIES[rar].color}"><i></i>${RARITIES[rar].name}</span><span class="buy">${kind === 'emote' ? tl('CRATES · SHOP') : tl('FROM CRATES')}</span>`;
   },
 
   coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${fmtCoins(Save.data.coins)}</b></div>`; },
@@ -449,7 +449,7 @@ Object.assign(UI, {
   // ---- collection: everything in the game, and how much of it is yours ----
   panel_collection(body) {
     $('modal-title').textContent = tl('COLLECTION');
-    const kinds = [['ball', tl('BALLS')], ['trail', tl('POWER TRAILS')], ['celebration', tl('CELEBRATIONS')], ['accessory', tl('ACCESSORIES')], ['skill', tl('SKILL MOVES')]];
+    const kinds = [['ball', tl('BALLS')], ['trail', tl('POWER TRAILS')], ['celebration', tl('CELEBRATIONS')], ['accessory', tl('ACCESSORIES')], ['skill', tl('SKILL MOVES')], ['emote', tl('EMOTES')]];
     let own = 0, all = 0;
     const order = ['common', 'rare', 'epic', 'legendary', 'mythic'];
     let best = null, bestRank = -1;
@@ -719,8 +719,10 @@ Object.assign(UI, {
     }).join('');
     const left = Crates.anyMissing();
     body.innerHTML = `<div class="crate-head">${this.coinsLine()}<span class="crate-btns">${Store.canShow() ? `<button class="mid-btn gold" id="to-coins">${tl('GET COINS')}</button>` : ''}<button class="mid-btn" id="to-collection">${tl('COLLECTION')}</button></span></div>
+      ${this.emoteShopHtml()}
       <p class="note">${left ? tl('Every crate gives you something you have not got yet. The dearer the crate, the better the chances.') : tl('You own everything. There is nothing left in any crate.')}</p>
       <div class="crate-grid">${cards}</div>`;
+    this.bindEmoteShop(body);
     $('to-collection').addEventListener('click', () => { this.tap(); this.openModal('collection'); });
     const toCoins = $('to-coins'); if (toCoins) toCoins.addEventListener('click', () => { this.tap(); this.openModal('coins'); });
     body.querySelectorAll('canvas[data-crateart]').forEach((cv) => this.crateArt(cv, Crates.get(cv.dataset.crateart)));
@@ -910,7 +912,7 @@ Object.assign(UI, {
     this._crateT = setTimeout(() => {
       if (!$('crate-result')) return;
       const rar = Crates.rarity(win.kind, win.id);
-      const kindName = { character: tl('PLAYER'), ball: tl('BALL'), trail: tl('POWER TRAIL'), celebration: tl('CELEBRATION'), accessory: tl('ACCESSORY'), skill: tl('SKILL MOVE') }[win.kind] || tl('ITEM');
+      const kindName = { character: tl('PLAYER'), ball: tl('BALL'), trail: tl('POWER TRAIL'), celebration: tl('CELEBRATION'), accessory: tl('ACCESSORY'), skill: tl('SKILL MOVE'), emote: tl('EMOTE') }[win.kind] || tl('ITEM');
       $('crate-result').innerHTML = `<span class="got" style="--r:${RARITIES[rar].color}">${RARITIES[rar].name}</span>
         <b>${Crates.name(win.kind, win.id)}</b><em>${tl('{0} · NEW', [kindName])}</em>`;
       $('crate-result').hidden = false;
@@ -961,14 +963,15 @@ Object.assign(UI, {
 
   // one small picture of any item, whatever kind it is
   itemSwatch(cv, item) {
-    if (item.kind === 'accessory') this.accSwatch(cv, item.id);
+    if (item.kind === 'emote') this.emoteSwatch(cv, item.id);
+    else if (item.kind === 'accessory') this.accSwatch(cv, item.id);
     else if (item.kind === 'ball') this.ballSwatch(cv, item.id);
     else if (item.kind === 'trail') this.trailSwatch(cv, item.id);
     else this.celebSwatch(cv, item.id, 1.2);
   },
 
   // ---- customize: your player on the left, everything you can put on them on the right ----
-  CUST_TABS: [['character', tl('PLAYER')], ['skill', tl('SKILL MOVE')], ['ball', tl('BALL')], ['accessory', tl('ACCESSORIES')], ['celebration', tl('CELEBRATION')], ['trail', tl('POWER TRAIL')]],
+  CUST_TABS: [['character', tl('PLAYER')], ['skill', tl('SKILL MOVE')], ['ball', tl('BALL')], ['accessory', tl('ACCESSORIES')], ['celebration', tl('CELEBRATION')], ['trail', tl('POWER TRAIL')], ['emote', tl('EMOTES')]],
   CUST_NOTES: {
     character: tl('Your own player: the haircut, the colours and the build. The kit is your team\'s. To make them better, spend coins on STATS.'),
     skill: tl('What your SKILL button does. Carry one and it is that move every time, aimed wherever you are pointing.'),
@@ -976,6 +979,7 @@ Object.assign(UI, {
     accessory: tl('Wear as many as you like, all at once: tap one to put it on, tap it again to take it off. Online, everyone sees them.'),
     celebration: tl('Score and the camera zooms in on you doing this. Everyone in the match sees it.'),
     trail: tl('Shown on power shots. Fill the meter around SHOOT, then fully charge.'),
+    emote: tl('Pick up to 8 for your match menu: in a match, open the quick chat and tap one, and everyone in the match sees it. More come out of crates and the daily emote shop.'),
   },
 
   panel_customize(body) {
@@ -998,6 +1002,14 @@ Object.assign(UI, {
       grid = SKILLS.map((k) => `<button class="trail-opt skill-opt ${k.id === Save.skill() ? 'sel' : ''} ${Shop.owns('skill', k.id) ? '' : 'locked'}" data-id="${k.id}">
         <canvas width="150" height="92" data-skillart="${k.id}"></canvas><strong>${k.name}</strong>
         <small class="skill-blurb">${k.blurb}</small>${this.priceTag('skill', k.id)}</button>`).join('');
+    } else if (tab === 'emote') {
+      // your eight for the match menu: tap one to put it in or take it out
+      gridClass = 'emote-grid';
+      const deck = Emotes.deck();
+      const order = ['starter', ...EMOTE_GRADES];
+      const list = EMOTES.slice().sort((a, b) => (Emotes.owns(b.id) - Emotes.owns(a.id)) || (order.indexOf(a.rarity) - order.indexOf(b.rarity)));
+      grid = `<div class="emote-count">${tl('IN YOUR MATCH MENU: {0} / {1}', [deck.length, EMOTE_DECK_MAX])}</div>` + list.map((e) => `<button class="trail-opt emote-opt ${deck.includes(e.id) ? 'sel' : ''} ${Emotes.owns(e.id) ? '' : 'locked'}" data-id="${e.id}" aria-pressed="${deck.includes(e.id)}" style="--r:${RARITIES[e.rarity].color}">
+        <canvas width="120" height="120" data-emote="${e.id}"></canvas><strong>${e.name}</strong>${Emotes.owns(e.id) ? `<span class="em-grade" style="--r:${RARITIES[e.rarity].color}">${RARITIES[e.rarity].name}</span>` : this.priceTag('emote', e.id)}</button>`).join('');
     } else if (tab === 'accessory') {
       // as many as you like: each card is on or off
       const on = new Set(Save.accessories());
@@ -1026,10 +1038,16 @@ Object.assign(UI, {
     body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.accSwatch(cv, cv.dataset.acc));
     body.querySelectorAll('canvas[data-skillart]').forEach((cv) => this.skillSwatch(cv, cv.dataset.skillart));
     if (tab === 'celebration') this.animateCelebs(body);
+    if (tab === 'emote') this.animateEmotes(body);
     if (tab === 'character') this.bindLookEditor(body);
     const groundCv = $('cust-ground');
     if (groundCv) { const g = groundCv.getContext('2d'); g.drawImage(Render.stadiumThumb(ground), 0, 0, groundCv.width, groundCv.height); }
     body.querySelectorAll('.trail-opt').forEach((el) => this.shopCard(el, tab, el.dataset.id, () => {
+      if (tab === 'emote' && Emotes.toggle(el.dataset.id) === 'full') {
+        Sound.steal(); el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 400);
+        this.toast(tl('Your match menu holds 8 emotes. Take one out first.'));
+        return;
+      }
       if (tab === 'trail') Save.data.trail = el.dataset.id;
       if (tab === 'celebration') Save.data.celebration = el.dataset.id;
       if (tab === 'skill') Save.data.skill = el.dataset.id;
@@ -1547,6 +1565,84 @@ Object.assign(UI, {
   // Every celebration card plays its animation on a loop while the tab is open — but only the
   // cards you can actually see, and at 30 a second. Eighty full player drawings a frame was most
   // of a frame's budget on its own, for sixty cards scrolled off the screen.
+  // one emote, still or at a moment of its loop, filling its card
+  emoteSwatch(cv, id, t = 0.6) {
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, cv.width, cv.height);
+    Emotes.draw(g, id, cv.width / 2, cv.height / 2, Math.min(cv.width, cv.height), t);
+  },
+
+  // every emote card on screen plays its loop; the ones scrolled away rest (the same as celebrations)
+  animateEmotes(body) {
+    const cards = [...body.querySelectorAll('canvas[data-emote]')];
+    if (!cards.length) return;
+    if (this._emoteIO) this._emoteIO.disconnect();
+    const live = new Set();
+    const io = this._emoteIO = new IntersectionObserver((entries) => {
+      for (const en of entries) { if (en.isIntersecting) live.add(en.target); else live.delete(en.target); }
+    }, { rootMargin: '40px' });
+    for (const cv of cards) { this.emoteSwatch(cv, cv.dataset.emote); io.observe(cv); }
+    const start = performance.now();
+    let last = 0;
+    const frame = (now) => {
+      if ($('modal').hidden || !cards[0].isConnected) { io.disconnect(); if (this._emoteIO === io) this._emoteIO = null; return; }
+      requestAnimationFrame(frame);
+      if (now - last < 33) return;
+      last = now;
+      const t = (now - start) / 1000;
+      for (const cv of live) this.emoteSwatch(cv, cv.dataset.emote, t);
+    };
+    requestAnimationFrame(frame);
+  },
+
+  // ---- the daily emote shop, at the top of CRATES: three a day, 1,000 coins each
+  emoteShopHtml() {
+    const s = Emotes.shop();
+    const h = Emotes.hoursLeft();
+    const when = h < 1 ? tl('NEW ONES IN UNDER AN HOUR') : tlN(Math.floor(h), 'NEW ONES IN {0} HOUR', 'NEW ONES IN {0} HOURS');
+    const cards = s.picks.map((id) => {
+      const e = Emotes.get(id);
+      if (!e) return '';
+      const mine = Emotes.owns(id), r = RARITIES[e.rarity];
+      return `<button class="es-card ${mine ? 'owned' : ''} ${!mine && Save.data.coins < EMOTE_PRICE ? 'poor' : ''}" data-emote-buy="${id}" style="--r:${r.color}">
+        <span class="es-grade">${r.name}</span>
+        <canvas width="120" height="120" data-emote="${id}"></canvas>
+        <strong>${e.name}</strong>
+        <span class="es-price">${mine ? tl('OWNED') : `<span class="coin"></span>${fmtCoins(EMOTE_PRICE)}`}</span>
+      </button>`;
+    }).join('');
+    return `<div class="emote-shop">
+      <div class="es-head"><strong>${tl('DAILY EMOTES')}</strong><small>${when}</small></div>
+      ${cards ? `<div class="es-cards">${cards}</div>` : `<p class="note">${tl('You have every emote.')}</p>`}
+    </div>`;
+  },
+  bindEmoteShop(body) {
+    Emotes.markSeen();
+    this.refreshHome();
+    this.animateEmotes(body);
+    body.querySelectorAll('[data-emote-buy]').forEach((el) => el.addEventListener('click', () => {
+      const id = el.dataset.emoteBuy, e = Emotes.get(id);
+      if (!e) return;
+      // one you have: off to where you put it in your match menu
+      if (Emotes.owns(id)) { this.tap(); this._custTab = 'emote'; this.openModal('customize'); return; }
+      if (Save.data.coins < EMOTE_PRICE) {
+        Sound.steal(); el.classList.add('nope'); Pop.shake(el, 1.4);
+        setTimeout(() => el.classList.remove('nope'), 400);
+        return;
+      }
+      const res = Emotes.buy(id);
+      if (!res.ok) { Sound.steal(); return; }
+      Sound.powerReady();
+      const at = Pop.at(el);
+      Pop.spend(el, 8);
+      Pop.ring(at.x, at.y, RARITIES[e.rarity].color, 170, 420);
+      Pop.prize(el, e.rarity);
+      this.toast(tl('NEW EMOTE: {0}', [e.name]));
+      this.refreshHome();
+      this.redraw(body, () => this.panel_crates(body));
+    }));
+  },
+
   animateCelebs(body) {
     const cards = [...body.querySelectorAll('canvas[data-celeb]')];
     if (!cards.length) return;

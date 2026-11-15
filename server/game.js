@@ -446,6 +446,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       case 'pen.dive': return penDive(id, msg);
       case 'ping': return send(conn, { t: 'pong', c: msg.c, s: Date.now() });
       case 'chat': return quickChat(conn, msg.m);
+      case 'emote': return quickEmote(conn, msg.e);
       // playing a match against bots on this device (so friends see you're busy and parties don't pull you out)
       case 'busy': conn.busy = msg.on === true; return;
       case 'cup.create': return cupCreate(conn, msg.size | 0);
@@ -1312,19 +1313,49 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
      Only the preset lines (sim.QUICK_CHAT), never typed text. It shows as a bubble over the
      player who said it, for everyone in the match. */
   function quickChat(conn, m) {
-    const n = m, now = Date.now();
+    const n = m;
     if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n >= sim.QUICK_CHAT.length) return;
-    const room = roomOf(conn.userId);
-    if (!room || room.state === 'lobby' || !room.m) return;
-    const seat = room.seats.find((s) => s.userId === conn.userId);
-    if (!seat || !seat.player || seat.gone) return;
-    // no spamming (the game holds the button back just the same, so what you see is what they see)
-    conn.chatAt = (conn.chatAt || []).filter((t) => now - t < CHAT_BURST_MS);
-    if (conn.chatAt.length >= CHAT_BURST || (conn.chatAt.length && now - conn.chatAt[conn.chatAt.length - 1] < CHAT_GAP_MS - 100)) return;
-    conn.chatAt.push(now);
-    roomChat(room, seat.player, n, seat);
-    botAnswer(room, seat, n);
+    const at = chatSeat(conn);
+    if (!at) return;
+    roomChat(at.room, at.seat.player, n, at.seat);
+    botAnswer(at.room, at.seat, n);
   }
+  // who is talking, if they may: in a match, on the pitch, and not over the limit. Lines and
+  // emotes share the one limit (the game holds the button back just the same, so what you see is
+  // what they see).
+  function chatSeat(conn) {
+    const now = Date.now();
+    const room = roomOf(conn.userId);
+    if (!room || room.state === 'lobby' || !room.m) return null;
+    const seat = room.seats.find((s) => s.userId === conn.userId);
+    if (!seat || !seat.player || seat.gone) return null;
+    conn.chatAt = (conn.chatAt || []).filter((t) => now - t < CHAT_BURST_MS);
+    if (conn.chatAt.length >= CHAT_BURST || (conn.chatAt.length && now - conn.chatAt[conn.chatAt.length - 1] < CHAT_GAP_MS - 100)) return null;
+    conn.chatAt.push(now);
+    return { room, seat };
+  }
+
+  /* ---------------- emotes (build 120) ----------------
+     One of the game's own emotes, by name (never anything sent in), shown in a bubble over the
+     player for everyone in the match. Which ones you own is the game's business: an emote is
+     only a picture, the same for everyone. */
+  const EMOTE_IDS = new Set(sim.EMOTES.map((e) => e.id));
+  function quickEmote(conn, e) {
+    if (typeof e !== 'string' || e.length > 40 || !EMOTE_IDS.has(e)) return;
+    const at = chatSeat(conn);
+    if (!at) return;
+    roomEmote(at.room, at.seat.player, e, at.seat);
+  }
+  function roomEmote(room, player, e, from) {
+    const msg = { t: 'emote', p: room.m.players.indexOf(player), e };
+    const heard = (id) => !(from && from.userId && friends.isBlocked(id, from.userId));
+    for (const s of room.seats) if (s.human && !s.gone && s !== from && heard(s.userId)) send(s.conn, msg);
+    if (room.viewers) for (const v of room.viewers.keys()) if (heard(v)) push(v, msg);
+  }
+  // what a fill-in's line feels like, for the emote it sometimes uses instead
+  const LINE_MOOD = { "LET'S GO!": 'joy', 'WOW!': 'joy', 'NICE ONE!': 'joy', 'WHAT A GOAL!': 'joy', 'THANKS!': 'joy', 'UNLUCKY': 'sad', 'DEFEND!': 'sad', 'SORRY!': 'sad', 'HI!': 'hi', 'GG': 'gg' };
+  const EMOTES_BY_MOOD = {};
+  for (const e of sim.EMOTES) (EMOTES_BY_MOOD[e.mood] = EMOTES_BY_MOOD[e.mood] || []).push(e.id);
   function roomChat(room, player, n, from) {
     const msg = { t: 'chat', p: room.m.players.indexOf(player), m: n };
     // nobody hears someone they blocked, or someone who blocked them
@@ -1340,7 +1371,10 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const now = Date.now();
     if ((room.botQuiet || 0) > now || (room.botChat || []).length) return;
     room.botQuiet = now + 4000;
-    (room.botChat = room.botChat || []).push({ at: now + delayMs, player, n: LINE(pickOne(lines)) });
+    const line = pickOne(lines), mood = LINE_MOOD[line];
+    // a third of the time an emote that says the same thing
+    if (mood && EMOTES_BY_MOOD[mood] && Math.random() < 0.35) (room.botChat = room.botChat || []).push({ at: now + delayMs, player, e: pickOne(EMOTES_BY_MOOD[mood]) });
+    else (room.botChat = room.botChat || []).push({ at: now + delayMs, player, n: LINE(line) });
   }
   function botGoal(room, g) {
     room.lastGoalAt = Date.now();
@@ -1372,7 +1406,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     if (!room.saidHi && room.state === 'playing') { room.saidHi = true; const b = fillIns(room); if (b.length && Math.random() < 0.2) botSay(room, pickOne(b).player, ['HI!'], 600 + Math.random() * 2500); }
     if (!room.saidGG && !m.overtime && m.time < 4 && m.phase === 'play') { room.saidGG = true; room.botQuiet = 0; const b = fillIns(room); if (b.length && Math.random() < 0.3) botSay(room, pickOne(b).player, ['GG'], Math.random() * 1500); }
     const q = room.botChat;
-    while (q && q.length && q[0].at <= now) { const c = q.shift(); if (c.n >= 0) roomChat(room, c.player, c.n, null); }
+    while (q && q.length && q[0].at <= now) { const c = q.shift(); if (c.e) roomEmote(room, c.player, c.e, null); else if (c.n >= 0) roomChat(room, c.player, c.n, null); }
   }
 
   // The two ends of the stand-in that a walk-off leaves behind. LOW is the sandbag it has always

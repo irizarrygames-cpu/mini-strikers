@@ -59,13 +59,13 @@ const NASTY = [
   JSON.parse('{"__proto__": {"polluted": true}}'),
   { a: { b: { c: { d: { e: 1 } } } } },
 ];
-const TYPES = ['i', 'pen.shot', 'pen.dive', 'ping', 'chat', 'busy', 'cup.create', 'cup.invite', 'cup.uninvite', 'cup.accept',
+const TYPES = ['i', 'pen.shot', 'pen.dive', 'ping', 'chat', 'emote', 'busy', 'cup.create', 'cup.invite', 'cup.uninvite', 'cup.accept',
   'cup.decline', 'cup.start', 'cup.leave', 'cup.view', 'watch', 'unwatch', 'friends', 'friend.add', 'friend.accept',
   'friend.decline', 'friend.remove', 'friend.block', 'friend.unblock', 'party.invite', 'party.accept', 'party.decline', 'party.leave', 'party.kick',
   'challenge.send', 'challenge.accept', 'challenge.decline', 'queue', 'unqueue', 'party.coop', 'room.coop', 'room.create',
   'room.join', 'room.team', 'room.format', 'room.start', 'room.leave', 'leave'];
 // every field name any message uses
-const FIELDS = ['name', 'format', 'code', 'team', 'id', 'on', 'msg', 'text', 'line', 'ax', 'az', 'dx', 'dz', 'power',
+const FIELDS = ['name', 'format', 'code', 'team', 'id', 'on', 'msg', 'text', 'line', 'e', 'm', 'ax', 'az', 'dx', 'dz', 'power',
   'x', 'y', 'sprint', 'shoot', 'pass', 'skill', 'slide', 'seq', 'size', 'club', 'character', 'to', 'from', 'round'];
 
 // Leaving is a real thing to ask for, not junk: when the point of the run is that a match keeps

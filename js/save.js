@@ -26,7 +26,12 @@ const Save = {
       stadium: 'day',
       ball: 'classic',
       format: '4v4',
-      owned: { character: [], trail: [], celebration: [], stadium: [], ball: [], accessory: [], skill: [] },
+      owned: { character: [], trail: [], celebration: [], stadium: [], ball: [], accessory: [], skill: [], emote: [] },
+      // emotes (build 120): the ones in your match menu, today's emote shop, and (for a guest) what
+      // makes this device's shop its own
+      emotes: typeof EMOTE_STARTERS !== 'undefined' ? EMOTE_STARTERS.slice() : [],
+      emoteShop: null,
+      emoteSeed: 0,
       matches: 0,
       wins: 0,
       draws: 0,

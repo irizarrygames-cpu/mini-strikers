@@ -251,6 +251,36 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Emotes, a daily emote shop, tougher bots offline (build 120)
+
+- **154 emotes** (`js/emotes.js`): four everyone starts with (Thumbs Up, Ha Ha!, Boo Hoo, Grrr!) and 150 to
+  collect — 50 common, 40 rare, 30 epic, 20 legendary, 10 mythic. Each is one of eight made-up characters (a
+  football, a striker, a keeper, the ref, the coach, a fan, a goat, a golden ball), a face, something it holds
+  or wears, an effect and a way of moving, all drawn in code in the game's flat style; legendary and mythic
+  ones have rays behind them. `tools/emotesheet.js` draws them all big in the browser (`ES.page(0)`,
+  `ES.check()`).
+- **Crates** give them by grade like everything else (`CRATE_KINDS` has `emote`), but an emote counts half in a
+  crate's draw (`EMOTE_CRATE_WEIGHT`): counted in full there were so many that they were half of what a Gold
+  crate gave. Now about 37% of a Gold crate, 13% of a Cosmic, 9% of an Infinity; most of a Copper (the
+  commons left are mostly emotes).
+- **The daily emote shop**, at the top of CRATES: three a day, 1,000 coins each, picked for you (your account,
+  or the device for a guest) from the ones you have not got, with each slot rolled on common 52 / rare 28 /
+  epic 13 / legendary 5.5 / mythic 1.5. They change at midnight on your device; the CRATES button shows how
+  many are new until you look. Bought or won, an emote goes straight into your match menu if it has room.
+- **In a match**: CUSTOMIZE · EMOTES picks up to eight; they sit along the top of the quick chat menu and show
+  in a bubble over your head (`Render.drawEmoteChat`). Online the server passes them on like a chat line
+  (`{t:'emote', e}` -> `{t:'emote', p, e}`): only the game's own emote names, the same spam limit as lines
+  (one per 1.2s, five in ten), never to someone who blocked you, and to friends watching. Bots use them too,
+  a third of the time instead of a line, offline and online.
+- **Offline bots a step harder** (`DIFFICULTY`): a scripted average player won 76% of NORMAL matches before
+  and 63% after (87% -> 76% as a new player, 64% -> 50% at level 25); EASY 99% -> 96%, HARD 62% -> 52%.
+  Online fill-ins are untouched.
+- Fixed on the way: the quick chat menu ran 35px off a 320px phone held upright (now two columns, never past
+  the edge); the live commentary sat on top of it; the profile's coin count spilled out of a narrow panel.
+
+Tests: `emotescan` (new: the emotes, the shop and its odds, the menu, crates, the save's size, and the server
+with fake sockets). App 1.2.1 (code 22).
+
 ## A 10 trillion coin gift (build 119)
 
 `GIFTS` in server.js gives IRIZARRY and LILOTTER 10,000,000,000,000 coins each, delivered the next time

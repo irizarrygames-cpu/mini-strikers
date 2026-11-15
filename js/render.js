@@ -974,6 +974,7 @@ const Render = {
 
   // quick chat: a speech bubble over the name for a few seconds (pops in, fades out)
   drawChat(ctx, chat, x, y, size) {
+    if (chat.emote) { this.drawEmoteChat(ctx, chat, x, y, size); return; }
     const age = (performance.now() - chat.at) / 1000;
     if (age > 3.2 || age < 0) return;
     const pop = age < 0.16 ? easeOut(age / 0.16) : 1, fade = age > 2.8 ? (3.2 - age) / 0.4 : 1;
@@ -999,6 +1000,34 @@ const Render = {
     ctx.fillRect(-tail * 0.8 + lw * 0.5, -tail - lw * 1.2, tail * 1.6 - lw, lw * 1.4); // the seam where the tail meets the bubble
     ctx.fillStyle = OUTLINE; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(chat.text, 0, -tail - h / 2 + fs * 0.06);
+    ctx.restore();
+  },
+
+  // an emote (build 120): a square bubble with the emote playing inside it, a little longer than a line
+  drawEmoteChat(ctx, chat, x, y, size) {
+    if (typeof Emotes === 'undefined') return;
+    const age = (performance.now() - chat.at) / 1000;
+    if (age > 3.4 || age < 0) return;
+    const pop = age < 0.2 ? easeOut(age / 0.2) : 1, fade = age > 3 ? (3.4 - age) / 0.4 : 1;
+    const B = size * 4.6, tail = size * 0.55, lw = Math.max(2.5, size * 0.22);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.translate(x, y);
+    ctx.scale(pop, pop);
+    const shape = (dy) => {
+      Sprites.rr(ctx, -B / 2, -B - tail + dy, B, B, B * 0.24);
+      ctx.moveTo(-tail * 0.8, -tail + dy - 1); ctx.lineTo(0, dy); ctx.lineTo(tail * 0.8, -tail + dy - 1);
+    };
+    ctx.fillStyle = OUTLINE; shape(lw * 1.1); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+    Sprites.rr(ctx, -B / 2, -B - tail, B, B, B * 0.24); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-tail * 0.8, -tail - 1); ctx.lineTo(0, 0); ctx.lineTo(tail * 0.8, -tail - 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-tail * 0.8 + lw * 0.5, -tail - lw * 1.2, tail * 1.6 - lw, lw * 1.4);
+    // the emote, clipped to the inside of the bubble
+    ctx.save();
+    Sprites.rr(ctx, -B / 2 + lw / 2, -B - tail + lw / 2, B - lw, B - lw, B * 0.22); ctx.clip();
+    Emotes.draw(ctx, chat.emote, 0, -tail - B / 2, B * 1.02, age);
+    ctx.restore();
     ctx.restore();
   },
 

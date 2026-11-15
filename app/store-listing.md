@@ -30,6 +30,7 @@ MAKE IT YOURS
 - Dozens of skill moves, goal celebrations, balls and trails, and as many accessories as you like at once
 - A ULT that is a different flaming kick every time: volley, bicycle kick, backflip kick or scorpion kick
 - Win coins, open crates and collect everything. Every crate shows its odds
+- 154 football emotes to collect and use in matches, with three new ones in the emote shop every day
 - Daily rewards, missions and medals to chase
 
 SAFE AND SIMPLE
@@ -74,4 +75,4 @@ Play in English, Spanish, Portuguese, French, German, Italian, Dutch, Turkish, P
 ## First release
 - Release type: Production (after the closed test described in PUBLISHING.md) or Closed testing first.
 - Upload the `.aab` file. Use Play App Signing (the default); the file is signed with the upload key.
-- Release name: `1.2.0 (21)`
+- Release name: `1.2.1 (22)`

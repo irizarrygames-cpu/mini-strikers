@@ -381,6 +381,9 @@ const UI = {
     this.portrait($('home-char-canvas'), Save.look());
     const badge = $('mission-badge'), toClaim = typeof Missions !== 'undefined' ? Missions.ready() : 0;
     if (badge) { badge.hidden = !toClaim; badge.textContent = toClaim || ''; }
+    // today's three emotes, until you have looked at them (build 120)
+    const cBadge = $('crate-badge'), fresh = typeof Emotes !== 'undefined' && Emotes.unseen() ? Emotes.shop().picks.filter((id) => !Emotes.owns(id)).length : 0;
+    if (cBadge) { cBadge.hidden = !fresh; cBadge.textContent = fresh || ''; }
     // once, after the update: what Club Career is (and the coins for the old characters)
     if (Save.data.seenCC === 0 && !this._ccNewSoon) { this._ccNewSoon = true; setTimeout(() => { this._ccNewSoon = false; this.maybeWhatsNew(); }, 1400); }
   },

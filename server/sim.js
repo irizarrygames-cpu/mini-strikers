@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const JS = path.join(__dirname, '..', 'js');
-const FILES = ['config.js', 'clubs.js', 'stadiums.js', 'celebs.js', 'save.js', 'meta.js', 'entities.js', 'ai.js', 'match.js', 'rules.js', 'replay.js'];
+const FILES = ['config.js', 'clubs.js', 'stadiums.js', 'celebs.js', 'emotes.js', 'save.js', 'meta.js', 'entities.js', 'ai.js', 'match.js', 'rules.js', 'replay.js'];
 
 // sounds everyone should hear; the charge hum is local to whoever is charging
 const SOUND_SKIP = new Set(['chargeStart', 'chargeStop', 'unlock', 'startMusic', 'stopMusic', 'startAmbience', 'stopAmbience', 'applyVolumes', 'tap', 'ok', 'setExcitement']);
@@ -54,7 +54,7 @@ function createSim({ pitch = 'normal' } = {}) {
   }
   if (pitch === 'pro') vm.runInContext("Pitch.use('pro')", sandbox);
   // lexical globals (const/let) aren't properties of the sandbox; pull out what we need
-  const api = vm.runInContext(`({ Match, CLUBS, EURO_CLUBS, countryFor, statLevels, statRatings, statOvr, overall, cleanLook, cleanAccessories, lookFromCustom, PRICES, CHARACTERS, pickBotCharacter, BOT_RARITY_ONLINE, BOT_RARITY_SHARE, SKILLS, ONLINE_BOTS, TRAILS, CELEBRATIONS, ACCESSORIES, ULT_KINDS, QUICK_CHAT, DIFFICULTY, playerRamp, Levels, CFG, FORMATS, SIDES, Clubs, TEAMS, RANK_TIERS, rankTier, rankNext, rankDelta, seasonNow, seasonEndsAt, NET_CHALLENGES, RANK_CHALLENGE })`, sandbox);
+  const api = vm.runInContext(`({ Match, CLUBS, EURO_CLUBS, countryFor, statLevels, statRatings, statOvr, overall, cleanLook, cleanAccessories, lookFromCustom, PRICES, CHARACTERS, pickBotCharacter, BOT_RARITY_ONLINE, BOT_RARITY_SHARE, SKILLS, ONLINE_BOTS, TRAILS, CELEBRATIONS, ACCESSORIES, ULT_KINDS, QUICK_CHAT, EMOTES, DIFFICULTY, playerRamp, Levels, CFG, FORMATS, SIDES, Clubs, TEAMS, RANK_TIERS, rankTier, rankNext, rankDelta, seasonNow, seasonEndsAt, NET_CHALLENGES, RANK_CHALLENGE })`, sandbox);
 
   return {
     ...api,

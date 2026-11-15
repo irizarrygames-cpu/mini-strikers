@@ -59,6 +59,7 @@ const Social = {
     Net.on('cup.bye', (m) => UI.toast(I18N.upper(m && m.msg ? I18N.server(m.msg) : tl('YOU GO THROUGH'))));
     Net.on('cup.won', () => { if (Game.state !== 'match' && Game.state !== 'results') { Sound.powerReady(); UI.toast(tl('YOU WON THE FRIEND CUP!')); } });
     Net.on('chat', (m) => this.onChat(m));
+    Net.on('emote', (m) => this.onEmote(m));
 
     $('btn-friends').addEventListener('click', () => { UI.tap(); UI.openModal('friends'); });
     $('party-bar').addEventListener('click', () => { UI.tap(); UI.openModal('friends'); });
@@ -209,7 +210,10 @@ const Social = {
     this.botQuiet = Math.max(0, this.botQuiet - (dt || 0));
     if (this.botSays) {
       this.botSays.t -= dt || 0;
-      if (this.botSays.t <= 0) { const s = this.botSays; this.botSays = null; if (s.p && m.players.includes(s.p)) this.bubble(s.p, s.line, false); }
+      if (this.botSays.t <= 0) {
+        const s = this.botSays; this.botSays = null;
+        if (s.p && m.players.includes(s.p)) { if (s.emote) this.emoteOn(s.p, s.emote); else this.bubble(s.p, s.line, false); }
+      }
       return;
     }
     const mates = m.players.filter((p) => !p.isKeeper && !p.isHuman);
@@ -217,7 +221,10 @@ const Social = {
     const say = (pool, who, delay) => {
       if (this.botQuiet > 0 || !who) return;
       this.botQuiet = 5;
-      this.botSays = { p: who, line: QUICK_CHAT.indexOf(pool[Math.floor(Math.random() * pool.length)]), t: delay };
+      const line = pool[Math.floor(Math.random() * pool.length)];
+      // a third of the time an emote that says the same thing (build 120)
+      const em = Math.random() < 0.35 ? emoteForLine(line) : null;
+      this.botSays = em ? { p: who, emote: em, t: delay } : { p: who, line: QUICK_CHAT.indexOf(line), t: delay };
     };
     if (!this.botHi && m.phase === 'play' && m.clock > 1) {
       this.botHi = true;
@@ -265,7 +272,7 @@ const Social = {
 
   buildChat() {
     const menu = $('chat-menu');
-    menu.innerHTML = QUICK_CHAT.map((line, i) => `<button data-i="${i}"><kbd>${CHAT_KEYS[i]}</kbd>${esc(tl(line))}</button>`).join('') + '<button class="mute" data-mute="1"></button>';
+    menu.innerHTML = '<div class="chat-emotes" id="chat-emotes"></div>' + QUICK_CHAT.map((line, i) => `<button data-i="${i}"><kbd>${CHAT_KEYS[i]}</kbd>${esc(tl(line))}</button>`).join('') + '<button class="mute" data-mute="1"></button>';
     menu.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.say(Number(b.dataset.i)); }));
     const mute = menu.querySelector('[data-mute]');
     const label = () => { mute.textContent = Save.data.settings.chatMute ? tl('CHAT OFF · TAP FOR ON') : tl('HIDE OTHERS’ CHAT'); };
@@ -283,7 +290,64 @@ const Social = {
     this.chatOn = on;
     $('chat-menu').hidden = !on;
     $('btn-chat').classList.toggle('on', on);
-    if (on) { this._muteLabel(); $('chat-menu').classList.toggle('cool', !this.canSay()); }
+    if (on) { this._muteLabel(); this.fillEmotes(); $('chat-menu').classList.toggle('cool', !this.canSay()); }
+  },
+
+  // your eight emotes along the top of the menu, playing while it is open (build 120)
+  fillEmotes() {
+    const row = $('chat-emotes');
+    if (!row || typeof Emotes === 'undefined') return;
+    const deck = Emotes.deck();
+    row.hidden = !deck.length;
+    row.innerHTML = deck.map((id) => `<button class="chat-emote" data-emote="${id}" aria-label="${esc(Emotes.get(id).name)}"><canvas width="96" height="96"></canvas></button>`).join('');
+    row.querySelectorAll('[data-emote]').forEach((b) => b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.sayEmote(b.dataset.emote); }));
+    const cards = [...row.querySelectorAll('canvas')];
+    const t0 = performance.now();
+    const draw = (now) => {
+      if (!this.chatOn || !cards.length || !cards[0].isConnected) return;
+      const t = (now - t0) / 1000;
+      cards.forEach((cv) => { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); Emotes.draw(g, cv.parentElement.dataset.emote, cv.width / 2, cv.height / 2, cv.width, t); });
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+  },
+
+  sayEmote(id) {
+    const m = Game.match;
+    if (!this.chatAllowed() || typeof Emotes === 'undefined' || !Emotes.owns(id)) return;
+    if (!this.canSay()) { Sound.tap(); return; }
+    this.chatSent.push(performance.now());
+    if (m.net) Net.send({ t: 'emote', e: id }); else this.botReplyEmote(id);
+    this.emoteOn(m.human, id);
+    this.toggleChat(false);
+    Sound.tap();
+  },
+
+  onEmote(msg) {
+    const m = Online.m;
+    if (!m || Online.status !== 'match' || Save.data.settings.chatMute || typeof Emotes === 'undefined') return;
+    const p = m.players[msg.p];
+    if (!p || typeof msg.e !== 'string' || !Emotes.get(msg.e)) return;
+    this.emoteOn(p, msg.e);
+    Sound.chat();
+  },
+
+  // an emote takes the place of whatever bubble was over their head
+  emoteOn(p, id) {
+    if (!p) return;
+    p.chat = { emote: id, at: performance.now() };
+  },
+
+  // offline, a bot on your side sometimes answers your emote with one of the same feeling
+  botReplyEmote(id) {
+    const m = Game.match, e = Emotes.get(id);
+    if (!m || m.net || this.botSays || this.botQuiet > 0 || !e || Math.random() > 0.4) return;
+    const mates = m.players.filter((p) => !p.isKeeper && !p.isHuman && p.team === m.human.team);
+    if (!mates.length) return;
+    const back = Emotes.forMood(e.mood);
+    if (!back) return;
+    this.botQuiet = 5;
+    this.botSays = { p: mates[Math.floor(Math.random() * mates.length)], emote: back, t: 0.9 + Math.random() * 1.3 };
   },
 
   // the same limits the server keeps: one line every 1.2s, five in any 10s
@@ -326,6 +390,8 @@ const Social = {
   },
 };
 
+const EMOTE_LINE_MOOD = { "LET'S GO!": 'joy', 'WOW!': 'joy', 'NICE ONE!': 'joy', 'WHAT A GOAL!': 'joy', 'THANKS!': 'joy', 'UNLUCKY': 'sad', 'DEFEND!': 'sad', 'SORRY!': 'sad', 'HI!': 'hi', 'GG': 'gg' };
+const emoteForLine = (line) => (typeof Emotes !== 'undefined' && EMOTE_LINE_MOOD[line] ? Emotes.forMood(EMOTE_LINE_MOOD[line]) : null);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---------------- the FRIENDS panel ---------------- */

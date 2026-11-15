@@ -670,9 +670,15 @@ const DIFFICULTY = {
   // and make half the mistakes, with the speed gap halved. The caps are the level ramp's own
   // (dodge 0.8, skill 0.6, react 0.5, noise 14) so a high level cannot push it past playable,
   // and a lunge chance over 0.8 per check just gets you dribbled round.
-  easy:   { redSpeed: 0.912, slideOnHuman: 1, aiSlide: 0.2,  aiDodge: 0.21, aiSkill: 0.16, keeperBonus: -0.05,  aiShotNoise: 52, react: 1.16, mistakes: 1.36 },
-  normal: { redSpeed: 0.94,  slideOnHuman: 1, aiSlide: 0.27, aiDodge: 0.375, aiSkill: 0.26, keeperBonus: 0.05,  aiShotNoise: 40, react: 1.0,  mistakes: 1.04 },
-  hard:   { redSpeed: 1.0,   slideOnHuman: 1, aiSlide: 0.4,  aiDodge: 0.4,  aiSkill: 0.3,  keeperBonus: 0.13,   aiShotNoise: 28, react: 1.0,  mistakes: 0.75 },
+  // 2026-11-15 (build 120) "make it a bit harder offline": every preset a step sharper — a little
+  // quicker, a quarter more tackles, a fifth more dodges and skills, shots 15% straighter, 8% quicker
+  // to react, 13% fewer mistakes, keepers a touch better (HARD a little less, so it moves as far as
+  // the others). The scripted average player over 720 NORMAL matches (1v1/2v2/4v4, four opponents,
+  // player level 1 and 25) won 76% before and 63% after — 87% -> 76% for a brand-new player, 64% ->
+  // 50% at level 25. EASY 99% -> 96%, HARD 62% -> 52% (level 1). Online is untouched.
+  easy:   { redSpeed: 0.927, slideOnHuman: 1, aiSlide: 0.25, aiDodge: 0.25, aiSkill: 0.2,  keeperBonus: -0.02,  aiShotNoise: 44, react: 1.07, mistakes: 1.18 },
+  normal: { redSpeed: 0.955, slideOnHuman: 1, aiSlide: 0.34, aiDodge: 0.45, aiSkill: 0.32, keeperBonus: 0.08,   aiShotNoise: 34, react: 0.92, mistakes: 0.9 },
+  hard:   { redSpeed: 1.008, slideOnHuman: 1, aiSlide: 0.45, aiDodge: 0.44, aiSkill: 0.34, keeperBonus: 0.15,   aiShotNoise: 26, react: 0.96, mistakes: 0.7 },
 };
 // online fill-ins (2026-09-19 "bots that are actually good"): quicker, sharper and cleaner than hard,
 // on both sides of an online match. Your level and the World Cup round still add to this.
