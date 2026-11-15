@@ -611,7 +611,7 @@ const Clubs = {
       const root = document.documentElement.style;
       root.setProperty('--home', kitUi(k.home)); root.setProperty('--home-d', shadeHex(kitUi(k.home), -0.25));
       root.setProperty('--red', kitUi(k.away)); root.setProperty('--red-d', shadeHex(kitUi(k.away), -0.25));
-      const key = home.id + '/' + away.id;
+      const key = home.id + '/' + away.id + '/' + (typeof Seasons !== 'undefined' ? Seasons.now() : '');
       if (typeof Render !== 'undefined' && Render.ctx && Render.layerClub !== key) Render.buildLayer();
     }
   },

@@ -1,6 +1,6 @@
 // Emotes (build 120), end to end without a browser:
 //   node tools/emotescan.js
-// 1. the 154 emotes: four starters, 50/40/30/20/10 by grade, every part they are made of exists and
+// 1. the 157 emotes: four starters, 50/41/31/21/10 by grade (three more in build 121), every part they are made of exists and
 //    every one draws at every moment of its loop without throwing (on a stand-in canvas)
 // 2. the daily emote shop: three a day, the same all day, from the ones you have not got, at the
 //    shop's odds; 1,000 coins each, bought once; a grade you own all of gives way to another
@@ -39,8 +39,8 @@ console.log('the emotes');
 {
   const by = {};
   for (const e of EMOTES) by[e.rarity] = (by[e.rarity] || 0) + 1;
-  check('154 in all', EMOTES.length === 154, EMOTES.length);
-  check('4 starters, then 50 common, 40 rare, 30 epic, 20 legendary, 10 mythic', by.starter === 4 && by.common === 50 && by.rare === 40 && by.epic === 30 && by.legendary === 20 && by.mythic === 10, by);
+  check('157 in all', EMOTES.length === 157, EMOTES.length);
+  check('4 starters, then 50 common, 41 rare, 31 epic, 21 legendary, 10 mythic', by.starter === 4 && by.common === 50 && by.rare === 41 && by.epic === 31 && by.legendary === 21 && by.mythic === 10, by);
   check('every id is different', new Set(EMOTES.map((e) => e.id)).size === EMOTES.length);
   check('every name is different', new Set(EMOTES.map((e) => e.name)).size === EMOTES.length);
   const MOVES = ['bounce', 'jump', 'shake', 'wobble', 'sway', 'pulse', 'float', 'nod', 'tilt', 'spin', 'slam', 'droop', 'no', 'roll', 'dash', 'flip', 'none'];

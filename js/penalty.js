@@ -527,12 +527,14 @@ const Pens = {
     if (ball && ball.atSpot) this.drawBall(ctx, ball, t);
     this.drawTaker(ctx, L, P, t);
     ctx.restore();
+    // the season's snow, blossom or leaves blow across the shootout too (build 121)
+    Render.drawWeather(ctx, t, { W, H, S: Render.S, st: Save.stadium(), seasonOnly: true, px: () => -999, py: () => -999, k: () => 1 });
     this.drawOverlay(ctx, L, P, t);
   },
 
   backdrop(L) {
     const st = Save.stadium(), dpr = Render.dpr;
-    const key = [st.id, TEAMS.blue.jersey, TEAMS.red.jersey, dpr, document.fonts ? document.fonts.status : ''].join('|');
+    const key = [st.id, st.season || '', TEAMS.blue.jersey, TEAMS.red.jersey, dpr, document.fonts ? document.fonts.status : ''].join('|');
     if (L.bg && L.bgKey === key) return L.bg;
     const c = document.createElement('canvas');
     c.width = Math.ceil(L.W * dpr); c.height = Math.ceil(L.H * dpr);

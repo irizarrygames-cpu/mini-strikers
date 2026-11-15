@@ -280,6 +280,28 @@ const SKILLS = [
     ball: { keep: true, glue: true }, self: { dodge: 1.2, spin: 2, burst: 0.8, turn: 'aim' }, hit: { radius: 100, stun: 0.6, push: 180, fall: true },
     fx: { kind: 'ring', color: '#ff3a6e', r0: 14, r1: 100, life: 0.52, width: 6, shake: 5, flash: 0.2 }, meter: 14,
     blurb: tl('Turn, and keep turning, and come out of it still holding the ball.') },
+
+  // ---- build 121: five more, each inside the numbers of other moves of its own grade
+  { id: 'icecut', name: tl('Ice Cut'), rarity: 'rare', say: tl('ICE CUT!'), color: '#bfe9ff',
+    ball: { keep: true }, self: { dodge: 0.5, burst: 0.4, turn: 'aim', kick: 0.18 }, hit: { radius: 42, stun: 0.26 },
+    fx: { kind: 'sparks', color: '#bfe9ff', n: 10, speed: 120 }, meter: 5,
+    blurb: tl('A sharp cut off the outside of the boot, like a skate on ice.') },
+  { id: 'fallingleaf', name: tl('Falling Leaf'), rarity: 'rare', say: tl('FALLING LEAF!'), color: '#e8742a',
+    ball: { speed: 280, lift: 560, over: true }, self: { hop: 0.3, dodge: 0.38, burst: 0.45, kick: 0.2 },
+    fx: { kind: 'ring', color: '#e8742a', r0: 8, r1: 32, life: 0.3 }, meter: 6,
+    blurb: tl('Float it up over them and let it drift down in front of you.') },
+  { id: 'snowglobe', name: tl('Snow Globe'), rarity: 'epic', say: tl('SNOW GLOBE!'), color: '#dff3ff',
+    ball: { keep: true }, self: { dodge: 0.66, spin: 1.5, turn: 'aim' }, hit: { radius: 48, stun: 0.3 },
+    fx: { kind: 'stars' }, meter: 7,
+    blurb: tl('Spin round with the ball and leave everyone near you shaken up.') },
+  { id: 'avalanche', name: tl('Avalanche'), rarity: 'legendary', say: tl('AVALANCHE!'), color: '#dff3ff',
+    ball: { keep: true }, self: { dodge: 0.62, burst: 0.5 }, hit: { radius: 78, stun: 0.48, push: 180, fall: true },
+    fx: { kind: 'ring', color: '#dff3ff', r0: 12, r1: 78, life: 0.45, width: 5, shake: 4 }, meter: 11,
+    blurb: tl('Everything comes down at once, and everyone near you goes with it.') },
+  { id: 'northernlights', name: tl('Northern Lights'), rarity: 'mythic', say: tl('NORTHERN LIGHTS!'), color: '#5fffc4',
+    ball: { keep: true, glue: true }, self: { dodge: 1, burst: 0.85, ghost: true }, hit: { radius: 90, stun: 0.56 },
+    fx: { kind: 'ring', color: '#5fffc4', r0: 16, r1: 90, life: 0.5, width: 6, flash: 0.16 }, meter: 13,
+    blurb: tl('The sky lights up green, and while they look up you are gone.') },
 ];
 const SKILL_IDS = new Set(SKILLS.map((s) => s.id));
 const skillDef = (id) => SKILLS.find((s) => s.id === id) || SKILLS[0];
@@ -836,7 +858,25 @@ const TRAILS = [
   { id: 'dragonfire', name: tl('Dragonfire'), rarity: 'mythic', a: '#ff7a1a', b: '#ffc21a', bands: [['#8c1020', 3.0], ['#ff5a1a', 2.0], ['#ffb03a', 1.1], ['#fff3a0', 0.5]], spark: 'ember', sparkA: '#ffc21a', sparkB: '#ff5a1a' },
   { id: 'celestial', name: tl('Celestial'), rarity: 'mythic', a: '#ffffff', b: '#ffd166', bands: [['#2a3f8a', 3.0], ['#7fb3ff', 2.0], ['#ffffff', 1.1], ['#ffd166', 0.5]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffd166' },
   { id: 'infinitytrail', name: tl('Infinity'), rarity: 'mythic', a: '#ff3a6e', b: '#46d9ff', bands: [['#ff3a6e', 3.1], ['#ff8a1f', 2.4], ['#ffe14d', 1.8], ['#3fcf4a', 1.3], ['#46d9ff', 0.8], ['#b04dff', 0.4]], spark: 'star', sparkA: '#ffffff', sparkB: '#ffe14d' },
+  // ---- build 121: fifteen more, with three new things to spin off them (snowflakes, leaves, notes)
+  { id: 'snowfall', name: tl('Snowfall'), rarity: 'rare', a: '#dff3ff', b: '#ffffff', bands: [['#7fb3e8', 2.2], ['#dff3ff', 1.3], ['#ffffff', 0.5]], spark: 'flake', sparkA: '#ffffff', sparkB: '#bfe3ff' },
+  { id: 'autumnleaves', name: tl('Autumn Leaves'), rarity: 'rare', a: '#e8742a', b: '#ffd166', bands: [['#8a3a12', 2.3], ['#e8742a', 1.4], ['#ffb03a', 0.6]], spark: 'leaf', sparkA: '#e8742a', sparkB: '#c2300a' },
+  { id: 'candycane', name: tl('Candy Cane'), rarity: 'rare', a: '#ff3a3f', b: '#ffffff', bands: [['#ffffff', 2.3], ['#ff3a3f', 1.5], ['#ffffff', 0.7]], spark: 'confetti', sparkA: '#ff3a3f', sparkB: '#ffffff' },
+  { id: 'sherbet', name: tl('Sherbet'), rarity: 'rare', a: '#ffb07a', b: '#ff8ac4', bands: [['#ff8ac4', 2.2], ['#ffb07a', 1.3], ['#fff3c8', 0.6]], spark: 'bubble', sparkA: '#fff3c8', sparkB: '#ff8ac4' },
+  { id: 'discotrail', name: tl('Disco'), rarity: 'epic', a: '#c04dff', b: '#46d9ff', bands: [['#2a0f4a', 2.5], ['#c04dff', 1.5], ['#46d9ff', 0.7]], spark: 'note', sparkA: '#ffe14d', sparkB: '#ff5fa8' },
+  { id: 'evergreen', name: tl('Evergreen'), rarity: 'epic', a: '#2f8f45', b: '#dfffe0', bands: [['#14532a', 2.4], ['#2f8f45', 1.4], ['#8fdc7a', 0.6]], spark: 'leaf', sparkA: '#3fcf4a', sparkB: '#14532a' },
+  { id: 'thunderstorm', name: tl('Thunderstorm'), rarity: 'epic', a: '#5b6475', b: '#ffe14d', bands: [['#2a2f3d', 2.6], ['#5b6475', 1.6], ['#b3bccc', 0.7]], spark: 'bolt', sparkA: '#ffe14d', sparkB: '#ffffff' },
+  { id: 'melody', name: tl('Melody'), rarity: 'epic', a: '#2f7bff', b: '#ffffff', bands: [['#0d2f7a', 2.3], ['#2f7bff', 1.4], ['#bfe0ff', 0.6]], spark: 'note', sparkA: '#ffffff', sparkB: '#bfe0ff' },
+  { id: 'blizzard', name: tl('Blizzard'), rarity: 'legendary', a: '#bfe9ff', b: '#ffffff', bands: [['#4a7fd8', 2.8], ['#9fd5ff', 1.8], ['#e8f6ff', 0.9], ['#ffffff', 0.4]], spark: 'flake', sparkA: '#ffffff', sparkB: '#9fd5ff' },
+  { id: 'harvestmoon', name: tl('Harvest Moon'), rarity: 'legendary', a: '#ff9a1f', b: '#ffe9a8', bands: [['#5a2a0a', 2.7], ['#c2601a', 1.7], ['#ff9a1f', 0.9], ['#ffe9a8', 0.4]], spark: 'leaf', sparkA: '#ffb03a', sparkB: '#c2300a' },
+  { id: 'bassdrop', name: tl('Bass Drop'), rarity: 'legendary', a: '#39ff88', b: '#0d1b2a', bands: [['#0d1b2a', 2.8], ['#16171d', 1.8], ['#39ff88', 0.9], ['#ffffff', 0.3]], spark: 'note', sparkA: '#39ff88', sparkB: '#ff4df0' },
+  { id: 'galaxyswirl', name: tl('Galaxy Swirl'), rarity: 'legendary', a: '#6a2ad8', b: '#46d9ff', bands: [['#120a30', 2.9], ['#4b1f9a', 1.9], ['#46d9ff', 0.9], ['#ffffff', 0.4]], spark: 'star', sparkA: '#ffffff', sparkB: '#46d9ff' },
+  { id: 'fourseasons', name: tl('Four Seasons'), rarity: 'mythic', a: '#ffb03a', b: '#9fd5ff', bands: [['#2f8f45', 3.0], ['#ff9ac4', 2.1], ['#ffb03a', 1.3], ['#ffffff', 0.6]], spark: 'seasons', sparkA: '#ffffff', sparkB: '#ff9ac4' },
+  { id: 'encore', name: tl('Encore'), rarity: 'mythic', a: '#ff3a6e', b: '#ffe14d', bands: [['#ff3a6e', 3.0], ['#ffe14d', 2.0], ['#46d9ff', 1.2], ['#ffffff', 0.5]], spark: 'note', sparkA: '#ffffff', sparkB: '#ffe14d' },
+  { id: 'polarnight', name: tl('Polar Night'), rarity: 'mythic', a: '#5fffc4', b: '#0d1430', bands: [['#0d1430', 3.1], ['#2a3f8a', 2.1], ['#5fffc4', 1.1], ['#ffffff', 0.4]], spark: 'flake', sparkA: '#ffffff', sparkB: '#5fffc4' },
 ];
+// the Four Seasons trail spins these off in turn: [shape, colour, other colour]
+const SEASON_SPARKS = [['flake', '#ffffff', '#bfe3ff'], ['petal', '#ffc8dd', '#ff9ac4'], ['ember', '#ffd166', '#ff9a1f'], ['leaf', '#e8742a', '#c2300a']];
 
 // how many samples of ball path each trail keeps (the shop trails are the long ones)
 const TRAIL_LEN = { pass: 7, weak: 8, shot: 10, strong: 14 };

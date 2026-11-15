@@ -1,5 +1,7 @@
 // Screens: home, HUD, intro, how-to-play, pause, results. Panels live in panels.js.
 const $ = (id) => document.getElementById(id);
+// a flat flame for a win streak: orange, a yellow heart, the game's ink outline
+const FIRE_SVG = '<svg class="fire-ico" viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1.5c1.2 4.2 6.8 6.3 6.8 12.4 0 4.6-3.2 8.1-6.8 8.1s-6.8-3.5-6.8-8.1c0-3.1 1.6-5.2 3.1-6.6.2 2 1 3.4 2.2 4 0-3.8.6-7.4 1.5-9.8z" fill="#ff7a1a" stroke="#161a33" stroke-width="2" stroke-linejoin="round"/><path d="M10 12.5c.9 2 3.1 3 3.1 5.6 0 1.9-1.4 3.4-3.1 3.4s-3.1-1.5-3.1-3.4c0-2.2 1.7-3.4 3.1-5.6z" fill="#ffe14d"/></svg>';
 
 const UI = {
   init() {
@@ -231,7 +233,7 @@ const UI = {
   // depends on the labels and whether GET THE APP is showing, so it is measured, never guessed
   // A few buttons hold one word side by side, and in some languages that word is longer than the
   // button ("PERSONNALISER"). Those letters shrink just enough to fit, rather than spill out.
-  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board, #r-title, .sig-tag, .rank-badge b, .rank-tier b',
+  FIT_WORDS: '.home-row .mid-btn, .cust-top .tabs button, .lg-board, #r-title, .sig-tag, .rank-badge b, .rank-tier b, #r-streak',
   fitWords(root = document) {
     if (!root) return;
     const range = document.createRange();
@@ -341,7 +343,14 @@ const UI = {
     const lv = Levels.info(d.xp || 0);
     $('home-level').textContent = lv.level;
     $('home-xp').style.width = Math.round((lv.into / lv.need) * 100) + '%';
-    $('home-record').textContent = tl('{0}W · {1}D · {2}L', [d.wins, d.draws || 0, d.losses || 0]) + (d.career.streak >= 2 ? ' · ' + tl('{0} WIN STREAK', [d.career.streak]) : '');
+    $('home-record').innerHTML = tl('{0}W · {1}D · {2}L', [d.wins, d.draws || 0, d.losses || 0]) + (d.career.streak >= 2 ? ' · ' + FIRE_SVG + tl('{0} WIN STREAK', [d.career.streak]) : '');
+    // a win streak of two or more: a flame on your card; the weekend: a sticker on PLAY
+    const fire = $('home-fire'), streak = d.career.streak || 0;
+    fire.hidden = streak < 2;
+    if (streak >= 2) fire.innerHTML = FIRE_SVG + `<b>${streak}</b>`;
+    const pb = $('play-bonus');
+    pb.hidden = !Bonus.weekend();
+    if (!pb.hidden) pb.textContent = tl('DOUBLE COINS WEEKEND');
     this.portrait($('home-char-canvas'), Save.look());
     const ovr = $('home-ovr');
     ovr.querySelector('b').textContent = charOvr(ch);
@@ -844,6 +853,12 @@ const UI = {
     const cup = m.mode === 'cup' ? Cup.state() : null;
     $('intro-stage').textContent = m.pens ? (m.pens.fk ? tl('FREE KICKS · 5 EACH, OVER OR ROUND THE WALL') : tl('PENALTY SHOOTOUT · 5 KICKS EACH')) : m.net ? (m.ranked ? tl('RANKED · 1v1') : m.fcup ? tl('FRIEND CUP · {0}', [CUP_ROUND_NAMES[m.fcup.of - 1 - m.fcup.round] || tl('CUP')]) : m.wc !== null && m.wc !== undefined ? (m.cupKind === 'cc' ? tl('CHAMPIONS CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format]) : tl('WORLD CUP · {0} · {1}', [WC_ROUNDS[m.wc], m.format])) : tl('ONLINE · {0}', [m.rules ? `${tl('PRO MATCH')} ${m.format}` : m.format])) : m.training ? tl('TRAINING · NO CLOCK') : (cup ? (Cup.champions() ? tl('CHAMPIONS CUP · {0}', [Cup.ROUNDS[cup.round]]) : tl('CUP · {0}', [Cup.ROUNDS[cup.round]])) : m.rules ? tl('PRO MATCH') : tl('QUICK MATCH')) + ` · ${m.format}`;
     $('intro-go').hidden = !!m.net;
+    // what this match pays on top: the weekend, or the win streak a win here would make
+    const ib = $('intro-bonus'), streak = Save.data.career.streak || 0, next = Bonus.of(streak + 1);
+    ib.hidden = !!m.training || !next.why;
+    ib.classList.toggle('fire', next.why === 'streak');
+    if (next.why === 'weekend') ib.textContent = tl('DOUBLE COINS WEEKEND · EVERY MATCH PAYS ×2');
+    else if (next.why === 'streak') ib.innerHTML = FIRE_SVG + (streak >= 2 ? tl('ON FIRE ×{0} · A WIN PAYS +{1}% COINS', [streak, Math.round(next.pct * 100)]) : tl('{0} WIN IN A ROW · ANOTHER PAYS +{1}% COINS', [streak, Math.round(next.pct * 100)]));
     $('intro-opp').textContent = TEAMS.red.name;
     $('intro-home').textContent = TEAMS.blue.name;
     const ch = Save.character();
@@ -1085,11 +1100,12 @@ const UI = {
     c.formats[m.format] = (c.formats[m.format] || 0) + 1;
     c.streak = r.outcome === 'win' ? c.streak + 1 : 0;
     c.bestStreak = Math.max(c.bestStreak, c.streak);
-    // a win streak pays a little extra: +10 per win after the first, up to +50
-    const streakBonus = r.outcome === 'win' ? Math.min(50, (c.streak - 1) * 10) : 0;
+    // a win streak or the weekend puts more on the match's coins, whichever is bigger (Bonus)
+    const bonus = Bonus.of(r.outcome === 'win' ? c.streak : 0);
+    const streakBonus = Bonus.coins(r.coins, r.outcome === 'win' ? c.streak : 0);
     d.coins += streakBonus;
-    Missions.record(m, r.outcome);
     const cupResult = m.mode === 'cup' ? Cup.record(m) : null;
+    Missions.record(Missions.fromMatch(m, r.outcome, { cupChampion: cupResult === 'champion' }));
     const cupPrize = cupResult === 'champion' ? Cup.prize() : 0;
     if (cupPrize) d.coins += cupPrize;
     // playing for a club: your wages for this match (a shootout pays for the penalties you scored)
@@ -1142,8 +1158,7 @@ const UI = {
     multTag.hidden = r.mult === 1;
     multTag.textContent = `${Save.data.settings.difficulty.toUpperCase()} ×${r.mult}`;
     multTag.classList.toggle('hard', r.mult > 1);
-    $('r-streak').hidden = c.streak < 2;
-    $('r-streak').innerHTML = `<b>${c.streak}</b> ${tl('WIN STREAK')}${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
+    this.bonusLine(c.streak, bonus, streakBonus, r.outcome === 'win');
     const lv = Levels.info(d.xp);
     $('r-level').textContent = lv.level;
     $('r-xpbar').style.width = Math.round((lv.into / lv.need) * 100) + '%';
@@ -1206,7 +1221,8 @@ const UI = {
     if (!msg.coop) { c.online = (c.online || 0) + 1; if (outcome === 'win') c.onlineWins = (c.onlineWins || 0) + 1; }
     c.streak = outcome === 'win' ? c.streak + 1 : 0;
     c.bestStreak = Math.max(c.bestStreak, c.streak);
-    const streakBonus = outcome === 'win' ? Math.min(50, (c.streak - 1) * 10) : 0;
+    const bonus = Bonus.of(outcome === 'win' ? c.streak : 0);
+    const streakBonus = Bonus.coins(coins, outcome === 'win' ? c.streak : 0);
     d.coins += streakBonus;
     // the online World Cup (or Champions Cup): remember this run's results to show the road to the final
     const cup = msg.wc || null, champs = !!cup && msg.cup === 'cc';
@@ -1236,6 +1252,8 @@ const UI = {
     let levelCoins = 0;
     for (let lv = levelBefore + 1; lv <= levelAfter; lv++) levelCoins += Levels.reward(lv);
     d.coins += levelCoins;
+    // (before build 121 an online match never counted towards a mission at all)
+    Missions.record(Missions.fromOnline(m, msg, st));
     Save.write();
     const fresh = Achievements.readyList().filter((a) => !readyBefore.has(a.id));
     if (fresh.length) setTimeout(() => { if (Game.state === 'results') { this.toast(fresh.length === 1 ? tl('ACHIEVEMENT: {0}  ·  CLAIM IN PROFILE', [I18N.upper(fresh[0].name)]) : tl('{0} ACHIEVEMENTS UNLOCKED  ·  CLAIM IN PROFILE', [fresh.length])); Sound.powerReady(); } }, msg.forfeit ? 2800 : 900); // after the forfeit note has been read
@@ -1278,8 +1296,7 @@ const UI = {
       rankBox.innerHTML = `<span class="r-rank-tier">${tier.name}</span><b>${tl('{0} RP', [rk.rp])}</b><em class="${rd > 0 ? 'up' : rd < 0 ? 'down' : 'flat'}">${rd > 0 ? '+' + rd : rd < 0 ? rd : tl('NO CHANGE')}</em>`;
       if (Net.user) Net.user.rank = rk;
     }
-    $('r-streak').hidden = c.streak < 2;
-    $('r-streak').innerHTML = `<b>${c.streak}</b> ${tl('WIN STREAK')}${streakBonus ? ` <span>+${streakBonus}</span>` : ''}`;
+    this.bonusLine(c.streak, bonus, streakBonus, outcome === 'win');
     const lv = Levels.info(d.xp);
     $('r-level').textContent = lv.level;
     $('r-xpbar').style.width = Math.round((lv.into / lv.need) * 100) + '%';
@@ -1320,6 +1337,25 @@ const UI = {
     this._rankedUp = false;
     this._leaguePos = 0;
     this.fetchLeaguePos();
+  },
+
+  // the orange box under the coins: your win streak, the weekend, and what they added
+  bonusLine(streak, bonus, extra, won) {
+    const box = $('r-streak'), parts = [];
+    // (with the weekend as well, the streak is just the flame and its number: one line either way)
+    if (streak >= 2) parts.push(bonus.why === 'weekend' ? `${FIRE_SVG}<b>${streak}</b>` : `${FIRE_SVG}<b>${streak}</b> ${tl('WIN STREAK')}`);
+    if (bonus.why === 'weekend') parts.push(tl('DOUBLE COINS WEEKEND'));
+    box.hidden = !parts.length;
+    box.classList.toggle('fire', streak >= 2);
+    box.innerHTML = parts.join(' · ') + (extra ? ` <span>+${fmtCoins(extra)}</span>` : '');
+    // ON FIRE ×3: a shout and some flame-coloured confetti once the card has settled
+    if (won && streak >= 2) setTimeout(() => {
+      if (Game.state !== 'results' || box.hidden) return;
+      const at = Pop.at(box);
+      Pop.shout(at.x, at.y - 26, tl('ON FIRE ×{0}!', [streak]), '#ff8a1f', 1200);
+      Pop.confetti(at.x, at.y, ['#ff5a1a', '#ff8a1f', '#ffe14d'], streak >= 5 ? 40 : 24);
+      Pop.ring(at.x, at.y, '#ff8a1f', 200, 460);
+    }, 1500);
   },
 
   // the wages line on the results: what your goals and assists for your club paid

@@ -1098,7 +1098,7 @@ function performSkill(m, p, ix, iy) {
       p.burstT = 0.6; p.noPickupT = 0.22; p.dodgeT = 0.3;
       b.lastTouchTeam = p.team; b.lastPass = null;
       say(tl('NUTMEG!'), '#ff8af0');
-      if (p.isHuman) m.flags.nutmeg = true;
+      if (p.isHuman) { m.flags.nutmeg = true; m.flags.nutmegs = (m.flags.nutmegs || 0) + 1; }
       Sound.ooh();
       addMeter(m, p, 8);
       break;

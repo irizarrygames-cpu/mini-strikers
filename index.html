@@ -155,6 +155,7 @@
       <button id="home-char" class="home-char">
         <canvas id="home-char-canvas" width="96" height="96"></canvas>
         <span id="home-ovr" class="hc-ovr"><b>60</b><small>OVR</small></span>
+        <i id="home-fire" class="hc-fire" hidden></i>
         <div class="hc-info">
           <small>LEVEL <b id="home-level">1</b> · <span id="home-user">GUEST</span></small>
           <strong id="home-char-name">Street</strong>
@@ -180,7 +181,7 @@
       <button id="party-bar" class="party-bar" hidden></button>
       <button id="cup-bar" class="party-bar cup-bar" hidden></button>
       <button id="club-bar" class="party-bar club-bar" hidden></button>
-      <button id="btn-play" class="big-btn">PLAY</button>
+      <button id="btn-play" class="big-btn">PLAY<small id="play-bonus" class="play-bonus" hidden></small></button>
       <div class="home-row">
         <button class="mid-btn" data-open="missions">MISSIONS<i class="badge" id="mission-badge" hidden></i></button>
         <button class="mid-btn crates-btn" data-open="crates">CRATES<i class="badge" id="crate-badge" hidden></i></button>
@@ -266,6 +267,7 @@
   <div id="intro" class="overlay intro" hidden>
     <div class="intro-card">
       <div id="intro-stage" class="intro-stage">QUICK MATCH</div>
+      <div id="intro-bonus" class="intro-bonus" hidden></div>
       <div class="intro-vs">
         <div class="iv blue"><canvas id="intro-canvas" width="96" height="96"></canvas><div><span id="intro-home">HOME</span><small id="intro-you">STREET</small></div></div>
         <b>VS</b>

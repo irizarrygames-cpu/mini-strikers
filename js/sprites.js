@@ -316,6 +316,52 @@ const Sprites = {
   celebProp(ctx, name, e, back, p) {
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     switch (name) {
+      // ---- build 121 ----
+      case 'snowball': {
+        // in the hand while it is packed, then off on its arc (the splat is drawn in premiumCelebFX)
+        let x, y;
+        if (e < 1.38) {
+          if (e < 0.35) break;
+          const h = CELE_POSES.snowball(e, e, p).hands[1]; x = h[0] + 2; y = h[1] - 3;
+        } else {
+          const u = (e - 1.38) / 0.45;
+          if (u >= 1) break;
+          x = lerp(28, 120, u); y = lerp(-52, -26, u) - Math.sin(u * Math.PI) * 26;
+        }
+        ctx.beginPath(); ctx.arc(x, y, 4.4, 0, Math.PI * 2); this.blob(ctx, '#ffffff');
+        ctx.fillStyle = '#bfe3ff'; ctx.beginPath(); ctx.arc(x + 1.4, y + 1.4, 1.6, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case 'turntable': {
+        // the deck in front, the record turning back and forth under the hand, headphones on
+        this.rr(ctx, 2, -34, 32, 9, 2); this.blob(ctx, '#393f63');
+        ctx.beginPath(); ctx.ellipse(18, -35, 11, 3.6, 0, 0, Math.PI * 2); this.blob(ctx, '#16171d');
+        const sc = Math.sin(e * 14) * 0.9;
+        ctx.fillStyle = '#ff5fa8'; ctx.beginPath(); ctx.ellipse(18, -35, 3, 1.1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(18, -35); ctx.lineTo(18 + Math.cos(sc) * 9, -35 + Math.sin(sc) * 3); ctx.stroke();
+        ctx.fillStyle = '#46d9ff'; ctx.fillRect(28, -31.5, 3, 3);
+        // headphones
+        ctx.lineWidth = 4.2; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.arc(1.5, -57, 13.5, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#ff3a3f'; ctx.stroke();
+        for (const ex of [-11.5, 13.5]) { this.rr(ctx, ex - 3, -60, 6, 9, 2.5); this.blob(ctx, '#ff3a3f'); }
+        break;
+      }
+      case 'skis': {
+        // two skis under the boots: in a V while flying, side by side otherwise
+        const fly = e >= 0.35 && e < 1.45;
+        const pose = CELE_POSES.skijump(e, e, p), feet = pose.feet || [[-3, -1], [5, -1]];
+        // props are drawn leaning with the upper body; the skis belong to the feet, so lean back
+        ctx.save();
+        if (pose.upper) { ctx.translate(0, -22); ctx.rotate(-pose.upper); ctx.translate(0, 22); }
+        feet.forEach(([fx, fy], i) => {
+          ctx.save(); ctx.translate(fx, fy + 2); if (fly) ctx.rotate(i ? -0.16 : 0.16);
+          ctx.beginPath(); ctx.moveTo(-18, -1.6); ctx.lineTo(24, -1.6); ctx.quadraticCurveTo(31, -1.6, 32, -6.5); ctx.quadraticCurveTo(30, 1.6, 24, 1.6); ctx.lineTo(-18, 1.6); ctx.closePath();
+          this.blob(ctx, i ? '#2f7bff' : '#ff3a3f');
+          ctx.restore();
+        });
+        ctx.restore();
+        break;
+      }
       case 'shades': {
         if (back) return;
         ctx.fillStyle = '#161a33';
@@ -564,6 +610,48 @@ const Sprites = {
       pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
     };
     switch (name) {
+      // ---- build 121 ----
+      case 'snowball': {
+        // the splat where it lands
+        const u = (e - 1.83) / 0.6;
+        if (u > 0 && u < 1) {
+          const x = 120 * flip, y = -26;
+          ctx.globalAlpha = 1 - u;
+          for (let i = 0; i < 7; i++) {
+            const a = (i / 7) * pi * 2 + 0.3, d = 6 + u * 18;
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.6, 3.4 * (1 - u * 0.5), 0, 2 * pi); ctx.fillStyle = '#ffffff'; ctx.fill();
+          }
+          ring(x, y, 6 + u * 16, 3 + u * 8, '#ffffff', 3);
+        }
+        break;
+      }
+      case 'djscratch':
+        for (let i = 0; i < 4; i++) {
+          const u = (e * 0.55 + i / 4) % 1, x = (18 + Math.sin(u * 8 + i) * 10) * flip, y = -44 - u * 50;
+          ctx.globalAlpha = u < 0.15 ? u / 0.15 : 1 - (u - 0.15) / 0.85;
+          const col = ['#ffe14d', '#ff5fa8', '#46d9ff', '#ffffff'][i];
+          ctx.fillStyle = col; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.ellipse(x, y, 3.6, 2.6, -0.45, 0, 2 * pi); ctx.fill(); ctx.stroke();
+          ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(x + 3 * flip, y - 1); ctx.lineTo(x + 3 * flip, y - 12); ctx.stroke();
+          ctx.lineWidth = 1.6; ctx.strokeStyle = col; ctx.stroke();
+        }
+        break;
+      case 'skijump': {
+        // speed lines in the air, a spray of snow on the landing
+        if (e >= 0.35 && e < 1.45) {
+          ctx.globalAlpha = 0.7;
+          for (let i = 0; i < 3; i++) line([[(-30 - i * 8) * flip, -20 - rise - i * 12], [(-58 - i * 8) * flip, -20 - rise - i * 12]], '#ffffff', 2.4);
+        }
+        const u = (e - 1.45) / 0.7;
+        if (u > 0 && u < 1) {
+          ctx.globalAlpha = 1 - u;
+          for (let i = 0; i < 9; i++) {
+            const a = pi + (i / 8) * 0.9 - 0.45, d = 10 + u * 34 + (i % 3) * 5;
+            ctx.beginPath(); ctx.arc(Math.cos(a) * d * flip, -3 + Math.sin(a) * d * 0.25 - Math.sin(u * pi) * 8, 3 - u * 1.5, 0, 2 * pi); ctx.fillStyle = '#ffffff'; ctx.fill();
+          }
+        }
+        break;
+      }
       case 'lightning':
         for (const side of [-1, 1]) {
           const glow = 0.45 + Math.abs(pulse) * 0.45;
@@ -1877,7 +1965,7 @@ const Sprites = {
     const dx = b.vx / sp, dy = b.vy / sp;
     const phase = ((b.roll % (Math.PI * 2)) / (Math.PI * 2)) * 2 - 1; // -1..1
     ctx.fillStyle = skin.patch;
-    for (let j = -1; j <= 1; j++) {
+    if (!skin.noPanels) for (let j = -1; j <= 1; j++) {
       const off = (phase + j * 1.0) * r * 1.3;
       const cx = sx + dx * off, cy = sy + dy * off * CFG.TILT;
       if (skin.multi) ctx.fillStyle = skin.multi[(j + 4) % 3];
@@ -1887,6 +1975,51 @@ const Sprites = {
         if (skin.multi) ctx.fillStyle = skin.multi[(i + j + 4) % 3];
         this.pent(ctx, cx + Math.cos(a) * r * 0.95, cy + Math.sin(a) * r * 0.95, r * 0.26, a);
       }
+    }
+    // build 121's balls: stripes that roll past, mirror tiles that catch the light, a snowflake, a leaf
+    if (skin.stripes) {
+      ctx.strokeStyle = skin.stripes; ctx.lineWidth = r * 0.24; ctx.lineCap = 'butt';
+      const px = -dy, py = dx;
+      for (let i = -3; i <= 3; i++) {
+        const off = (i * 0.62 + phase * 0.62) * r, cx = sx + dx * off, cy = sy + dy * off * CFG.TILT;
+        ctx.beginPath(); ctx.moveTo(cx - px * r * 1.3 + dx * r * 0.25, cy - py * r * 1.3); ctx.lineTo(cx + px * r * 1.3 - dx * r * 0.25, cy + py * r * 1.3); ctx.stroke();
+      }
+    }
+    if (skin.tiles) {
+      const step = r * 0.36, shift = ((b.roll * 0.5) % 1 + 1) % 1;
+      for (let gx = -4; gx <= 4; gx++) for (let gy = -4; gy <= 4; gy++) {
+        const x = sx + (gx + shift) * step, y = sy + gy * step * 0.9;
+        if ((x - sx) ** 2 + (y - sy) ** 2 > (r + step) ** 2) continue;
+        ctx.fillStyle = skin.tiles[(((gx * 7 + gy * 3 + Math.floor(b.roll * 2)) % skin.tiles.length) + skin.tiles.length) % skin.tiles.length];
+        ctx.fillRect(x - step * 0.42, y - step * 0.38, step * 0.84, step * 0.76);
+      }
+    }
+    if (skin.flake) {
+      ctx.strokeStyle = skin.flake; ctx.lineWidth = r * 0.13; ctx.lineCap = 'round';
+      const rot = b.roll * 0.3, L = r * 0.62;
+      ctx.beginPath();
+      for (let q = 0; q < 6; q++) {
+        const an = rot + (q * Math.PI) / 3, ex = Math.cos(an), ey = Math.sin(an);
+        ctx.moveTo(sx, sy); ctx.lineTo(sx + ex * L, sy + ey * L);
+        const mx = sx + ex * L * 0.58, my = sy + ey * L * 0.58;
+        ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(an + 0.75) * L * 0.3, my + Math.sin(an + 0.75) * L * 0.3);
+        ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(an - 0.75) * L * 0.3, my + Math.sin(an - 0.75) * L * 0.3);
+      }
+      ctx.stroke(); ctx.lineCap = 'butt';
+    }
+    if (skin.leaf) {
+      // a maple leaf: five points, alternating long and short, and a stalk
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(b.roll * 0.3);
+      ctx.fillStyle = skin.leaf;
+      ctx.beginPath();
+      for (let q = 0; q < 10; q++) {
+        const an = -Math.PI / 2 + (q * Math.PI) / 5, rr = q % 2 ? r * 0.28 : r * (q === 0 ? 0.68 : 0.58);
+        ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = skin.patch; ctx.lineWidth = r * 0.1;
+      ctx.beginPath(); ctx.moveTo(0, -r * 0.1); ctx.lineTo(0, r * 0.62); ctx.stroke();
+      ctx.restore();
     }
     if (skin.ring) {
       ctx.strokeStyle = skin.ring; ctx.lineWidth = r * 0.22;
@@ -1922,17 +2055,47 @@ const Sprites = {
 
   // What spins off a trail: one small shape, repeated along the path and fading out with it.
   trailSpark(ctx, pts, rad, k, t, def, b) {
-    const kind = def.spark, A = def.sparkA || '#ffffff', B = def.sparkB || def.a;
+    const base = def.spark;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let i = 1; i < pts.length; i++) {
+      // Four Seasons: a snowflake, a blossom petal, a speck of sun and an autumn leaf, in turn
+      const sea = base === 'seasons' ? SEASON_SPARKS[i % 4] : null;
+      const kind = sea ? sea[0] : base, A = sea ? sea[1] : def.sparkA || '#ffffff', B = sea ? sea[2] : def.sparkB || def.a;
       const u = i / pts.length, fade = 1 - u;
       const a = t * (kind === 'bolt' ? 20 : 8) + i * 1.7;
       const w = rad * 1.7 * fade;
       const x = pts[i].x + Math.cos(a) * w, y = pts[i].y + Math.sin(a * 1.2) * w * 0.7;
       const r = Math.max(0.6, rad * 0.5 * fade);
-      ctx.fillStyle = i % 2 ? A : B;
-      ctx.strokeStyle = i % 2 ? B : A;
-      if (kind === 'star') {
+      const fillC = i % 2 ? A : B, otherC = i % 2 ? B : A;
+      ctx.fillStyle = fillC;
+      ctx.strokeStyle = otherC;
+      if (kind === 'flake') {
+        // six arms with a tick on each
+        ctx.strokeStyle = fillC; ctx.lineWidth = Math.max(1, r * 0.34);
+        ctx.beginPath();
+        for (let q = 0; q < 6; q++) {
+          const an = a * 0.5 + (q * Math.PI) / 3, cx = Math.cos(an), sy = Math.sin(an), L = r * 1.7;
+          ctx.moveTo(x, y); ctx.lineTo(x + cx * L, y + sy * L);
+          const mx = x + cx * L * 0.6, my = y + sy * L * 0.6;
+          ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(an + 0.8) * L * 0.32, my + Math.sin(an + 0.8) * L * 0.32);
+        }
+        ctx.stroke();
+      } else if (kind === 'leaf') {
+        // a pointed leaf, tumbling, with its middle vein
+        ctx.save(); ctx.translate(x, y + Math.sin(t * 5 + i) * rad * 0.3); ctx.rotate(a * 0.7);
+        const L = r * 1.9;
+        ctx.beginPath(); ctx.moveTo(-L, 0); ctx.quadraticCurveTo(0, -L * 0.7, L, 0); ctx.quadraticCurveTo(0, L * 0.7, -L, 0); ctx.closePath(); ctx.fill();
+        ctx.lineWidth = Math.max(0.8, r * 0.22); ctx.strokeStyle = otherC;
+        ctx.beginPath(); ctx.moveTo(-L * 0.85, 0); ctx.lineTo(L * 0.7, 0); ctx.stroke();
+        ctx.restore();
+      } else if (kind === 'note') {
+        // a quaver: a tilted head, a stem and a flag
+        const hx = x, hy = y - fade * rad * 0.8, s = r * 1.15;
+        ctx.beginPath(); ctx.ellipse(hx, hy, s * 0.8, s * 0.58, -0.45, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = Math.max(1, s * 0.3); ctx.strokeStyle = fillC;
+        ctx.beginPath(); ctx.moveTo(hx + s * 0.66, hy - s * 0.2); ctx.lineTo(hx + s * 0.66, hy - s * 2.4);
+        ctx.quadraticCurveTo(hx + s * 1.6, hy - s * 1.9, hx + s * 1.5, hy - s * 1.2); ctx.stroke();
+      } else if (kind === 'star') {
         this.star(ctx, x, y, r * 1.6, i % 2 ? A : B);
       } else if (kind === 'bubble') {
         ctx.lineWidth = Math.max(1, r * 0.4);

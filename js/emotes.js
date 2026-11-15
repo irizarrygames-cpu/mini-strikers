@@ -1,5 +1,6 @@
-// EMOTES (build 120). 154 of them: four everyone starts with and 150 to collect. They come out of
-// crates, graded like everything else (50 common, 40 rare, 30 epic, 20 legendary, 10 mythic), and
+// EMOTES (build 120). 157 of them: four everyone starts with and 153 to collect (three more came in
+// build 121). They come out of crates, graded like everything else (50 common, 41 rare, 31 epic,
+// 21 legendary, 10 mythic), and
 // out of the DAILY EMOTE SHOP: three a day, picked for you from the ones you have not got, 1,000
 // coins each. A rare one only turns up now and then, which is the point of looking every day.
 //
@@ -179,6 +180,10 @@ const EMOTE_SPECS = [
   ['timefreeze', tl('Time Freeze'), 'mythic', 'ref', 'blank', 'clock', 'frost', 'none', 'cool'],
   ['livinglegend', tl('Living Legend'), 'mythic', 'coach', 'proud', 'crown', 'confetti', 'float', 'cool'],
   ['cosmickeeper', tl('Cosmic Keeper'), 'mythic', 'keeper', 'star', 'gloves', 'cosmos', 'float', 'cool'],
+  // ---- build 121: three for the winter and the autumn
+  ['snowday', tl('Snow Day'), 'rare', 'kid', 'happy', 'scarf', 'snow', 'bounce', 'joy'],
+  ['autumnbreeze', tl('Autumn Breeze'), 'epic', 'coach', 'calm', '', 'wind', 'sway', 'cool'],
+  ['cosygoat', tl('Cosy Goat'), 'legendary', 'goat', 'calm', 'scarf', 'snow', 'float', 'cool'],
 ];
 
 const EMOTES = EMOTE_SPECS.map(([id, name, rarity, who, face, prop, fx, move, mood]) => ({ id, name, rarity, who, face, prop, fx, move, mood, starter: rarity === 'starter' }));

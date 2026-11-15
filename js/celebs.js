@@ -114,6 +114,12 @@ const CELEBRATIONS = [
   { id: 'doubleflip', name: tl('Double Backflip'), rarity: 'mythic', price: 300000 },
   { id: 'starburst', name: tl('Starburst'), rarity: 'mythic', price: 360000 },
   { id: 'timefreeze', name: tl('Time Freeze'), rarity: 'mythic', price: 450000 },
+  // ---- build 121
+  { id: 'penguin', name: tl('Penguin Waddle'), rarity: 'rare', price: 22000 },
+  { id: 'jumpingjacks', name: tl('Jumping Jacks'), rarity: 'rare', price: 24000 },
+  { id: 'snowball', name: tl('Snowball Fight'), rarity: 'epic', price: 58000 },
+  { id: 'djscratch', name: tl('DJ Scratch'), rarity: 'epic', price: 62000 },
+  { id: 'skijump', name: tl('Ski Jump'), rarity: 'legendary', price: 195000 },
 ];
 const CELE_IDS = CELEBRATIONS.map((c) => c.id);
 const CELE_PREMIUM = new Set(CELEBRATIONS.slice(CELEBRATIONS.findIndex((c) => c.id === 'lightning')).map((c) => c.id));
@@ -130,6 +136,16 @@ const celeGolf = (e) => (e < 0.3 ? 0 : e < 0.95 ? -2.3 * celeEase((e - 0.3) / 0.
 // fishing rod, from +x (negative is up): wind back, cast, wait, yank
 const celeRod = (e) => (e < 0.25 ? -0.7 : e < 0.55 ? lerp(-0.7, -2.3, celeEase((e - 0.25) / 0.3)) : e < 0.75 ? lerp(-2.3, -0.4, celeEase((e - 0.55) / 0.2))
   : e < 1.6 ? -0.45 + Math.sin(e * 6) * 0.04 : e < 1.8 ? lerp(-0.45, -1.6, celeEase((e - 1.6) / 0.2)) : -1.5 + Math.sin(e * 8) * 0.06);
+
+// scoop some snow, pack it, wind up and let it fly (build 121; the ball is drawn as the prop)
+const celeSnowball = (e) => {
+    if (e < 0.5) { const k = celeEase(e / 0.3); return { upper: 0.75 * k, jump: -3 * k, hands: [[lerp(-13, 6, k), lerp(-27, -8, k)], [lerp(13, 15, k), lerp(-27, -6, k)]] }; }
+    if (e < 0.95) { const k = celeEase((e - 0.5) / 0.2), s = Math.sin(e * 22) * 1.5; return { upper: 0.75 * (1 - k), hands: [[lerp(6, 7, k), lerp(-8, -41 + s, k)], [lerp(15, 15, k), lerp(-6, -43 - s, k)]] }; }
+    if (e < 1.3) { const k = celeEase((e - 0.95) / 0.3); return { lean: -0.12 * k, hands: [[lerp(7, 16, k), lerp(-41, -46, k)], [lerp(15, -14, k), lerp(-43, -64, k)]] }; }
+    if (e < 1.45) { const k = celeEase((e - 1.3) / 0.15); return { lean: lerp(-0.12, 0.15, k), hands: [[lerp(16, -14, k), lerp(-46, -32, k)], [lerp(-14, 27, k), lerp(-64, -50, k)]] }; }
+    const laugh = Math.abs(Math.sin(e * 9));
+    return { lean: 0.06, bob: laugh * 1.5, hands: [[-14, -30], [lerp(27, 18, celeEase((e - 1.45) / 0.3)), -40 + laugh * 2]] };
+};
 
 const CELE_POSES = {
   // teammates piling in: bouncing, arms up
@@ -723,6 +739,38 @@ const CELE_POSES = {
     return { jump: 6 + k * 10 + Math.sin(e * 6) * 1.5, hands: [[lerp(-13, -34, k), lerp(-27, -58, k)], [lerp(13, 34, k), lerp(-27, -58, k)]], legSwing: 0.3 * k, screen: 'starburst' };
   },
 
+  // ---- build 121 ----
+  // flippers down, rocking from foot to foot, shuffling along
+  penguin: (e) => {
+    const w = Math.sin(e * 8), flap = Math.abs(Math.sin(e * 12)) * 7;
+    return { rot: w * 0.16, bob: Math.abs(w) * 1.6, lean: 0.04,
+      hands: [[-19 - flap, -22 + flap * 0.6], [19 + flap, -22 + flap * 0.6]],
+      feet: [[-5 + w * 2, w > 0 ? -4 : -1], [6 - w * 2, w < 0 ? -4 : -1]] };
+  },
+
+  // arms from the sides to over the head and back, feet in and out, a little hop each time
+  jumpingjacks: (e) => {
+    const open = (1 - Math.cos(e * 10)) / 2, th = open * Math.PI * 0.9;
+    const arm = (side) => [side * (10 + 24 * Math.sin(th)), -41 + 24 * Math.cos(th)];
+    return { jump: Math.abs(Math.sin(e * 10)) * 6, hands: [arm(-1), arm(1)], feet: [[-4 - 9 * open, -1], [4 + 9 * open, -1]] };
+  },
+
+  snowball: (e) => Object.assign(celeSnowball(e), { prop: 'snowball' }),
+
+  // headphones on, one hand on the record, nodding along
+  djscratch: (e) => {
+    const s = Math.sin(e * 14), nod = Math.abs(Math.sin(e * 7));
+    return { upper: 0.12, bob: nod * 1.5, hands: [[-6, -58], [16 + s * 5, -37]], prop: 'turntable' };
+  },
+
+  // crouch, launch, fly leaning out over the skis, land in a telemark, arms up
+  skijump: (e) => {
+    if (e < 0.35) { const k = celeEase(e / 0.3); return { jump: -7 * k, upper: 0.5 * k, hands: [[lerp(-13, -22, k), lerp(-27, -24, k)], [lerp(13, -12, k), lerp(-27, -22, k)]], feet: [[-3, -1], [5, -1]], prop: 'skis' }; }
+    if (e < 1.45) { const u = (e - 0.35) / 1.1; return { jump: Math.sin(u * Math.PI) * 46 + 2, lean: 0.55, hands: [[-24, -30], [-18, -26]], feet: [[0, -2], [6, -2]], prop: 'skis' }; }
+    if (e < 1.75) { const k = celeEase((e - 1.45) / 0.3); return { jump: -5 * (1 - k * 0.6), hands: [[-26, -46], [26, -46]], feet: [[-12, -1], [12, -3]], prop: 'skis' }; }
+    return { jump: Math.abs(Math.sin((e - 1.75) * 8)) * 5, hands: celeUp(Math.sin(e * 13) * 3), feet: [[-8, -1], [9, -1]], prop: 'skis' };
+  },
+
   // the clock stops, and he has a walk round
   timefreeze: (e) => {
     if (e < 0.4) { const k = celeEase(e / 0.4); return { jump: 3 * k, hands: [[-13, -27], [lerp(13, 20, k), lerp(-27, -62, k)]], screen: 'timefreeze' }; }
@@ -792,6 +840,8 @@ const CELE_MOVES = {
   kickflip: (e) => (e < 0.95 ? 260 : 0),
   slamdunk: (e) => (e < 0.75 ? 240 : 0),
   timefreeze: (e) => (e > 0.4 && e < 2.1 ? 110 : 0),
+  penguin: (e) => (e > 0.2 && e < 2.3 ? 60 : 0),
+  skijump: (e) => (e < 0.35 ? 120 : e < 1.45 ? 300 : e < 1.9 ? 300 * (1 - (e - 1.45) / 0.45) : 0),
 };
 // airplane banks round in a curve instead of a straight line
 const CELE_TURN = { airplane: 1.7, bird: 1.4, surfer: 0.6 };

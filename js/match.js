@@ -474,7 +474,7 @@ const Match = {
     for (const t of ['blue', 'red']) if (m.score[t] < m.score[otherTeam(t)]) m.trailed[t] = true;
     if (scorer && scorer.isHuman && b.shot) {
       if (b.shot.power) { m.flags.powerGoal = true; m.flags.powerGoals = (m.flags.powerGoals || 0) + 1; }
-      if (b.shot.curved) m.flags.curlGoal = true;
+      if (b.shot.curved) { m.flags.curlGoal = true; m.flags.curlGoals = (m.flags.curlGoals || 0) + 1; }
     }
     const how = b.owner ? 'dribble' : b.shot ? (!b.shot.decided ? 'undecided' : b.shot.save ? 'saveMissed' : 'beatKeeper') : 'loose';
     m.goals.push({ team, scorer, assist, own: !scorer, how, time: m.overtime ? m.duration + m.otTime : m.duration - m.time });

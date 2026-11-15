@@ -44,18 +44,27 @@ const PRICES = {
     thunderstep: 300000, novastep: 320000, zerog: 340000, blackout: 360000, timeskip: 380000,
     riptide: 410000, phoenix: 430000, eclipsestep: 470000, starfall: 480000, infinityturn: 560000,
     goatwalk: 650000,
+    // build 121
+    icecut: 16500, fallingleaf: 17000, snowglobe: 75000, avalanche: 240000, northernlights: 600000,
   },
   trail: { electric: 0, fire: 250, blast: 300, plasma: 350, frost: 600, toxic: 900, shadow: 1400, rainbow: 2200, golden: 3500,
     sunrise: 8000, mintfizz: 9000, bubblegum: 10000, inkwell: 11000, cherry: 12000,
     lagoon: 20000, sandstorm: 24000, bloodmoon: 28000, circuit: 32000, starlight: 36000, aurora: 42000, honey: 46000,
     nightfall: 70000, firework: 80000, tsunami: 90000, magmatrail: 100000, spectre: 110000, jetstream: 125000, confetti: 140000, hologram: 160000,
-    supernova: 260000, blackhole: 300000, dragonfire: 340000, celestial: 400000, infinitytrail: 500000 },
+    supernova: 260000, blackhole: 300000, dragonfire: 340000, celestial: 400000, infinitytrail: 500000,
+    // build 121
+    snowfall: 12500, autumnleaves: 13000, candycane: 13500, sherbet: 14000,
+    discotrail: 47000, evergreen: 48000, thunderstorm: 49000, melody: 50000,
+    blizzard: 165000, harvestmoon: 170000, bassdrop: 175000, galaxyswirl: 180000,
+    fourseasons: 520000, encore: 540000, polarnight: 560000 },
   celebration: Object.fromEntries(CELEBRATIONS.map((c) => [c.id, c.price])),
   ball: { classic: 0, beach: 400, volt: 700, fire: 1200, gold: 2000, galaxy: 3000, glacier: 900, camo: 1500, neon: 2500, magma: 4000, diamond: 6000,
     sunsetball: 8000, mint: 9000, carbon: 10000, candy: 11000, pumpkin: 12000,
     lava: 20000, arctic: 24000, venom: 28000, ruby: 32000, sapphire: 36000, emeraldball: 40000, checker: 45000,
     thunder: 70000, royalball: 80000, phantomball: 90000, cyber: 100000, pearl: 110000, nebula: 125000, comet: 140000, solar: 160000,
-    obsidian: 260000, dragonball: 300000, prism: 340000, voidball: 400000, infinity: 500000 },
+    obsidian: 260000, dragonball: 300000, prism: 340000, voidball: 400000, infinity: 500000,
+    // build 121
+    watermelon: 12500, snowflakeball: 13000, peppermint: 47000, mapleball: 48000, discoball: 170000 },
   // emotes (build 120): the four starters are free; the rest come from crates or the daily emote
   // shop, which is the only place one is sold (its grade is its own, not worked out from this)
   emote: typeof EMOTES !== 'undefined' ? Object.fromEntries(EMOTES.map((e) => [e.id, e.starter ? 0 : EMOTE_PRICE])) : {},
@@ -99,6 +108,12 @@ const BALLS = [
   { id: 'prism', name: tl('Prism'), rarity: 'mythic', base: '#ffffff', patch: '#46d9ff', multi: ['#ff5fa8', '#ffe14d', '#46d9ff'], glow: '#ffffff', swirl: '#b04dff' },
   { id: 'voidball', name: tl('The Void'), rarity: 'mythic', base: '#07060f', patch: '#2a1a4a', glow: '#6a2ad8', stars: true, ring: '#8a3fd8' },
   { id: 'infinity', name: tl('Infinity'), rarity: 'mythic', base: '#0a0a16', patch: '#ffffff', multi: ['#ff3a6e', '#ffe14d', '#46d9ff'], glow: '#ff3a6e', stars: true, ring: '#ffffff', swirl: '#ffe14d' },
+  // ---- build 121: five more, each with something new on it (stripes, a snowflake, a leaf, mirror tiles)
+  { id: 'watermelon', name: tl('Watermelon'), rarity: 'rare', base: '#5cc45a', patch: '#2a7a33', noPanels: true, stripes: '#2a7a33' },
+  { id: 'snowflakeball', name: tl('Snowflake'), rarity: 'rare', base: '#eef8ff', patch: '#9fc8ee', flake: '#4a90d8' },
+  { id: 'peppermint', name: tl('Peppermint'), rarity: 'epic', base: '#ffffff', patch: '#e8283a', noPanels: true, stripes: '#e8283a', glow: '#ffd0d6' },
+  { id: 'mapleball', name: tl('Maple Leaf'), rarity: 'epic', base: '#e8742a', patch: '#a8400f', leaf: '#ffd166', glow: '#ffb03a' },
+  { id: 'discoball', name: tl('Disco Ball'), rarity: 'legendary', base: '#5b6475', patch: '#8e99ad', noPanels: true, tiles: ['#eef3fa', '#c9d2de', '#9fb0c8', '#ffffff'], glow: '#ffffff', stars: true },
 ];
 // A plain ground for anything that runs without the country grounds loaded (the server sim).
 const FALLBACK_STADIUM = { id: 'day', kind: 'day', name: 'MINI STRIKERS PARK', grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'], apron: '#8fa0c8', tuft: '#3f9f31', pattern: 'checks', weather: 'clouds', sky: ['#6fc2ff', '#a8dcff'], far: '#7fb8e8', hats: 'day', roof: '#242c63', trim: '#ffe14d', seat: '#34439a', chant: tl("LET'S GO!"), motif: 'skyline' };
@@ -261,6 +276,28 @@ const Achievements = {
     Save.write();
     return a.coins;
   },
+};
+
+// ===== Coin bonuses (build 121) =====================================
+// Two things put more on a match's coins, and you get whichever is bigger, never both:
+//   * a win streak: 2 wins in a row +25%, 3 in a row +50%, 5 or more double
+//   * the weekend: Friday, Saturday and Sunday on your own clock, every match pays double
+// It is the match's own coins that grow (the result, its challenges, a cup match's extra), not
+// level-up coins, cup prizes or club wages.
+const Bonus = {
+  STREAK: [[5, 1], [3, 0.5], [2, 0.25]], // [wins in a row, extra share]
+  WEEKEND: 1,
+  weekend(d = new Date()) { const w = d.getDay(); return w === 5 || w === 6 || w === 0; },
+  streakPct(streak) { for (const [n, p] of this.STREAK) if (streak >= n) return p; return 0; },
+  // what a match gets on top, given the win streak AFTER it (0 when it was not a win):
+  // { pct, why: 'weekend' | 'streak' | null }
+  of(streak, d = new Date()) {
+    const s = this.streakPct(streak), w = this.weekend(d) ? this.WEEKEND : 0;
+    if (w > 0 && w >= s) return { pct: w, why: 'weekend' };
+    if (s > 0) return { pct: s, why: 'streak' };
+    return { pct: 0, why: null };
+  },
+  coins(matchCoins, streak, d) { const b = this.of(streak, d); return Math.round(Math.max(0, matchCoins) * b.pct); },
 };
 
 // ===== Daily reward =================================================

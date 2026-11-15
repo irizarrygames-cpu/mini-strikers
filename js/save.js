@@ -165,6 +165,7 @@ const Save = {
     this.data.coins -= cost;
     this.data.stats[key] = L + 1;
     this.write();
+    if (typeof Missions !== 'undefined') Missions.bump('upgrade');
     return L + 1;
   },
   trail() {

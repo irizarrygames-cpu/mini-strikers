@@ -37,7 +37,7 @@ const Render = {
   layerFor() {
     const low = Save.data.settings.graphics === 'low' || this.quality >= 1;
     const f = Math.min(this.S * this.dpr * 1.1, low ? 0.75 : 1.0);
-    return [f.toFixed(3), Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id, CFG.FIELD_W].join('|');
+    return [f.toFixed(3), Clubs.home && Clubs.home.id, Clubs.current && Clubs.current.id, CFG.FIELD_W, typeof Seasons !== 'undefined' ? Seasons.now() : ''].join('|');
   },
 
   // Slight perspective: things on the far side of the pitch shrink, the near side grows.
@@ -81,7 +81,7 @@ const Render = {
     const EX = pro ? 420 : 270, EY0 = pro ? 340 : 230, EY1 = pro ? 300 : 190;
     const X0 = -EX, X1 = CFG.FIELD_W + EX, Y0 = -M * T - EY0, Y1 = (CFG.FIELD_H + M) * T + EY1;
     const f = Math.min(this.S * this.dpr * 1.1, Save.data.settings.graphics === 'low' || this.quality >= 1 ? 0.75 : 1.0);
-    this.layerClub = Clubs.home && Clubs.current ? Clubs.home.id + '/' + Clubs.current.id : null;
+    this.layerClub = Clubs.home && Clubs.current ? Clubs.home.id + '/' + Clubs.current.id + '/' + (typeof Seasons !== 'undefined' ? Seasons.now() : '') : null;
     this._layerKey = this.layerFor();
     this.LF = f;
     const c = document.createElement('canvas');
@@ -287,6 +287,15 @@ const Render = {
       g.fillStyle = pickc(['#ffffff', '#ff3a3f', '#2f7bff', '#ffe14d']); g.fill(); g.stroke();
     } else if (id === 'sunset' && r < 0.2 && !backs) {
       g.fillStyle = '#16171d'; g.fillRect(cx - 4.5, cy - 8, 9, 2.4);
+    } else if (id === 'summer' && r < 0.16) {
+      // a straw sun hat
+      g.fillStyle = '#f2d27a';
+      g.beginPath(); g.ellipse(cx, cy - 10, 10, 2.8, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.beginPath(); g.arc(cx, cy - 10.5, 4.8, Math.PI, Math.PI * 2); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#ff5fa8'; g.fillRect(cx - 4.6, cy - 12, 9.2, 1.6);
+    } else if (id === 'summer' && r < 0.32) {
+      g.beginPath(); g.arc(cx, cy - 8.4, 5.9, Math.PI, Math.PI * 2); g.closePath();
+      g.fillStyle = pickc(['#ffffff', '#ff3a3f', '#2f7bff', '#ffe14d', '#3fcf4a']); g.fill(); g.stroke();
     }
   },
 
@@ -299,7 +308,7 @@ const Render = {
       for (let x = 0; x <= W; x += 100) { g.beginPath(); g.moveTo(x, -M * T); g.lineTo(x, (H + M) * T); g.stroke(); }
       for (let y = 0; y <= H; y += 100) { g.beginPath(); g.moveTo(-CFG.END_M, y * T); g.lineTo(W + CFG.END_M, y * T); g.stroke(); }
     }
-    for (const x of [26, W - 26]) oval(x, H / 2, 60, 120, st.kind === 'snow' ? 'rgba(120, 150, 110, 0.25)' : 'rgba(170, 140, 70, 0.16)');
+    for (const x of [26, W - 26]) oval(x, H / 2, 60, 120, st.snowy ? 'rgba(120, 150, 110, 0.25)' : 'rgba(170, 140, 70, 0.16)');
     if (st.lights) for (const [x, y] of [[0.25, 0.3], [0.75, 0.3], [0.25, 0.72], [0.75, 0.72]]) oval(W * x, H * y, 560, 380, 'rgba(255, 255, 225, 0.06)');
     if (st.kind === 'rain') {
       for (let i = 0; i < 16; i++) {
@@ -309,12 +318,29 @@ const Render = {
       }
     }
     if (st.kind === 'desert') for (let i = 0; i < 24; i++) oval(rng() * W, rng() * H, 50 + rng() * 80, 26 + rng() * 40, 'rgba(226, 198, 120, 0.42)');
-    if (st.kind === 'snow') {
+    if (st.snowy) {
       for (let x = -40; x < W + 60; x += 55) {
         oval(x, -M + 6 + rng() * 14, 45 + rng() * 40, 16 + rng() * 12, 'rgba(255, 255, 255, 0.85)');
         oval(x + 20, H + M - 6 - rng() * 14, 45 + rng() * 40, 16 + rng() * 12, 'rgba(255, 255, 255, 0.85)');
       }
       for (let i = 0; i < 18; i++) oval(rng() * W, rng() * H, 40 + rng() * 60, 20 + rng() * 30, 'rgba(255, 255, 255, 0.3)');
+    }
+    if (st.flowers || st.leafy) {
+      // little flat flowers (or fallen leaves) in clumps along both touchlines and round the corners
+      const cols = st.leafy ? ['#e8742a', '#c2300a', '#ffb03a', '#a8561a'] : ['#ffffff', '#ffe14d', '#ff8ac4', '#ffffff'];
+      for (let x = -30; x < W + 40; x += 64) for (const edge of [-M + 10 + rng() * 16, H + M - 10 - rng() * 16]) {
+        for (let q = 0; q < 4; q++) {
+          const fx = x + rng() * 46, fy = edge + (rng() - 0.5) * 18, c = cols[(rng() * cols.length) | 0];
+          if (st.leafy) {
+            g.save(); g.translate(fx, fy * T); g.rotate(rng() * Math.PI); g.fillStyle = c;
+            g.beginPath(); g.moveTo(-7, 0); g.quadraticCurveTo(0, -5, 7, 0); g.quadraticCurveTo(0, 5, -7, 0); g.fill(); g.restore();
+          } else {
+            g.fillStyle = c;
+            for (let pp = 0; pp < 5; pp++) { const a = (pp / 5) * Math.PI * 2; g.beginPath(); g.ellipse(fx + Math.cos(a) * 3, (fy + Math.sin(a) * 3) * T, 2.6, 2.6 * T, 0, 0, Math.PI * 2); g.fill(); }
+            g.fillStyle = '#ffc21a'; g.beginPath(); g.ellipse(fx, fy * T, 1.8, 1.8 * T, 0, 0, Math.PI * 2); g.fill();
+          }
+        }
+      }
     }
     if (st.kind === 'royal') {
       // a crown mown into the centre circle
@@ -350,7 +376,7 @@ const Render = {
       g.strokeStyle = 'rgba(255, 255, 255, 0.35)'; g.lineWidth = 3; g.lineCap = 'round';
       for (let x = -E + C + 40; x < W + E - C; x += 140) { g.beginPath(); g.moveTo(x, topBoard - 6); g.lineTo(x + 14, front + 7); g.stroke(); }
     }
-    if (st.kind === 'snow') {
+    if (st.snowy) {
       g.fillStyle = '#ffffff'; g.strokeStyle = OUTLINE; g.lineWidth = 2;
       g.beginPath(); g.moveTo(-E + C, front + 3);
       for (let x = -E + C; x < W + E - C; x += 26) g.quadraticCurveTo(x + 13, front - 7 - (Math.abs(x / 26) % 3), x + 26, front + 3);
@@ -373,7 +399,7 @@ const Render = {
   // a small picture of a stadium for the shop: its top-left corner, cached
   stadiumThumb(st) {
     this._thumbs = this._thumbs || {};
-    const key = st.id + TEAMS.blue.board + TEAMS.red.board;
+    const key = st.id + (st.season || '') + TEAMS.blue.board + TEAMS.red.board;
     if (this._thumbs[key]) return this._thumbs[key];
     const c = document.createElement('canvas'); c.width = 400; c.height = 180;
     const g = c.getContext('2d'), sc = 400 / 1020;
@@ -387,7 +413,7 @@ const Render = {
   // v: where to draw it (defaults to the match camera); the shop swatch passes its own.
   drawWeather(ctx, t, v) {
     const st = (v && v.st) || Save.stadium();
-    if (!st.weather) return;
+    if (!st.weather && !st.extra) return;
     // Anything that moves across the SCREEN (birds, rain, snow, dust, sparkles) moves at a speed
     // that does not change with the camera's zoom. It used to be time x speed x zoom, and since the
     // camera zooms out to keep you and the ball in view, every little zoom change made that big
@@ -412,7 +438,19 @@ const Render = {
         ctx.closePath(); ctx.fill();
       }
     };
-    switch (st.weather) {
+    // falling snow, as many flakes as asked for (salt keeps a second fall from landing on the first)
+    const snowfall = (n, salt) => {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const r = (1.4 + rnd(i, 3 + salt) * 2.4) * S, span = H + 20;
+        const y = ((rnd(i, 2 + salt) * span + t * (28 + rnd(i, 4 + salt) * 40) * MS) % span) - 10;
+        const x = (((rnd(i, 1 + salt) * W + Math.sin(t * 0.9 + i) * 16 * S) % W) + W) % W;
+        ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    };
+    if (!v.seasonOnly) switch (st.weather) {
       case 'clouds': {
         // cloud shadows drifting over the pitch
         ctx.fillStyle = 'rgba(16, 40, 70, 0.08)';
@@ -469,15 +507,7 @@ const Render = {
       }
       case 'snow': {
         tint('rgba(225, 238, 255, 0.07)');
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        for (let i = 0; i < (lite ? 40 : 90); i++) {
-          const r = (1.4 + rnd(i, 3) * 2.4) * S, span = H + 20;
-          const y = ((rnd(i, 2) * span + t * (28 + rnd(i, 4) * 40) * MS) % span) - 10;
-          const x = (((rnd(i, 1) * W + Math.sin(t * 0.9 + i) * 16 * S) % W) + W) % W;
-          ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
-        }
-        ctx.fill();
+        snowfall(lite ? 40 : 90, 0);
         break;
       }
       case 'dust': {
@@ -511,6 +541,70 @@ const Render = {
           ctx.beginPath(); ctx.moveTo(ox - 4, -10); ctx.lineTo(ox + 4, -10); ctx.lineTo(hx + half, H + 10); ctx.lineTo(hx - half, H + 10); ctx.closePath(); ctx.fill();
         }
         flashes(lite ? 5 : 10, '#ff9ff5');
+        break;
+      }
+    }
+    // the season (build 121), over whatever the ground's own weather is. (Over a shootout only the
+    // season is drawn, and a winter ground whose own weather has turned to snow still snows there.)
+    switch (v.seasonOnly ? st.extra || (st.snowy ? 'snow' : null) : st.extra) {
+      case 'snow': snowfall(lite ? 26 : 60, 11); break;
+      case 'petals': {
+        const cols = ['#ffc8dd', '#ffffff', '#ff9ac4'];
+        for (let i = 0; i < (lite ? 14 : 30); i++) {
+          const span = H + 30, wide = W + 60;
+          const y = ((rnd(i, 21) * span + t * (30 + rnd(i, 22) * 26) * MS) % span) - 15;
+          const x = ((((rnd(i, 23) * wide + t * (34 + rnd(i, 24) * 30) * MS) % wide) + wide) % wide) - 30;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(t * (1.5 + rnd(i, 25) * 2) + i);
+          ctx.fillStyle = cols[i % 3];
+          ctx.beginPath(); ctx.ellipse(0, 0, 3.4 * S, 1.8 * S * (0.5 + Math.abs(Math.sin(t * 3 + i)) * 0.5), 0, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        break;
+      }
+      case 'leaves': {
+        const cols = ['#e8742a', '#c2300a', '#ffb03a', '#a8561a'];
+        ctx.lineWidth = Math.max(0.8, 0.9 * S); ctx.strokeStyle = OUTLINE;
+        for (let i = 0; i < (lite ? 12 : 26); i++) {
+          const span = H + 40, wide = W + 80;
+          const y = ((rnd(i, 31) * span + t * (36 + rnd(i, 32) * 30) * MS) % span) - 20 + Math.sin(t * 2 + i) * 10 * S;
+          const x = ((((rnd(i, 33) * wide + t * (90 + rnd(i, 34) * 70) * MS) % wide) + wide) % wide) - 40;
+          const s = (4.6 + rnd(i, 35) * 2.4) * S;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(t * (2 + rnd(i, 36) * 2) + i); ctx.scale(1, 0.4 + Math.abs(Math.sin(t * 2.4 + i)) * 0.6);
+          ctx.fillStyle = cols[i % 4];
+          ctx.beginPath(); ctx.moveTo(-s, 0); ctx.quadraticCurveTo(0, -s * 0.75, s, 0); ctx.quadraticCurveTo(0, s * 0.75, -s, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.restore();
+        }
+        break;
+      }
+      case 'fireflies': {
+        // a summer night: little lights drifting about, blinking on and off
+        ctx.fillStyle = '#fff3a0';
+        for (let i = 0; i < (lite ? 8 : 18); i++) {
+          const on = Math.sin(t * (1.6 + rnd(i, 51)) + i * 2.3);
+          if (on < 0.2) continue;
+          const x = rnd(i, 52) * W + Math.sin(t * 0.7 + i) * 30 * S, y = H * (0.1 + rnd(i, 53) * 0.8) + Math.cos(t * 0.9 + i * 1.3) * 20 * S;
+          const r = (1.2 + on * 1.4) * S;
+          ctx.globalAlpha = Math.min(1, on);
+          ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        }
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case 'sun': {
+        tint('rgba(255, 205, 90, 0.06)');
+        // butterflies, flapping their way across
+        const cols = ['#ffe14d', '#ff8af0', '#46d9ff'];
+        ctx.lineWidth = Math.max(0.8, 1 * S); ctx.strokeStyle = OUTLINE;
+        for (let i = 0; i < (lite ? 3 : 6); i++) {
+          const wide = W + 80, x = ((((rnd(i, 41) * wide + t * (40 + rnd(i, 42) * 30) * MS) % wide) + wide) % wide) - 40;
+          const y = H * (0.15 + rnd(i, 43) * 0.7) + Math.sin(t * 1.6 + i * 2) * 18 * S;
+          const flap = 0.25 + Math.abs(Math.sin(t * 11 + i * 1.7)) * 0.75, s = 4.2 * S;
+          ctx.fillStyle = cols[i % 3];
+          for (const side of [-1, 1]) {
+            ctx.beginPath(); ctx.ellipse(x + side * s * 0.7 * flap, y - s * 0.3, s * 0.8 * flap, s * 0.95, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          }
+          ctx.fillStyle = OUTLINE; ctx.fillRect(x - S * 0.6, y - s * 0.9, S * 1.2, s * 1.6);
+        }
         break;
       }
     }

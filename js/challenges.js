@@ -48,6 +48,8 @@ const SkillRun = {
     }
     if (coins) { Save.data.coins += coins; }
     Save.write();
+    // a finished run counts for the missions, and a medal (any, not just a new one) too
+    if (typeof Missions !== 'undefined') { Missions.bump('challenge'); if (got) Missions.bump('medal'); }
     return { coins, medal: got, best: rec.best, better };
   },
 

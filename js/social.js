@@ -319,6 +319,7 @@ const Social = {
     this.chatSent.push(performance.now());
     if (m.net) Net.send({ t: 'emote', e: id }); else this.botReplyEmote(id);
     this.emoteOn(m.human, id);
+    if (typeof Missions !== 'undefined') Missions.bump('emote');
     this.toggleChat(false);
     Sound.tap();
   },

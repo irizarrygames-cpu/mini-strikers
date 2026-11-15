@@ -251,6 +251,40 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Bonus coins, 200 more missions, stadium seasons, more to collect (build 121)
+
+- **Bonus coins** (`Bonus` in js/meta.js): a win streak puts +25% on a match's own coins at 2 in a row, +50% at
+  3 or 4, double at 5+; at the weekend (Friday to Sunday on the player's clock) every match pays double. Only
+  the bigger of the two counts. It replaces the old +10 a win (up to +50). Shown as a flame and the streak on
+  the home card, a DOUBLE COINS WEEKEND sticker on PLAY, a line on the VS card, the orange box at full time
+  (one line, shrunk to fit: `#r-streak` is in `UI.FIT_WORDS`) and an ON FIRE ×N! shout. Measured on the
+  match coin formula: weekdays +9..24% a match, weekends about +85%, a whole week about +45%.
+- **Missions** (js/missions.js): 184 daily and 35 weekly (200 new). Each day is dealt from a fixed epoch
+  (`MISSION_EPOCH`, Mon 5 Oct 2026) by taking the jobs that have waited longest, give or take a few days
+  (`JITTER`), so everybody gets the same three: never two of a kind (`MISSION_GROUP`), at most one
+  online-only (`MISSION_ONLINE`), and a daily one comes back after about 61 days (never under 54), a weekly one
+  after about 34 weeks. The weekly one is never online-only (`w-online6` is retired, still readable). Jobs can
+  be limited to a format, PRO MATCH, a club, your country, cups, HARD or online (`where`). A match is read once
+  into a summary (`Missions.fromMatch` / `fromOnline`); crates, stat upgrades, emotes in a match and skill
+  challenges count through `Missions.bump`. **Online matches now count** (before, only matches on the device
+  and online shootouts did). Pay comes from how many average matches a job takes: daily 250..900 (mean 525,
+  the old 14 averaged 519), weekly 9,500..15,000.
+- **Stadium seasons** (`Seasons` and `seasonal()` in js/stadiums.js): Dec-Feb winter, Mar-May spring, Jun-Aug
+  summer, Sep-Nov autumn, by the device's month, the same for every country. Grass, apron, tufts and sky are
+  mixed toward the season; winter snows (rain turns to snow, snow drifts and roof snow via `st.snowy`, bobble
+  hats), spring blows petals and puts flowers round the touchlines, summer has sun, butterflies (fireflies at
+  night grounds) and sun hats, autumn blows leaves and drops them round the edge. Drawn by
+  `Render.drawWeather` (`st.extra`, also over shootouts with `seasonOnly`). Looks only.
+  `Seasons.force = 'winter'` shows one season (for checking).
+- **More to collect**: 15 trails (new sparks `flake`, `leaf`, `note`, and `seasons`), 5 balls (new `stripes`,
+  `tiles`, `flake`, `leaf`, `noPanels`), 5 celebrations (penguin, jumpingjacks, snowball, djscratch, skijump;
+  new props `snowball`, `turntable`, `skis`), 5 skill moves inside the numbers of their grade, 3 emotes (157).
+  All appended at the end of their lists, so the online index lists (`NET_TRAILS`, `NET_CELEBS`) keep their
+  old numbers; an older app shows nothing for an id it does not know.
+
+Tests: `missionscan` (new: the list, five years of dealing, counting real matches, a save, the bumps);
+`emotescan` now expects 157. App 1.2.2 (code 23).
+
 ## Emotes, a daily emote shop, tougher bots offline (build 120)
 
 - **154 emotes** (`js/emotes.js`): four everyone starts with (Thumbs Up, Ha Ha!, Boo Hoo, Grrr!) and 150 to

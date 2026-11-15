@@ -539,11 +539,65 @@ for (const [id, city, kind, pattern, motif, chant] of GROUND_ROWS) COUNTRY_GROUN
 
 const DEFAULT_GROUND = { city: 'MINI STRIKERS PARK', kind: 'day', pattern: 'checks', motif: 'skyline', chant: "LET'S GO!" };
 
+// ---------------------------------------------------------------- the seasons (build 121)
+// Every ground changes with the month, on the player's own clock, the same way everywhere:
+//   December - February   winter: snow falling, frosty grass, snow on the stand, fans in bobble hats
+//   March - May           spring: blossom blowing across, fresh bright grass, flowers round the edge
+//   June - August         summer: hot sun, warm golden grass, butterflies (fireflies at night), sun hats
+//   September - November  autumn: leaves blowing across, the grass turning, leaves round the edge
+// A ground keeps its own sky, time of day, view and colours; the season goes on top. Rain turns to
+// snow in the winter and stops for the summer; a snowy ground only has snow in the winter. It is
+// only how things look: the ball plays the same in every season.
+const SEASON_OF_MONTH = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'fall', 'fall', 'fall', 'winter'];
+const Seasons = {
+  force: null, // 'winter' | 'spring' | 'summer' | 'fall' to look at one (tools, and nothing else)
+  now(d = new Date()) { return this.force || SEASON_OF_MONTH[d.getMonth()]; },
+};
+function mixHex(a, b, t) {
+  const p = (h) => parseInt(h.slice(1), 16), x = p(a), y = p(b);
+  const ch = (s) => Math.round(((x >> s) & 255) + ((((y >> s) & 255) - ((x >> s) & 255)) * t));
+  return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
+const SEASON_LOOK = {
+  winter: { grass: '#e4f0f4', g: 0.34, apron: '#f1f6fb', a: 0.55, tuft: '#ffffff', sky: ['#bcd4ec', '#f2f8ff'], s: 0.45 },
+  spring: { grass: '#7ee05a', g: 0.16, sky: ['#5fb8ff', '#d8f0ff'], s: 0.2 },
+  summer: { grass: '#b4d84a', g: 0.16, sky: ['#3fa8ff', '#bfe8ff'], s: 0.25 },
+  fall: { grass: '#c2a640', g: 0.22, tuft: '#c98a2a', t: 0.6, apron: '#d8b98a', a: 0.25, sky: ['#f2b878', '#ffe7c2'], s: 0.18 },
+};
+function seasonal(st, season) {
+  const L = SEASON_LOOK[season];
+  if (!L) return st;
+  const out = { ...st, season };
+  const dark = st.kind === 'night' || st.kind === 'neon'; // a night sky stays a night sky
+  const snowGround = st.kind === 'snow';
+  const g = snowGround && season !== 'winter' ? Math.min(0.4, L.g * 1.5) : snowGround && season === 'winter' ? 0 : L.g;
+  out.grass = st.grass.map((pair) => pair.map((c) => mixHex(c, L.grass, g)));
+  if (L.apron && !(snowGround && season === 'winter')) out.apron = mixHex(st.apron, L.apron, L.a);
+  if (L.tuft) out.tuft = L.t ? mixHex(st.tuft, L.tuft, L.t) : L.tuft;
+  if (!dark && st.sky) out.sky = st.sky.map((c, i) => mixHex(c, L.sky[i], L.s));
+  out.extra = null; out.snowy = false; out.flowers = false; out.leafy = false;
+  if (season === 'winter') {
+    out.snowy = true;
+    if (['clouds', 'rain', 'dust', 'snow'].includes(st.weather)) out.weather = 'snow'; else out.extra = 'snow';
+    out.hats = 'snow';
+  } else {
+    // a snowy ground thaws out; rain carries on in spring and autumn, not in summer
+    if (st.weather === 'snow') out.weather = 'clouds';
+    if (season === 'summer' && st.weather === 'rain') out.weather = 'clouds';
+    if (season === 'spring') { out.extra = 'petals'; out.flowers = true; }
+    if (season === 'summer') { out.extra = dark ? 'fireflies' : 'sun'; out.flowers = true; if (!dark) out.hats = 'summer'; }
+    if (season === 'fall') { out.extra = 'leaves'; out.leafy = true; }
+    if (snowGround && season === 'summer') out.hats = 'summer';
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- building one
 const _grounds = {};
 function stadiumFor(club) {
   const id = (club && club.id) || (typeof DEFAULT_CLUB === 'string' ? DEFAULT_CLUB : 'spain');
-  if (_grounds[id]) return _grounds[id];
+  const season = Seasons.now();
+  if (_grounds[id + '/' + season]) return _grounds[id + '/' + season];
   // a club plays in its country's kind of ground, named after its own city
   const ground = COUNTRY_GROUNDS[id] || (club && club.euro && COUNTRY_GROUNDS[club.country] ? { ...COUNTRY_GROUNDS[club.country], city: club.city } : DEFAULT_GROUND);
   const k = STADIUM_KINDS[ground.kind] || STADIUM_KINDS.day;
@@ -559,8 +613,7 @@ function stadiumFor(club) {
     trim: kit ? kit.accent : '#ffe14d',
     seat,
   };
-  _grounds[id] = st;
-  return st;
+  return (_grounds[id + '/' + season] = seasonal(st, season));
 }
 
 // the stadium of whoever is at home, which is you unless nobody has picked sides yet

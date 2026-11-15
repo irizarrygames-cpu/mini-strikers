@@ -150,6 +150,7 @@ const Crates = {
     if (win.kind === 'emote' && typeof Emotes !== 'undefined') Emotes.got(win.id); // straight into your match menu if it has room
     Save.data.crateCount = (Save.data.crateCount || 0) + 1;
     Save.write();
+    if (typeof Missions !== 'undefined') Missions.bump('crate');
     return win;
   },
 };

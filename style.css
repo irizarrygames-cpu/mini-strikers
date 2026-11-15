@@ -2399,3 +2399,20 @@ body.lefty #touch-zone { left: 50%; }
 /* while the quick chat menu is open the commentary steps aside: held upright it sits right where the
    menu opens, on top of the emotes */
 .chat-menu:not([hidden]) ~ #commentary { visibility: hidden; }
+
+/* ---- build 121: coin bonuses. A flame for a win streak, a sticker on PLAY at the weekend ---- */
+.fire-ico { width: 0.95em; height: 1.1em; vertical-align: -0.18em; margin-right: 0.15em; flex: none; }
+.hc-fire { position: absolute; right: -12px; bottom: -12px; display: flex; align-items: center; gap: 1px; background: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 1px 6px 1px 4px; font-style: normal; font-size: 15px; line-height: 1; }
+.hc-fire[hidden] { display: none; }
+.hc-fire .fire-ico { margin: 0; width: 15px; height: 18px; vertical-align: 0; }
+.hc-fire b { font-weight: 400; color: #ff7a1a; -webkit-text-stroke: 0.06em var(--ink); paint-order: stroke fill; }
+#btn-play { position: relative; }
+.play-bonus { position: absolute; left: 50%; top: 0; transform: translate(-50%, -55%) rotate(-3deg); white-space: nowrap; background: var(--ui-red); color: #fff; border: 3px solid var(--ink); border-radius: 9px; padding: 1px 9px; font-size: clamp(11px, 2.4vmin, 15px); -webkit-text-stroke: 0.08em var(--ink); paint-order: stroke fill; box-shadow: 0 3px 0 var(--ink); pointer-events: none; }
+.play-bonus[hidden] { display: none; }
+.intro-bonus { background: var(--ui-red); color: #fff; border: 3px solid var(--ink); border-radius: 9px; padding: 1px 10px; font-size: 14px; -webkit-text-stroke: 0.08em var(--ink); paint-order: stroke fill; max-width: 100%; text-align: center; }
+.intro-bonus.fire { background: #ff8a1f; }
+.intro-bonus[hidden] { display: none; }
+/* one line, always: the words shrink to fit (UI.FIT_WORDS) rather than wrap and push the buttons down */
+#r-streak { max-width: 100%; white-space: nowrap; }
+.r-streak b { font-size: 1.2em; }
+.r-streak.fire .fire-ico { width: 1em; height: 1.2em; }
