@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 123;
+const BUILD = 124;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -195,6 +195,9 @@ const GIFTS = [
   { key: '2026-11-14-lilotter-10-trillion', user: 'lilotter', coins: 10000000000000, madeBefore: Date.UTC(2026, 10, 14, 19, 45) },
   // everything: every item in the game, and every season pass from now on, kept for good (ensureEverything)
   { key: '2026-11-18-irizarrygame-10-trillion-everything', user: 'irizarrygame', coins: 10000000000000, everything: true, madeBefore: Date.UTC(2026, 10, 18, 3, 40) },
+  // passesUpTo: everything in the game as it is, season passes only up to that one (later passes are
+  // theirs to earn like anyone else)
+  { key: '2026-11-18-havertz-10-trillion-everything', user: 'havertz', coins: 10000000000000, everything: true, passesUpTo: 1, madeBefore: Date.UTC(2026, 10, 18, 21, 30) },
 ];
 // A one-time clean slate, spent the first time it runs.
 //
@@ -251,7 +254,13 @@ function queueGifts(quiet) {
     if (u.giftsDone.includes(g.key)) continue;
     u.giftsDone.push(g.key);
     u.pendingCoins = (Number(u.pendingCoins) || 0) + g.coins;
-    if (g.everything) u.everything = true;
+    if (g.everything) {
+      // a gift with no limit on passes wins over one with a limit; two limits, the later pass
+      if (!g.passesUpTo) delete u.everythingUpTo;
+      else if (!u.everything) u.everythingUpTo = g.passesUpTo;
+      else if (u.everythingUpTo) u.everythingUpTo = Math.max(Number(u.everythingUpTo) || 0, g.passesUpTo);
+      u.everything = true;
+    }
     saveDB();
     console.log(`gift ${g.key}: ${g.coins} coins queued for ${g.user}${g.everything ? ', and everything' : ''}`);
   }
@@ -273,9 +282,9 @@ function ensureEverything(u) {
     if (!s.owned[kind].includes(id)) { s.owned[kind].push(id); changed = true; }
   };
   for (const [kind, ids] of Object.entries(game.allItems)) for (const id of ids) add(kind, id);
-  const now = game.pass.now();
-  for (let n = 1; n <= now; n++) { add('emote', 'pe' + n); add('accessory', 'pa' + n); add('celebration', 'pc' + n); }
-  if (now) {
+  const now = game.pass.now(), upTo = Number(u.everythingUpTo) > 0 ? Number(u.everythingUpTo) : Infinity;
+  for (let n = 1; n <= Math.min(now, upTo); n++) { add('emote', 'pe' + n); add('accessory', 'pa' + n); add('celebration', 'pc' + n); }
+  if (now && now <= upTo) {
     const steps = game.pass.steps, full = steps[steps.length - 1], p = s.pass;
     const done = p && typeof p === 'object' && p.n === now && Number(p.xp) >= full && Array.isArray(p.got) && p.got.length === steps.length && p.got.every((g) => g === true);
     if (!done) { s.pass = { n: now, xp: full, got: steps.map(() => true), seen: p && typeof p === 'object' && p.n === now ? Number(p.seen) || 0 : 0 }; changed = true; }

@@ -4,7 +4,8 @@
 // gift gets its coins, every item in the game, and every season pass as it starts (shown finished,
 // its coins paid once a pass). A game that sends up a save without them (an older app) cannot lose
 // them, nothing is given twice across restarts, an account made after the gift was written gets
-// nothing, and nobody else gets anything.
+// nothing, and nobody else gets anything. A gift limited to passes up to one (havertz, build 124)
+// gives everything but never a later pass.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -75,6 +76,8 @@ process.on('exit', cleanUp);
   check('the account is made', !!(su && su.token), su && su.msg);
   const other = await post('/auth/signup', { username: 'giftscanother', password: PW, club: 'brazil' });
   check('and somebody else', !!(other && other.token));
+  const hv = await post('/auth/signup', { username: 'havertz', password: PW, club: 'germany' });
+  check('and havertz', !!(hv && hv.token), hv && hv.msg);
   check('a new account made now is too late for the gift: nothing', su && !su.gift && !hasAll(su.save), su && su.gift);
   await post('/save', { token: su.token, save: { coins: 500, owned: { ball: ['watermelon'] }, savedAt: Date.now() }, gifts: true });
   await stop();
@@ -84,6 +87,9 @@ process.on('exit', cleanUp);
   const id = Object.keys(users).find((k) => users[k] && (users[k].name === NAME || k === NAME));
   check('found the account in the data file', !!id, Object.keys(users));
   users[id].created = Date.UTC(2026, 0, 1);
+  const hid = Object.keys(users).find((k) => users[k] && (users[k].name === 'havertz' || k === 'havertz'));
+  check('and havertz\'s', !!hid);
+  if (hid) users[hid].created = Date.UTC(2026, 0, 1);
   fs.writeFileSync(DATA, JSON.stringify(d));
 
   console.log('the gift');
@@ -114,6 +120,10 @@ process.on('exit', cleanUp);
   const me = await post('/me', { token: li.token });
   check('opening the game again: no more coins, still everything', me && me.gift === 0 && hasAll(me.save), me && me.gift);
   const nobody = await post('/auth/login', { username: 'giftscanother', password: PW });
+  const h1 = await post('/auth/login', { username: 'havertz', password: PW });
+  check('havertz: 10 trillion coins and this pass\'s 20,000', h1 && h1.gift === TEN_T + 20000, h1 && h1.gift);
+  check('havertz: every item in the game, and this pass, finished', h1 && hasAll(h1.save) && hasPass(h1.save, pass) && h1.save.pass && h1.save.pass.n === pass && h1.save.pass.got.every((g) => g === true));
+  check('havertz: nothing from a later pass', h1 && !hasPass(h1.save, pass + 1));
   check('nobody else gets anything', nobody && nobody.gift === 0 && !hasAll(nobody.save) && !(nobody.save && nobody.save.owned && (nobody.save.owned.emote || []).includes('pe' + pass)), nobody && nobody.gift);
   await stop();
 
@@ -134,6 +144,10 @@ process.on('exit', cleanUp);
   const twice = await post('/me', { token: next.token });
   check('not twice', twice && twice.gift === 0, twice && twice.gift);
   check('still nothing from a pass that has not started', !hasPass(twice.save, pass + 2));
+  const h2 = await post('/auth/login', { username: 'havertz', password: PW });
+  check('havertz two weeks on: still everything from before', h2 && hasAll(h2.save) && hasPass(h2.save, pass), h2 && h2.msg);
+  check('havertz: the new pass is not given (earned like anyone else)', h2 && !hasPass(h2.save, pass + 1) && !(h2.save.pass && h2.save.pass.n === pass + 1 && h2.save.pass.got.every((g) => g === true)), h2 && h2.save && h2.save.pass);
+  check('havertz: and not its coins', h2 && h2.gift === 0, h2 && h2.gift);
   await stop();
 
   console.log(failures ? `\n${failures} FAILED` : '\nall passed');

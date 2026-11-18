@@ -251,6 +251,15 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Everything for havertz (build 124)
+
+- A gift can limit the season passes with `passesUpTo: N`: everything in the game as it is, passes 1..N
+  given and shown finished, later passes earned like anyone else (`u.everythingUpTo`; a gift with no
+  limit wins over one with a limit). `havertz` gets 10 trillion coins and everything, passes up to
+  pass 1, for the account that already had that name on 18 Nov 2026 21:30 UTC. Server only.
+
+Tests: `giftscan` also gives `havertz` everything and checks that pass 2, 14 days on, is not given.
+
 ## Everything, for good: a gift that keeps giving (build 123)
 
 - A gift in `GIFTS` (server.js) can now carry `everything: true`. The account it names gets the coins
