@@ -9,7 +9,7 @@
 // checks, and the 25px-tall home row overlapped nothing at all.
 window.US = {
   PANELS: ['play', 'stats', 'customize', 'crates', 'coins', 'collection', 'missions', 'settings',
-    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'fkmode', 'promode', 'challenge', 'friends', 'offers'],
+    'profile', 'league', 'ranked', 'leaderboard', 'cup', 'worldcup', 'pensmode', 'fkmode', 'promode', 'challenge', 'friends', 'offers', 'pass'],
 
   // the full-screen ones, which the panel sweep never touched
   OVERLAYS: ['daily', 'howto', 'results', 'pause', 'queue', 'lobby'],

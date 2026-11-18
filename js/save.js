@@ -187,7 +187,7 @@ const Save = {
   },
   celebration() {
     const id = this.data.celebration;
-    const real = typeof CELE_IDS !== 'undefined' ? CELE_IDS.includes(id) : CELEBRATIONS.some((c) => c.id === id);
+    const real = (typeof CELE_IDS !== 'undefined' ? CELE_IDS.includes(id) : CELEBRATIONS.some((c) => c.id === id)) || passNumOf(id, 'celebration') > 0;
     return real && Shop.owns('celebration', id) ? id : 'jump';
   },
   // every accessory you have on (only ones you own), in a fixed order
@@ -197,7 +197,7 @@ const Save = {
   wearing(id) { return this.accessories().includes(id); },
   // put one on or take it off
   toggleAccessory(id) {
-    if (!ACCESSORY_IDS.has(id) || !Shop.owns('accessory', id)) return false;
+    if ((!ACCESSORY_IDS.has(id) && !passNumOf(id, 'accessory')) || !Shop.owns('accessory', id)) return false;
     const on = this.accessories();
     this.data.accessories = on.includes(id) ? on.filter((x) => x !== id) : [...on, id];
     this.data.accessory = this.data.accessories[0] || null;

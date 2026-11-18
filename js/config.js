@@ -314,6 +314,7 @@ const RARITIES = {
   legendary: { name: tl('LEGENDARY'), color: '#ffb400' },
   mythic:    { name: tl('MYTHIC'),    color: '#ff3a6e' },
   oneofone:  { name: tl('ONE OF ONE'), color: '#ffe14d' },
+  season:    { name: tl('SEASON'),    color: '#ff3a6e' }, // a season pass's own items (build 122)
 };
 const CHARACTERS = [
   { id: 'street',     name: 'Street',      rarity: 'starter',   r: { spd: 62, sht: 58, pas: 60, ctl: 60, def: 56 }, hair: 'cap',      hairColor: '#4a2e1c', skin: '#f2c49b', cap: '#2f7bff' },
@@ -542,6 +543,31 @@ const SEASON_DAYS = 14;
 const SEASON_START = Date.UTC(2026, 8, 21); // seasons have counted from here
 const seasonNow = () => Math.max(0, Math.floor((Date.now() - SEASON_START) / (SEASON_DAYS * 86400000)));
 const seasonEndsAt = (n) => SEASON_START + (n + 1) * SEASON_DAYS * 86400000;
+
+// ===== Season passes (build 122) =====================================
+// 5,000 free passes, one for every ranked season from the one that began on 16 Nov 2026: pass 1
+// runs in ranked season 5, pass 5,000 ends in the year 2218. Each pass has its own emote, accessory
+// and celebration, made in js/pass.js from the pass number, never sold and never repeated. Their ids
+// are 'pe' / 'pa' / 'pc' and the pass number: pe1, pa1, pc1 ... pc5000.
+const PASS_COUNT = 5000;
+const PASS_FIRST = 4; // the ranked season (counted from 0) that pass 1 runs in
+const passAt = (ms = Date.now()) => {
+  const s = Math.floor((ms - SEASON_START) / (SEASON_DAYS * 86400000)) - PASS_FIRST + 1;
+  return s >= 1 && s <= PASS_COUNT ? s : 0;
+};
+const passNow = () => passAt(Date.now());
+const passEndsAt = (n) => seasonEndsAt(n + PASS_FIRST - 1);
+const PASS_TAG = { emote: 'pe', accessory: 'pa', celebration: 'pc' };
+const passId = (kind, n) => PASS_TAG[kind] + n;
+// the pass an item belongs to (1..5000), or 0 when it is not a pass item of that kind
+function passNumOf(id, kind) {
+  const tag = PASS_TAG[kind];
+  if (!tag || typeof id !== 'string' || id.length < 3 || id.length > 6 || id[0] !== tag[0] || id[1] !== tag[1]) return 0;
+  const s = id.slice(2);
+  if (!/^[1-9][0-9]{0,3}$/.test(s)) return 0;
+  const n = Number(s);
+  return n >= 1 && n <= PASS_COUNT ? n : 0;
+}
 function rankTier(rp) {
   let t = RANK_TIERS[0];
   for (const x of RANK_TIERS) if ((rp || 0) >= x.at) t = x;
@@ -650,10 +676,13 @@ function cleanLook(raw) {
   };
 }
 // accessories: as many as you like at once, each one only once, in the order they were listed
+// (season pass ones after the rest, in the order they were put on)
 function cleanAccessories(list, owns) {
   if (!Array.isArray(list)) return [];
   const seen = new Set();
-  return ACCESSORIES.filter((a) => list.includes(a.id) && !seen.has(a.id) && seen.add(a.id) && (!owns || owns(a.id))).map((a) => a.id);
+  const base = ACCESSORIES.filter((a) => list.includes(a.id) && !seen.has(a.id) && seen.add(a.id) && (!owns || owns(a.id))).map((a) => a.id);
+  const pass = list.filter((id) => passNumOf(id, 'accessory') && !seen.has(id) && seen.add(id) && (!owns || owns(id)));
+  return base.concat(pass.slice(0, 12));
 }
 // what a player looks like on the pitch, from a look and the accessories worn
 function lookFromCustom(look, accs) {

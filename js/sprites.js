@@ -251,7 +251,7 @@ const Sprites = {
     if (slim !== 1) { ctx.save(); ctx.scale(1 / slim, 1); }
     this.head(ctx, look, back, t, p);
     const faceProp = cp && (cp.prop === 'shades' || cp.prop === 'glasses');
-    for (const a of accs) if (!(faceProp && ACCESSORY_FACE_IDS.has(a))) this.accessory(ctx, a, 'head', p, t, back, sp);
+    for (const a of accs) if (!(faceProp && accIsFace(a))) this.accessory(ctx, a, 'head', p, t, back, sp);
     if (cp && cp.prop) this.celebProp(ctx, cp.prop, ce, back, p);
     if (slim !== 1) ctx.restore();
     ctx.restore();
@@ -895,6 +895,8 @@ const Sprites = {
 
   // props drawn upright on screen (text and floating shapes)
   celebScreen(ctx, name, e, sx, sy, k, flip, cp) {
+    const pn = passNumOf(name, 'celebration');
+    if (pn) { this.passCelebFX(ctx, PassGen.celeb(pn), e, sx, sy, k, flip, cp); return; }
     if (this.premiumCelebFX(ctx, name, e, sx, sy, k, flip, cp)) return;
     const headY = sy - (76 + Math.max(0, cp.jump || 0)) * k;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1686,9 +1688,238 @@ const Sprites = {
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(-15.5 - speed * 8.5, -32 + wave); ctx.lineTo(-13 - speed * 8, -29 + wave); ctx.lineTo(-11 - speed * 6, -31 + wave); ctx.lineTo(-13.5 - speed * 6.5, -34 + wave); ctx.closePath(); ctx.fill();
   },
 
+  // ---- a season pass accessory (build 122): a kind, one of its shapes, the pass's colours, a
+  // pattern and an extra. A = PassGen.acc(n). Drawn in the same places and sizes as the others.
+  passAcc(ctx, A, layer, p, t, back, sp) {
+    const hx = 1.5, hy = -56, R = 15, seed = p.seed || 0, P = A.pal, k = A.shape, speed = Math.min(1, sp || 0);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    const poly = (pts, fill) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); this.blob(ctx, fill); };
+    // a filled shape with the pattern inside it and the ink outline on top
+    const shape = (path, fill) => {
+      ctx.beginPath(); path(); ctx.fillStyle = fill; ctx.fill();
+      if (A.pattern && A.pattern !== 'plain') { ctx.save(); ctx.beginPath(); path(); ctx.clip(); this.passPattern(ctx, A.pattern, P); ctx.restore(); }
+      ctx.beginPath(); path(); ctx.lineWidth = 2.4; ctx.strokeStyle = OUTLINE; ctx.stroke();
+    };
+    const extra = (x, y, s) => this.passExtra(ctx, A.extra, P, x, y, s, t, seed);
+
+    if (A.slot === 'back') {
+      if (layer !== 'back') return;
+      if (A.kind === 'cape') {
+        const wave = Math.sin(t * 10 + seed) * (2 + speed * 3), out = 4 + speed * 10;
+        const low = [-12, -4, -6, -6][k];
+        if (k === 2) {
+          shape(() => { for (const [dx, w2] of [[0, 0], [7, 1]]) { ctx.moveTo(-9 + dx * 0.3, -45); ctx.lineTo(-14 - out * 0.4 + dx * 0.3, -30); ctx.lineTo(-20 - out + dx, -2 + wave * (w2 ? -1 : 1)); ctx.lineTo(-10 - out * 0.5 + dx, -6); ctx.lineTo(2, -9); ctx.lineTo(9, -45); ctx.closePath(); } }, P[0]);
+        } else {
+          shape(() => { ctx.moveTo(-9, -45); ctx.lineTo(-14 - out * 0.4, -30); ctx.lineTo(-20 - out, low + wave); ctx.lineTo(-9 - out * 0.5, low + 3 - wave); ctx.lineTo(2, low); ctx.lineTo(9, -45); ctx.closePath(); }, P[0]);
+        }
+        ctx.fillStyle = P[1]; ctx.fillRect(-9, -47, 18, 3);
+        if (k === 3) poly([[-11, -47], [-15, -56], [-4, -48]], P[1]);
+      } else {
+        // wings: feathers, a bat's, crystal shards or a butterfly's
+        const flap = Math.sin(t * 7 + seed) * 0.25;
+        for (const s of [-1, 1]) {
+          ctx.save(); ctx.translate(s * 4, -42); ctx.rotate(s * flap); ctx.scale(s, 1);
+          if (k === 0) shape(() => { const pts = [[0, 0], [-10, -16], [-26, -22], [-34, -14], [-28, -10], [-34, -4], [-26, -1], [-30, 6], [-18, 4], [-8, 8]]; pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); }, P[0]);
+          else if (k === 1) shape(() => { const pts = [[0, 0], [-12, -18], [-30, -26], [-26, -12], [-36, -4], [-24, -2], [-20, 8], [-12, 2], [-6, 8]]; pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); }, P[0]);
+          else if (k === 2) { poly([[0, 0], [-14, -24], [-20, -6]], P[0]); poly([[-4, 2], [-30, -14], [-22, 2]], P[1]); poly([[-2, 4], [-26, 6], [-12, 10]], P[0]); }
+          else shape(() => { ctx.moveTo(0, -2); ctx.bezierCurveTo(-10, -26, -34, -26, -28, -6); ctx.bezierCurveTo(-34, 6, -16, 14, 0, 2); ctx.closePath(); }, P[0]);
+          ctx.restore();
+        }
+      }
+      return;
+    }
+    if (A.slot === 'neck') {
+      if (layer !== 'neck' || back) return;
+      if (A.kind === 'chain') {
+        ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-7, -44); ctx.quadraticCurveTo(1.5, -26, 10, -44); ctx.stroke();
+        ctx.strokeStyle = P[1]; ctx.lineWidth = 3; ctx.stroke();
+        const x = 1.5, y = -32;
+        if (k === 0) this.star(ctx, x, y, 6, P[0]);
+        else if (k === 1) poly([[x, y - 6], [x + 5, y], [x, y + 6], [x - 5, y]], P[0]);
+        else if (k === 2) { ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); this.blob(ctx, P[0]); ctx.fillStyle = P[2]; ctx.fillRect(x - 1.5, y - 3, 3, 6); }
+        else if (k === 3) poly([[x - 1, y - 7], [x + 4, y - 1], [x + 1, y - 1], [x + 2, y + 7], [x - 4, y + 1], [x - 1, y + 1]], P[0]);
+        else { ctx.beginPath(); ctx.moveTo(x, y + 5); ctx.bezierCurveTo(x - 8, y, x - 4, y - 7, x, y - 3); ctx.bezierCurveTo(x + 4, y - 7, x + 8, y, x, y + 5); ctx.closePath(); this.blob(ctx, P[0]); }
+        extra(x + 5, y - 6, 3);
+      } else if (A.kind === 'scarf') {
+        shape(() => this.rr(ctx, -11, -43, 25, 7.5, 3.7), P[0]);
+        const tail = [15, 22, 18][k], wave = Math.sin(t * 8 + seed) * speed * 2;
+        shape(() => this.rr(ctx, 3.5, -38, 7, tail, 2.5), P[0]);
+        ctx.fillStyle = P[1]; ctx.fillRect(4.2, -38 + tail - 4, 5.6, 2.4);
+        if (k === 2) for (let i = 0; i < 3; i++) { ctx.strokeStyle = P[1]; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(4.8 + i * 2.2, -38 + tail); ctx.lineTo(4.8 + i * 2.2 + wave, -38 + tail + 4); ctx.stroke(); }
+      } else {
+        // a medal on a ribbon in the pass's colours
+        poly([[-4, -46], [0.5, -36], [3, -36], [-1, -46]], P[0]);
+        poly([[7, -46], [3, -36], [0.5, -36], [4, -46]], P[3]);
+        const x = 1.8, y = -31.5;
+        if (k === 0) { ctx.beginPath(); ctx.arc(x, y, 5.2, 0, Math.PI * 2); this.blob(ctx, P[1]); ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fillStyle = P[2]; ctx.fill(); }
+        else if (k === 1) this.star(ctx, x, y, 6.4, P[1]);
+        else if (k === 2) poly([[x - 5, y - 5], [x + 5, y - 5], [x + 5, y + 1], [x, y + 6], [x - 5, y + 1]], P[1]);
+        else poly([[x, y - 6], [x + 5.2, y - 3], [x + 5.2, y + 3], [x, y + 6], [x - 5.2, y + 3], [x - 5.2, y - 3]], P[1]);
+        extra(x + 6, y - 5, 3);
+      }
+      return;
+    }
+    if (layer !== 'head') return;
+    if (A.slot === 'face') {
+      if (back) return;
+      const eyes = [5.2, 11.6];
+      if (A.kind === 'shades') {
+        if (k === 4) {
+          this.rr(ctx, hx - 12, hy - 4, 31, 8.5, 4); this.blob(ctx, P[3]);
+          ctx.fillStyle = P[0]; ctx.fillRect(hx - 9, hy - 2, 26, 2.2);
+          ctx.fillStyle = P[2]; ctx.fillRect(hx + 3, hy + 1, 7, 1.4);
+        } else {
+          for (const ex of eyes) {
+            const x = hx + ex, y = hy + 0.6;
+            if (k === 0) { ctx.beginPath(); ctx.arc(x, y, 4.4, 0, Math.PI * 2); this.blob(ctx, P[3]); }
+            else if (k === 1) { this.rr(ctx, x - 4.4, y - 3.8, 8.8, 7.6, 2); this.blob(ctx, P[3]); }
+            else if (k === 2) this.star(ctx, x, y, 5.4, P[0]);
+            else { ctx.beginPath(); ctx.moveTo(x, y + 4.4); ctx.bezierCurveTo(x - 6.4, y, x - 3.4, y - 5.6, x, y - 2); ctx.bezierCurveTo(x + 3.4, y - 5.6, x + 6.4, y, x, y + 4.4); ctx.closePath(); this.blob(ctx, P[0]); }
+            if (k < 2) { ctx.fillStyle = P[0]; ctx.fillRect(x - 2.6, y - 2.4, 2.2, 1.6); }
+          }
+          ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(hx + 1, hy + 0.2); ctx.lineTo(hx - 11, hy - 1.6); ctx.stroke();
+        }
+      } else if (A.kind === 'mask') {
+        if (k === 3) poly([[hx - 12, hy - 4], [hx + 3, hy - 6], [hx + 6, hy - 1], [hx + 10, hy - 6], [hx + 19, hy - 3], [hx + 17, hy + 4], [hx + 8, hy + 2], [hx + 4, hy + 6], [hx - 11, hy + 4]], P[0]);
+        else { this.rr(ctx, hx - 12, hy - 4, 31, 9, 4.5); this.blob(ctx, P[0]); }
+        if (k === 2) for (const ex of eyes) poly([[hx + ex - 3, hy - 3.5], [hx + ex - 1, hy - 9], [hx + ex + 2, hy - 3.5]], P[0]);
+        if (k === 1) { const wave = Math.sin(t * 10 + seed) * 2; poly([[hx - 12, hy - 2], [hx - R - 8, hy - 5 + wave], [hx - R - 6, hy + 2 + wave], [hx - 12, hy + 2]], P[0]); }
+        for (const ex of eyes) { ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(hx + ex, hy + 0.6, 2.4, 2.8, 0, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = P[1]; ctx.fillRect(hx - 9, hy + 2.6, 6, 1.6);
+      } else {
+        // face paint
+        const cx = hx + 9, cy = hy + 7;
+        if (k === 0) for (const [i, c] of [[0, P[0]], [1, P[1]]]) { ctx.fillStyle = c; ctx.fillRect(hx + 3 + i * 6, hy + 5, 4, 2.4); }
+        else if (k === 1) { ctx.beginPath(); ctx.moveTo(cx + 1, cy - 4); ctx.lineTo(cx + 4, cy); ctx.lineTo(cx + 1.5, cy); ctx.lineTo(cx + 3, cy + 4); ctx.lineTo(cx - 1.5, cy - 0.5); ctx.lineTo(cx + 1, cy - 0.5); ctx.closePath(); this.blob(ctx, P[0]); }
+        else if (k === 2) this.star(ctx, cx + 1, cy, 3.6, P[0]);
+        else for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(hx + 4 + i * 4, hy + 6 + (i % 2), 1.5, 0, Math.PI * 2); ctx.fillStyle = i % 2 ? P[1] : P[0]; ctx.fill(); }
+        ctx.fillStyle = P[1]; ctx.fillRect(hx - 2, hy - 9, 5, 1.8);
+      }
+      return;
+    }
+    // ---- on the head
+    const top = hy - R;
+    if (A.kind === 'crown') {
+      const points = [3, 5, 7, 3, 4][k], tall = k === 3 ? 18 : k === 2 ? 9 : 13, w = 12;
+      const pts = [[hx - w, top + 2]];
+      for (let i = 0; i <= points * 2; i++) {
+        const x = hx - w + (i * 2 * w) / (points * 2), up = i % 2 === 0;
+        pts.push([x, up ? top - tall + (k === 4 ? Math.sin(t * 9 + i) * 2 : 0) : top - tall * 0.42]);
+      }
+      pts.push([hx + w, top + 2]);
+      poly(pts, P[1]);
+      this.rr(ctx, hx - w, top - 1, w * 2, 4.5, 1.5); this.blob(ctx, P[0]);
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(hx - 7 + i * 7, top + 1.2, 1.5, 0, Math.PI * 2); ctx.fillStyle = i === 1 ? P[2] : P[3]; ctx.fill(); }
+      if (k === 4) for (let i = 0; i <= points * 2; i += 2) this.passExtra(ctx, 'flame', P, hx - w + (i * 2 * w) / (points * 2), top - tall - 2, 2.4, t, seed + i);
+      extra(hx, top - tall - 4, 4);
+    } else if (A.kind === 'horns') {
+      for (const s of [-1, 1]) {
+        if (k === 0) poly([[hx + s * 4, top + 4], [hx + s * 16, top - 15], [hx + s * 12.5, top + 2]], P[0]);
+        else if (k === 1) { ctx.lineWidth = 7; ctx.strokeStyle = OUTLINE; ctx.beginPath(); ctx.arc(hx + s * 13, top + 2, 6, 0, Math.PI * 1.6, s < 0); ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = P[0]; ctx.stroke(); }
+        else if (k === 2) poly([[hx + s * 6, top + 3], [hx + s * 18, top - 2], [hx + s * 24, top - 14], [hx + s * 15, top + 3]], P[0]);
+        else for (const dy of [0, 7]) poly([[hx + s * 5, top + 3 + dy * 0.2], [hx + s * (11 + dy * 0.4), top - 10 + dy], [hx + s * 10, top + 3]], P[0]);
+        if (k !== 1) { ctx.beginPath(); ctx.arc(hx + s * (k === 2 ? 22 : 14), top - (k === 2 ? 12 : 11), 1.4, 0, Math.PI * 2); ctx.fillStyle = P[2]; ctx.fill(); }
+      }
+      extra(hx, top - 4, 3.2);
+    } else if (A.kind === 'halo') {
+      const bob = Math.sin(t * 4 + seed) * 1.5, y = top - 12 + bob;
+      const ring = (ry, rx) => { ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(hx, ry, rx, 3.6, 0, 0, Math.PI * 2); ctx.stroke(); ctx.strokeStyle = P[1]; ctx.lineWidth = 2.8; ctx.stroke(); };
+      ring(y, 11);
+      if (k === 1) ring(y - 6, 7);
+      if (k === 2) for (let i = 0; i < 6; i++) { const a = t * 1.5 + (i * Math.PI) / 3; poly([[hx + Math.cos(a) * 11, y + Math.sin(a) * 3.6 - 1], [hx + Math.cos(a) * 14, y + Math.sin(a) * 4.6 - 5], [hx + Math.cos(a + 0.25) * 11, y + Math.sin(a + 0.25) * 3.6 - 1]], P[0]); }
+      extra(hx + 11, y - 2, 3);
+    } else if (A.kind === 'beanie') {
+      shape(() => { ctx.arc(hx, hy - 3, R + 1, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); }, P[0]);
+      this.rr(ctx, hx - R - 2, hy - 7, (R + 2) * 2, 6, 2.5); this.blob(ctx, P[1]);
+      if (k === 0) { ctx.beginPath(); ctx.arc(hx, hy - R - 6, 4.4, 0, Math.PI * 2); this.blob(ctx, P[2]); }
+      if (k === 2) for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(hx + s * 10, hy - R - 2, 3.6, 0, Math.PI * 2); this.blob(ctx, P[2]); }
+      if (k === 3) { const wave = Math.sin(t * 6 + seed) * 2; poly([[hx - 6, hy - R - 2], [hx - R - 10, hy - R - 8 + wave], [hx - 2, hy - R + 1]], P[0]); ctx.beginPath(); ctx.arc(hx - R - 10, hy - R - 8 + wave, 2.8, 0, Math.PI * 2); this.blob(ctx, P[2]); }
+    } else if (A.kind === 'tophat') {
+      const h = [16, 22, 11][k];
+      shape(() => this.rr(ctx, hx - 9, top - h + 2, 18, h, 2), P[0]);
+      ctx.fillStyle = P[1]; ctx.fillRect(hx - 9, top - 3.5, 18, 3.4);
+      ctx.beginPath(); ctx.ellipse(hx, top + 2, 15, 3.6, 0, 0, Math.PI * 2); this.blob(ctx, P[3]);
+    } else if (A.kind === 'headband') {
+      shape(() => this.rr(ctx, hx - R - 1, hy - 10, (R + 1) * 2, 6, 2.6), P[0]);
+      if (k === 1) { const wave = Math.sin(t * 10 + seed) * (2 + speed * 2); poly([[hx - R, hy - 9], [hx - R - 9, hy - 12 + wave], [hx - R - 8, hy - 6 + wave], [hx - R, hy - 6]], P[0]); }
+      if (k === 2) this.star(ctx, hx + 9, hy - 7, 4.2, P[1]);
+      if (k === 3) for (const s of [-1, 1]) poly([[hx + s * (R - 1), hy - 9], [hx + s * (R + 8), hy - 16], [hx + s * (R + 6), hy - 9], [hx + s * (R + 9), hy - 9], [hx + s * (R + 1), hy - 5]], P[2]);
+    } else {
+      // a helmet over the top of the head
+      shape(() => { ctx.arc(hx, hy - 2, R + 2.5, Math.PI * 1.05, Math.PI * 1.95); ctx.closePath(); }, P[0]);
+      ctx.fillStyle = P[1]; ctx.fillRect(hx - 1.6, top - 3, 3.2, 12);
+      if (k === 0) for (let i = -1; i <= 1; i++) poly([[hx + i * 7 - 2.5, top - 1 + Math.abs(i) * 2], [hx + i * 8, top - 9 + Math.abs(i) * 3], [hx + i * 7 + 2.5, top - 1 + Math.abs(i) * 2]], P[2]);
+      if (k === 1) poly([[hx - 9, top - 1], [hx - 4, top - 13], [hx + 2, top - 9], [hx + 7, top - 14], [hx + 10, top]], P[1]);
+      if (k === 2) { this.rr(ctx, hx + 2, hy - 8, 17, 4.5, 2); this.blob(ctx, P[3]); }
+      if (k === 3) for (const s of [-1, 1]) poly([[hx + s * 11, top + 4], [hx + s * 19, top - 9], [hx + s * 15, top + 6]], P[2]);
+      extra(hx, top - 8, 3.4);
+    }
+  },
+
+  // the pattern inside a season accessory's shape (drawn over the whole of it; the shape clips it)
+  passPattern(ctx, kind, P) {
+    ctx.fillStyle = P[1]; ctx.strokeStyle = P[1];
+    if (kind === 'stripes') { ctx.lineWidth = 2.6; ctx.beginPath(); for (let x = -80; x < 60; x += 7) { ctx.moveTo(x, -120); ctx.lineTo(x + 60, 30); } ctx.stroke(); }
+    else if (kind === 'dots') { for (let y = -110; y < 30; y += 6) for (let x = -60 + ((y / 6) % 2 ? 3 : 0); x < 60; x += 6) { ctx.beginPath(); ctx.arc(x, y, 1.3, 0, Math.PI * 2); ctx.fill(); } }
+    else if (kind === 'stars') { for (let y = -110; y < 30; y += 9) for (let x = -60 + ((y / 9) % 2 ? 4.5 : 0); x < 60; x += 9) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 0.9 : 2.2; ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } ctx.closePath(); ctx.fill(); } }
+    else if (kind === 'zigzag') { ctx.lineWidth = 1.8; for (let y = -110; y < 30; y += 6) { ctx.beginPath(); for (let x = -60, i = 0; x < 60; x += 3, i++) ctx.lineTo(x, y + (i % 2 ? 2 : -2)); ctx.stroke(); } }
+    else if (kind === 'checks') { for (let y = -110; y < 30; y += 4) for (let x = -60 + ((y / 4) % 2 ? 4 : 0); x < 60; x += 8) ctx.fillRect(x, y, 4, 4); }
+  },
+
+  // something extra on a season accessory: a gem, a twinkle, or a little flame
+  passExtra(ctx, kind, P, x, y, s, t, seed) {
+    if (kind === 'gem') {
+      ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x + s * 0.8, y); ctx.lineTo(x, y + s); ctx.lineTo(x - s * 0.8, y); ctx.closePath(); this.blob(ctx, P[2]);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x - s * 0.25, y - s * 0.5, s * 0.3, s * 0.4);
+    } else if (kind === 'sparkle') {
+      const tw = 0.6 + Math.abs(Math.sin(t * 4 + seed)) * 0.6, r = s * tw;
+      ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4, rr = i % 2 ? r * 0.3 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+      ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = OUTLINE; ctx.stroke();
+    } else if (kind === 'flame') {
+      const f = 1 + Math.sin(t * 18 + seed) * 0.18;
+      ctx.beginPath(); ctx.moveTo(x - s, y + s * 0.6); ctx.quadraticCurveTo(x - s, y - s * f, x, y - s * 2.2 * f); ctx.quadraticCurveTo(x + s, y - s * f, x + s, y + s * 0.6); ctx.closePath(); this.blob(ctx, '#ff7a1a');
+      ctx.beginPath(); ctx.moveTo(x - s * 0.45, y + s * 0.4); ctx.quadraticCurveTo(x, y - s * 1.3 * f, x + s * 0.45, y + s * 0.4); ctx.closePath(); ctx.fillStyle = '#ffe14d'; ctx.fill();
+    }
+  },
+
+  // ---- a season pass celebration's burst, in the pass's colours, as it finishes (build 122)
+  passCelebFX(ctx, C, e, sx, sy, k, flip, cp) {
+    const P = C.pal, u = (e - 1.85) / 0.75, rise = Math.max(0, cp.jump || 0);
+    // a little glint that follows the main move, then the burst
+    ctx.save(); ctx.translate(sx, sy); ctx.scale(k, k);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (e > 0.75 && e < 1.9) {
+      const a = e * 6;
+      ctx.fillStyle = P[1]; ctx.globalAlpha = 0.85;
+      for (let i = 0; i < 3; i++) { const b = a + (i * Math.PI * 2) / 3; this.star(ctx, Math.cos(b) * 24, -46 - rise + Math.sin(b) * 12, 2.4, i % 2 ? P[0] : P[1]); }
+    }
+    if (u > 0 && u < 1) {
+      ctx.globalAlpha = 1 - u * 0.8;
+      const y0 = -58 - rise;
+      if (C.fx === 'fireworks') {
+        for (let j = 0; j < 2; j++) {
+          const cx = (j ? 26 : -26), cy = y0 - 18 - j * 8, r = 6 + u * 26;
+          for (let i = 0; i < 10; i++) { const a = (i * Math.PI) / 5; ctx.strokeStyle = i % 2 ? P[0] : P[1]; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r * 0.5, cy + Math.sin(a) * r * 0.5); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke(); }
+        }
+      } else if (C.fx === 'confetti') {
+        for (let i = 0; i < 16; i++) { const x = ((i * 37) % 70) - 35, y = y0 - 30 + u * 60 + ((i * 13) % 20); ctx.save(); ctx.translate(x, y); ctx.rotate(u * 8 + i); ctx.fillStyle = [P[0], P[1], P[2]][i % 3]; ctx.fillRect(-2.4, -1.2, 4.8, 2.4); ctx.restore(); }
+      } else if (C.fx === 'stars') {
+        for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + u * 2, r = 12 + u * 30; this.star(ctx, Math.cos(a) * r, y0 + 8 + Math.sin(a) * r * 0.7, 3.6 - u * 1.5, i % 2 ? P[0] : P[1]); }
+      } else if (C.fx === 'rings') {
+        for (let i = 0; i < 3; i++) { const r = 8 + ((u + i / 3) % 1) * 34; ctx.strokeStyle = [P[0], P[1], P[2]][i]; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, -6, r, r * 0.3, 0, 0, Math.PI * 2); ctx.stroke(); }
+      } else if (C.fx === 'bolts') {
+        for (const s of [-1, 1]) { ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; const pts = [[s * 24, y0 - 34], [s * 14, y0 - 16], [s * 24, y0 - 8], [s * 12, y0 + 12]]; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.strokeStyle = P[1]; ctx.lineWidth = 2.6; ctx.stroke(); }
+      } else {
+        for (let i = 0; i < 12; i++) { const x = ((i * 29) % 60) - 30, y = y0 - 20 + ((i * 17) % 40) - u * 20, r = 1 + Math.abs(Math.sin(u * 10 + i)) * 2.4; ctx.fillStyle = i % 2 ? P[1] : '#ffffff'; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
+      }
+    }
+    ctx.restore();
+  },
+
   accessory(ctx, id, layer, p, t, back, sp) {
-    const def = ACCESSORIES.find((a) => a.id === id);
+    const def = accessoryDef(id);
     if (!def || p.isKeeper) return;
+    if (def.season) { this.passAcc(ctx, def, layer, p, t, back, sp); return; }
     const hx = 1.5, hy = -56, R = 15, seed = p.seed || 0;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     const poly = (pts, fill) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); this.blob(ctx, fill); };

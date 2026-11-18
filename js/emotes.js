@@ -188,6 +188,13 @@ const EMOTE_SPECS = [
 
 const EMOTES = EMOTE_SPECS.map(([id, name, rarity, who, face, prop, fx, move, mood]) => ({ id, name, rarity, who, face, prop, fx, move, mood, starter: rarity === 'starter' }));
 const EMOTE_BY_ID = new Map(EMOTES.map((e) => [e.id, e]));
+// an emote by id: one of the 157, or a season pass's own (build 122, made in js/pass.js)
+function emoteById(id) {
+  const e = EMOTE_BY_ID.get(id);
+  if (e) return e;
+  const n = typeof passNumOf === 'function' ? passNumOf(id, 'emote') : 0;
+  return n && typeof PassGen !== 'undefined' ? PassGen.emote(n) : null;
+}
 const EMOTE_STARTERS = EMOTES.filter((e) => e.starter).map((e) => e.id);
 
 /* ------------------------------------------------------------------ drawing kit
@@ -328,15 +335,15 @@ const EM_FACES = {
 };
 
 const Emotes = {
-  get(id) { return EMOTE_BY_ID.get(id) || null; },
+  get(id) { return emoteById(id); },
   all() { return EMOTES; },
-  owns(id) { return typeof Shop !== 'undefined' && EMOTE_BY_ID.has(id) ? Shop.owns('emote', id) : false; },
+  owns(id) { return typeof Shop !== 'undefined' && emoteById(id) ? Shop.owns('emote', id) : false; },
 
   // ---- your eight, for the match menu: only ones you own, each once, at most eight
   deck() {
     const raw = Save.data && Array.isArray(Save.data.emotes) ? Save.data.emotes : EMOTE_STARTERS;
     const out = [];
-    for (const id of raw) if (typeof id === 'string' && EMOTE_BY_ID.has(id) && this.owns(id) && !out.includes(id) && out.length < EMOTE_DECK_MAX) out.push(id);
+    for (const id of raw) if (typeof id === 'string' && emoteById(id) && this.owns(id) && !out.includes(id) && out.length < EMOTE_DECK_MAX) out.push(id);
     return out;
   },
   // tap one on CUSTOMIZE: in, out, or "the menu is full"
@@ -423,7 +430,7 @@ const Emotes = {
      draw(g, id, x, y, size, t): the emote in a size x size box centred on (x, y), at t seconds
      into its loop. opts.backdrop false leaves out the rays behind legendary and mythic ones. */
   draw(g, id, x, y, size, t = 0, opts = {}) {
-    const e = typeof id === 'object' ? id : EMOTE_BY_ID.get(id);
+    const e = typeof id === 'object' ? id : emoteById(id);
     if (!e) return;
     g.save();
     g.translate(x, y);
@@ -452,6 +459,7 @@ const Emotes = {
 
   // rays behind the rarest: gold for legendary, every colour in turn for mythic
   backdrop(g, e, t) {
+    if (e.rarity === 'season') return this.seasonBackdrop(g, e, t);
     if (e.rarity !== 'legendary' && e.rarity !== 'mythic') return;
     const myth = e.rarity === 'mythic';
     g.save();
@@ -464,6 +472,27 @@ const Emotes = {
       g.fillStyle = myth ? cols[(i + Math.floor(t * 2)) % cols.length] : cols[i % 2]; g.fill();
     }
     g.restore();
+  },
+
+  // a season pass emote: rays in that pass's own colours, turning both ways, and a ring
+  seasonBackdrop(g, e, t) {
+    const P = e.pal || ['#ff3a6e', '#ffc21a', '#ffd6e4', '#7a1030'];
+    g.save();
+    g.beginPath(); g.arc(0, 0, 49, 0, EM_TAU); g.clip();
+    g.fillStyle = P[2]; g.fillRect(-50, -50, 100, 100);
+    const n = 12;
+    for (let layer = 0; layer < 2; layer++) {
+      const spin = (layer ? -t * 0.5 : t * 0.8) + layer * 0.26, r = layer ? 60 : 44;
+      for (let i = 0; i < n; i += 2) {
+        const a0 = spin + (i * EM_TAU) / n, a1 = a0 + EM_TAU / n;
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, a0, a1); g.closePath();
+        g.fillStyle = layer ? P[0] : P[1]; g.globalAlpha = layer ? 0.55 : 0.7; g.fill();
+      }
+    }
+    g.globalAlpha = 1;
+    g.restore();
+    g.lineWidth = 4; g.strokeStyle = P[0]; g.beginPath(); g.arc(0, 0, 47, 0, EM_TAU); g.stroke();
+    g.lineWidth = 2; g.strokeStyle = P[3]; g.beginPath(); g.arc(0, 0, 49.5, 0, EM_TAU); g.stroke();
   },
 
   move(kind, t) {

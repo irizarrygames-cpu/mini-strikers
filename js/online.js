@@ -260,7 +260,7 @@ const Online = {
       p: msg.p.map((r) => ({
         x: X(r[0]), y: r[1], vx: s * r[2], vy: r[3], fx: s * r[4] / 100, fy: r[5] / 100, faceX: s * r[6] / 100, flags: r[7],
         kickT: r[8] / 100, kickDur: r[9] / 100 || 0.2, stunT: r[10] / 100, recoverT: r[11] / 100, diveT: r[12] / 100, diveDir: r[13],
-        celebrateT: r[14] / 100, celebKind: NET_CELEBS[r[15]], slideT: r[16] / 100, slideWindT: r[17] / 100, sdx: s * r[18] / 100, sdy: r[19] / 100,
+        celebrateT: r[14] / 100, celebKind: r[15] >= NET_CELEBS.length ? passId('celebration', r[15] - NET_CELEBS.length + 1) : NET_CELEBS[r[15]], slideT: r[16] / 100, slideWindT: r[17] / 100, sdx: s * r[18] / 100, sdy: r[19] / 100,
         fallT: r[20] / 100, hopT: r[21] / 100,
         ultFlags: r[22] || 0, ultKind: NET_ULTS[r[23] || 0], ultShotT: (r[24] || 0) / 100,
       })),

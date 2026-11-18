@@ -269,6 +269,18 @@ const UI = {
     const logo = $('logo');
     // where the logo really ends on screen (it is tilted, and its gap above differs by layout)
     if (logo && logo.offsetHeight) root.setProperty('--logo-b', Math.round(logo.getBoundingClientRect().bottom - top) + 'px');
+    this.tuckLogo();
+  },
+
+  // On a short screen the bars above PLAY (club, season pass, party, cup) can reach up into the
+  // logo. Rather than show half a logo behind them, it steps out of the way until there is room.
+  tuckLogo() {
+    const home = $('home'), logo = $('logo'), acts = document.querySelector('.home-actions');
+    if (!home || !logo || !acts || home.hidden) return;
+    const L = logo.getBoundingClientRect(), A = acts.getBoundingClientRect();
+    if (!L.height || !A.height) return;
+    const over = A.top < L.bottom - 2 && A.left < L.right && A.right > L.left;
+    if (home.classList.contains('logo-tucked') !== over) home.classList.toggle('logo-tucked', over);
   },
 
   // the caption sits under the scoreboard, which is taller on a big screen than a small one
@@ -379,6 +391,8 @@ const UI = {
     pillEl.classList.toggle('club', clubMode);
     $('home-club-pos').textContent = clubMode ? (Career.active() ? Career.timeShort(Save.data.cc.until - Date.now()) : '!') : this._leaguePos ? '#' + this._leaguePos : '';
     this.refreshClubBar();
+    this.refreshPassBar();
+    this.tuckLogo();
     // ranked: your tier this season sits next to your country
     const myRank = Net.user && Net.user.rank, pill = $('home-rank');
     pill.hidden = !myRank;
@@ -764,7 +778,7 @@ const UI = {
   maybeDaily() {
     if (Game.state !== 'home' || !$('splash').hidden || !$('modal').hidden || !$('howto').hidden || !$('daily').hidden) return;
     const p = Daily.pending();
-    if (!p) return;
+    if (!p) { this.maybePassNew(); return; }
     $('daily-days').innerHTML = DAILY.map((c, i) => {
       const n = i + 1, cls = n < p.day ? 'done' : n === p.day ? 'today' : '';
       return `<div class="dday ${cls}${n === 7 ? ' jackpot' : ''}"><small>${tl('DAY {0}', [n])}</small><span class="coin"></span><b>${c}</b></div>`;
@@ -782,6 +796,7 @@ const UI = {
     vibrate(30);
     this.toast(tl('DAY {0} REWARD  +{1} COINS', [p.day, p.coins]));
     this.refreshHome();
+    setTimeout(() => this.maybePassNew(), 900);
   },
 
   closeAll() {
@@ -1088,6 +1103,7 @@ const UI = {
     const pens = !!m.pens;
     const xp = pens ? Pens.xp(m) : Levels.matchXp(m);
     d.xp = (d.xp || 0) + xp;
+    if (!m.training) this.passAfterMatch(xp);
     d.coins += r.coins;
     d.matches++;
     d.goals = (d.goals || 0) + m.human.stats.goals;
@@ -1210,6 +1226,7 @@ const UI = {
     const xp = 50 + st.goals * 25 + st.assists * 15 + st.tackles * 6 + st.skills * 2 + (st.dodges || 0) * 5 + (outcome === 'win' ? 70 : outcome === 'draw' ? 30 : 0);
     const coins = 30 + mine * 10 + st.goals * 10 + (outcome === 'win' ? 70 : outcome === 'draw' ? 25 : 0);
     d.xp = (d.xp || 0) + xp; d.coins += coins; d.matches++;
+    this.passAfterMatch(xp);
     d.goals = (d.goals || 0) + st.goals;
     if (outcome === 'win') d.wins++; else if (outcome === 'draw') d.draws = (d.draws || 0) + 1; else d.losses = (d.losses || 0) + 1;
     const c = d.career;

@@ -2416,3 +2416,45 @@ body.lefty #touch-zone { left: 50%; }
 #r-streak { max-width: 100%; white-space: nowrap; }
 .r-streak b { font-size: 1.2em; }
 .r-streak.fire .fire-ico { width: 1em; height: 1.2em; }
+
+/* ---- build 122: the season pass. The bar above PLAY, the window, the tag on the results ---- */
+.pass-bar { flex-wrap: nowrap; gap: 8px; position: relative; border-left: 10px solid #ff3a6e; padding: 4px 10px 4px 8px; }
+.pass-bar .pb-tag { flex: none; background: #ff3a6e; color: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 1px 7px; -webkit-text-stroke: 0.06em var(--ink); paint-order: stroke fill; }
+.pass-bar .pb-mid { flex: 1; display: flex; flex-direction: column; align-items: stretch; gap: 3px; min-width: 0; white-space: normal; }
+.pass-bar .pb-mid small { align-self: flex-start; }
+.pass-bar .pb-prog { display: block; height: 9px; background: #dfe3f2; border: 2px solid var(--ink); border-radius: 5px; overflow: hidden; }
+.pass-bar .pb-prog b { display: block; height: 100%; background: #ff3a6e; }
+.pass-bar em { margin-left: 0; }
+.pass-new { width: fit-content; margin: 0 auto 6px; background: #ff3a6e; color: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 2px 14px; font-size: clamp(18px, 4vmin, 24px); -webkit-text-stroke: 0.08em var(--ink); paint-order: stroke fill; box-shadow: 0 4px 0 var(--ink); text-align: center; }
+.pass-top { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; }
+.pass-top b { font-weight: 400; font-size: 22px; color: #ff3a6e; -webkit-text-stroke: 0.06em var(--ink); paint-order: stroke fill; }
+.pass-top em { font-style: normal; color: #6b7299; font-size: 14px; }
+.pass-track { position: relative; margin: 6px 0 4px; }
+.pass-track i { display: block; height: 20px; background: #dfe3f2; border: 3px solid var(--ink); border-radius: 10px; overflow: hidden; }
+.pass-track i b { display: block; height: 100%; background: #ff3a6e; }
+.pass-track span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
+.pass-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .pass-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pass-card { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 6px 4px 8px; text-align: center; }
+.pass-card.locked { background: #eef0f8; }
+.pass-card.open { border-color: #ff3a6e; box-shadow: 0 0 0 3px #ffd6e4; }
+.pass-card canvas { width: 100%; max-width: 104px; height: auto; }
+.pass-card canvas[data-celeb] { max-width: 132px; }
+.pass-card strong { font-weight: 400; font-size: 13px; line-height: 1.15; overflow-wrap: anywhere; }
+.pass-kind { font-size: 11px; background: #ff3a6e; color: #fff; border-radius: 6px; padding: 0 6px; }
+.pass-need { font-style: normal; font-size: 12px; color: #6b7299; }
+.pass-coins { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 92px; }
+.pass-coins .coin { width: 56px; height: 56px; border-width: 4px; }
+.pass-coins b { font-weight: 400; font-size: 20px; }
+.r-mult.r-pass { background: #ff3a6e; color: #fff; }
+.r-mult.r-pass[hidden] { display: none; }
+/* short screens: the pass bar is one slim line, so it and the club bar fit under the logo */
+@media (max-height: 430px) {
+  .pass-bar { padding: 2px 8px 2px 6px; gap: 6px; font-size: 12px; border-left-width: 7px; min-height: 34px; }
+  .pass-bar .pb-tag { padding: 0 5px; }
+  .pass-bar .pb-mid { flex-direction: row; align-items: center; }
+  .pass-bar .pb-mid small { display: none; }
+  .pass-bar .pb-prog { flex: 1; height: 8px; }
+}
+/* the logo steps aside when the bars above PLAY reach up into it (UI.tuckLogo) */
+#home.logo-tucked #logo { visibility: hidden; }

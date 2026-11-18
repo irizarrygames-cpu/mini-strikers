@@ -363,8 +363,10 @@ async function endRoom(id) {
     while (room.state !== 'playing') await sleep(50);
     const bots = room.seats.filter((s) => !s.human).map((s) => room.m.players.indexOf(s.player));
     let said = 0, trials = 300, fromBots = true, lines = new Set();
+    // since build 120 a filled spot answers with an emote about a third of the time, so both count
     const seen = () => socks.solo.since(0, 'chat');
-    let before = seen().length;
+    const seenE = () => socks.solo.since(0, 'emote');
+    let before = seen().length, beforeE = seenE().length;
     for (let i = 0; i < trials; i++) {
       room.botChat = []; room.botQuiet = 0;
       const scorer = room.seats[1 + (i % 3)].player;
@@ -373,12 +375,14 @@ async function endRoom(id) {
       if (room.botChat.length) room.botChat[0].at = 0;
       await sleep(6);
     }
-    const all = seen().slice(before);
-    said = all.length;
+    const all = seen().slice(before), allE = seenE().slice(beforeE);
+    said = all.length + allE.length;
     for (const c of all) { lines.add(c.m); if (!bots.includes(c.p)) fromBots = false; }
+    for (const c of allE) if (!bots.includes(c.p)) fromBots = false;
     check('after a goal they sometimes say something (about 4 in 10)', said > trials * 0.25 && said < trials * 0.55, { said, trials });
     check('only ever from a filled spot, and only preset lines', fromBots && [...lines].every((m) => Number.isInteger(m) && m >= 0 && m < 12), [...lines]);
-    before = seen().length;
+    check('some of it as emotes, and only ordinary ones (never a season pass emote)', allE.length > 0 && allE.every((c) => typeof c.e === 'string' && !/^pe\d+$/.test(c.e)), { emotes: allE.length, ids: [...new Set(allE.map((c) => c.e))].slice(0, 6) });
+    before = seen().length; beforeE = seenE().length;
     let replies = 0, skewed = 0;
     for (let i = 0; i < 120; i++) {
       room.botChat = []; room.botQuiet = 0;
@@ -389,7 +393,7 @@ async function endRoom(id) {
       await sleep(6);
     }
     clockSkew -= skewed;
-    const hi = seen().slice(before).filter((c) => c.m === 0).length;
+    const hi = seen().slice(before).filter((c) => c.m === 0).length + seenE().slice(beforeE).length;
     check('say HI and about half the time someone says HI back', hi > 120 * 0.3 && hi < 120 * 0.62, { hi, of: 120 });
     const k = socks.solo.got.length;
     room.botChat = [{ at: Date.now() + 100000, player: room.seats[1].player, n: 0 }];

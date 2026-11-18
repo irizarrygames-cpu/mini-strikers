@@ -119,7 +119,12 @@ const BALLS = [
 const FALLBACK_STADIUM = { id: 'day', kind: 'day', name: 'MINI STRIKERS PARK', grass: [['#5acb45', '#55c541'], ['#4fbd3b', '#4bb838']], stands: ['#34439a', '#3a4aa0'], apron: '#8fa0c8', tuft: '#3f9f31', pattern: 'checks', weather: 'clouds', sky: ['#6fc2ff', '#a8dcff'], far: '#7fb8e8', hats: 'day', roof: '#242c63', trim: '#ffe14d', seat: '#34439a', chant: tl("LET'S GO!"), motif: 'skyline' };
 
 const Shop = {
-  owns(kind, id) { return (PRICES[kind][id] || 0) === 0 || ((Save.data.owned || {})[kind] || []).includes(id); },
+  // (a season pass item has no price, but it is never free: you own it only once you have won it)
+  owns(kind, id) {
+    const list = (Save.data.owned || {})[kind] || [];
+    if (typeof passNumOf === 'function' && passNumOf(id, kind)) return list.includes(id);
+    return (PRICES[kind][id] || 0) === 0 || list.includes(id);
+  },
   price(kind, id) { return PRICES[kind][id] || 0; },
   buy(kind, id) {
     const cost = this.price(kind, id);

@@ -47,7 +47,7 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
   const me = async () => (await post('/me', { token })).json;
 
   console.log('an account from before build 111, with characters bought');
-  // ninja 7000 + viking 11000 + afroking 16000 = 34000, far more than one save may add
+  // ninja 7000 + viking 11000 + afroking 16000 = 34000, more than one save may add (30,000 since build 122)
   const old = { coins: 5000, character: 'viking', owned: { character: ['ninja', 'viking', 'afroking', 'street'], accessory: [] }, savedAt: Date.now() };
   let r = await post('/save', { token, save: old });
   check('the old save goes up as it is', r.json && r.json.ok && r.json.save.coins === 5000 && !r.json.save.charRefund, r.json && r.json.save && { coins: r.json.save.coins, charRefund: r.json.save.charRefund });
@@ -55,7 +55,7 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
   console.log('the new game gives the coins back and sends that up');
   const migrated = { ...old, coins: 5000 + 34000, owned: { character: [], accessory: [] }, charRefund: 1, look: { hair: 'spikes' }, stats: { spd: 0 }, savedAt: Date.now() };
   r = await post('/save', { token, save: migrated });
-  check('the whole refund gets through (34,000 > the 12,000 a save may add)', r.json && r.json.save.coins === 39000, r.json && r.json.save.coins);
+  check('the whole refund gets through (34,000 > the 30,000 a save may add)', r.json && r.json.save.coins === 39000, r.json && r.json.save.coins);
   let m = await me();
   check('and it is kept on the account', m && m.save.coins === 39000 && m.save.charRefund === 1, m && { coins: m.save.coins, charRefund: m.save.charRefund });
 
@@ -67,13 +67,13 @@ const done = () => { try { if (child) child.kill(); } catch (e) {} try { fs.unli
 
   console.log('trying the refund a second time');
   r = await post('/save', { token, save: { ...migrated, coins: 39000 + 34000, savedAt: Date.now() } });
-  check('only an ordinary save\'s worth gets through (no second refund)', r.json && r.json.save.coins === 39000 + 12000, r.json && r.json.save.coins);
+  check('only an ordinary save\'s worth gets through (no second refund)', r.json && r.json.save.coins === 39000 + 30000, r.json && r.json.save.coins);
 
   console.log('a new account has nothing to give back');
   const su2 = await post('/auth/signup', { username: 'freshone', password: 'a-good-long-password-42', club: 'italy' });
   const t2 = su2.json && su2.json.token;
   r = await post('/save', { token: t2, save: { coins: 50000, charRefund: 1, owned: { character: ['goat'] } } });
-  check('it cannot claim one', r.json && r.json.save.coins === 12000, r.json && r.json.save.coins);
+  check('it cannot claim one', r.json && r.json.save.coins === 30000, r.json && r.json.save.coins);
 
   console.log('the account says where both cups are');
   m = await me();

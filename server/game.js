@@ -89,6 +89,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   const canPro = (id) => { const c = conns.get(id); return !!(c && c.pro); };
   const notPro = (ids) => ids.find((x) => !canPro(x));
   const CELEBS = [null, ...sim.CELEBRATIONS.map((c) => c.id), 'hype'];
+  // a season pass celebration goes after the list: pass n is CELEBS.length + n - 1 (js/online.js reads it back)
+  const celebIndex = (id) => { const n = sim.passNumOf(id, 'celebration'); return n ? CELEBS.length + n - 1 : Math.max(0, CELEBS.indexOf(id)); };
   // must match NET_TRAILS on the client, so it is built the same way
   const TRAIL_TYPES = [null, 'pass', 'weak', 'shot', 'strong', ...sim.TRAILS.map((t) => t.id)];
   const ULTS = sim.ULT_KINDS;
@@ -341,15 +343,24 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   // starts. (A save can only buy levels with coins, and coins can only climb so fast.)
   const ovrOf = (id) => { const u = getUser(id); return sim.statOvr((u && u.save && u.save.stats) || {}); };
 
+  // a season pass item this save really owns, from a pass that has begun (build 122)
+  function passOwned(save, kind, id) {
+    const n = sim.passNumOf(id, kind);
+    if (!n || n > sim.passAt(Date.now() + 86400000)) return false;
+    const list = save && save.owned && Array.isArray(save.owned[kind]) ? save.owned[kind] : [];
+    return list.includes(id);
+  }
+
   function profileOf(id) {
     const u = getUser(id);
     const save = (u && u.save) || {};
     const has = (list, v) => !v || list.some((x) => x.id === v);
     const country = (u && u.club) || sim.CLUBS[0].id, team = clubOf(id);
-    // every accessory they have on that they really own
+    // every accessory they have on that they really own (a season pass one only once they have won
+    // it, and never one from a pass that has not started)
     const owned = save.owned && Array.isArray(save.owned.accessory) ? save.owned.accessory : [];
     const wearing = Array.isArray(save.accessories) ? save.accessories : save.accessory ? [save.accessory] : [];
-    const accessories = sim.cleanAccessories(wearing, (a) => owned.includes(a) || !(sim.PRICES.accessory[a] > 0));
+    const accessories = sim.cleanAccessories(wearing, (a) => (sim.passNumOf(a, 'accessory') ? passOwned(save, 'accessory', a) : owned.includes(a) || !(sim.PRICES.accessory[a] > 0)));
     return {
       name: userName(id),
       // the team they show up as (a club in Club Career, otherwise their country)...
@@ -362,7 +373,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       stats: sim.statLevels(save.stats),
       accessories,
       trail: has(sim.TRAILS, save.trail) && save.trail ? save.trail : 'electric',
-      celebration: has(sim.CELEBRATIONS, save.celebration) && save.celebration ? save.celebration : 'jump',
+      celebration: (has(sim.CELEBRATIONS, save.celebration) && save.celebration) || passOwned(save, 'celebration', save.celebration) ? save.celebration : 'jump',
       // a signature move the save actually owns, or the free one
       skill: save.skill && sim.SKILLS.some((k) => k.id === save.skill)
         && (save.skill === 'classic' || (save.owned && Array.isArray(save.owned.skill) && save.owned.skill.includes(save.skill)))
@@ -1341,7 +1352,9 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
      only a picture, the same for everyone. */
   const EMOTE_IDS = new Set(sim.EMOTES.map((e) => e.id));
   function quickEmote(conn, e) {
-    if (typeof e !== 'string' || e.length > 40 || !EMOTE_IDS.has(e)) return;
+    if (typeof e !== 'string' || e.length > 40) return;
+    // one of the game's own, or a season pass one the sender has won
+    if (!EMOTE_IDS.has(e)) { const u = getUser(conn.userId); if (!passOwned(u && u.save, 'emote', e)) return; }
     const at = chatSeat(conn);
     if (!at) return;
     roomEmote(at.room, at.seat.player, e, at.seat);
@@ -1477,7 +1490,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       const flags = (p.sad ? 1 : 0) | (p.slideHit ? 2 : 0) | (p.sprintOn ? 4 : 0) | (p.charging ? 8 : 0) | (p.skill ? 16 : 0) | (p.throwIn ? 32 : 0);
       return [Math.round(p.x), Math.round(p.y), Math.round(p.vx), Math.round(p.vy), r100(p.fx), r100(p.fy), r100(p.faceX), flags,
         r100(p.kickT), r100(p.kickDur), r100(p.stunT), r100(p.recoverT), r100(p.diveT), Math.sign(p.diveDir || 0), r100(p.celebrateT),
-        Math.max(0, CELEBS.indexOf(p.celebKind)), r100(p.slideT), r100(p.slideWindT || 0),
+        celebIndex(p.celebKind), r100(p.slideT), r100(p.slideWindT || 0),
         r100(winding ? p.slideWindX : p.slideDirX), r100(winding ? p.slideWindY : p.slideDirY), r100(p.fallT), r100(p.hopT),
         (p.ultOn ? 1 : 0) | (p.ultShot ? 2 : 0), p.ultShot ? Math.max(0, ULTS.indexOf(p.ultShot.kind)) : 0, r100(p.ultShot ? p.ultShot.t : 0)];
     });
@@ -1625,6 +1638,8 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     // the rank maths the accounts need (server.js keeps the points, this keeps the rules in one place)
     rank: { tier: sim.rankTier, next: sim.rankNext, delta: sim.rankDelta, seasonNow: sim.seasonNow, seasonEndsAt: sim.seasonEndsAt, tiers: sim.RANK_TIERS },
     countryFor: sim.countryFor,
+    // season passes (build 122): which pass an id is from, and which pass is on at a moment
+    pass: { numOf: sim.passNumOf, at: sim.passAt },
     stats: () => ({ online: conns.size, rooms: [...rooms.values()].filter((r) => r.state !== 'lobby').length, lobbies: codes.size, queued: Object.values(queues).reduce((a, q) => a + q.length, 0) }),
     inMatch: (id) => !!roomOf(id),
     // code 4001 tells the game its sign-in is over (a ban, a password reset); nothing says "try again"

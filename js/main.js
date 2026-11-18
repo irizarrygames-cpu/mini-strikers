@@ -246,6 +246,8 @@ const Game = {
     } else if (this.demoShows()) {
       this.stepDemo(realDt);
       Render.drawHome(this.t, this.demo);
+      // (bars above PLAY come and go: party, cup, club, season pass; check the logo twice a second)
+      if (!this._tuckT || this.t - this._tuckT > 0.5) { this._tuckT = this.t; UI.tuckLogo(); }
     }
     if (m && this.state === 'match' && !document.hidden) Commentary.update(m, realDt);
     else if (m) Commentary.pause();

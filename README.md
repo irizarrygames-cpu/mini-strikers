@@ -251,6 +251,39 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## A free season pass, 5,000 of them (build 122)
+
+- **The pass** (`js/pass.js`): free, one every 14 days, changing with the ranked season (Monday 00:00 UTC).
+  `passAt(ms)` in js/config.js counts from `SEASON_START`; `PASS_FIRST = 4` makes pass 1 run with ranked
+  season 5 (16 Nov - 30 Nov 2026), and `PASS_COUNT = 5000` passes run to 13 Jul 2218, then `passNow()` is 0 and
+  the bar hides. Four steps on the match XP (`PASS_STEPS` 3,000 / 6,000 / 9,000 / 12,000): the pass's emote,
+  accessory, celebration, then 20,000 coins (`PASS_COINS`). Every finished match except training adds its XP
+  (`UI.passAfterMatch`, offline and online). Progress is `save.pass = { n, xp, got[4], seen }`; it starts again
+  when `n` changes, and anything opened but not claimed is handed over then (`Pass.give`).
+- **5,000 of each, never repeated** (`PassGen`): built on demand from fixed part lists with a seeded random
+  (`mulberry32(passHash(salt + n))`), so the game and the server make the same list. A used-key set means no
+  two passes share an emote, an accessory or a celebration, and a pass is never too close to the one before.
+  Emotes are a character + face + prop + effect + move in one of 40 palettes, never put
+  together like a shop emote; accessories are 15 kinds (`PASS_ACC_KINDS`) with shape, pattern and extra (gem / sparkle / flame);
+  celebrations join a start, a main move and a finish (`passCelePose` / `passCeleMove`, blended) with a burst
+  in the pass colours (`passCelebFX`). Ids are `pe<n>`, `pa<n>`, `pc<n>` (`passId` / `passNumOf`).
+- **Never for sale**: not in crates, the emote shop or CUSTOMIZE prices. Found and fixed on the way:
+  `Shop.owns` counted any item with no price as owned, which would have handed every season item to everyone;
+  a pass id now needs to be in `owned`. The server's profile filter and `quickEmote` do the same through
+  `passOwned` (in server/game.js: owned, and the pass has started), and `sanitizeSave` drops items from a pass
+  that has not started yet. Online, a pass celebration travels as `NET_CELEBS.length + n - 1`.
+- **Where it shows**: the bar above PLAY (`#pass-bar`, slim on short screens), the pass window
+  (`panel_pass`), the window opening by itself once per new pass (`maybePassNew`, after the daily reward),
+  `PASS +N XP` on the results (`#r-pass`) and a toast when a step opens, and owned season items at the top of
+  their CUSTOMIZE tabs with a SEASON tag. On short screens in club mode the logo hides when the bars would cover
+  it (`UI.tuckLogo`).
+- The per-save coin gain limit on the server went from 12,000 to 30,000 so a 20,000 claim gets through.
+
+Tests: `passscan` (new: all 15,000 items made, unique, drawn and posed; never for sale; a pass played, dates,
+carry-over; the server's rules with fake sockets; a real server). `refundscan` expects the 30,000 limit;
+`uiscan` opens the pass window. `socialscan` now counts a fill-in's emote replies too (since build 120 about a
+third of them are emotes, so counting only lines read about 26% and failed). App 1.2.3 (code 24).
+
 ## Bonus coins, 200 more missions, stadium seasons, more to collect (build 121)
 
 - **Bonus coins** (`Bonus` in js/meta.js): a win streak puts +25% on a match's own coins at 2 in a row, +50% at

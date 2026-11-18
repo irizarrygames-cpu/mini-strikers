@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 121;
+const BUILD = 122;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -118,7 +118,7 @@ const SAVE_MAX_BYTES = 40000;
 const LIMITS = {
   // max leaves room for gifts (build 119: a quadrillion, for a 10 trillion one; still far inside the
   // whole numbers JavaScript keeps exactly); gain still limits what a game can add
-  coins: { min: 0, max: 1000000000000000, gain: 12000 },
+  coins: { min: 0, max: 1000000000000000, gain: 30000 }, // (a season pass pays 20,000 at once)
   xp: { min: 0, max: 100000000, gain: 8000 },
   trophies: { min: 0, max: 100000, gain: 3 },
   matches: { min: 0, max: 1000000, gain: 20 },
@@ -165,6 +165,16 @@ function sanitizeSave(incoming, previous, club) {
     save.charRefund = 1;
     if (save.owned && typeof save.owned === 'object') save.owned.character = [];
   }
+  // season pass items (build 122): never one from a pass that has not started yet
+  // (only ever called from a request, after `game` exists; the try keeps it safe if that changes)
+  try {
+    if (save.owned && typeof save.owned === 'object' && game.pass) {
+      const latest = game.pass.at(Date.now() + 86400000);
+      for (const kind of ['emote', 'accessory', 'celebration']) {
+        if (Array.isArray(save.owned[kind])) save.owned[kind] = save.owned[kind].filter((id) => { const n = game.pass.numOf(id, kind); return !n || n <= latest; });
+      }
+    }
+  } catch (e) { /* the game is not built yet */ }
   save.club = club; // your club is set at sign-up and lives on the account, not in the save
   return save;
 }

@@ -402,6 +402,9 @@ Object.assign(UI, {
     return `<span class="price locked-tag" style="--r:${RARITIES[rar].color}"><i></i>${RARITIES[rar].name}</span><span class="buy">${kind === 'emote' ? tl('CRATES · SHOP') : tl('FROM CRATES')}</span>`;
   },
 
+  // a season pass item's tag in CUSTOMIZE: which pass it came from, never a price
+  seasonTag() { return `<span class="em-grade season-tag" style="--r:${RARITIES.season.color}">${RARITIES.season.name}</span>`; },
+
   coinsLine() { return `<div class="panel-coins"><span class="coin"></span><b>${fmtCoins(Save.data.coins)}</b></div>`; },
 
   // ---- missions: jobs worth coins ----
@@ -941,7 +944,7 @@ Object.assign(UI, {
   // An accessory card: a portrait for anything worn on the head or face, and the whole player for
   // anything worn anywhere else — a cape or a pair of boots is not in a portrait.
   accSwatch(cv, id) {
-    const def = ACCESSORIES.find((a) => a.id === id);
+    const def = id === 'none' ? null : accessoryDef(id);
     // the card shows that one thing on its own, whatever else you are wearing
     const look = { ...lookFromCustom(Save.data.look, []), acc: id === 'none' ? null : id, accs: id === 'none' ? [] : [id] };
     if (!def || def.slot === 'face') { this.portrait(cv, look); return; }
@@ -995,8 +998,9 @@ Object.assign(UI, {
         <canvas width="200" height="70" data-trail="${t.id}"></canvas><strong>${t.name}</strong>${this.priceTag('trail', t.id)}</button>`).join('');
     } else if (tab === 'celebration') {
       gridClass = 'celeb-grid';
-      grid = CELEBRATIONS.map((c) => `<button class="trail-opt celeb-opt ${c.id === Save.celebration() ? 'sel' : ''} ${Shop.owns('celebration', c.id) ? '' : 'locked'}" data-id="${c.id}">
-        <canvas width="160" height="150" data-celeb="${c.id}"></canvas><strong>${c.name}</strong>${this.priceTag('celebration', c.id)}</button>`).join('');
+      const seasonCelebs = Pass.owned('celebration').map((id) => PassGen.celeb(passNumOf(id, 'celebration')));
+      grid = [...seasonCelebs, ...CELEBRATIONS].map((c) => `<button class="trail-opt celeb-opt ${c.id === Save.celebration() ? 'sel' : ''} ${Shop.owns('celebration', c.id) ? '' : 'locked'}" data-id="${c.id}">
+        <canvas width="160" height="150" data-celeb="${c.id}"></canvas><strong>${c.name}</strong>${c.season ? this.seasonTag() : this.priceTag('celebration', c.id)}</button>`).join('');
     } else if (tab === 'skill') {
       gridClass = 'skill-grid';
       grid = SKILLS.map((k) => `<button class="trail-opt skill-opt ${k.id === Save.skill() ? 'sel' : ''} ${Shop.owns('skill', k.id) ? '' : 'locked'}" data-id="${k.id}">
@@ -1007,14 +1011,15 @@ Object.assign(UI, {
       gridClass = 'emote-grid';
       const deck = Emotes.deck();
       const order = ['starter', ...EMOTE_GRADES];
-      const list = EMOTES.slice().sort((a, b) => (Emotes.owns(b.id) - Emotes.owns(a.id)) || (order.indexOf(a.rarity) - order.indexOf(b.rarity)));
+      const list = [...Pass.owned('emote').map((id) => Emotes.get(id)), ...EMOTES.slice().sort((a, b) => (Emotes.owns(b.id) - Emotes.owns(a.id)) || (order.indexOf(a.rarity) - order.indexOf(b.rarity)))];
       grid = `<div class="emote-count">${tl('IN YOUR MATCH MENU: {0} / {1}', [deck.length, EMOTE_DECK_MAX])}</div>` + list.map((e) => `<button class="trail-opt emote-opt ${deck.includes(e.id) ? 'sel' : ''} ${Emotes.owns(e.id) ? '' : 'locked'}" data-id="${e.id}" aria-pressed="${deck.includes(e.id)}" style="--r:${RARITIES[e.rarity].color}">
         <canvas width="120" height="120" data-emote="${e.id}"></canvas><strong>${e.name}</strong>${Emotes.owns(e.id) ? `<span class="em-grade" style="--r:${RARITIES[e.rarity].color}">${RARITIES[e.rarity].name}</span>` : this.priceTag('emote', e.id)}</button>`).join('');
     } else if (tab === 'accessory') {
       // as many as you like: each card is on or off
       const on = new Set(Save.accessories());
-      grid = [{ id: 'none', name: on.size ? tl('Take them all off') : tl('Nothing on') }, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on.size : on.has(a.id)) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}" aria-pressed="${a.id !== 'none' && on.has(a.id)}">
-        <canvas width="120" height="120" data-acc="${a.id}"></canvas><strong>${a.name}</strong>${a.id === 'none' ? '' : this.priceTag('accessory', a.id)}</button>`).join('');
+      const seasonAccs = Pass.owned('accessory').map((id) => accessoryDef(id));
+      grid = [{ id: 'none', name: on.size ? tl('Take them all off') : tl('Nothing on') }, ...seasonAccs, ...ACCESSORIES].map((a) => `<button class="trail-opt acc-opt ${(a.id === 'none' ? !on.size : on.has(a.id)) ? 'sel' : ''} ${a.id === 'none' || Shop.owns('accessory', a.id) ? '' : 'locked'}" data-id="${a.id}" aria-pressed="${a.id !== 'none' && on.has(a.id)}">
+        <canvas width="120" height="120" data-acc="${a.id}"></canvas><strong>${a.name}</strong>${a.id === 'none' ? '' : a.season ? this.seasonTag() : this.priceTag('accessory', a.id)}</button>`).join('');
     } else {
       grid = BALLS.map((b) => `<button class="trail-opt ${b.id === Save.ball().id ? 'sel' : ''} ${Shop.owns('ball', b.id) ? '' : 'locked'}" data-id="${b.id}">
         <canvas width="200" height="90" data-ball="${b.id}"></canvas><strong>${b.name}</strong>${this.priceTag('ball', b.id)}</button>`).join('');
@@ -1712,6 +1717,90 @@ Object.assign(UI, {
     const skin = BALLS.find((b) => b.id === id);
     g.fillStyle = 'rgba(20,60,20,0.28)'; g.beginPath(); g.ellipse(w / 2, h - 16, 26, 8, 0, 0, Math.PI * 2); g.fill();
     Sprites.ball(g, { x: 0, y: 0, z: 0, vx: 1, vy: 0.3, roll: 0.9, shot: null, owner: null, skin }, w / 2, h / 2 - 4, 3.2, Game.t);
+  },
+
+  // ---- SEASON PASS (build 122): the bar above PLAY, the window, and the card when a new one starts ----
+  refreshPassBar() {
+    const bar = $('pass-bar');
+    if (!bar) return;
+    const n = Pass.now();
+    bar.hidden = !n;
+    if (!n) return;
+    const s = Pass.state(), ready = Pass.ready(), step = Pass.step(), full = PASS_STEPS[PASS_STEPS.length - 1];
+    bar.innerHTML = `<span class="pb-tag">S${n}</span>
+      <span class="pb-mid"><small>${tl('SEASON PASS')}</small><i class="pb-prog"><b style="width:${Math.round((s.xp / full) * 100)}%"></b></i></span>
+      <em>${step} / 4 · ${Career.timeLeft(Pass.endsAt(n) - Date.now())}</em>${ready ? `<i class="badge">${ready}</i>` : ''}`;
+    if (!bar._wired) { bar._wired = true; bar.addEventListener('click', () => { this.tap(); this.openModal('pass'); }); }
+  },
+
+  panel_pass(body) {
+    $('modal-title').textContent = tl('SEASON PASS');
+    const n = Pass.now();
+    if (!n) { body.innerHTML = `<p class="note">${tl('There is no season pass on right now.')}</p>`; return; }
+    const s = Pass.state(), it = Pass.items(n), full = PASS_STEPS[PASS_STEPS.length - 1];
+    const fresh = this._passNew; this._passNew = false;
+    const next = PASS_STEPS.find((need) => s.xp < need);
+    const card = (i) => {
+      const kind = PASS_REWARDS[i], need = PASS_STEPS[i], open = s.xp >= need, got = s.got[i];
+      const label = { emote: tl('EMOTE'), accessory: tl('ACCESSORY'), celebration: tl('CELEBRATION'), coins: tl('COINS') }[kind];
+      const art = kind === 'emote' ? `<canvas width="120" height="120" data-emote="${it.emote.id}"></canvas>`
+        : kind === 'accessory' ? `<canvas width="120" height="120" data-acc="${it.accessory.id}"></canvas>`
+        : kind === 'celebration' ? `<canvas width="160" height="150" data-celeb="${it.celebration.id}"></canvas>`
+        : `<span class="pass-coins"><span class="coin"></span></span>`;
+      const name = kind === 'coins' ? fmtCoins(PASS_COINS) : it[kind].name;
+      return `<div class="pass-card ${got ? 'got' : open ? 'open' : 'locked'}">
+        <small class="pass-kind">${label}</small>${art}<strong>${name}</strong>
+        ${got ? `<span class="m-paid">${tl('CLAIMED')}</span>` : open ? `<button class="m-claim" data-pass="${i}">${tl('CLAIM')}</button>` : `<em class="pass-need">${tl('{0} XP', [fmtCoins(need)])}</em>`}
+      </div>`;
+    };
+    body.innerHTML = `${this.coinsLine()}
+      ${fresh ? `<div class="pass-new">${tl('NEW SEASON PASS!')}</div>` : ''}
+      <div class="pass-top"><b>${tl('SEASON {0}', [n])}</b><em>${tl('ENDS IN {0}', [Career.timeLeft(Pass.endsAt(n) - Date.now())])}</em></div>
+      <div class="pass-track"><i><b style="width:${Math.round((s.xp / full) * 100)}%"></b></i><span>${fmtCoins(s.xp)} / ${fmtCoins(full)} XP</span></div>
+      <p class="note">${next ? tl('Play matches to fill the pass: every match gives XP. The emote, the accessory and the celebration are only in this pass, and never come back.') : tl('All done! A new pass starts when the season changes.')}</p>
+      <div class="pass-cards">${[0, 1, 2, 3].map(card).join('')}</div>`;
+    body.querySelectorAll('canvas[data-acc]').forEach((cv) => this.accSwatch(cv, cv.dataset.acc));
+    this.animateEmotes(body);
+    this.animateCelebs(body);
+    body.querySelectorAll('[data-pass]').forEach((b) => b.addEventListener('click', () => {
+      const i = Number(b.dataset.pass);
+      if (!Pass.claim(i)) return;
+      Sound.powerReady();
+      const at = Pop.at(b);
+      Pop.ring(at.x, at.y, '#ff3a6e', 180, 420);
+      Pop.confetti(at.x, at.y, ['#ff3a6e', '#ffc21a', '#ffffff'], 26);
+      if (PASS_REWARDS[i] === 'coins') { Pop.coins(b, 16); this.toast(tl('+{0} COINS', [fmtCoins(PASS_COINS)])); }
+      else this.toast(tl('{0} IS YOURS! FIND IT IN CUSTOMIZE', [it[PASS_REWARDS[i]].name]));
+      this.redraw(body, () => this.panel_pass(body));
+      this.refreshHome();
+    }));
+  },
+
+  // the first time you are on the home screen in a new pass, it opens by itself
+  maybePassNew() {
+    const n = Pass.now();
+    const onHome = Game.state === 'home' && !$('home').hidden && $('auth').hidden && $('splash').classList.contains('gone') && $('modal').hidden && $('daily').hidden && $('howto').hidden && !document.querySelector('.overlay.sheet, #trophy:not([hidden])');
+    if (!n || !onHome) return false;
+    const s = Pass.state();
+    if (s.seen === n) return false;
+    s.seen = n; Save.write();
+    this._passNew = true;
+    this.openModal('pass');
+    return true;
+  },
+
+  // after a match: the XP into the pass, a tag on the results, and a word when something opens
+  passAfterMatch(xp) {
+    const tag = $('r-pass');
+    const before = Pass.now() ? Pass.state().xp : 0;
+    const opened = Pass.addXp(xp);
+    const added = Pass.now() ? Pass.state().xp - before : 0;
+    if (tag) { tag.hidden = !(added > 0); tag.textContent = tl('PASS +{0} XP', [fmtCoins(added)]); }
+    if (opened.length) {
+      const kind = PASS_REWARDS[opened[opened.length - 1]];
+      const what = { emote: tl('EMOTE'), accessory: tl('ACCESSORY'), celebration: tl('CELEBRATION'), coins: tl('COINS') }[kind];
+      setTimeout(() => { if (Game.state === 'results') { this.toast(tl('SEASON PASS: {0} UNLOCKED! CLAIM IT', [what])); Sound.powerReady(); } }, 2400);
+    }
   },
 
 });
