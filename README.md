@@ -251,6 +251,23 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Everything, for good: a gift that keeps giving (build 123)
+
+- A gift in `GIFTS` (server.js) can now carry `everything: true`. The account it names gets the coins
+  as before, plus `u.everything` on the account: `ensureEverything` (run first in `deliverGifts`, so on
+  sign-in, on opening the game and on every save that takes gifts) puts every item in the game into the
+  save (`game.allItems`: balls, trails, celebrations, accessories, skill moves, emotes; never a
+  one-of-one or an item made for one named player), every season pass up to the current one, and shows
+  the current pass as finished. Each pass's 20,000 coins are paid once (`u.everythingPass`). It lives
+  on the account, so a save sent up without the items (an older app) gets them put back; when
+  something had to be added, `savedAt` is moved past the game's own, so the next time the game opens it
+  takes the server's copy. Server only: no app update needed.
+- Given to `irizarrygame` with 10 trillion coins, for the account that already had that name on
+  18 Nov 2026 (`madeBefore`).
+
+Tests: `giftscan` (new: a real server on a throwaway file, restarted to queue the gift; every item, the
+pass, an older app's save, nothing twice across restarts, nobody else, and the next pass 14 days on).
+
 ## A free season pass, 5,000 of them (build 122)
 
 - **The pass** (`js/pass.js`): free, one every 14 days, changing with the ranked season (Monday 00:00 UTC).

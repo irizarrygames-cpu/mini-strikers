@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 122;
+const BUILD = 123;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -193,6 +193,8 @@ const GIFTS = [
   // the name is free and someone signs up with it later, they get nothing
   { key: '2026-11-14-irizarry-10-trillion', user: 'irizarry', coins: 10000000000000, madeBefore: Date.UTC(2026, 10, 14, 19, 45) },
   { key: '2026-11-14-lilotter-10-trillion', user: 'lilotter', coins: 10000000000000, madeBefore: Date.UTC(2026, 10, 14, 19, 45) },
+  // everything: every item in the game, and every season pass from now on, kept for good (ensureEverything)
+  { key: '2026-11-18-irizarrygame-10-trillion-everything', user: 'irizarrygame', coins: 10000000000000, everything: true, madeBefore: Date.UTC(2026, 10, 18, 3, 40) },
 ];
 // A one-time clean slate, spent the first time it runs.
 //
@@ -249,12 +251,43 @@ function queueGifts(quiet) {
     if (u.giftsDone.includes(g.key)) continue;
     u.giftsDone.push(g.key);
     u.pendingCoins = (Number(u.pendingCoins) || 0) + g.coins;
+    if (g.everything) u.everything = true;
     saveDB();
-    console.log(`gift ${g.key}: ${g.coins} coins queued for ${g.user}`);
+    console.log(`gift ${g.key}: ${g.coins} coins queued for ${g.user}${g.everything ? ', and everything' : ''}`);
   }
+}
+// An account given everything (build 122) owns every item in the game, and each season pass's
+// emote, accessory and celebration as that pass starts, with the pass shown as finished and its
+// coins paid once. It lives on the account, not in the save, so it is put back into the save every
+// time the game syncs: a game that sends up a save without them (an older app, or one opened
+// before the gift) cannot lose them. When something had to be put in, the save is marked as newer
+// than anything the game has, so the next time the game opens it takes this copy.
+function ensureEverything(u) {
+  if (!u || !u.everything) return false;
+  if (!u.save || typeof u.save !== 'object' || Array.isArray(u.save)) u.save = {};
+  const s = u.save;
+  if (!s.owned || typeof s.owned !== 'object' || Array.isArray(s.owned)) s.owned = {};
+  let changed = false;
+  const add = (kind, id) => {
+    if (!Array.isArray(s.owned[kind])) s.owned[kind] = [];
+    if (!s.owned[kind].includes(id)) { s.owned[kind].push(id); changed = true; }
+  };
+  for (const [kind, ids] of Object.entries(game.allItems)) for (const id of ids) add(kind, id);
+  const now = game.pass.now();
+  for (let n = 1; n <= now; n++) { add('emote', 'pe' + n); add('accessory', 'pa' + n); add('celebration', 'pc' + n); }
+  if (now) {
+    const steps = game.pass.steps, full = steps[steps.length - 1], p = s.pass;
+    const done = p && typeof p === 'object' && p.n === now && Number(p.xp) >= full && Array.isArray(p.got) && p.got.length === steps.length && p.got.every((g) => g === true);
+    if (!done) { s.pass = { n: now, xp: full, got: steps.map(() => true), seen: p && typeof p === 'object' && p.n === now ? Number(p.seen) || 0 : 0 }; changed = true; }
+    // the pass's coins, once a pass (remembered on the account, so a save cannot ask twice)
+    if (Number(u.everythingPass) !== now) { u.everythingPass = now; u.pendingCoins = (Number(u.pendingCoins) || 0) + game.pass.coins; changed = true; }
+  }
+  if (changed) { s.savedAt = Math.max(Date.now(), (Number(s.savedAt) || 0) + 1); saveDB(); }
+  return changed;
 }
 // moves queued coins into the stored save; returns how many arrived
 function deliverGifts(u) {
+  ensureEverything(u);
   // a season that finished while they were away pays out here
   const r = rankOf(u);
   if (r.owed > 0) { u.pendingCoins = (Number(u.pendingCoins) || 0) + r.owed; r.owed = 0; saveDB(); }

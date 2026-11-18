@@ -1631,15 +1631,23 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
   setInterval(matchmake, 1000).unref();
   setInterval(tickCups, 500).unref();
 
+  // every item there is to own (build 122: for an account given everything by a gift in server.js).
+  // One-of-ones and items made for one named player are never in it.
+  const ALL_ITEMS = {};
+  for (const [kind, list] of Object.entries({ ball: sim.BALLS, trail: sim.TRAILS, celebration: sim.CELEBRATIONS, accessory: sim.ACCESSORIES, skill: sim.SKILLS, emote: sim.EMOTES })) {
+    ALL_ITEMS[kind] = (list || []).filter((x) => x && typeof x.id === 'string' && x.rarity !== 'oneofone' && !x.only).map((x) => x.id);
+  }
+
   return {
     connect,
     clubs: sim.CLUBS,
+    allItems: ALL_ITEMS,
     prices: sim.PRICES, // what the old characters cost (server.js gives it back once)
     // the rank maths the accounts need (server.js keeps the points, this keeps the rules in one place)
     rank: { tier: sim.rankTier, next: sim.rankNext, delta: sim.rankDelta, seasonNow: sim.seasonNow, seasonEndsAt: sim.seasonEndsAt, tiers: sim.RANK_TIERS },
     countryFor: sim.countryFor,
     // season passes (build 122): which pass an id is from, and which pass is on at a moment
-    pass: { numOf: sim.passNumOf, at: sim.passAt },
+    pass: { numOf: sim.passNumOf, at: sim.passAt, now: sim.passNow, steps: sim.PASS_STEPS, coins: sim.PASS_COINS },
     stats: () => ({ online: conns.size, rooms: [...rooms.values()].filter((r) => r.state !== 'lobby').length, lobbies: codes.size, queued: Object.values(queues).reduce((a, q) => a + q.length, 0) }),
     inMatch: (id) => !!roomOf(id),
     // code 4001 tells the game its sign-in is over (a ban, a password reset); nothing says "try again"
