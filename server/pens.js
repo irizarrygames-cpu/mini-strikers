@@ -68,10 +68,18 @@ function create(seed = Date.now(), kind = 'pens') {
   const fk = kind === 'fk';
   return { seed, random, kind: fk ? 'fk' : 'pens', first, n: 0, team: first, kicks: { blue: [], red: [] }, score: { blue: 0, red: 0 }, winner: null, wall: fk ? fkWall(random) : null };
 }
-function resolve(state, shotInput, diveInput, quality = 0.55) {
+// The ball is struck: where it goes, on the shootout's own dice. Online the strike and the result
+// are two moments (the keeper can still dive while the ball is in the air), so they are two steps;
+// resolve() does both at once. The dice are thrown in the same order either way.
+function strike(state, shotInput, quality = 0.55) {
+  if (state.winner) throw new Error('shootout finished');
+  return kick(shotInput, clamp(quality, 0.1, 1), state.random, state.wall);
+}
+// what a struck ball did, given the keeper's dive (td: seconds from the strike), and on to the next kick
+function settle(state, shot, diveInput) {
   if (state.winner) throw new Error('shootout finished');
   const wall = state.wall;
-  const shot = kick(shotInput, clamp(quality, 0.1, 1), state.random, wall), couldGoIn = shot.out === 'in' || ((shot.out === 'post' || shot.out === 'bar') && shot.postIn);
+  const couldGoIn = shot.out === 'in' || ((shot.out === 'post' || shot.out === 'bar') && shot.postIn);
   // a free kick's keeper stands over the open side and sees a ball over the wall late
   const kx = wall ? -wall.side * FK.KX : 0;
   const seen = wall ? { x: shot.x - kx, z: shot.z, T: shot.T - (shot.covered ? FK.SCREEN : FK.SCREEN_OPEN) } : shot;
@@ -89,5 +97,8 @@ function resolve(state, shotInput, diveInput, quality = 0.55) {
   if (wall && !state.winner) state.wall = fkWall(state.random);
   return { team, shot, dive: diveInput || null, result, scored, score: { ...state.score }, kicks: { blue: [...state.kicks.blue], red: [...state.kicks.red] }, winner: state.winner, n: state.n, next: state.team, kickWall: wall };
 }
+function resolve(state, shotInput, diveInput, quality = 0.55) {
+  return settle(state, strike(state, shotInput, quality), diveInput);
+}
 
-module.exports = { create, resolve, decided, kick, saves, FK, fkWall, fkCovered, fkAtWall, fkTop };
+module.exports = { create, resolve, strike, settle, decided, kick, saves, FK, fkWall, fkCovered, fkAtWall, fkTop };

@@ -413,19 +413,80 @@ const Pens = {
   xp(m) { const P = m.pens; return 30 + m.score.blue * 15 + P.saves * 15 + (P.winner === 'blue' ? 50 : 0); },
 
   // ---------- server-authoritative online shootout ----------
+  // A kick online, as it happens (build 125):
+  //   pen.turn    whose kick it is. Everyone back to their places (nobody still celebrating, sulking,
+  //               mid-kick or lying in last kick's dive).
+  //   you shoot:  aim, hold, let go. Your run-up starts at once, here; the server is told (pen.shot).
+  //   pen.runup   the shooter has gone (the server's clock ran out for them, or a filled-in taker went):
+  //               the taker runs at the ball on everyone's screen.
+  //   pen.kick    the ball is struck: where it is going, and the keeper's dive if they went before it.
+  //   in goal:    dive whenever you like, before the kick or while the ball is in the air.
+  //   pen.result  what happened. It shows when the ball gets there.
+  // Nothing waits for the other player: the shooter never stands at the ball waiting for the keeper.
+  // A dive's picture runs on P.diveClock, the seconds since that dive began, so it carries on smoothly
+  // from before the kick into the flight, whichever screen it is seen on.
   netTeam(P, team) { return team === P.serverSide ? 'blue' : 'red'; },
   netTurn(m, msg) {
-    const P = m.pens; P.team = this.netTeam(P, msg.team); P.n = msg.n; P.phase = 'ready'; P.t = 0; P.clock = Math.max(0, (msg.deadline - Date.now()) / 1000);
-    P.shot = null; P.dive = null; P.result = null; P.say = null; P.power = 0; P.holding = false; P.holdT = 0; P.netSent = false; P.netDeadline = msg.deadline; P.aim = { x: 0, z: 0.45 }; P.mouse = null;
+    const P = m.pens; P.team = this.netTeam(P, msg.team); P.n = msg.n; P.phase = 'ready'; P.t = 0;
+    // the server's deadline as time left on this device (its clock may not agree with the server's)
+    const left = Number.isFinite(msg.in) ? msg.in : msg.deadline - Date.now();
+    P.netDeadline = Date.now() + Math.max(0, Math.min(10000, left)); P.clock = Math.max(0, (P.netDeadline - Date.now()) / 1000);
+    P.shot = null; P.dive = null; P.diveClock = 0; P.ownDive = false; P.result = null; P.say = null; P.power = 0; P.holding = false; P.holdInputSeen = false; P.holdT = 0;
+    P.netSent = false; P.netShot = null; P.netResultData = null; P.runupT = 0.9; P.aim = { x: 0, z: 0.45 }; P.sway = { x: 0, z: 0 }; P.mouse = null;
     P.kicks = P.serverSide === 'blue' ? { blue: [...msg.kicks.blue], red: [...msg.kicks.red] } : { blue: [...msg.kicks.red], red: [...msg.kicks.blue] };
     m.score = P.serverSide === 'blue' ? { ...msg.score } : { blue: msg.score.red, red: msg.score.blue };
     if (P.team === 'red') P.them = this.actor('red', false, P.takers[Math.floor(msg.n / 2) % 5].look, P.takers[Math.floor(msg.n / 2) % 5].number);
+    // everyone back to their places, as offline (next)
+    Object.assign(this.taker(P), { celebrateT: 0, celebKind: null, sad: false, kickT: 0, fy: -1, faceX: 0.001, run: 0, vx: 0, vy: 0 });
+    for (const k of Object.values(P.keeper)) Object.assign(k, { diveT: 0, celebrateT: 0, sad: false, hopT: 0 });
     if (P.fk) this.setWall(P, msg.wall || null);
     this.label(P.watch ? tl('WATCHING') : P.team === 'blue' ? tl('SHOOT') : tl('DIVE')); this.flushInput(); if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
   },
+  // joined part-way through a kick (back after a dropped connection, or come to watch): whose kick
+  // it is comes from the server, and their taker is made if this screen never saw them
+  netCatchUp(P, team, n) {
+    P.team = this.netTeam(P, team); P.n = n;
+    if (P.team === 'red' && !P.them) P.them = this.actor('red', false, P.takers[Math.floor(n / 2) % 5].look, P.takers[Math.floor(n / 2) % 5].number);
+    // straight into it: the VS card would otherwise stay up until the next turn
+    if (Game.state === 'intro') { $('intro').hidden = true; Game.state = 'match'; }
+  },
+  // the shooter has gone: the taker runs at the ball
+  netRunup(m, msg) {
+    const P = m.pens;
+    if (P.phase === 'wait' && !P.netShot) this.netCatchUp(P, msg.team, msg.n);
+    if (msg.n !== P.n || P.netShot) return;
+    if (P.team === 'blue' && !P.watch) {
+      // your kick, taken for you (the clock ran out before you let go): into your run-up
+      if (P.phase === 'aim' || P.phase === 'ready' || P.phase === 'wait') { if (P.holding) Sound.chargeStop(); P.holding = false; P.netSent = true; P.phase = 'strike'; P.t = 0; }
+      return;
+    }
+    if (P.phase === 'ready' || P.phase === 'idle' || P.phase === 'wait') { P.phase = 'runup'; P.t = 0; P.runupT = clamp((Number(msg.ms) || 300) / 1000, 0.15, 1.5); }
+  },
+  // the ball is struck
+  netKick(m, msg) {
+    const P = m.pens;
+    if (P.phase === 'wait' && !P.netShot) this.netCatchUp(P, msg.team, msg.n);
+    if (msg.n !== P.n || P.netShot || !msg.shot) return;
+    P.netShot = msg.shot;
+    // the keeper went before it was hit (on this screen that is someone else's dive, never your own)
+    if (msg.dive && !P.ownDive && !P.dive) { P.dive = { ...msg.dive, v: PEN.PLAYER_DIVE }; P.diveClock = -(Number(msg.dive.td) || 0); }
+    // your own run-up finishes first (netStep starts the flight at the end of it); done already, it goes now
+    if (P.phase !== 'strike' || P.t >= 0.3) this.netStrike(m);
+  },
+  netStrike(m) {
+    const P = m.pens, taker = this.taker(P);
+    P.shot = P.netShot; P.phase = 'flight'; P.t = 0;
+    taker.run = 1; taker.kickT = taker.kickDur; taker.faceX = P.shot.x < 0 ? -1 : 1; taker.fy = 0; Sound.kick(0.4 + P.shot.power * 0.6);
+  },
   netResult(m, msg) {
-    const P = m.pens; P.team = this.netTeam(P, msg.team); P.shot = msg.shot; P.dive = msg.dive; P.netResultData = msg; P.phase = 'flight'; P.t = 0;
-    const taker = this.taker(P); taker.run = 1; taker.kickT = taker.kickDur; taker.faceX = P.shot.x < 0 ? -1 : 1; taker.fy = 0; Sound.kick(0.4 + P.shot.power * 0.6);
+    const P = m.pens;
+    // a result for a kick this screen never saw start (back after a dropped connection): play it all
+    if (!P.netShot || msg.n - 1 !== P.n) { this.netCatchUp(P, msg.team, msg.n - 1); P.netShot = msg.shot; P.dive = null; P.ownDive = false; P.phase = 'wait'; }
+    P.netResultData = msg;
+    // the keeper's dive as the server had it, for anyone who has not seen it yet (never your own:
+    // yours is already on screen from the moment you pressed)
+    if (msg.dive && !P.ownDive && !P.dive) { const since = P.phase === 'flight' ? P.t : 0; P.dive = { ...msg.dive, v: PEN.PLAYER_DIVE }; P.diveClock = since - (Number(msg.dive.td) || 0); }
+    if (P.phase !== 'flight' && P.phase !== 'strike' && P.phase !== 'after') this.netStrike(m);
   },
   netApply(m) {
     const P = m.pens, r = P.netResultData, taker = this.taker(P), gk = this.goalie(P);
@@ -433,28 +494,82 @@ const Pens = {
     m.score = P.serverSide === 'blue' ? { ...r.score } : { blue: r.score.red, red: r.score.blue }; P.after = { held: r.result === 'save' && P.shot.v < 24 && Math.abs(P.shot.x) < 2.2, side: Math.random() < 0.5 ? -1 : 1 };
     if (P.team === 'blue') { m.human.stats.shots++; m.stats.blue.shots++; if (r.scored) m.human.stats.goals++; }
     if (r.result === 'save' && P.team === 'red') { P.saves++; m.keepers.blue.stats.saves++; m.stats.blue.saves++; }
-    if (r.scored) { Sound.net(); taker.celebrateT = CELE_TIME; taker.celebKind = P.team === 'blue' ? Save.celebration() : null; } else { taker.sad = true; if (r.result === 'save') { Sound.save(); gk.celebrateT = 1.4; } else if (r.result === 'wall') Sound.post(); }
+    if (r.scored) { Sound.net(); taker.celebrateT = CELE_TIME; taker.celebKind = P.team === 'blue' ? Save.celebration() : null; taker.fy = -1; } else { taker.sad = true; if (r.result === 'save') { Sound.save(); gk.celebrateT = 1.4; } else if (r.result === 'wall' || r.result === 'post' || r.result === 'bar') Sound.post(); }
+    const good = (r.scored && P.team === 'blue') || (!r.scored && P.team === 'red');
+    if (good) { Sound.cheer(true); P.cheerT = 1.8; } else Sound.ooh();
+    P.shake = r.result === 'save' || r.result === 'post' || r.result === 'bar' || r.result === 'wall' ? 0.25 : r.scored ? 0.18 : 0;
     P.phase = 'after'; P.t = 0; P.netResultData = null;
   },
+  // in goal: any button dives (the stick or the mouse says where), once a kick
+  netKeeper(P) {
+    const press = Input.consumeShootPress() | Input.consumeSkill() | Input.consumeSlide() | (Input.consumePassPress ? Input.consumePassPress() : false);
+    Input.consumeShootRelease(); Input.consumePass();
+    if (!press || P.dive || P.netSent) return;
+    P.dive = { ...this.diveFrom(P, 0), v: PEN.PLAYER_DIVE }; P.diveClock = 0; P.ownDive = true; P.netSent = true;
+    // lt: how long after this screen saw the ball struck (the server allows for the trip here)
+    Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz, lt: P.phase === 'flight' ? Math.round(P.t * 1000) / 1000 : -1 });
+    Sound.whoosh(true);
+  },
+  // your kick: aim, hold for power, let go (the same as offline, including the repair for a dropped
+  // pointer edge: see 'aim' in step)
+  netAim(m, dt) {
+    const P = m.pens, mv = Input.move;
+    if (Math.hypot(mv.x, mv.y) > 0.05) P.mouse = null;
+    if (P.mouse) { P.aim.x += (P.mouse.x - P.aim.x) * Math.min(1, dt * 14); P.aim.z += (P.mouse.z - P.aim.z) * Math.min(1, dt * 14); } else { P.aim.x += mv.x * 1.25 * dt; P.aim.z -= mv.y * 1.1 * dt; }
+    P.aim.x = clamp(P.aim.x, -1.08, 1.08); P.aim.z = clamp(P.aim.z, 0.03, 1.1);
+    const wob = 0.035 + (1 - P.q) * 0.05; P.sway = { x: Math.sin(P.t * 2.3) * wob, z: Math.sin(P.t * 1.7 + 1) * wob * 0.8 };
+    const press = Input.consumeShootPress();
+    if ((press || Input.shootHeld) && !P.holding) { P.holding = true; P.holdInputSeen = !!Input.shootHeld; P.holdT = 0; Sound.chargeStart(); }
+    let release = Input.consumeShootRelease();
+    if (P.holding) {
+      if (Input.shootHeld) P.holdInputSeen = true;
+      if (P.holdInputSeen && !Input.shootHeld) release = true;
+      P.holdT += dt; P.power = Math.min(1, P.holdT / 0.85);
+      if (P.holdT >= 1.6) release = true;
+    }
+    P.clock = Math.max(0, (P.netDeadline - Date.now()) / 1000);
+    if (P.clock <= 0 && !P.holding) { P.holding = true; P.power = 0.58; release = true; }
+    if (release && P.holding && !P.netSent) {
+      P.holding = false; P.holdInputSeen = false; P.netSent = true; Sound.chargeStop();
+      Net.send({ t: 'pen.shot', ax: P.aim.x + P.sway.x, az: P.aim.z + P.sway.z, power: P.power });
+      P.phase = 'strike'; P.t = 0;   // straight into your run-up: nothing waits for the keeper
+    }
+  },
   netStep(m, dt) {
-    const P = m.pens; P.t += dt; P.cheerT = Math.max(0, P.cheerT - dt); P.shake = Math.max(0, P.shake - dt); const taker = this.taker(P), gk = this.goalie(P);
-    if (P.phase === 'ready') { if (P.t > 0.65) { P.phase = P.team === 'blue' && !P.watch ? 'aim' : 'runup'; P.t = 0; Sound.whistle(); this.flushInput(); } return; }
-    if (P.phase === 'aim') {
-      const mv = Input.move; if (Math.hypot(mv.x, mv.y) > 0.05) P.mouse = null; if (P.mouse) { P.aim.x += (P.mouse.x - P.aim.x) * Math.min(1, dt * 14); P.aim.z += (P.mouse.z - P.aim.z) * Math.min(1, dt * 14); } else { P.aim.x += mv.x * 1.25 * dt; P.aim.z -= mv.y * 1.1 * dt; }
-      P.aim.x = clamp(P.aim.x, -1.08, 1.08); P.aim.z = clamp(P.aim.z, 0.03, 1.1); const wob = 0.035 + (1 - P.q) * 0.05; P.sway = { x: Math.sin(P.t * 2.3) * wob, z: Math.sin(P.t * 1.7 + 1) * wob * 0.8 };
-      if (Input.consumeShootPress() && !P.holding) { P.holding = true; P.holdT = 0; Sound.chargeStart(); } let release = Input.consumeShootRelease(); if (P.holding) { P.holdT += dt; P.power = Math.min(1, P.holdT / 0.85); if (P.holdT >= 1.6) release = true; }
-      P.clock = Math.max(0, (P.netDeadline - Date.now()) / 1000); if (P.clock <= 0 && !P.holding) { P.holding = true; P.power = 0.58; release = true; }
-      if (release && P.holding && !P.netSent) { P.holding = false; P.netSent = true; Sound.chargeStop(); Net.send({ t: 'pen.shot', ax: P.aim.x + P.sway.x, az: P.aim.z + P.sway.z, power: P.power }); P.phase = 'wait'; P.t = 0; }
-      return;
+    const P = m.pens; P.t += dt; P.cheerT = Math.max(0, P.cheerT - dt); P.shake = Math.max(0, P.shake - dt);
+    // the same clocks offline runs: a celebration, a kick and a hop all end
+    for (const a of [P.you, P.them, P.keeper.blue, P.keeper.red]) if (a) { a.kickT = Math.max(0, a.kickT - dt); a.celebrateT = Math.max(0, a.celebrateT - dt); a.hopT = Math.max(0, a.hopT - dt); }
+    if (P.dive) P.diveClock += dt;
+    const taker = this.taker(P), gk = this.goalie(P);
+    const shooting = P.team === 'blue' && !P.watch, keeping = P.team === 'red' && !P.watch;
+    switch (P.phase) {
+      case 'ready':
+        if (P.t > 0.65) { P.phase = shooting ? 'aim' : 'idle'; P.t = 0; Sound.whistle(); this.flushInput(); }
+        return;
+      case 'aim': this.netAim(m, dt); return;
+      case 'strike':
+        // your two quick steps into it; the ball goes when they are done and the server has struck it
+        taker.run = Math.min(1, P.t / 0.3);
+        if (P.t >= 0.3 && P.netShot) this.netStrike(m);
+        return;
+      case 'idle':
+        // they are lining it up: the taker waits behind the ball, and in goal you can go early
+        taker.run = 0;
+        if (keeping) this.netKeeper(P);
+        return;
+      case 'runup':
+        taker.run = Math.min(1, P.t / P.runupT);
+        if (keeping) this.netKeeper(P);
+        return;
+      case 'flight':
+        if (keeping) this.netKeeper(P);
+        this.pose(gk, P.dive, P.t);
+        if (P.t >= PEN.flightT(P.shot) && P.netResultData) this.netApply(m);
+        return;
+      case 'after':
+        this.pose(gk, P.dive, P.shot.T + P.t);
+        return;
     }
-    if (P.phase === 'wait') { taker.run = Math.min(1, P.t / 0.24); return; }
-    if (P.phase === 'runup') {
-      taker.run = Math.min(1, P.t / 1.1); const press = Input.consumeShootPress() | Input.consumeSkill() | Input.consumeSlide() | (Input.consumePassPress ? Input.consumePassPress() : false); Input.consumeShootRelease(); Input.consumePass();
-      if (press && !P.dive && !P.netSent && !P.watch) { P.dive = this.diveFrom(P, P.t); P.netSent = true; Net.send({ t: 'pen.dive', dx: P.dive.dx, dz: P.dive.dz }); Sound.whoosh(true); }
-      return;
-    }
-    if (P.phase === 'flight') { this.pose(gk, P.dive, P.t); if (P.t >= PEN.flightT(P.shot)) this.netApply(m); return; }
-    if (P.phase === 'after') this.pose(gk, P.dive, P.shot.T + P.t);
   },
   // ---------- the picture ----------
   layout(W, H, fk = false) {
@@ -744,9 +859,10 @@ const Pens = {
     const flying = P.phase === 'flight' || P.phase === 'after' || (P.net && P.phase === 'runup' && P.dive);
     const tt = P.phase === 'flight' ? P.t : P.phase === 'after' ? P.shot.T + P.t : P.phase === 'runup' ? P.t : 0;
     const kx = P.kx || 0;
-    const K = flying && P.dive ? PEN.keeper(P.dive, kx, tt) : null;
+    const K = P.net ? (P.dive && P.diveClock > 0 ? PEN.keeper({ ...P.dive, td: 0 }, kx, P.diveClock) : null)
+      : flying && P.dive ? PEN.keeper(P.dive, kx, tt) : null;
     gk.fy = 1; gk.fx = 0; gk.faceX = 0.001;
-    if (!K || (K.s <= 0 && P.dive && tt < P.dive.td)) {
+    if (!K || (K.s <= 0 && P.dive && (P.net || tt < P.dive.td))) {
       // ready on the line, bouncing on their toes
       gk.diveT = 0;
       const feet = this.gp(L, kx, 0);
@@ -797,7 +913,7 @@ const Pens = {
       return { x: g.x + (g.x - L.spot.x) * u * 0.5, y: g.y + (g.y - L.spot.y) * u * 0.5, r: rg * (1 - u * 0.3), behind: true, spin: 12 + u * 6 };
     }
     if (res === 'save' && P.after.held) {
-      const K = PEN.keeper(P.dive, 0, s.T + a), hand = this.gp(L, K.p.x + K.a.x * 1.2, K.p.z + K.a.z * 1.2);
+      const K = P.net ? PEN.keeper(P.dive ? { ...P.dive, td: 0 } : null, P.kx || 0, P.diveClock) : PEN.keeper(P.dive, 0, s.T + a), hand = this.gp(L, K.p.x + K.a.x * 1.2, K.p.z + K.a.z * 1.2);
       return { x: hand.x, y: hand.y, r: rg, spin: 12 };
     }
     // parried, or off the woodwork: back out towards us and bouncing
@@ -947,7 +1063,7 @@ const Pens = {
       if (P.clock < 3.5) Render.chunkyText(ctx, String(Math.ceil(P.clock)), c.x, c.y - r * 2.4, sub * 1.1, '#ff8a8e');
     }
     // you in goal: a line from the keeper the way you will dive
-    if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive && !P.watch) {
+    if ((P.phase === 'runup' || P.phase === 'flight' || P.phase === 'idle') && P.team === 'red' && !P.dive && !P.watch) {
       // (from where the keeper stands: in a free kick that is off to one side, away from the wall)
       // the line points the way you will dive: the stick or keys if you are pushing them, otherwise
       // towards the mouse (the same choice diveFrom makes when you press)
@@ -981,7 +1097,7 @@ const Pens = {
     if (P.watch) hint = null; // nobody tells a viewer to press anything
     else if (P.phase === 'aim' && P.fk && !P.holding) hint = tl('SOFT AND HIGH GOES OVER THE WALL  ·  HARD GOES ROUND IT');
     else if (P.phase === 'aim') hint = P.holding ? tl('LET GO TO SHOOT') : kb ? tl('AIM: WASD OR MOUSE  ·  HOLD SPACE OR CLICK FOR POWER') : tl('AIM WITH THE STICK  ·  HOLD SHOOT FOR POWER');
-    else if ((P.phase === 'runup' || P.phase === 'flight') && P.team === 'red' && !P.dive) hint = kb ? tl('WATCH THE KICK  ·  CLICK WHERE TO DIVE, OR WASD + SPACE') : tl('WATCH THE KICK  ·  STICK + DIVE');
+    else if ((P.phase === 'runup' || P.phase === 'flight' || P.phase === 'idle') && P.team === 'red' && !P.dive) hint = kb ? tl('WATCH THE KICK  ·  CLICK WHERE TO DIVE, OR WASD + SPACE') : tl('WATCH THE KICK  ·  STICK + DIVE');
     if (hint) {
       const hs = clamp(Math.min(W, H) * 0.034, 12, 18);
       ctx.font = `400 ${hs}px "Lilita One", system-ui, sans-serif`;
@@ -1012,7 +1128,7 @@ const Pens = {
     const m = Game.match;
     if (!m || !m.pens || e.pointerType !== 'mouse' || Game.state !== 'match') return;
     const P = m.pens;
-    const keeping = P.team === 'red' && !P.dive && (P.phase === 'ready' || P.phase === 'runup' || P.phase === 'flight');
+    const keeping = P.team === 'red' && !P.dive && (P.phase === 'ready' || P.phase === 'runup' || P.phase === 'flight' || P.phase === 'idle');
     if (P.phase !== 'aim' && !keeping) return;
     const L = this.layout(Render.W, Render.H, !!m.pens.fk);
     const x = (e.clientX - L.gx) / L.s / PEN.HW, z = (L.gy - e.clientY) / L.s / PEN.HT;

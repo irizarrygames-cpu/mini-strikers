@@ -857,7 +857,7 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
       clubs: room.clubs, wc: seat.wc, startsIn: Math.max(0, room.startAt - Date.now()),
       // (nothing here says which spots are filled in: online, a filled spot is just another player)
       players: room.seats.map((s) => ({ team: s.team, name: s.name, character: s.character })),
-      state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline, wall: p.model.wall },
+      state: { first: p.model.first, team: p.model.team, n: p.model.n, score: p.model.score, kicks: p.model.kicks, winner: p.model.winner, phase: p.phase, deadline: p.deadline, in: p.deadline ? Math.max(0, p.deadline - Date.now()) : 0, wall: p.model.wall },
       opponent: room.seats.find((s) => s.team === other).name,
     };
   }
@@ -896,51 +896,88 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const keeper = room.seats.find((s) => s.team !== room.pen.model.team);
     return { shooter, keeper };
   }
+  // A kick, as it happens (build 125). Before, the ball was not struck until both the shot and the
+  // keeper's dive were in, so a shooter stood frozen at the ball for as long as the keeper took (up
+  // to the 10 s clock). Now nothing waits for the other player:
+  //   input   the shooter has the clock (10 s) to let go; a filled-in taker lines it up for a moment.
+  //           The keeper may dive already (a guess).
+  //   runup   the shooter has gone: a run-up (a filled-in taker takes a longer run), then the strike.
+  //   flight  the ball is in the air (pen.kick says where). The keeper can still dive. The result
+  //           is settled the moment the dive is in, or when the ball gets there.
+  // A dive's td (when it began, from the strike, in seconds) is what the save maths uses. A dive made
+  // while the ball is in the air has the trip to the server allowed for: the keeper's game says how
+  // long after it saw the strike they went (lt), and the server takes that, never more than
+  // PEN_LAG_CREDIT earlier than when the dive arrived.
+  const PEN_RUN_MS = 300, PEN_BOT_RUN_MS = 900, PEN_LATE_MS = 120, PEN_LAG_CREDIT = 0.25;
+  const penFlightMs = (shot) => (shot.out === 'wall' ? shot.T * (PenModel.FK.AT / PenModel.FK.DIST) : shot.T) * 1000;
   function penShot(id, msg) {
     const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing' || room.pen.phase !== 'input') return;
     const { shooter } = penRoles(room); if (!shooter || shooter.userId !== id || room.pen.pending.shot) return;
-    room.pen.pending.shot = { ax: Number(msg.ax), az: Number(msg.az), power: Number(msg.power), at: Date.now() };
-    penTryResolve(room);
+    room.pen.pending.shot = { ax: Number(msg.ax), az: Number(msg.az), power: Number(msg.power) };
+    penRunup(room, PEN_RUN_MS, Date.now());
   }
   function penDive(id, msg) {
-    const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing' || room.pen.phase !== 'input') return;
-    const { keeper } = penRoles(room); if (!keeper || keeper.userId !== id || room.pen.pending.dive) return;
-    room.pen.pending.dive = { dx: Number(msg.dx), dz: Number(msg.dz), at: Date.now() };
-    penTryResolve(room);
+    const room = roomOf(id); if (!room || !room.pen || room.state !== 'playing') return;
+    const p = room.pen; if (p.phase !== 'input' && p.phase !== 'runup' && p.phase !== 'flight') return;
+    const { keeper } = penRoles(room); if (!keeper || keeper.userId !== id || p.pending.dive) return;
+    // (a which-way of -1..1 each; anything that is not a number is the middle, standing up)
+    const unit = (v, d) => { const x = Number(v); return Number.isFinite(x) ? Math.max(-1, Math.min(1, x)) : d; };
+    p.pending.dive = { dx: unit(msg.dx, 0), dz: unit(msg.dz, 1), at: Date.now(), lt: Number(msg.lt) };
+    if (p.phase === 'flight') penSettle(room, Date.now());
   }
-  function penBotInputs(room) {
-    const p = room.pen, { shooter, keeper } = penRoles(room), wall = p.model.wall;
-    if (!shooter.human && !p.pending.shot) {
-      const side = Math.random() < 0.5 ? -1 : 1;
-      // a free kick: mostly over the wall into its corner, otherwise round it on the keeper's side
-      if (wall) p.pending.shot = Math.random() < 0.6
-        ? { ax: wall.side * (0.5 + Math.random() * 0.32), az: 0.72 + Math.random() * 0.23, power: 0.4 + Math.random() * 0.16 }
-        : { ax: -wall.side * (0.45 + Math.random() * 0.35), az: 0.1 + Math.random() * 0.5, power: 0.55 + Math.random() * 0.25 };
-      else p.pending.shot = { ax: side * (0.45 + Math.random() * 0.42), az: 0.08 + Math.random() * 0.68, power: 0.55 + Math.random() * 0.3 };
-    }
-    if (!keeper.human && !p.pending.dive) {
-      // a free kick's keeper mostly goes its own way, the side the wall leaves open
-      const r = Math.random(), side = wall ? (r < 0.6 ? -wall.side : r < 0.85 ? wall.side : 0) : r < 0.44 ? -1 : r < 0.88 ? 1 : 0;
-      p.pending.dive = { dx: side, dz: side ? -0.05 + Math.random() * 0.65 : 1, td: 0.12 + Math.random() * 0.18 };
-    }
+  // when a dive began, in seconds from the strike (before it: below zero)
+  function penDiveTd(p, d) {
+    if (Number.isFinite(d.td)) return Math.max(-0.8, Math.min(1, d.td));   // a filled-in keeper's
+    const arrived = (d.at - p.kickAt) / 1000;
+    let td = arrived;
+    if (arrived > 0 && Number.isFinite(d.lt) && d.lt >= 0) td = Math.max(arrived - PEN_LAG_CREDIT, Math.min(arrived, d.lt));
+    return Math.max(-0.8, Math.min(1, td));
   }
-  function penTryResolve(room) {
-    const p = room.pen; penBotInputs(room);
-    if (!p.pending.shot || !p.pending.dive || p.phase !== 'input') return;
-    const shooter = penRoles(room).shooter, shot = { ...p.pending.shot }, dive = { ...p.pending.dive };
-    if (Number.isFinite(shot.at) && Number.isFinite(dive.at)) dive.td = Math.max(-0.8, Math.min(1, (dive.at - shot.at) / 1000));
-    else if (!Number.isFinite(dive.td)) dive.td = 0;
-    delete shot.at; delete dive.at;
-    const quality = shooter.human ? 0.65 : 0.55;
-    const result = PenModel.resolve(p.model, shot, dive, quality);
-    p.phase = result.winner ? 'end' : 'result'; p.nextAt = Date.now() + (result.winner ? 2600 : 2300); p.deadline = 0;
-    penBroadcast(room, { t: 'pen.result', ...result });
+  function penBotShot(p) {
+    const wall = p.model.wall, side = Math.random() < 0.5 ? -1 : 1;
+    // a free kick: mostly over the wall into its corner, otherwise round it on the keeper's side
+    if (wall) return Math.random() < 0.6
+      ? { ax: wall.side * (0.5 + Math.random() * 0.32), az: 0.72 + Math.random() * 0.23, power: 0.4 + Math.random() * 0.16 }
+      : { ax: -wall.side * (0.45 + Math.random() * 0.35), az: 0.1 + Math.random() * 0.5, power: 0.55 + Math.random() * 0.25 };
+    return { ax: side * (0.45 + Math.random() * 0.42), az: 0.08 + Math.random() * 0.68, power: 0.55 + Math.random() * 0.3 };
+  }
+  function penBotDive(p) {
+    // a free kick's keeper mostly goes its own way, the side the wall leaves open
+    const wall = p.model.wall, r = Math.random(), side = wall ? (r < 0.6 ? -wall.side : r < 0.85 ? wall.side : 0) : r < 0.44 ? -1 : r < 0.88 ? 1 : 0;
+    return { dx: side, dz: side ? -0.05 + Math.random() * 0.65 : 1, td: 0.12 + Math.random() * 0.18 };
+  }
+  // the shooter has gone: the run-up, then the strike
+  function penRunup(room, ms, now) {
+    const p = room.pen;
+    p.phase = 'runup'; p.kickAt = now + ms; p.deadline = 0;
+    penBroadcast(room, { t: 'pen.runup', team: p.model.team, n: p.model.n, ms });
+  }
+  // the ball is struck: where it is going goes to everyone, with the keeper's dive if they went before it
+  function penKick(room, now) {
+    const p = room.pen, { shooter, keeper } = penRoles(room);
+    p.shot = PenModel.strike(p.model, p.pending.shot, shooter.human ? 0.65 : 0.55);
+    p.kickAt = now; p.phase = 'flight'; p.flightEnd = now + penFlightMs(p.shot) + PEN_LATE_MS;
+    if (!keeper.human && !p.pending.dive) p.pending.dive = penBotDive(p);
+    const d = p.pending.dive, dive = d ? { dx: d.dx, dz: d.dz, td: penDiveTd(p, d) } : null;
+    penBroadcast(room, { t: 'pen.kick', team: p.model.team, n: p.model.n, shot: p.shot, dive });
+    if (dive) penSettle(room, now);
+  }
+  // what happened: the moment the dive is in, or when the ball gets there without one
+  function penSettle(room, now) {
+    const p = room.pen; if (p.phase !== 'flight') return;
+    const d = p.pending.dive, dive = d ? { dx: d.dx, dz: d.dz, td: penDiveTd(p, d) } : null;
+    // no dive at all: the keeper stood where they were
+    const result = PenModel.settle(p.model, p.shot, dive || { dx: 0, dz: 1, td: 1 });
+    const landed = Math.max(now, p.kickAt + penFlightMs(p.shot));
+    p.phase = result.winner ? 'end' : 'result'; p.nextAt = landed + (result.winner ? 2300 : 2100); p.deadline = 0;
+    penBroadcast(room, { t: 'pen.result', ...result, dive });
   }
   function penBeginTurn(room, now) {
-    const p = room.pen; p.pending = { shot: null, dive: null }; p.phase = 'input'; p.turnAt = now; p.deadline = now + 10000;
-    penBotInputs(room);
-    penBroadcast(room, { t: 'pen.turn', team: p.model.team, n: p.model.n, deadline: p.deadline, score: p.model.score, kicks: p.model.kicks, wall: p.model.wall });
-    penTryResolve(room);
+    const p = room.pen; p.pending = { shot: null, dive: null }; p.shot = null; p.phase = 'input'; p.turnAt = now; p.deadline = now + 10000;
+    // a filled-in taker lines it up for a moment (after the 0.65 s every screen shows the turn for)
+    const { shooter } = penRoles(room);
+    p.botShotAt = shooter.human ? 0 : now + 650 + 600 + Math.random() * 900;
+    penBroadcast(room, { t: 'pen.turn', team: p.model.team, n: p.model.n, deadline: p.deadline, in: 10000, score: p.model.score, kicks: p.model.kicks, wall: p.model.wall });
   }
   function finishPens(room, forfeitTeam = null) {
     if (room.state === 'over') return;
@@ -965,12 +1002,14 @@ function createGame({ getUser, userName, saveDB, onlineRecord, isNameTaken, worl
     const p = room.pen;
     if (room.state === 'intro') { if (now < room.startAt) return; room.state = 'playing'; penBeginTurn(room, now); return; }
     if (room.state !== 'playing') return;
-    if (p.phase === 'input' && now >= p.deadline) {
-      const { shooter, keeper } = penRoles(room);
-      if (!p.pending.shot) p.pending.shot = shooter.human ? { ax: 0, az: 0.42, power: 0.58 } : null;
-      if (!p.pending.dive) p.pending.dive = keeper.human ? { dx: 0, dz: 1, td: 1 } : null;
-      penTryResolve(room);
-    } else if (p.phase === 'result' && now >= p.nextAt) penBeginTurn(room, now);
+    if (p.phase === 'input') {
+      const { shooter } = penRoles(room);
+      if (!shooter.human && now >= p.botShotAt) { p.pending.shot = penBotShot(p); penRunup(room, PEN_BOT_RUN_MS, now); }
+      // the clock ran out: a soft one down the middle, taken for them
+      else if (now >= p.deadline) { if (!p.pending.shot) p.pending.shot = { ax: 0, az: 0.42, power: 0.58 }; penRunup(room, PEN_RUN_MS, now); }
+    } else if (p.phase === 'runup' && now >= p.kickAt) penKick(room, now);
+    else if (p.phase === 'flight' && now >= p.flightEnd) penSettle(room, now);
+    else if (p.phase === 'result' && now >= p.nextAt) penBeginTurn(room, now);
     else if (p.phase === 'end' && now >= p.nextAt) finishPens(room);
   }
   /* ---------------- matches ---------------- */

@@ -152,14 +152,15 @@ const show = (r, n = N) => `in ${pctN(r.goal, n)}%  saved ${pctN(r.save, n)}%  w
         const turn = ws.last('pen.turn');
         if (turn && turn.wall) seen.add(turn.wall.side);
         const room = game._roomOf(id);
-        if (!room || !room.pen || room.pen.phase !== 'input') continue;
+        // (the keeper can dive until the ball gets there; the shooter only shoots while it is their turn)
+        if (!room || !room.pen || !['input', 'runup', 'flight'].includes(room.pen.phase)) continue;
         const mine = room.seats.find((s) => s.userId === id);
         const w = room.pen.model.wall;
         if (mine.team === room.pen.model.team) ws.msg({ t: 'pen.shot', ax: w.side * 0.7, az: Math.random(), power: Math.random() });
         else ws.msg({ t: 'pen.dive', dx: -w.side, dz: 0.3 });
       }
-      // skip the pause between kicks
-      for (const id of ['fa', 'fb']) { const r = game._roomOf(id); if (r && r.pen && (r.pen.phase === 'result' || r.pen.phase === 'end')) r.pen.nextAt = 0; if (r && r.state === 'intro') r.startAt = 0; }
+      // skip the pause between kicks (and the run-up and the ball's flight)
+      for (const id of ['fa', 'fb']) { const r = game._roomOf(id); if (r && r.pen && (r.pen.phase === 'result' || r.pen.phase === 'end')) r.pen.nextAt = 0; if (r && r.pen && r.pen.phase === 'runup') r.pen.kickAt = 0; if (r && r.pen && r.pen.phase === 'flight') r.pen.flightEnd = 0; if (r && r.state === 'intro') r.startAt = 0; }
       await sleep(15);
       end = a.last('pen.end');
     }

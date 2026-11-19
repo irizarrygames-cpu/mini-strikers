@@ -251,6 +251,40 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Online shootouts that flow (build 125)
+
+Online penalties and free kicks were odd: your player kept celebrating the last goal while taking the
+next kick, the keeper lay in the last kick's dive, and a shot you had let go of stood still until the
+keeper had chosen (up to the 10 s clock).
+
+- **Why:** the online step (`Pens.netStep`) never ran the clocks the offline one does (a celebration, a
+  kick and a hop never ended) and `netTurn` never put anyone back in their place; and the server only
+  struck the ball once both the shot and the dive were in (`penTryResolve`).
+- **Now** (server/game.js, `penShot` to `tickPens`): a kick is `input` (the shooter has 10 s; a
+  filled-in taker lines it up for 1.2..2.2 s), `runup` (`pen.runup`: 300 ms, 900 ms for a filled-in
+  taker), `flight` (`pen.kick`: where the ball goes, and the keeper's dive if they went before it), then
+  `pen.result` the moment the dive is in or when the ball gets there (+120 ms). Nothing waits for the
+  other player. server/pens.js splits `resolve` into `strike` + `settle` (same dice, same order).
+- **The keeper** can dive before the kick (a guess, full stretch) or while the ball is in the air. A dive
+  in the air sends `lt` (how long after this screen saw the strike); the server uses it, never more than
+  `PEN_LAG_CREDIT` (0.25 s) earlier than the dive arrived, so lag does not cost a save and nobody can
+  claim more. Dive numbers are cleaned on arrival.
+- **The game** (js/penalty.js): phases `ready`, `aim` / `idle` (in goal while they line it up: their
+  taker waits behind the ball), `strike` (your own run-up, started the moment you let go), `runup`,
+  `flight`, `after`. Clocks run as offline; `netTurn` resets everyone; a dive is drawn on `P.diveClock`
+  (seconds since it began) so it carries on smoothly into the flight; the shot clock comes as time left
+  (`in`), so a phone with the wrong time no longer shoots for you at once; the SHOOT hold has the
+  offline repair for a dropped pointer edge; joining part-way through a kick (`netCatchUp`) takes it up
+  from there. Older apps still work against this server (they ignore `pen.runup` / `pen.kick`).
+
+Tests: `pens-flow-scan` (new, node: the kick as it happens on the real server code, timings, dives
+before and in the air, the lag allowance and its limit, filled-in players, the clock running out, junk
+and out-of-turn messages, a reconnect mid-kick). `tools/pens-client-scan.js` (new, browser: the game
+fed the server's messages on frames it makes itself; 32 checks). `fkscan` lets the keeper dive in the
+run-up and the flight too, and skips their waits. Also checked end to end: a real browser against a
+scripted player over a real WebSocket on a throwaway server, a whole shootout, with no stall.
+App 1.2.4 (code 25).
+
 ## Everything for havertz (build 124)
 
 - A gift can limit the season passes with `passesUpTo: N`: everything in the game as it is, passes 1..N
