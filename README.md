@@ -251,6 +251,20 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Long shots get saved (build 126)
+
+A shot from the halfway line went straight in far too often: a fully charged POWER SHOT by a player
+with maxed stats went in 58% of the time from halfway (and 76% from just inside it), with the keeper
+often barely moving. From a long way out the keeper has time, so the save chance now has a floor that
+rises with distance (`KEEPER.longRange` in js/ai.js): nothing changes inside 600 from goal; from 600
+it climbs until, from halfway, about one shot in ten goes in, whatever the power, the stats or the
+corner. From that far a ball hit straight at him is always kept out, and when he is beaten he goes
+full stretch and only just misses instead of a half-hearted dive.
+
+Power shots by a maxed player, share that went in (before → after): 750-900 from goal 67% → 42%,
+900-1050 57% → 23%, halfway 53% → 8%. Ordinary shots from halfway: 15-19% → 8-12%.
+`node tools/farshotscan.js` measures it (in the suite; it fails on the old keeper). App 1.2.5 (code 26).
+
 ## Online shootouts that flow (build 125)
 
 Online penalties and free kicks were odd: your player kept celebrating the last goal while taking the
@@ -597,6 +611,7 @@ still showing on a screen in another language; `tools/startscan.js` has a `langu
 
 ## Tools
 
+- `node tools/farshotscan.js` — long shots: about one in ten goes in from halfway, and the keeper goes for every one (about 20 seconds).
 - `node tools/proscan.js` — PRO MATCH online: its queues, rooms and snapshots, against the real server code on fake sockets (about 20 seconds).
 - `node tools/outscan.js [matches]` — how often bots put the ball out in PRO MATCH, and the goals.
 - `node tools/rulesscan.js` — PRO MATCH: the bigger pitch, throw-ins, corners and goal kicks, played out by bots and a scripted you (about 1 minute).

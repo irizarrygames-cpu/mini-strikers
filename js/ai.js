@@ -6,7 +6,13 @@ const KEEPER = { base: 0.94, speed: 0.34, power: 0.12, close: 0.2, mid: 0.08, fa
   yours: { '1v1': 0.12, '2v2': 0.06, '3v3': 0.02, '4v4': 0, training: 0 },
   // more team-mates means more room and closer shots, so the bigger formats need MORE help,
   // not less: 4v4 used to give the keeper nothing and 64% of shots went in.
-  format: { '4v4': 0.15, '3v3': 0.13, '2v2': 0.1, '1v1': 0.11 } };
+  format: { '4v4': 0.15, '3v3': 0.13, '2v2': 0.1, '1v1': 0.11 },
+  // Build 126: from a long way out the keeper has all the time in the world. Whatever the power,
+  // the stats or the corner, the save chance never drops below this, rising from `min` at `from`
+  // to `max` at the halfway line (`to`) and `own` from your own half. A power shot by a maxed
+  // player used to go in 58% of the time from halfway; now about one in ten.
+  // tools/farshotscan.js measures it.
+  longRange: { from: 600, to: 1100, min: 0.35, max: 0.9, own: 0.93, ownAt: 1500 } };
 // PRO MATCH (build 116): the ball goes out of play now and then, the way it does in real football.
 // Only on that pitch (m.rules), and only a bot under pressure: on the wing it runs the ball over the
 // touchline; deep in its own half it clears it into touch, or behind its own goal line for a corner.
@@ -537,8 +543,16 @@ const AI = {
     if (!(s.from && s.from.isHuman && !m.autopilot)) c += K.botShot; // bots finish worse than you
     c += K.format[m.format] || 0; // fewer players = more open shots, so keepers get a little help
     c = clamp(c, 0.05, 0.9);
+    const LR = K.longRange, far = dShot > LR.from;
+    if (far) {
+      const floor = dShot <= LR.to ? lerp(LR.min, LR.max, (dShot - LR.from) / (LR.to - LR.from))
+        : lerp(LR.max, LR.own, clamp((dShot - LR.to) / (LR.ownAt - LR.to), 0, 1));
+      c = Math.max(c, floor);
+    }
     s.saveChance = c; // handy for balance checks
     s.save = Math.random() < c;
+    // from that far, a ball coming straight at him is always kept out: there is time to get there
+    if (far && Math.abs(py - k.y) < 40) s.save = true;
 
     const reachY = clamp(py, GOAL_Y1 - 12, GOAL_Y2 + 12);
     const dy = reachY - k.y;
@@ -546,6 +560,8 @@ const AI = {
     if (Math.abs(dy) > 34 || s.level >= 1) {
       let targetY = s.save ? reachY : k.y + dy * rand(0.2, 0.55);
       if (!s.save && Math.random() < 0.18) targetY = k.y - dy * 0.4; // wrong way!
+      // beaten from long range: he still goes full stretch for it and only just misses
+      if (!s.save && far) targetY = reachY - Math.sign(dy || 1) * Math.min(rand(46, 62), Math.abs(dy) * 0.6);
       const decay = (1 - Math.exp(-3.5 * tt)) / 3.5;
       k.vy = clamp((targetY - k.y) / decay, -1500, 1500);
       k.vx = clamp((lineX + dir * 34 - k.x) / decay, -450, 450);
