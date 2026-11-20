@@ -251,6 +251,13 @@ the screen 47-70% of the time at every size; with this one, 0%.
 
 Test: `node tools/controlscan.js` (on the real engine; it fails on the code before this build).
 
+## Everything for irizarry (build 127)
+
+Server only (no new app): `irizarry` gets what `irizarrygame` has, 10 trillion more coins, every
+item in the game and every season pass for good, each one as it starts with its 20,000 coins
+(`GIFTS` in server.js, `madeBefore` the time it was written, so only the account that already had
+the name gets it). `giftscan` now signs irizarry up too and checks all of it, two weeks on as well.
+
 ## Long shots get saved (build 126)
 
 A shot from the halfway line went straight in far too often: a fully charged POWER SHOT by a player

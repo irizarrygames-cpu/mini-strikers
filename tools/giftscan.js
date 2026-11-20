@@ -78,6 +78,8 @@ process.on('exit', cleanUp);
   check('and somebody else', !!(other && other.token));
   const hv = await post('/auth/signup', { username: 'havertz', password: PW, club: 'germany' });
   check('and havertz', !!(hv && hv.token), hv && hv.msg);
+  const iz = await post('/auth/signup', { username: 'irizarry', password: PW, club: 'spain' });
+  check('and irizarry', !!(iz && iz.token), iz && iz.msg);
   check('a new account made now is too late for the gift: nothing', su && !su.gift && !hasAll(su.save), su && su.gift);
   await post('/save', { token: su.token, save: { coins: 500, owned: { ball: ['watermelon'] }, savedAt: Date.now() }, gifts: true });
   await stop();
@@ -90,6 +92,9 @@ process.on('exit', cleanUp);
   const hid = Object.keys(users).find((k) => users[k] && (users[k].name === 'havertz' || k === 'havertz'));
   check('and havertz\'s', !!hid);
   if (hid) users[hid].created = Date.UTC(2026, 0, 1);
+  const iid = Object.keys(users).find((k) => users[k] && (users[k].name === 'irizarry' || k === 'irizarry'));
+  check('and the irizarry account', !!iid);
+  if (iid) users[iid].created = Date.UTC(2026, 0, 1);
   fs.writeFileSync(DATA, JSON.stringify(d));
 
   console.log('the gift');
@@ -124,6 +129,11 @@ process.on('exit', cleanUp);
   check('havertz: 10 trillion coins and this pass\'s 20,000', h1 && h1.gift === TEN_T + 20000, h1 && h1.gift);
   check('havertz: every item in the game, and this pass, finished', h1 && hasAll(h1.save) && hasPass(h1.save, pass) && h1.save.pass && h1.save.pass.n === pass && h1.save.pass.got.every((g) => g === true));
   check('havertz: nothing from a later pass', h1 && !hasPass(h1.save, pass + 1));
+  // build 127: irizarry's three gifts (a billion, 10 trillion, 10 trillion and everything); the real
+  // account already had the first two, so it gets 10 trillion more and everything
+  const z1 = await post('/auth/login', { username: 'irizarry', password: PW });
+  check('irizarry: its gifts and the 20,000 for this pass', z1 && z1.gift === 1e9 + 2 * TEN_T + 20000, z1 && z1.gift);
+  check('irizarry: every item in the game, and this pass, finished', z1 && hasAll(z1.save) && hasPass(z1.save, pass) && z1.save.pass && z1.save.pass.got.every((g) => g === true));
   check('nobody else gets anything', nobody && nobody.gift === 0 && !hasAll(nobody.save) && !(nobody.save && nobody.save.owned && (nobody.save.owned.emote || []).includes('pe' + pass)), nobody && nobody.gift);
   await stop();
 
@@ -148,6 +158,8 @@ process.on('exit', cleanUp);
   check('havertz two weeks on: still everything from before', h2 && hasAll(h2.save) && hasPass(h2.save, pass), h2 && h2.msg);
   check('havertz: the new pass is not given (earned like anyone else)', h2 && !hasPass(h2.save, pass + 1) && !(h2.save.pass && h2.save.pass.n === pass + 1 && h2.save.pass.got.every((g) => g === true)), h2 && h2.save && h2.save.pass);
   check('havertz: and not its coins', h2 && h2.gift === 0, h2 && h2.gift);
+  const z2 = await post('/auth/login', { username: 'irizarry', password: PW });
+  check('irizarry two weeks on: the new pass as it starts, and its coins once', z2 && hasPass(z2.save, pass + 1) && hasPass(z2.save, pass) && z2.gift === 20000, z2 && z2.gift);
   await stop();
 
   console.log(failures ? `\n${failures} FAILED` : '\nall passed');

@@ -17,7 +17,7 @@ const { forgetEverywhere } = require('./server/friends');
 const iapLib = require('./server/iap');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8450);
-const BUILD = 126;
+const BUILD = 127;
 const ROOT = __dirname;
 const DATA_FILE = process.env.MS_DATA_FILE || path.join(ROOT, 'data.json');
 const PBKDF2_ITERATIONS = 150000;
@@ -198,6 +198,8 @@ const GIFTS = [
   // passesUpTo: everything in the game as it is, season passes only up to that one (later passes are
   // theirs to earn like anyone else)
   { key: '2026-11-18-havertz-10-trillion-everything', user: 'havertz', coins: 10000000000000, everything: true, passesUpTo: 1, madeBefore: Date.UTC(2026, 10, 18, 21, 30) },
+  // build 127: irizarry gets what irizarrygame has: 10 trillion more, every item, every season pass for good
+  { key: '2026-11-20-irizarry-10-trillion-everything', user: 'irizarry', coins: 10000000000000, everything: true, madeBefore: Date.UTC(2026, 10, 20, 13, 35) },
 ];
 // A one-time clean slate, spent the first time it runs.
 //
